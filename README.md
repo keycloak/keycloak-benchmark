@@ -63,6 +63,16 @@ which were already created by `create-realms` endpoint. Each user will have pass
 
     http://localhost:8080/auth/realms/master/dataset/create-users?count=1000&realm-name=realm5
     
+## Remove many realms
+
+To remove all realms with the default realm prefix `realm`
+
+    http://localhost:8080/auth/realms/master/dataset/remove-realms?remove-all=true
+    
+You can use `realm-prefix` to change the default realm prefix. You can use parameters to remove all realms for example just from `foorealm5` to `foorealm15`
+
+    localhost:8080/auth/realms/master/dataset/remove-realms?realm-prefix=foorealm&first-to-remove=5&last-to-remove=15          
+    
 ### Change default parameters
     
 For change the parameters, take a look at [DataSetConfig class](dataset/src/main/java/org/keycloak/benchmark/dataset/config/DatasetConfig.java)
@@ -76,6 +86,20 @@ The configuration is written to the server log when HTTP endpoint is triggered, 
 Note that creation of new objects will automatically start from the next available index. For example when you trigger endpoint above
 for creation many clients and you already had 230 clients in your DB (`client-0`, `client-1`, .. `client-229`), then your HTTP request
 will start creating clients from `client-230` .
+
+### Check last items of particular object
+
+To see last created realm index
+
+    http://localhost:8080/auth/realms/master/dataset/last-realm
+    
+To see last created client in given realm
+
+    http://localhost:8080/auth/realms/master/dataset/last-client?realm-name=realm5
+    
+To see last created user in given realm
+
+    http://localhost:8080/auth/realms/master/dataset/last-user?realm-name=realm5  
     
     
 ## Gatling

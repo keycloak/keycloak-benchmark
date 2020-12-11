@@ -71,6 +71,10 @@ public class TaskResponse {
         return new TaskResponse(null, "No task in progress. New task can be started", null, null);
     }
 
+    public static TaskResponse statusMessage(String statusMessage) {
+        return new TaskResponse(null, statusMessage, null, null);
+    }
+
 
     public String getError() {
         return error;
