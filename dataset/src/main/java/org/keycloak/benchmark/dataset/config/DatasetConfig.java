@@ -23,6 +23,10 @@ import org.keycloak.credential.hash.Pbkdf2PasswordHashProviderFactory;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
 
 /**
  * Configuration parameters, which can be send to the particular datasource operation. They can be send for example through HTTP request
@@ -33,11 +37,23 @@ import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USER
 public class DatasetConfig {
 
     // Used when creating many realms as a prefix. For example when prefix us "foo", we will create realms like "foo0", "foo1" etc.
-    @QueryParamFill(paramName = "realm-prefix", defaultValue = "realm", operations = { CREATE_REALMS })
+    @QueryParamFill(paramName = "realm-prefix", defaultValue = "realm", operations = { CREATE_REALMS, REMOVE_REALMS, LAST_REALM })
     private String realmPrefix;
 
+    // Used if want to remove all realms with given prefix
+    @QueryParamFill(paramName = "remove-all", defaultValue = "false", operations = { REMOVE_REALMS })
+    private String removeAll;
+
+    // First index to remove included. For example if "first-to-remove" is 30 and "last-to-remove" is 40, then realms "realm30", "realm31", ... , "realm39" will be deleted
+    @QueryParamIntFill(paramName = "first-to-remove", defaultValue = -1, operations = { REMOVE_REALMS })
+    private Integer firstToRemove;
+
+    // Last index to remove excluded.
+    @QueryParamIntFill(paramName = "last-to-remove", defaultValue = -1, operations = { REMOVE_REALMS })
+    private Integer lastToRemove;
+
     // Realm-name is required when creating many clients or users. The realm where clients/users will be created must already exists
-    @QueryParamFill(paramName = "realm-name",  required = true, operations = { CREATE_CLIENTS, CREATE_USERS })
+    @QueryParamFill(paramName = "realm-name",  required = true, operations = { CREATE_CLIENTS, CREATE_USERS, LAST_CLIENT, LAST_USER })
     private String realmName;
 
     // NOTE: Start index is not available as parameter as it will be "auto-detected" based on already created realms (clients, users)
@@ -56,7 +72,7 @@ public class DatasetConfig {
     private Integer realmRolesPerRealm;
 
     // Prefix for newly created clients (in case of CREATE_REALMS and CREATE_CLIENTS). In case of CREATE_USERS it is used to find the clients with clientRoles, which will be assigned to users
-    @QueryParamFill(paramName = "client-prefix", defaultValue = "client-", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS })
+    @QueryParamFill(paramName = "client-prefix", defaultValue = "client-", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, LAST_CLIENT })
     private String clientPrefix;
 
     @QueryParamIntFill(paramName = "clients-per-realm", defaultValue = 30, operations = { CREATE_REALMS })
@@ -83,7 +99,7 @@ public class DatasetConfig {
     private Integer groupsPerRealm;
 
     // Prefix for newly created users
-    @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS })
+    @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS, LAST_USER })
     private String userPrefix;
 
     // Count of users to be created in every realm (In case of CREATE_REALMS)
@@ -107,7 +123,7 @@ public class DatasetConfig {
     private Integer passwordHashIterations;
 
     // Transaction timeout used for transactions for creating objects
-    @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS })
+    @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, REMOVE_REALMS })
     private Integer transactionTimeoutInSeconds;
 
     // Count of users created in every transaction
@@ -115,12 +131,12 @@ public class DatasetConfig {
     private Integer usersPerTransaction;
 
     // Count of worker threads concurrently creating entities
-    @QueryParamIntFill(paramName = "threads-count", defaultValue = 5, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS })
+    @QueryParamIntFill(paramName = "threads-count", defaultValue = 5, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, REMOVE_REALMS })
     private Integer threadsCount;
 
     // Timeout for the whole task. If timeout expires, then the existing task may not be terminated immediatelly. However it will be permitted to start another task
     // (EG. Send another HTTP request for creating realms), which can cause conflicts
-    @QueryParamIntFill(paramName = "task-timeout", defaultValue = 3600, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS })
+    @QueryParamIntFill(paramName = "task-timeout", defaultValue = 3600, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, REMOVE_REALMS })
     private Integer taskTimeout;
 
     // String representation of this configuration (cached here to not be computed in runtime)
@@ -128,6 +144,18 @@ public class DatasetConfig {
 
     public String getRealmPrefix() {
         return realmPrefix;
+    }
+
+    public Boolean getRemoveAll() {
+        return Boolean.valueOf(removeAll);
+    }
+
+    public Integer getFirstToRemove() {
+        return firstToRemove;
+    }
+
+    public Integer getLastToRemove() {
+        return lastToRemove;
     }
 
     public String getRealmName() {

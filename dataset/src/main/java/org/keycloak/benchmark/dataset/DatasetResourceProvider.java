@@ -20,6 +20,7 @@ package org.keycloak.benchmark.dataset;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -62,6 +63,10 @@ import org.keycloak.services.resource.RealmResourceProvider;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -138,6 +143,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+    // Implementation of creating many realms. This is triggered outside of HTTP request to not block HTTP request
     private void createRealmsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, int startIndex, int realmEndIndex) {
         KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, (sessionn -> {
             ExecutorHelper executor = null;
@@ -231,6 +237,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         return Response.status(400).entity(TaskResponse.error(de.getMessage())).build();
     }
 
+
     @GET
     @Path("/create-clients")
     @NoCache
@@ -282,7 +289,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
-
+    // Implementation of creating many clients. This is triggered outside of HTTP request to not block HTTP request
     private void createClientsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, RealmModel realm) {
         KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, (sessionn -> {
             ExecutorHelper executor = null;
@@ -380,7 +387,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
-
+    // Implementation of creating many users. This is triggered outside of HTTP request to not block HTTP request
     private void createUsersImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, RealmModel realm) {
         KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, (sessionn -> {
             ExecutorHelper executor = null;
@@ -436,6 +443,120 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
 
     @GET
+    @Path("/remove-realms")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response removeRealms() {
+        boolean started = false;
+        boolean taskAdded = false;
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, REMOVE_REALMS);
+
+            if (!config.getRemoveAll() && (config.getFirstToRemove() == -1 || config.getLastToRemove() == -1)) {
+                throw new DatasetException("Either remove-all need to be true OR both first-to-remove and last-to-remove need to be filled");
+            }
+
+            TimerLogger timerLogger;
+            if (config.getRemoveAll()) {
+                timerLogger = TimerLogger.start("Removal of all realms with prefix " + config.getRealmPrefix());
+            } else {
+                timerLogger = TimerLogger.start("Removal of all realms from " + config.getRealmPrefix() + config.getFirstToRemove() + " to " + config.getRealmPrefix() + (config.getLastToRemove() - 1));
+            }
+
+            TaskManager taskManager = new TaskManager(baseSession);
+            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            if (existingTask != null) {
+                return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
+            } else {
+                taskAdded = true;
+            }
+
+            logger.infof("Trigger removing realms with the configuration: %s", config);
+
+            // Run this in separate thread to not block HTTP request
+            new Thread(() -> {
+
+                removeRealmsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config);
+
+            }).start();
+            started = true;
+
+            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        } finally {
+            if (taskAdded && !started) {
+                new TaskManager(baseSession).removeExistingTask(false);
+            }
+        }
+    }
+
+    // Implementation of removing all realms. This is triggered outside of HTTP request to not block HTTP request
+    private void removeRealmsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config) {
+        KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, (sessionn -> {
+            ExecutorHelper executor = null;
+            try {
+
+                executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
+
+                List<String> realmIds;
+                if (config.getRemoveAll()) {
+
+                    timerLogger.info(logger, "Will obtain list of all realms to remove");
+
+                    // Don't cache realms as we are just about to remove them
+                    realmIds = sessionn.getProvider(RealmProvider.class).getRealms()
+                            .stream()
+                            .filter(realm -> realm.getName().startsWith(config.getRealmPrefix()))
+                            .map(RealmModel::getId)
+                            .collect(Collectors.toList());
+
+                    timerLogger.info(logger, "Will delete %d realms.", realmIds.size());
+                } else {
+                    // Just rely that realmName is same as realmId to avoid additional lookups
+                    realmIds = new LinkedList<>();
+                    for (int i = config.getFirstToRemove() ; i < config.getLastToRemove() ; i++) {
+                        realmIds.add(config.getRealmPrefix() + i);
+                    }
+                }
+
+                for (String realmId : realmIds) {
+
+                    final String currentRealmId = realmId;
+
+                    // Run this concurrently with multiple threads
+                    executor.addTask(session -> {
+                        logger.debugf("Will delete realm %s", currentRealmId);
+
+                        RealmContext context = new RealmContext(config);
+
+                        boolean deleted = session.realms().removeRealm(currentRealmId);
+
+                        if (deleted) {
+                            timerLogger.info(logger, "Deleted realm %s", currentRealmId);
+                        } else {
+                            logger.warnf("Realm %s did not exist", currentRealmId);
+                        }
+                    });
+
+                }
+
+                executor.waitForAllToFinish();
+
+
+                timerLogger.info(logger, "Deleted all %d realms", realmIds.size());
+
+            } finally {
+                if (executor != null) {
+                    executor.shutDown();
+                }
+                new TaskManager(sessionn).removeExistingTask(true);
+            }
+        }), config.getTaskTimeout());
+    }
+
+
+    @GET
     @Path("/status")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
@@ -450,11 +571,91 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+
+    @GET
+    @Path("/last-realm")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response lastRealm() {
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, LAST_REALM);
+            logger.infof("Request to obtain last realm. Configuration: %s", config.toString());
+
+            int startIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String realmName = config.getRealmPrefix() + index;
+                return baseSession.getProvider(RealmProvider.class).getRealmByName(realmName) != null;
+            });
+
+            String response = startIndex == 0 ? "No realm created yet" : config.getRealmPrefix() + (startIndex - 1);
+
+            return Response.ok(TaskResponse.statusMessage(response)).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        }
+    }
+
+
+    @GET
+    @Path("/last-client")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response lastClient() {
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, LAST_CLIENT);
+            logger.infof("Request to obtain last client. Configuration: %s", config.toString());
+
+            RealmModel realm = baseSession.getProvider(RealmProvider.class).getRealmByName(config.getRealmName());
+            if (realm == null) {
+                throw new DatasetException("Realm '" + config.getRealmName() + "' not found");
+            }
+
+            int startIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String clientId = config.getClientPrefix() + index;
+                return realm.getClientByClientId(clientId) != null;
+            });
+
+            String response = startIndex == 0 ? "No client created yet in realm " + realm.getName() : config.getClientPrefix() + (startIndex - 1);
+
+            return Response.ok(TaskResponse.statusMessage(response)).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        }
+    }
+
+
+    @GET
+    @Path("/last-user")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response lastUser() {
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, LAST_USER);
+            logger.infof("Request to obtain last user. Configuration: %s", config.toString());
+
+            RealmModel realm = baseSession.getProvider(RealmProvider.class).getRealmByName(config.getRealmName());
+            if (realm == null) {
+                throw new DatasetException("Realm '" + config.getRealmName() + "' not found");
+            }
+
+            int startIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String username = config.getUserPrefix() + index;
+                return baseSession.users().getUserByUsername(username, realm) != null;
+            });
+
+            String response = startIndex == 0 ? "No user created yet in realm " + realm.getName() : config.getUserPrefix() + (startIndex - 1);
+
+            return Response.ok(TaskResponse.statusMessage(response)).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        }
+    }
+
     @Override
     public void close() {
     }
 
 
+    // Worker task to be triggered by single executor thread
     private void createAndSetRealm(RealmContext context, int index, KeycloakSession session) {
         DatasetConfig config = context.getConfig();
 
@@ -485,6 +686,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+
+    // Worker task to be triggered by single executor thread
     private void createClients(RealmContext context, TimerLogger timerLogger, KeycloakSession session, final int startIndex, final int endIndex) {
         RealmModel realm = context.getRealm();
 
@@ -537,6 +740,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+    // Worker task to be triggered by single executor thread
     private void createUsers(RealmContext context, TimerLogger timerLogger, KeycloakSession session, int startIndex, int endIndex) {
         // Refresh the realm
         RealmModel realm = session.realms().getRealm(context.getRealm().getId());
