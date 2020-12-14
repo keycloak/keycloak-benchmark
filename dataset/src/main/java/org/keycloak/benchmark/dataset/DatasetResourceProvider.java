@@ -718,6 +718,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
             ClientModel model = ClientManager.createClient(session, realm, client, true);
+
+            // Enable service account
+            new ClientManager(new RealmManager(session)).enableServiceAccount(model);
+
             context.clientCreated(model);
 
             for (int k = 0; k < config.getClientRolesPerClient() ; k++) {
