@@ -120,7 +120,10 @@ See if item with ID "123" exists in the cache:
 
     http://localhost:8080/auth/realms/master/remote-cache/sessions/contains/123
     
-    
+### Release
+
+If you need to do changes in the "dataset" and then consume it for example from the Openshift pods, you may need the ability to push
+your changes to the Keycloak and the release it. The info on how to release is in the [RELEASE.md](RELEASE.md).
 ## Gatling
 
 Currently, performance tests are using Gatling as the runtime, where the simulations were extracted from the 
