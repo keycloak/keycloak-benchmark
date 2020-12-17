@@ -144,15 +144,22 @@ Extract the `keycloak-gatling-${version}.[zip|tar.gz]` file.
 
 To start running tests:
 
-    ./run.sh --scenario=keycloak.scenario.authentication.LoginUserPassword
+    ./kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode
 
 By default, tests expect Keycloak running on http://localhost:8080/auth.
 
 To use a different URL:
 
-    ./run.sh --scenario=keycloak.scenario.authentication.LoginUserPassword --server-url=http://localhost:8080
+    ./kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=http://localhost:8080
 
 ### Report
 
 Check reports at the `result` directory.
-    
+
+### Test Scenarios
+
+These are the available test scenarios:
+
+* `keycloak.scenarion.authentication.AuthorizationCode`: Authorization Code Grant Type
+* `keycloak.scenarion.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint)
+* `keycloak.scenarion.authentication.AuthorizationCode`: Client Secret (Client Credentials Grant)
