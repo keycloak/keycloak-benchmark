@@ -117,8 +117,8 @@ class KeycloakScenarioBuilder {
   }
 
   def userThinkPause(): KeycloakScenarioBuilder = {
-    val max = Config.userThinkTime * 0.2
-    chainBuilder = chainBuilder.pause(Config.userThinkTime.seconds, max.seconds)
+    val min = Config.userThinkTime * 0.2
+    chainBuilder = chainBuilder.pause(min.seconds, Config.userThinkTime.seconds)
     this
   }
 
