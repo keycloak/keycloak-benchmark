@@ -50,9 +50,6 @@ do
       --scenario=*)
           SCENARIO=${1#*=}
           ;;
-      --server-url=*)
-          CONFIG_ARGS="$CONFIG_ARGS -Dkeycloak.server.uris=${1#*=}"
-          ;;
       --)
           shift
           break
@@ -79,7 +76,5 @@ if [ "$DEBUG_MODE" = "true" ]; then
 fi
 
 CLASSPATH_OPTS="$DIRNAME/../lib/*"
-
-echo $CONFIG_ARGS
 
 exec java $JAVA_OPTS $CONFIG_ARGS -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$DIRNAME/../results" -s $SCENARIO

@@ -1,51 +1,47 @@
-package keycloak
+package keycloak.scenario._private
 
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
-import keycloak.AdminConsoleScenarioBuilder._
+import keycloak.Utils
+import keycloak.scenario._private.AdminConsoleScenarioBuilder.{ACCEPT_ALL, ACCEPT_JSON, APP_URL, AUTHORIZATION, DATE_FMT, UI_HEADERS, getRandomUser}
+import keycloak.Utils.{randomUUID, urlEncodedRoot, urlencode}
+import org.keycloak.benchmark.Config
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-
-import io.gatling.core.pause.Normal
-import io.gatling.http.request.StringBody
-import org.jboss.perf.util.Util
-import org.jboss.perf.util.Util.randomUUID
-import org.keycloak.gatling.Utils.{urlEncodedRoot, urlencode}
-import org.keycloak.performance.TestConfig
-
+import scala.concurrent.duration._
 
 /**
-  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
-  */
+ * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
+ */
 
 object AdminConsoleScenarioBuilder {
 
-    val UI_HEADERS = Map(
-      "Accept" -> "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Upgrade-Insecure-Requests" -> "1")
+  val UI_HEADERS = Map(
+    "Accept" -> "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Upgrade-Insecure-Requests" -> "1")
 
-    val ACCEPT_JSON = Map("Accept" -> "application/json")
-    val ACCEPT_ALL = Map("Accept" -> "*/*")
-    val AUTHORIZATION = Map("Authorization" -> "Bearer ${accessToken}")
+  val ACCEPT_JSON = Map("Accept" -> "application/json")
+  val ACCEPT_ALL = Map("Accept" -> "*/*")
+  val AUTHORIZATION = Map("Authorization" -> "Bearer ${accessToken}")
 
-    val APP_URL = "${keycloakServer}/admin/master/console/"
-    val DATE_FMT = DateTimeFormatter.RFC_1123_DATE_TIME
+  val APP_URL = "${keycloakServer}/admin/master/console/"
+  val DATE_FMT = DateTimeFormatter.RFC_1123_DATE_TIME
 
 
-    def getRandomUser() : String = {
-      "user_" + (Util.random.nextDouble() * TestConfig.numUsersPerRealm).toInt
-    }
+  def getRandomUser(): String = {
+    "user_" + (Utils.random.nextDouble() * Config.numUsersPerRealm).toInt
+  }
 
-    def needTokenRefresh(sess: Session): Boolean = {
-      val lastRefresh = sess("accessTokenRefreshTime").as[Long]
+  def needTokenRefresh(sess: Session): Boolean = {
+    val lastRefresh = sess("accessTokenRefreshTime").as[Long]
 
-      // 5 seconds before expiry is time to refresh
-      lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis() ||
-        // or if refreshTokenPeriod is set force refresh even if not necessary
-        (TestConfig.refreshTokenPeriod > 0 &&
-          lastRefresh + TestConfig.refreshTokenPeriod * 1000 < System.currentTimeMillis())
-    }
+    // 5 seconds before expiry is time to refresh
+    lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis() ||
+      // or if refreshTokenPeriod is set force refresh even if not necessary
+      (Config.refreshTokenPeriod > 0 &&
+        lastRefresh + Config.refreshTokenPeriod * 1000 < System.currentTimeMillis())
+  }
 }
 
 class AdminConsoleScenarioBuilder {
@@ -66,46 +62,7 @@ class AdminConsoleScenarioBuilder {
     )
   }).exitHereIfFailed
 
-
-
-  def thinkPause() : AdminConsoleScenarioBuilder = {
-    chainBuilder = chainBuilder.pause(TestConfig.userThinkTime, Normal(TestConfig.userThinkTime * 0.2))
-    this
-  }
-
-  def needTokenRefresh(sess: Session): Boolean = {
-    val lastRefresh = sess("accessTokenRefreshTime").as[Long]
-
-    // 5 seconds before expiry is time to refresh
-    lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis() ||
-      // or if refreshTokenPeriod is set force refresh even if not necessary
-      (TestConfig.refreshTokenPeriod > 0 &&
-        lastRefresh + TestConfig.refreshTokenPeriod * 1000 < System.currentTimeMillis())
-  }
-
-  def refreshTokenIfExpired() : AdminConsoleScenarioBuilder = {
-    chainBuilder = chainBuilder
-      .doIf(s => needTokenRefresh(s)) {
-        exec(http("JS Adapter Token - Refresh tokens")
-          .post("/auth/realms/master/protocol/openid-connect/token")
-          .headers(ACCEPT_ALL)
-          .formParam("grant_type", "refresh_token")
-          .formParam("refresh_token", "${refreshToken}")
-          .formParam("client_id", "security-admin-console")
-          .check(status.is(200),
-            jsonPath("$.access_token").saveAs("accessToken"),
-            jsonPath("$.refresh_token").saveAs("refreshToken"),
-            jsonPath("$.expires_in").saveAs("expiresIn"),
-            header("Date").saveAs("tokenTime")))
-
-          .exec(s => {
-            s.set("accessTokenRefreshTime", ZonedDateTime.parse(s("tokenTime").as[String], DATE_FMT).toEpochSecond * 1000)
-          })
-      }
-    this
-  }
-
-  def openAdminConsoleHome() : AdminConsoleScenarioBuilder = {
+  def openAdminConsoleHome(): AdminConsoleScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Console Home")
         .get("/auth/admin/")
@@ -124,7 +81,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def loginThroughLoginForm() : AdminConsoleScenarioBuilder = {
+  def loginThroughLoginForm(): AdminConsoleScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("JS Adapter Auth - Login Form Redirect")
         .get("/auth/realms/master/protocol/openid-connect/auth?client_id=security-admin-console&redirect_uri=${keycloakServerUrlEncoded}%2Fadmin%2Fmaster%2Fconsole%2F&state=${state}&nonce=${nonce}&response_mode=fragment&response_type=code&scope=openid")
@@ -220,7 +177,13 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def openRealmSettings() : AdminConsoleScenarioBuilder = {
+  def thinkPause(): AdminConsoleScenarioBuilder = {
+    val max = Config.userThinkTime * 0.2
+    chainBuilder = chainBuilder.pause(Config.userThinkTime.seconds, max.seconds)
+    this
+  }
+
+  def openRealmSettings(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder.exec(http("Console Realm Settings")
       .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/realm-detail.html")
@@ -271,11 +234,11 @@ class AdminConsoleScenarioBuilder {
           .check(status.is(200))
       )
     )
-    .exitHereIfFailed
+      .exitHereIfFailed
     this
   }
 
-  def openClients() : AdminConsoleScenarioBuilder = {
+  def openClients(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - client-list.html")
@@ -304,7 +267,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def openCreateNewClient() : AdminConsoleScenarioBuilder = {
+  def openCreateNewClient(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - create-client.html")
@@ -321,7 +284,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def submitNewClient() : AdminConsoleScenarioBuilder = {
+  def submitNewClient(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console REST - ${realm}/clients POST")
@@ -363,7 +326,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def updateClient() : AdminConsoleScenarioBuilder = {
+  def updateClient(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder.exec(s => {
       s.set("updateClientJson", s("clientJson").as[String].replace("\"publicClient\":false", "\"publicClient\":true"))
@@ -404,7 +367,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def openClientDetails() : AdminConsoleScenarioBuilder = {
+  def openClientDetails(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - client-detail.html")
@@ -446,7 +409,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def openUsers() : AdminConsoleScenarioBuilder = {
+  def openUsers(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - user-list.html")
@@ -471,7 +434,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def viewAllUsers() : AdminConsoleScenarioBuilder = {
+  def viewAllUsers(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console REST - ${realm}/users")
@@ -482,7 +445,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def viewTenPagesOfUsers() : AdminConsoleScenarioBuilder = {
+  def viewTenPagesOfUsers(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .repeat(10, "i") {
@@ -497,7 +460,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def find20Users() : AdminConsoleScenarioBuilder = {
+  def find20Users(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console REST - ${realm}/users?first=0&max=20&search=user")
@@ -508,7 +471,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def findUnlimitedUsers() : AdminConsoleScenarioBuilder = {
+  def findUnlimitedUsers(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console REST - ${realm}/users?search=user")
@@ -519,7 +482,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def findRandomUser() : AdminConsoleScenarioBuilder = {
+  def findRandomUser(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(s => s.set("randomUsername", getRandomUser()))
@@ -531,7 +494,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def openUser() : AdminConsoleScenarioBuilder = {
+  def openUser(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - user-detail.html")
@@ -574,7 +537,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def openUserCredentials() : AdminConsoleScenarioBuilder = {
+  def openUserCredentials(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - user-credentials.html")
@@ -607,7 +570,39 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def setTemporaryPassword() : AdminConsoleScenarioBuilder = {
+  def refreshTokenIfExpired(): AdminConsoleScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .doIf(s => needTokenRefresh(s)) {
+        exec(http("JS Adapter Token - Refresh tokens")
+          .post("/auth/realms/master/protocol/openid-connect/token")
+          .headers(ACCEPT_ALL)
+          .formParam("grant_type", "refresh_token")
+          .formParam("refresh_token", "${refreshToken}")
+          .formParam("client_id", "security-admin-console")
+          .check(status.is(200),
+            jsonPath("$.access_token").saveAs("accessToken"),
+            jsonPath("$.refresh_token").saveAs("refreshToken"),
+            jsonPath("$.expires_in").saveAs("expiresIn"),
+            header("Date").saveAs("tokenTime")))
+
+          .exec(s => {
+            s.set("accessTokenRefreshTime", ZonedDateTime.parse(s("tokenTime").as[String], DATE_FMT).toEpochSecond * 1000)
+          })
+      }
+    this
+  }
+
+  def needTokenRefresh(sess: Session): Boolean = {
+    val lastRefresh = sess("accessTokenRefreshTime").as[Long]
+
+    // 5 seconds before expiry is time to refresh
+    lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis() ||
+      // or if refreshTokenPeriod is set force refresh even if not necessary
+      (Config.refreshTokenPeriod > 0 &&
+        lastRefresh + Config.refreshTokenPeriod * 1000 < System.currentTimeMillis())
+  }
+
+  def setTemporaryPassword(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console REST - ${realm}/users/ID/reset-password PUT")
@@ -621,7 +616,7 @@ class AdminConsoleScenarioBuilder {
     this
   }
 
-  def logout() : AdminConsoleScenarioBuilder = {
+  def logout(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Browser logout")

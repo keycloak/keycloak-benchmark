@@ -144,14 +144,13 @@ Extract the `keycloak-gatling-${version}.[zip|tar.gz]` file.
 
 To start running tests:
 
-    ./run.sh --scenario=keycloak.OIDCLoginAndLogoutSimulation --realm-name=test --username=test --user-password=test --users-per-sec=10
+    ./run.sh --scenario=keycloak.scenario.authentication.LoginUserPassword
 
-Alternatively, you can run tests using different realms and users:
+By default, tests expect Keycloak running on http://localhost:8080/auth.
 
-    ./run.sh --scenario=keycloak.OIDCLoginAndLogoutSimulation --realms=599 --users-per-realm=199
-    
-By default, tests expect Keycloak running at http://localhost:8080. To run using a different URL pass the
-`--server-url=<keycloak_url>` option. For instance, `--server-url=https://keycloak.org/auth`.
+To use a different URL:
+
+    ./run.sh --scenario=keycloak.scenario.authentication.LoginUserPassword --server-url=http://localhost:8080
 
 ### Report
 
