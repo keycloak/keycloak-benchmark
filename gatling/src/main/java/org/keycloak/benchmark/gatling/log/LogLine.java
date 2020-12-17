@@ -1,4 +1,4 @@
-package org.keycloak.gatling.log;
+package org.keycloak.benchmark.gatling.log;
 
 /**
  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
@@ -145,7 +145,7 @@ class LogLine {
                 return rawLine;
             }
             case RUN: {
-                return simulationClass + "\t" + simulationId + "\t" + type.caption() + "\t" + start + "\t"+ description +"\t2.0\t";
+                return simulationClass + "\t" + simulationId + "\t" + type.caption() + "\t" + start + "\t" + description + "\t2.0\t";
             }
             case REQUEST: {
                 return scenario + "\t" + userId + "\t" + type.caption() + "\t" + request + "\t" + start + "\t" +
@@ -171,7 +171,7 @@ class LogLine {
         USER_START("USER\tSTART"),
         USER_END("USER\tEND");
 
-        private String caption;
+        private final String caption;
 
         Type(String caption) {
             this.caption = caption;

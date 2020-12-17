@@ -1,21 +1,23 @@
-package org.keycloak.gatling.log;
+package org.keycloak.benchmark.gatling.log;
+
+import static org.keycloak.benchmark.Config.SIMPLE_TIME;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import static org.keycloak.performance.TestConfig.SIMPLE_TIME;
 
 /**
  * To run use the following:
- *
- *   mvn -f testsuite/integration-arquillian/performance/tests exec:java -Dexec.mainClass=org.keycloak.performance.log.LogProcessor -Dexec.args="ARGUMENTS"
+ * <p>
+ * mvn -f testsuite/integration-arquillian/performance/tests exec:java -Dexec.mainClass=org.keycloak.performance.log.LogProcessor -Dexec.args="ARGUMENTS"
  *
  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
  */
@@ -32,8 +34,8 @@ public class LogProcessor {
 
     /**
      * Create a log processor that knows how to parse the following format
-     *
-     *
+     * <p>
+     * <p>
      * keycloak.AdminSimulation        adminsimulation RUN     1502467483145   null    2.0
      * AdminSimulation 1829459789004783445-0   USER    START   1502467483171   0
      * AdminSimulation 1829459789004783445-0   REQUEST         Console REST - Config   1502467483296   1502467483299   1502467483303   1502467483303   OK
@@ -57,18 +59,160 @@ public class LogProcessor {
     public static String getSimulationId(Class simulationClass) {
         return simulationClass.getSimpleName().toLowerCase();
     }
-    
+
     private static File getLatestSimulationLogDir(String simulationId) {
         String buildDirPath = System.getProperty("project.build.directory", "target");
         String resultsDirPath = System.getProperty("gatling.core.directory.results", buildDirPath + "/gatling");
         File resultsDir = new File(resultsDirPath);
-        
+
         return Arrays.stream(resultsDir.listFiles((dir, name) -> name.startsWith(simulationId)))
                 .sorted((a, b) -> -a.compareTo(b))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Latest simulation.log not found."));
     }
-    
+
+    public static void main(String[] args) {
+        if (args == null || args.length == 0) {
+            printHelp();
+            System.exit(1);
+        }
+
+        boolean debug = false;
+        boolean help = false;
+        String inFile = null;
+        boolean performStat = false;
+        boolean performExtract = false;
+        String outFile = null;
+        long startMillis = -1;
+        long endMillis = -1;
+        String lastRequestLabel = null;
+
+        try {
+            // Gather and print out stats
+            int i = 0;
+            for (i = 0; i < args.length; i++) {
+                String arg = args[i];
+                switch (arg) {
+                    case "-X":
+                        debug = true;
+                        break;
+                    case "-f":
+                    case "--file":
+                        if (i == args.length - 1) {
+                            throw new RuntimeException("Argument " + arg + " requires a FILE");
+                        }
+                        inFile = args[++i];
+                        break;
+                    case "-s":
+                    case "--stat":
+                        performStat = true;
+                        break;
+                    case "-e":
+                    case "--extract":
+                        performExtract = true;
+                        break;
+                    case "-o":
+                    case "--out":
+                        if (i == args.length - 1) {
+                            throw new RuntimeException("Argument " + arg + " requires a FILE");
+                        }
+                        outFile = args[++i];
+                        break;
+                    case "--start":
+                        if (i == args.length - 1) {
+                            throw new RuntimeException("Argument " + arg + " requires a timestamp in milliseconds");
+                        }
+                        startMillis = Long.valueOf(args[++i]);
+                        break;
+                    case "--end":
+                        if (i == args.length - 1) {
+                            throw new RuntimeException("Argument " + arg + " requires a timestamp in milliseconds");
+                        }
+                        endMillis = Long.valueOf(args[++i]);
+                        break;
+                    case "--lastRequest":
+                        if (i == args.length - 1) {
+                            throw new RuntimeException("Argument " + arg + " requires a LABEL");
+                        }
+                        lastRequestLabel = args[++i];
+                        break;
+                    case "--help":
+                        help = true;
+                        break;
+                    default:
+                        throw new RuntimeException("Unknown argument: " + arg);
+                }
+            }
+
+            if (help) {
+                printHelp();
+                System.exit(0);
+            }
+
+            if (inFile == null) {
+                throw new RuntimeException("No path to simulation.log file specified. Use -f FILE, or --help to see more help.");
+            }
+
+            LogProcessor proc = new LogProcessor(inFile);
+            proc.setLastRequestLabel(lastRequestLabel);
+
+            if (performStat) {
+                Stats stats = proc.stats();
+                // Print out results
+                System.out.println("Start time: " + stats.getStartTime());
+                System.out.println("End time: " + stats.getLastUserEnd());
+                System.out.println("Duration (ms): " + (stats.getLastUserEnd() - stats.getStartTime()));
+                System.out.println("Ramping up completes at: " + stats.getLastUserStart());
+                System.out.println("Ramping down starts at: " + stats.getFirstUserEnd());
+                System.out.println();
+
+                System.out.println("HTTP Requests:");
+                for (Map.Entry<String, Set<String>> scenario : stats.requestNames().entrySet()) {
+                    for (String name : scenario.getValue()) {
+                        System.out.println("  [" + scenario.getKey() + "]\t" + name + "\t" + stats.requestCount(scenario.getKey(), name));
+                    }
+                }
+                System.out.println();
+
+                System.out.println("Times of completed iterations:");
+                for (Map.Entry<String, ArrayList<Long>> ent : stats.getCompletedIterations().entrySet()) {
+                    System.out.println("  " + ent.getKey() + ": " + ent.getValue());
+                }
+            }
+            if (performExtract) {
+                if (outFile == null) {
+                    throw new RuntimeException("No output file specified for extraction results. Use -o FILE, or --help to see more help.");
+                }
+                PrintWriter out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outFile), StandardCharsets.UTF_8));
+                proc.copyPartialLog(out, startMillis, endMillis);
+            }
+            if (!performStat && !performExtract) {
+                throw new RuntimeException("Nothing to do. Use -s to analyze simulation log, -e to perform time based extraction, or --help to see more help.");
+            }
+        } catch (Throwable t) {
+            System.out.println(t.getMessage());
+            if (debug) {
+                t.printStackTrace();
+            }
+            System.exit(1);
+        }
+    }
+
+    public static void printHelp() {
+        System.out.println("Usage: java org.keycloak.performance.log.LogProcessor ARGUMENTS");
+        System.out.println();
+        System.out.println("ARGUMENTS:");
+        System.out.println("  -f, --file FILE      Path to simulation.log file ");
+        System.out.println("  -s, --stat           Perform analysis of the log and output some stats");
+        System.out.println("  -e, --extract        Copy a portion of the file PATH_TO_SIMULATION_LOG_FILE ");
+        System.out.println("  -o, --out FILE       Output file that will contain extracted portion of the log");
+        System.out.println("  --start MILLIS       Timestamp at which to start extracting");
+        System.out.println("  --end MILLIS         Timestamp at which to stop extracting");
+        System.out.println("  --lastRequest LABEL  Label of last request in the iteration");
+        System.out.println("  -X                   Output a detailed error when something goes wrong");
+        System.out.println();
+    }
+
     public Stats stats() throws IOException {
 
         Stats stats = new Stats();
@@ -107,7 +251,6 @@ public class LogProcessor {
         return stats;
     }
 
-
     private void iterationCompleted(String scenario, String userId) {
         HashMap<String, Integer> userMap = userIterations.computeIfAbsent(scenario, k -> new HashMap<>());
         int count = userMap.getOrDefault(userId, 0);
@@ -127,7 +270,7 @@ public class LogProcessor {
     private boolean allUsersCompletedIteration(String scenario) {
         HashMap<String, Integer> userMap = userIterations.computeIfAbsent(scenario, k -> new HashMap<>());
         // check if all users have reached currentIteration
-        for (Integer val: userMap.values()) {
+        for (Integer val : userMap.values()) {
             if (val < currentIterations.getOrDefault(scenario, 1))
                 return false;
         }
@@ -143,37 +286,36 @@ public class LogProcessor {
     }
 
     /**
-     *
      * Setting inlayedIncluded to either true or false, results in first second anomaly towards lower values
      * Setting outlayedIncluded to true, and inlayedIncluded to false seems to behave best balancing the first second
      * downward skew with the last second upward skew. But it varies between test, and it's hard to say.
-     *
+     * <p>
      * All requests within time interval will also have their corresponding USER START and USER END entries copied
      * over, and adjusted to time interval start and end boundaries.
      *
-     * @param start Time stamp at which to start copying over logged entries
-     * @param end Time stamp beyond which logging entries are no longer copied over
-     * @param inlayedIncluded Requests that start before interval start time but end within time interval should be included
+     * @param start            Time stamp at which to start copying over logged entries
+     * @param end              Time stamp beyond which logging entries are no longer copied over
+     * @param inlayedIncluded  Requests that start before interval start time but end within time interval should be included
      * @param outlayedIncluded Requests that start within time interval but end after interval end time should be included
      * @throws IOException
      */
     public void filterLog(long start, long end, boolean inlayedIncluded, boolean outlayedIncluded) throws IOException {
         this.inlayedIncluded = inlayedIncluded;
         this.outlayedIncluded = outlayedIncluded;
-        
+
         System.out.println(String.format("Filtering %s/%s \ninlayedIncluded: %s \noutlayedIncluded: %s",
                 simulationLogFile.getParentFile().getName(), simulationLogFile.getName(), this.inlayedIncluded, this.outlayedIncluded));
 
         File simulationLogFileFiltered = new File(simulationLogFile.getAbsoluteFile() + ".filtered");
         File simulationLogFileUnfiltered = new File(simulationLogFile.getAbsoluteFile() + ".unfiltered");
 
-        PrintWriter out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(simulationLogFileFiltered), "utf-8"));
+        PrintWriter out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(simulationLogFileFiltered), StandardCharsets.UTF_8));
         copyPartialLog(out, start, end);
 
         simulationLogFile.renameTo(simulationLogFileUnfiltered);
         simulationLogFileFiltered.renameTo(simulationLogFile);
     }
-    
+
     public void copyPartialLog(PrintWriter output, long start, long end) throws IOException {
 
         System.out.println(String.format("Extracting from: %s to %s   (%s - %s)", SIMPLE_TIME.format(start), SIMPLE_TIME.format(end), start, end));
@@ -296,148 +438,5 @@ public class LogProcessor {
 
     public void setLastRequestLabel(String lastRequestLabel) {
         this.lastRequestLabel = lastRequestLabel;
-    }
-
-
-    public static void main(String [] args) {
-        if (args == null || args.length == 0) {
-            printHelp();
-            System.exit(1);
-        }
-
-        boolean debug = false;
-        boolean help = false;
-        String inFile = null;
-        boolean performStat = false;
-        boolean performExtract = false;
-        String outFile = null;
-        long startMillis = -1;
-        long endMillis = -1;
-        String lastRequestLabel = null;
-
-        try {
-            // Gather and print out stats
-            int i = 0;
-            for (i = 0; i < args.length; i++) {
-                String arg = args[i];
-                switch (arg) {
-                    case "-X":
-                        debug = true;
-                        break;
-                    case "-f":
-                    case "--file":
-                        if (i == args.length - 1) {
-                            throw new RuntimeException("Argument " + arg + " requires a FILE");
-                        }
-                        inFile = args[++i];
-                        break;
-                    case "-s":
-                    case "--stat":
-                        performStat = true;
-                        break;
-                    case "-e":
-                    case "--extract":
-                        performExtract = true;
-                        break;
-                    case "-o":
-                    case "--out":
-                        if (i == args.length - 1) {
-                            throw new RuntimeException("Argument " + arg + " requires a FILE");
-                        }
-                        outFile = args[++i];
-                        break;
-                    case "--start":
-                        if (i == args.length - 1) {
-                            throw new RuntimeException("Argument " + arg + " requires a timestamp in milliseconds");
-                        }
-                        startMillis = Long.valueOf(args[++i]);
-                        break;
-                    case "--end":
-                        if (i == args.length - 1) {
-                            throw new RuntimeException("Argument " + arg + " requires a timestamp in milliseconds");
-                        }
-                        endMillis = Long.valueOf(args[++i]);
-                        break;
-                    case "--lastRequest":
-                        if (i == args.length - 1) {
-                            throw new RuntimeException("Argument " + arg + " requires a LABEL");
-                        }
-                        lastRequestLabel = args[++i];
-                        break;
-                    case "--help":
-                        help = true;
-                        break;
-                    default:
-                        throw new RuntimeException("Unknown argument: " + arg);
-                }
-            }
-
-            if (help) {
-                printHelp();
-                System.exit(0);
-            }
-
-            if (inFile == null) {
-                throw new RuntimeException("No path to simulation.log file specified. Use -f FILE, or --help to see more help.");
-            }
-
-            LogProcessor proc = new LogProcessor(inFile);
-            proc.setLastRequestLabel(lastRequestLabel);
-
-            if (performStat) {
-                Stats stats = proc.stats();
-                // Print out results
-                System.out.println("Start time: " + stats.getStartTime());
-                System.out.println("End time: " + stats.getLastUserEnd());
-                System.out.println("Duration (ms): " + (stats.getLastUserEnd() - stats.getStartTime()));
-                System.out.println("Ramping up completes at: " + stats.getLastUserStart());
-                System.out.println("Ramping down starts at: " + stats.getFirstUserEnd());
-                System.out.println();
-
-                System.out.println("HTTP Requests:");
-                for (Map.Entry<String, Set<String>> scenario: stats.requestNames().entrySet()) {
-                    for (String name: scenario.getValue()) {
-                        System.out.println("  [" + scenario.getKey() + "]\t" + name + "\t" + stats.requestCount(scenario.getKey(), name));
-                    }
-                }
-                System.out.println();
-
-                System.out.println("Times of completed iterations:");
-                for (Map.Entry<String, ArrayList<Long>> ent: stats.getCompletedIterations().entrySet()) {
-                    System.out.println("  " + ent.getKey() + ": " + ent.getValue());
-                }
-            }
-            if (performExtract) {
-                if (outFile == null) {
-                    throw new RuntimeException("No output file specified for extraction results. Use -o FILE, or --help to see more help.");
-                }
-                PrintWriter out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outFile), "utf-8"));
-                proc.copyPartialLog(out, startMillis, endMillis);
-            }
-            if (!performStat && !performExtract) {
-                throw new RuntimeException("Nothing to do. Use -s to analyze simulation log, -e to perform time based extraction, or --help to see more help.");
-            }
-        } catch (Throwable t) {
-            System.out.println(t.getMessage());
-            if (debug) {
-                t.printStackTrace();
-            }
-            System.exit(1);
-        }
-    }
-
-    public static void printHelp() {
-        System.out.println("Usage: java org.keycloak.performance.log.LogProcessor ARGUMENTS");
-        System.out.println();
-        System.out.println("ARGUMENTS:");
-        System.out.println("  -f, --file FILE      Path to simulation.log file ");
-        System.out.println("  -s, --stat           Perform analysis of the log and output some stats");
-        System.out.println("  -e, --extract        Copy a portion of the file PATH_TO_SIMULATION_LOG_FILE ");
-        System.out.println("  -o, --out FILE       Output file that will contain extracted portion of the log");
-        System.out.println("  --start MILLIS       Timestamp at which to start extracting");
-        System.out.println("  --end MILLIS         Timestamp at which to stop extracting");
-        System.out.println("  --lastRequest LABEL  Label of last request in the iteration");
-        System.out.println("  -X                   Output a detailed error when something goes wrong");
-        System.out.println();
     }
 }

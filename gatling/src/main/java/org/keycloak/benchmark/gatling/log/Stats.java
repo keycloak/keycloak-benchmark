@@ -1,4 +1,4 @@
-package org.keycloak.gatling.log;
+package org.keycloak.benchmark.gatling.log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,46 +24,46 @@ class Stats {
     private long lastUserEnd;
 
     // timestamps of iteration completions - when all users achieved last step of the scenario - for each scenario in the log file
-    private ConcurrentHashMap<String, ArrayList<Long>> completedIterations = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ArrayList<Long>> completedIterations = new ConcurrentHashMap<>();
 
-    private LinkedHashMap<String, Set<String>> scenarioRequests = new LinkedHashMap<>();
+    private final LinkedHashMap<String, Set<String>> scenarioRequests = new LinkedHashMap<>();
 
-    private HashMap<String, Integer> requestCounters = new HashMap<>();
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public void setLastUserStart(long lastUserStart) {
-        this.lastUserStart = lastUserStart;
-    }
-
-    public void setFirstUserEnd(long firstUserEnd) {
-        this.firstUserEnd = firstUserEnd;
-    }
+    private final HashMap<String, Integer> requestCounters = new HashMap<>();
 
     public long firstUserEnd() {
         return firstUserEnd;
-    }
-
-    public void setLastUserEnd(long lastUserEnd) {
-        this.lastUserEnd = lastUserEnd;
     }
 
     public long getStartTime() {
         return startTime;
     }
 
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
     public long getLastUserStart() {
         return lastUserStart;
+    }
+
+    public void setLastUserStart(long lastUserStart) {
+        this.lastUserStart = lastUserStart;
     }
 
     public long getFirstUserEnd() {
         return firstUserEnd;
     }
 
+    public void setFirstUserEnd(long firstUserEnd) {
+        this.firstUserEnd = firstUserEnd;
+    }
+
     public long getLastUserEnd() {
         return lastUserEnd;
+    }
+
+    public void setLastUserEnd(long lastUserEnd) {
+        this.lastUserEnd = lastUserEnd;
     }
 
     public Map<String, ArrayList<Long>> getCompletedIterations() {

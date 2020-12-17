@@ -1,15 +1,17 @@
-package keycloak
+package keycloak.scenario._private
 
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
+import keycloak.scenario.CommonSimulation
+import org.keycloak.benchmark.Config
 
 /**
-  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
-  */
+ * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
+ */
 class AdminConsoleSimulation extends CommonSimulation {
 
   val httpProtocol = http
-    .baseURL("http://localhost:8080")
+    .baseUrl("http://localhost:8080")
     .disableFollowRedirect
     .inferHtmlResources()
     .acceptHeader("application/json, text/plain, */*")
@@ -75,6 +77,7 @@ class AdminConsoleSimulation extends CommonSimulation {
 
   val adminScenario = scenario("AdminConsole").exec(adminSession.chainBuilder)
 
-  setUp(adminScenario.inject(defaultInjectionProfile).protocols(httpProtocol))
+  setUp(adminScenario.inject(rampUsersPerSec(0.001) to Config.usersPerSec during (Config.rampUpPeriod),
+    constantUsersPerSec(Config.usersPerSec) during (Config.warmUpPeriod + Config.measurementPeriod)).protocols(httpProtocol))
 
 }
