@@ -677,6 +677,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         try {
             Map<String, Integer> total = new HashMap<>();
 
+            total.put("realms", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("realms").size());
+            total.put("users", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("users").size());
             total.put("sessions", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("sessions").size());
             total.put("clientSessions", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("clientSessions").size());
             total.put("actionTokens", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("actionTokens").size());

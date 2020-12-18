@@ -31,7 +31,7 @@ DEBUG_PORT="${DEBUG_PORT:-8787}"
 
 CONFIG_ARGS=${CONFIG_ARGS:-""}
 
-SCENARIO="keycloak.ClientCredentialsSimulation"
+SCENARIO="keycloak.scenario.authentication.ClientSecret"
 
 while [ "$#" -gt 0 ]
 do
