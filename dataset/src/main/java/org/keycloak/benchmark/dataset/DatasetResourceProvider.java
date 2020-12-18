@@ -20,10 +20,8 @@ package org.keycloak.benchmark.dataset;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,7 +39,6 @@ import org.jboss.resteasy.spi.HttpRequest;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
-import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
@@ -648,42 +645,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             String response = startIndex == 0 ? "No user created yet in realm " + realm.getName() : config.getUserPrefix() + (startIndex - 1);
 
             return Response.ok(TaskResponse.statusMessage(response)).build();
-        } catch (DatasetException de) {
-            return handleDatasetException(de);
-        }
-    }
-
-    @GET
-    @Path("/caches-clear")
-    @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response clearSessionCaches() {
-        try {
-            baseSession.getProvider(InfinispanConnectionProvider.class).getCache("sessions").clear();
-            baseSession.getProvider(InfinispanConnectionProvider.class).getCache("clientSessions").clear();
-            baseSession.getProvider(InfinispanConnectionProvider.class).getCache("actionTokens").clear();
-            baseSession.getProvider(InfinispanConnectionProvider.class).getCache("authenticationSessions").clear();
-            return Response.ok(new HashMap<>()).build();
-        } catch (DatasetException de) {
-            return handleDatasetException(de);
-        }
-    }
-
-    @GET
-    @Path("/caches-size")
-    @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response cacheSize() {
-        try {
-            Map<String, Integer> total = new HashMap<>();
-
-            total.put("realms", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("realms").size());
-            total.put("users", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("users").size());
-            total.put("sessions", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("sessions").size());
-            total.put("clientSessions", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("clientSessions").size());
-            total.put("actionTokens", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("actionTokens").size());
-            total.put("authenticationSessions", baseSession.getProvider(InfinispanConnectionProvider.class).getCache("authenticationSessions").size());
-            return Response.ok(total).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         }
