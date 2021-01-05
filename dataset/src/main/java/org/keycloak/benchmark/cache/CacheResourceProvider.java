@@ -18,9 +18,9 @@
 
 package org.keycloak.benchmark.cache;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -31,6 +31,7 @@ import org.infinispan.Cache;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.resteasy.annotations.cache.NoCache;
+import org.keycloak.benchmark.dataset.TaskResponse;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.sessions.infinispan.util.InfinispanUtil;
@@ -42,14 +43,15 @@ import org.keycloak.utils.MediaType;
  */
 public class CacheResourceProvider implements RealmResourceProvider {
 
-    private final KeycloakSession session;
-
-    private String[] CACHE_NAMES = {
+    private static final String[] CORE_CACHE_NAMES = {
             InfinispanConnectionProvider.REALM_CACHE_NAME,
             InfinispanConnectionProvider.USER_CACHE_NAME,
             InfinispanConnectionProvider.AUTHORIZATION_CACHE_NAME,
             InfinispanConnectionProvider.ACTION_TOKEN_CACHE,
-            InfinispanConnectionProvider.WORK_CACHE_NAME,
+            InfinispanConnectionProvider.WORK_CACHE_NAME
+    };
+
+    private static final String[] SESSION_CACHE_NAMES = {
             InfinispanConnectionProvider.AUTHENTICATION_SESSIONS_CACHE_NAME,
             InfinispanConnectionProvider.USER_SESSION_CACHE_NAME,
             InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME,
@@ -57,6 +59,9 @@ public class CacheResourceProvider implements RealmResourceProvider {
             InfinispanConnectionProvider.OFFLINE_CLIENT_SESSION_CACHE_NAME
     };
 
+    private static final String[] CACHE_NAMES = Stream.of(CORE_CACHE_NAMES, SESSION_CACHE_NAMES).flatMap(Stream::of).toArray(String[]::new);
+
+    private final KeycloakSession session;
 
     public CacheResourceProvider(KeycloakSession session) {
         this.session = session;
@@ -92,6 +97,17 @@ public class CacheResourceProvider implements RealmResourceProvider {
         }
 
         return new CacheSizesRepresentation(cacheSizes, remoteCacheSizes);
+    }
+
+    @GET
+    @Path("/clear-sessions")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public TaskResponse clearSessions() {
+        for (String name : SESSION_CACHE_NAMES) {
+            getCacheResource(name).clear();
+        }
+        return TaskResponse.statusMessage("Session caches cleared successfully");
     }
 
     @Path("/{cache}")
