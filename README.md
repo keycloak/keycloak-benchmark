@@ -168,6 +168,6 @@ Check reports at the `result` directory.
 
 These are the available test scenarios:
 
-* `keycloak.scenarion.authentication.AuthorizationCode`: Authorization Code Grant Type
-* `keycloak.scenarion.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint)
-* `keycloak.scenarion.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
+* `keycloak.scenario.authentication.AuthorizationCode`: Authorization Code Grant Type
+* `keycloak.scenario.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint. After username+password login, there is no exchange of OAuth2 "code" for the tokens) 
+* `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
