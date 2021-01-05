@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
@@ -26,21 +29,44 @@ jobs:
       - name: Build
         run:
           mvn clean install
-      - name: Upload dataset
-        uses: svenstaro/upload-release-action@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dataset/target/*.jar
-          asset_name: keycloak-benchmark-dataset-$tag.tar.gz
-          tag: ${{ github.ref }}
-          overwrite: true
-          body: "This is my release text"
-      - name: Upload kcb
-        uses: svenstaro/upload-release-action@v2
+          tag_name: ${{ github.ref }}
+          release_name: Keycloak Benchmark ${{ github.ref }}
+          draft: false
+          prerelease: false
+          body: |
+            Changes in this Release
+            - Renaming benchmark tool module to keycloak-benchmark
+            - Release using GitHub actions
+      - name: Publish dataset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: gatling/target/target/*.tar.gz
-          asset_name: kcb-$tag.tar.gz
-          tag: ${{ github.ref }}
-          overwrite: true
-          body: "This is my release text"
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dataset/target/keycloak-benchmark-dataset-${{ steps.get_version.outputs.VERSION }}.jar
+          asset_name: keycloak-benchmark-dataset-${{ steps.get_version.outputs.VERSION }}.jar
+          asset_content_type: application/gzip
+      - name: Publish kcb ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: kcb-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_content_type: application/gzip
+      - name: Publish kcb TAR
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_name: kcb-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_content_type: application/gzip

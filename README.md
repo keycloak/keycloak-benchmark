@@ -143,17 +143,17 @@ Keycloak Performance Test Suite and wrapped into a standalone tool that allows r
 
 ### Build
 
-Build `keycloak-gatling` module: 
+Build `keycloak-benchmark` module: 
 
-    mvn -f gatling/pom.xml clean install
+    mvn -f benchmark/pom.xml clean install
     
 As a result, you should have a ZIP and tar.gz file in the target folder.
 
-    gatling/target/keycloak-gatling-${version}.[zip|tar.gz]
+    benchmark/target/keycloak-benchmark-${version}.[zip|tar.gz]
     
 ### Install
 
-Extract the `keycloak-gatling-${version}.[zip|tar.gz]` file.
+Extract the `keycloak-benchmark-${version}.[zip|tar.gz]` file.
 
 ### Run
 
@@ -170,7 +170,7 @@ To use a different server URL and scenario:
 #### Options
 
 You can set different options to change how tests should be executed. For a complete list of the available options, see
-[Config](gatling/src/main/java/org/keycloak/benchmark/Config.java).
+[Config](benchmark/src/main/java/org/keycloak/benchmark/Config.java).
 
 ### Report
 

@@ -12,13 +12,13 @@ The commit number should be the same as the last commit inside https://github.co
 ```
     git checkout main
     mvn clean install
-    mvn release:clean release:prepare -DdryRun=true
+    mvn release:clean release:prepare -DdryRun=true -Dtag=0.3
 ```
 
 3) Once it is all good, then do a real release (not just dry run):
 
 ```
-    mvn release:clean release:prepare
+    mvn release:clean release:prepare -Dtag=0.3
 ```
 
 4) Check that commits in the https://github.com/keycloak/keycloak-benchmark/tree/main have your commits added (release commit and "next-version" commit) and also there is new tag under https://github.com/keycloak/keycloak-benchmark/tags
@@ -41,9 +41,4 @@ NOTE: There is likely no need to run `mvn release:perform` and deploy anything i
 
 Check that this file (corresponding to your released version) exists on your laptop: `<<YOUR_HOME>>/.m2/repository/org/keycloak/keycloak-benchmark-dataset/0.1/keycloak-benchmark-dataset-0.1.jar`
 
-
-7) Go to the https://github.com/keycloak/keycloak-benchmark/tags and on the right next to your tag (3 dots), click on the "Create release"
-
-Add the name (ideally same as the name of the tag) and add some description. Click on `Add files` and browse to the JAR dataset file from step 6
-
-8) Click on `Publish the release`. The JAR file should be there and can be downloaded with HTTP by various parties.
+If everything is OK, a GitHub release is going to be created automatically with all artifacts that should be available for download.
