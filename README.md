@@ -102,21 +102,29 @@ To see last created user in given realm
     http://localhost:8080/auth/realms/master/dataset/last-user?realm-name=realm5  
 
 
-### Ability to clear remote caches
+### Ability to clear caches and remote caches
 
 With the RHDG integration enabled, it may be useful to clear the content of the remote caches or see if particular item is available in the remote cache.
 Those endpoints are not directly to dataset or performance tests, however they are generally useful for those cases. They are useful just with the
 RHDG integration enabled.
 
+Clear all the items in the specified cache - in this case cache `sessions`:
+ 
+    http://localhost:8080/auth/realms/master/cache/sessions/clear
+    
 Clear all the items in the specified remote cache - in this case cache `sessions`:
  
     http://localhost:8080/auth/realms/master/remote-cache/sessions/clear
     
-See the count of items in the specified remote cache:
+See the count of items in all the available caches and remote caches:
 
-    http://localhost:8080/auth/realms/master/remote-cache/sessions/size
+    http://localhost:8080/auth/realms/master/cache/sizes
     
-See if item with ID "123" exists in the cache:
+See if item with ID "123" exists in the specified cache:
+
+    http://localhost:8080/auth/realms/master/cache/sessions/contains/123
+    
+See if item with ID "123" exists in the specified remote cache:
 
     http://localhost:8080/auth/realms/master/remote-cache/sessions/contains/123
     
