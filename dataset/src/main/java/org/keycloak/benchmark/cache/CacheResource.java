@@ -27,41 +27,31 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 
 import org.infinispan.Cache;
-import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.commons.CacheConfigurationException;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.cache.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.sessions.infinispan.util.InfinispanUtil;
 import org.keycloak.utils.MediaType;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
-public class RemoteCacheResource {
+public class CacheResource {
 
-    protected static final Logger logger = Logger.getLogger(RemoteCacheResource.class);
+    protected static final Logger logger = Logger.getLogger(CacheResource.class);
 
-    private final RemoteCache remoteCache;
+    private final Cache<Object, Object> cache;
 
-    public RemoteCacheResource(KeycloakSession session, String cacheName) {
+    public CacheResource(KeycloakSession session, String cacheName) {
         InfinispanConnectionProvider provider = session.getProvider(InfinispanConnectionProvider.class);
-        Cache<Object, Object> cache = null;
         try {
-            cache = provider.getCache(cacheName);
+            this.cache = provider.getCache(cacheName);
         } catch (CacheConfigurationException cce) {
             logger.error(cce.getMessage());
             throw new NotFoundException("Cache does not exists");
         }
-
-        RemoteCache remoteCache = InfinispanUtil.getRemoteCache(cache);
-        if (remoteCache == null) {
-            logger.errorf("Cache %s exists, but does not have remoteStore attached. Is RHDG integration enabled?", cacheName);
-            throw new NotFoundException("Remote cache does not exists");
-        }
-        this.remoteCache = remoteCache;
     }
 
 
@@ -70,9 +60,9 @@ public class RemoteCacheResource {
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
     public TaskResponse clear() {
-        remoteCache.clear();
-        logger.infof("Remote cache %s cleared successfully", remoteCache.getName());
-        return TaskResponse.statusMessage("Remote cache " + remoteCache.getName() + " cleared successfully");
+        cache.clear();
+        logger.infof("Cache %s cleared successfully", cache.getName());
+        return TaskResponse.statusMessage("Cache " + cache.getName() + " cleared successfully");
     }
 
     @GET
@@ -80,12 +70,12 @@ public class RemoteCacheResource {
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
     public boolean contains(@PathParam("id") String id) {
-        if (remoteCache.containsKey(id)) {
+        if (cache.containsKey(id)) {
             return true;
         } else if (id.length() == 36) {
             try {
                 UUID uuid = UUID.fromString(id);
-                return remoteCache.containsKey(uuid);
+                return cache.containsKey(uuid);
             } catch (IllegalArgumentException iae) {
                 logger.warnf("Given string %s not an UUID", id);
                 return false;
