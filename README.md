@@ -111,11 +111,15 @@ RHDG integration enabled.
 Clear all the items in the specified cache - in this case cache `sessions`:
  
     http://localhost:8080/auth/realms/master/cache/sessions/clear
-    
+
+Clear all session related caches:
+
+    http://localhost:8080/auth/realms/master/cache/clear-sessions
+
 Clear all the items in the specified remote cache - in this case cache `sessions`:
  
     http://localhost:8080/auth/realms/master/remote-cache/sessions/clear
-    
+ 
 See the count of items in all the available caches and remote caches:
 
     http://localhost:8080/auth/realms/master/cache/sizes
