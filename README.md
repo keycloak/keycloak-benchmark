@@ -132,11 +132,7 @@ See if item with ID "123" exists in the specified remote cache:
 
     http://localhost:8080/auth/realms/master/remote-cache/sessions/contains/123
     
-### Release
-
-If you need to do changes in the "dataset" and then consume it for example from the Openshift pods, you may need the ability to push
-your changes to the Keycloak and the release it. The info on how to release is in the [RELEASE.md](RELEASE.md).
-## Gatling
+## Benchmark
 
 Currently, performance tests are using Gatling as the runtime, where the simulations were extracted from the 
 Keycloak Performance Test Suite and wrapped into a standalone tool that allows running tests using a CLI.
@@ -167,7 +163,7 @@ To use a different server URL and scenario:
 
     ./kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=http://localhost:8080
 
-#### Options
+### Options
 
 You can set different options to change how tests should be executed. For a complete list of the available options, see
 [Config](benchmark/src/main/java/org/keycloak/benchmark/Config.java).
@@ -183,3 +179,8 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.AuthorizationCode`: Authorization Code Grant Type
 * `keycloak.scenario.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint. After username+password login, there is no exchange of OAuth2 "code" for the tokens) 
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
+
+## Release
+
+If you need to do changes in the "dataset" and then consume it for example from the Openshift pods, you may need the ability to push
+your changes to the Keycloak and the release it. The info on how to release is in the [RELEASE.md](RELEASE.md).
