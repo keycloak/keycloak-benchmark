@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -672,6 +673,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         realm.setRegistrationAllowed(true);
         realm.setAccessCodeLifespan(60);
         realm.setPasswordPolicy(PasswordPolicy.parse(session, "hashIterations(" + config.getPasswordHashIterations() + ")"));
+
+        if (config.getEventsEnabled()) {
+            realm.setEventsEnabled(true);
+            realm.setEventsExpiration(new Random().nextInt(10) * 100);
+        }
 
         session.getContext().setRealm(realm);
         context.setRealm(realm);

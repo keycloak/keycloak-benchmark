@@ -122,6 +122,10 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "password-hash-iterations", defaultValue = Pbkdf2PasswordHashProviderFactory.DEFAULT_ITERATIONS, operations = { CREATE_REALMS })
     private Integer passwordHashIterations;
 
+    // Check if eventStorage will be enabled for newly created realms
+    @QueryParamFill(paramName = "events-enabled", defaultValue = "false", operations = { CREATE_REALMS })
+    private String eventsEnabled;
+
     // Transaction timeout used for transactions for creating objects
     @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, REMOVE_REALMS })
     private Integer transactionTimeoutInSeconds;
@@ -232,6 +236,10 @@ public class DatasetConfig {
 
     public Integer getPasswordHashIterations() {
         return passwordHashIterations;
+    }
+
+    public Boolean getEventsEnabled() {
+        return Boolean.valueOf(eventsEnabled);
     }
 
     public Integer getTransactionTimeoutInSeconds() {
