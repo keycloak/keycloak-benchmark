@@ -60,7 +60,7 @@ class KeycloakScenarioBuilder {
     val realmIndex = String.valueOf(Random.nextInt(Config.numOfRealms))
     val clientIndex = String.valueOf(Random.nextInt(Config.numClientsPerRealm))
     val userIndex = String.valueOf(Random.nextInt(Config.numUsersPerRealm))
-    var realmName = "realm-".concat(realmIndex)
+    var realmName = Config.realmPrefix.concat(realmIndex)
 
     if (Config.realmName != null) {
       realmName = Config.realmName
