@@ -31,6 +31,11 @@ public class Config {
     public static final String realmName = System.getProperty("realm-name");
 
     /**
+     * Sets the prefix for realm names. If not set, realm names use the {@code realm-} prefix. Eg.: realm-0, realm-1.
+     */
+    public static final String realmPrefix = System.getProperty("realm-prefix", "realm-");
+
+    /**
      * If set, tests will run using a single user with username {@code username}.
      */
     public static final String userName = System.getProperty("username");

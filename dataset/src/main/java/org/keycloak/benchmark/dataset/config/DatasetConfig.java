@@ -37,7 +37,7 @@ import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REAL
 public class DatasetConfig {
 
     // Used when creating many realms as a prefix. For example when prefix us "foo", we will create realms like "foo0", "foo1" etc.
-    @QueryParamFill(paramName = "realm-prefix", defaultValue = "realm", operations = { CREATE_REALMS, REMOVE_REALMS, LAST_REALM })
+    @QueryParamFill(paramName = "realm-prefix", defaultValue = "realm-", operations = { CREATE_REALMS, REMOVE_REALMS, LAST_REALM })
     private String realmPrefix;
 
     // Used if want to remove all realms with given prefix
