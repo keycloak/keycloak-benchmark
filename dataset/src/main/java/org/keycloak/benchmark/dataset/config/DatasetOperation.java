@@ -25,6 +25,7 @@ public enum DatasetOperation {
     CREATE_REALMS,
     CREATE_CLIENTS,
     CREATE_USERS,
+    CREATE_EVENTS,
     REMOVE_REALMS,
     LAST_REALM,
     LAST_CLIENT,
