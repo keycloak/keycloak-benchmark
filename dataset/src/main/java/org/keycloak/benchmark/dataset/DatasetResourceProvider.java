@@ -21,6 +21,7 @@ package org.keycloak.benchmark.dataset;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -41,6 +42,9 @@ import org.jboss.resteasy.spi.HttpRequest;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
+import org.keycloak.events.Event;
+import org.keycloak.events.EventStoreProvider;
+import org.keycloak.events.EventType;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
@@ -63,6 +67,7 @@ import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
@@ -433,6 +438,110 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 executor.waitForAllToFinish();
 
                 timerLogger.info(logger, "Created all %d users in realm %s", context.getUsers().size(), context.getRealm().getName());
+
+            } finally {
+                if (executor != null) {
+                    executor.shutDown();
+                }
+                new TaskManager(sessionn).removeExistingTask(true);
+            }
+        }), config.getTaskTimeout());
+    }
+
+
+    @GET
+    @Path("/create-events")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createEvents() {
+        boolean started = false;
+        boolean taskAdded = false;
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, CREATE_EVENTS);
+
+            int lastRealmIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String realmName = config.getRealmPrefix() + index;
+                return baseSession.getProvider(RealmProvider.class).getRealmByName(realmName) != null;
+            }) - 1;
+            if (lastRealmIndex < 0) {
+                throw new DatasetException("Not found any realm with prefix '" + config.getRealmName() + "'");
+            }
+
+            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " events");
+            TaskManager taskManager = new TaskManager(baseSession);
+            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            if (existingTask != null) {
+                return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
+            } else {
+                taskAdded = true;
+            }
+
+            logger.infof("Trigger creating events with the configuration: %s", config);
+            logger.infof("Will create events in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
+
+            // Run this in separate thread to not block HTTP request
+            new Thread(() -> {
+
+                createEventsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex);
+
+            }).start();
+            started = true;
+
+            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        } finally {
+            if (taskAdded && !started) {
+                new TaskManager(baseSession).removeExistingTask(false);
+            }
+        }
+    }
+
+    // Implementation of creating many events. This is triggered outside of HTTP request to not block HTTP request
+    private void createEventsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, int lastRealmIndex) {
+        KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, (sessionn -> {
+            ExecutorHelper executor = null;
+            try {
+                executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
+
+                // Create events now
+                int eventsPerTransaction = 10000;
+                for (int i = 0; i < config.getCount(); i += eventsPerTransaction) {
+                    final int eventsEndIndex = i + eventsPerTransaction;
+
+                    // Run this concurrently with multiple threads
+                    executor.addTask(session -> {
+
+                        EventStoreProvider eventStore = session.getProvider(EventStoreProvider.class);
+
+                        for (int j = 0 ; j<eventsPerTransaction ; j++) {
+                            int realmIdx = new Random().nextInt(lastRealmIndex + 1);
+                            String realmName = config.getRealmPrefix() + realmIdx;
+
+                            Event event = new Event();
+                            event.setClientId("account");
+                            event.setDetails(new HashMap());
+                            event.setError("error");
+                            event.setIpAddress("127.0.0.1");
+                            event.setRealmId(realmName);
+                            event.setSessionId(null);
+                            event.setTime(System.currentTimeMillis());
+                            event.setType(EventType.LOGIN);
+                            event.setUserId("123");
+                            eventStore.onEvent(event);
+                        }
+
+                        if (eventsEndIndex % (config.getThreadsCount() * eventsPerTransaction) == 0) {
+                            timerLogger.info(logger, "Created %d events", eventsEndIndex);
+                        }
+
+                    });
+
+                }
+
+                executor.waitForAllToFinish();
+
+                timerLogger.info(logger, "Created all %d events", config.getCount());
 
             } finally {
                 if (executor != null) {

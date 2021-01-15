@@ -50,18 +50,25 @@ You need to call this HTTP REST requests. This request is useful for create 10 r
     
 ### Create many clients
     
-This is request to create 100 new clients in the realm `realm5` . Each client will have service account enabled and secret
+This is request to create 100 new clients in the realm `realm-5` . Each client will have service account enabled and secret
 like <<client_id>>-secret (For example `client-156-secret` in case of the client `client-156`):
 
-    http://localhost:8080/auth/realms/master/dataset/create-clients?count=200&realm-name=realm5
+    http://localhost:8080/auth/realms/master/dataset/create-clients?count=200&realm-name=realm-5
  
 ### Create many users
    
-This is request to create 500 new users in the `realm5`. Each user will have specified amount of roles, client roles and groups,
+This is request to create 500 new users in the `realm-5`. Each user will have specified amount of roles, client roles and groups,
 which were already created by `create-realms` endpoint. Each user will have password like <<Username>>-password . For example `user-156` will have password like
 `user-156-password` :
 
-    http://localhost:8080/auth/realms/master/dataset/create-users?count=1000&realm-name=realm5
+    http://localhost:8080/auth/realms/master/dataset/create-users?count=1000&realm-name=realm-5
+    
+### Create many events
+   
+This is request to create 10M new events in the available realms with prefix `realm-`. For example if we have 100 realms
+like `realm-0`, `realm-1`, ... `realm-99`, it will create 10M events randomly in them
+
+    http://localhost:8080/auth/realms/master/dataset/create-events?count=10000000
     
 ### Remove many realms
 
