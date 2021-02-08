@@ -45,6 +45,7 @@ import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
+import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
@@ -56,7 +57,9 @@ import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserProvider;
+import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
+import org.keycloak.models.session.UserSessionPersisterProvider;
 import org.keycloak.models.utils.DefaultRoles;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
@@ -68,6 +71,7 @@ import org.keycloak.services.resource.RealmResourceProvider;
 
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
@@ -554,6 +558,120 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
 
     @GET
+    @Path("/create-offline-sessions")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createOfflineSessions() {
+        boolean started = false;
+        boolean taskAdded = false;
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, CREATE_OFFLINE_SESSIONS);
+
+            int lastRealmIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String realmName = config.getRealmPrefix() + index;
+                return baseSession.getProvider(RealmProvider.class).getRealmByName(realmName) != null;
+            }) - 1;
+            if (lastRealmIndex < 0) {
+                throw new DatasetException("Not found any realm with prefix '" + config.getRealmName() + "'");
+            }
+
+            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " offline sessions");
+            TaskManager taskManager = new TaskManager(baseSession);
+            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            if (existingTask != null) {
+                return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
+            } else {
+                taskAdded = true;
+            }
+
+            logger.infof("Trigger creating offline sessions with the configuration: %s", config);
+            logger.infof("Will create offline sessions in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
+
+            // Run this in separate thread to not block HTTP request
+            new Thread(() -> {
+
+                createOfflineSessionsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex);
+
+            }).start();
+            started = true;
+
+            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        } finally {
+            if (taskAdded && !started) {
+                new TaskManager(baseSession).removeExistingTask(false);
+            }
+        }
+    }
+
+    // Implementation of creating many offline sessions. This is triggered outside of HTTP request to not block HTTP request
+    private void createOfflineSessionsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, int lastRealmIndex) {
+        KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, (sessionn -> {
+            ExecutorHelper executor = null;
+            try {
+                executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
+
+                // Create events now
+                int offlineSessionsPerTransaction = 100;
+                for (int i = 0; i < config.getCount(); i += offlineSessionsPerTransaction) {
+                    final int sessionIndex = i + offlineSessionsPerTransaction;
+
+                    // Run this concurrently with multiple threads
+                    executor.addTask(session -> {
+
+                        UserSessionPersisterProvider persister = session.getProvider(UserSessionPersisterProvider.class);
+
+                        int realmIdx = new Random().nextInt(lastRealmIndex + 1);
+                        String realmName = config.getRealmPrefix() + realmIdx;
+                        RealmModel realm = session.realms().getRealmByName(realmName);
+                        if (realm == null) {
+                            throw new IllegalStateException("Not found realm with name '" + realmName + "'");
+                        }
+                        // Just use user like "user-0"
+                        String username = config.getUserPrefix() + "0";
+                        UserModel user = session.users().getUserByUsername(username, realm);
+                        if (user == null) {
+                            throw new IllegalStateException("Not found user with username '" + username + "' in the realm '" + realmName + "'");
+                        }
+                        // Just use client like "client-0"
+                        String clientId = config.getClientPrefix() + "0";
+                        ClientModel client = session.realms().getClientByClientId(clientId, realm);
+                        if (client == null) {
+                            throw new IllegalStateException("Not found client with clientId  '" + client + "' in the realm '" + clientId + "'");
+                        }
+
+                        for (int j = 0 ; j<offlineSessionsPerTransaction ; j++) {
+                            UserSessionModel userSession = session.sessions().createUserSession(realm, user, username, "127.0.0.1", "form", false, null, null);
+                            AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
+
+                            persister.createUserSession(userSession, true);
+                            persister.createClientSession(clientSession, true);
+                        }
+
+                        if (sessionIndex % (config.getThreadsCount() * offlineSessionsPerTransaction) == 0) {
+                            timerLogger.info(logger, "Created %d offline sessions", sessionIndex);
+                        }
+
+                    });
+
+                }
+
+                executor.waitForAllToFinish();
+
+                timerLogger.info(logger, "Created all %d offline sessions", config.getCount());
+
+            } finally {
+                if (executor != null) {
+                    executor.shutDown();
+                }
+                new TaskManager(sessionn).removeExistingTask(true);
+            }
+        }), config.getTaskTimeout());
+    }
+
+
+    @GET
     @Path("/remove-realms")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
@@ -787,6 +905,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             realm.setEventsEnabled(true);
             realm.setEventsExpiration(new Random().nextInt(10) * 100);
         }
+
+        // offlineSession timeout to vary from 5 to 50 minutes according to the "realm offset"
+        int offlineSessionTimeout = ((((index + 10) - 1) % 10) + 1) * 5 * 60;
+        realm.setOfflineSessionIdleTimeout(offlineSessionTimeout);
 
         session.getContext().setRealm(realm);
         context.setRealm(realm);

@@ -70,6 +70,13 @@ like `realm-0`, `realm-1`, ... `realm-99`, it will create 10M events randomly in
 
     http://localhost:8080/auth/realms/master/dataset/create-events?count=10000000
     
+### Create many offline sessions
+   
+This is request to create 10M new offline sessions in the available realms with prefix `realm-`. For example if we have 100 realms
+like `realm-0`, `realm-1`, ... `realm-99`, it will create 10M events randomly in them
+
+    http://localhost:8080/auth/realms/master/dataset/create-offline-sessions?count=10000000    
+    
 ### Remove many realms
 
 To remove all realms with the default realm prefix `realm`

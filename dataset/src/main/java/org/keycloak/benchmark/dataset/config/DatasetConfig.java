@@ -22,6 +22,7 @@ import org.keycloak.credential.hash.Pbkdf2PasswordHashProviderFactory;
 
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
@@ -39,7 +40,8 @@ public class DatasetConfig {
 
     // Used when creating many realms as a prefix. For example when prefix us "foo", we will create realms like "foo0", "foo1" etc.
     // For many events, it will need the realm prefix as events are created randomly in all the already created realms
-    @QueryParamFill(paramName = "realm-prefix", defaultValue = "realm-", operations = { CREATE_REALMS, CREATE_EVENTS, REMOVE_REALMS, LAST_REALM })
+    @QueryParamFill(paramName = "realm-prefix", defaultValue = "realm-", operations = { CREATE_REALMS, CREATE_EVENTS, CREATE_OFFLINE_SESSIONS,
+            REMOVE_REALMS, LAST_REALM })
     private String realmPrefix;
 
     // Used if want to remove all realms with given prefix
@@ -62,7 +64,7 @@ public class DatasetConfig {
     private Integer start;
 
     // Count of entities to be created. Entity is realm, client or user based on the operation
-    @QueryParamIntFill(paramName = "count", required = true, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS })
+    @QueryParamIntFill(paramName = "count", required = true, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, CREATE_OFFLINE_SESSIONS })
     private Integer count;
 
     // Prefix for realm roles to create in every realm (in case of CREATE_REALMS) or to assign to users (in case of CREATE_USERS)
@@ -74,7 +76,7 @@ public class DatasetConfig {
     private Integer realmRolesPerRealm;
 
     // Prefix for newly created clients (in case of CREATE_REALMS and CREATE_CLIENTS). In case of CREATE_USERS it is used to find the clients with clientRoles, which will be assigned to users
-    @QueryParamFill(paramName = "client-prefix", defaultValue = "client-", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, LAST_CLIENT })
+    @QueryParamFill(paramName = "client-prefix", defaultValue = "client-", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_OFFLINE_SESSIONS, LAST_CLIENT })
     private String clientPrefix;
 
     @QueryParamIntFill(paramName = "clients-per-realm", defaultValue = 30, operations = { CREATE_REALMS })
@@ -101,7 +103,7 @@ public class DatasetConfig {
     private Integer groupsPerRealm;
 
     // Prefix for newly created users
-    @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS, LAST_USER })
+    @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS, CREATE_OFFLINE_SESSIONS, LAST_USER })
     private String userPrefix;
 
     // Count of users to be created in every realm (In case of CREATE_REALMS)
@@ -129,7 +131,8 @@ public class DatasetConfig {
     private String eventsEnabled;
 
     // Transaction timeout used for transactions for creating objects
-    @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, REMOVE_REALMS })
+    @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS })
     private Integer transactionTimeoutInSeconds;
 
     // Count of users created in every transaction
@@ -137,12 +140,14 @@ public class DatasetConfig {
     private Integer usersPerTransaction;
 
     // Count of worker threads concurrently creating entities
-    @QueryParamIntFill(paramName = "threads-count", defaultValue = 5, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, REMOVE_REALMS })
+    @QueryParamIntFill(paramName = "threads-count", defaultValue = 5, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS })
     private Integer threadsCount;
 
     // Timeout for the whole task. If timeout expires, then the existing task may not be terminated immediatelly. However it will be permitted to start another task
     // (EG. Send another HTTP request for creating realms), which can cause conflicts
-    @QueryParamIntFill(paramName = "task-timeout", defaultValue = 3600, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, REMOVE_REALMS })
+    @QueryParamIntFill(paramName = "task-timeout", defaultValue = 3600, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS })
     private Integer taskTimeout;
 
     // String representation of this configuration (cached here to not be computed in runtime)
