@@ -7,7 +7,7 @@ import io.gatling.core.structure.ChainBuilder
 import io.gatling.http.Predef._
 import keycloak.Utils
 import keycloak.Utils.randomUUID
-import keycloak.scenario.KeycloakScenarioBuilder.{CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, downCounterAboveZero}
+import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, BASE_URL, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, downCounterAboveZero}
 import org.keycloak.benchmark.Config
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,6 +23,7 @@ object KeycloakScenarioBuilder {
   val LOGIN_ENDPOINT = BASE_URL + "/protocol/openid-connect/auth"
   val LOGOUT_ENDPOINT = BASE_URL + "/protocol/openid-connect/logout"
   val TOKEN_ENDPOINT = BASE_URL + "/protocol/openid-connect/token"
+  val ADMIN_ENDPOINT = "${keycloakServer}/admin/realms/${realm}"
   val CODE_PATTERN = "code="
 
   // Specify defaults for http requests
@@ -270,6 +271,53 @@ class KeycloakScenarioBuilder {
         .formParam("client_id", "${clientId}")
         .formParam("client_secret", "${clientSecret}")
         .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+
+  def serviceAccountToken(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Get service account token")
+        .post(TOKEN_ENDPOINT)
+        .formParam("grant_type", "client_credentials")
+        .formParam("client_id", "gatling")
+        .formParam("client_secret", "${clientSecret}")
+        .check(jsonPath("$..access_token").find.saveAs("token")))
+      .exitHereIfFailed
+    this
+  }
+
+
+  def createClient(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Create client")
+        .post(ADMIN_ENDPOINT + "/clients")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody("{}"))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("location")))
+      .exitHereIfFailed
+    this
+  }
+
+  def listClients(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List clients")
+        .get(ADMIN_ENDPOINT + "/clients")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def deleteClient(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Delete client")
+        .delete("${location}")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(204)))
       .exitHereIfFailed
     this
   }

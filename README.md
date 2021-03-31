@@ -194,6 +194,15 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint. After username+password login, there is no exchange of OAuth2 "code" for the tokens) 
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
 
+#### Create and delete clients
+
+To run the create and delete clients scenario you need to first create a service account with the clientId `gatling`.
+It needs service account roles on realm-management/manage-clients.
+
+Here's an example run:
+
+    ./kcb.sh --scenario=keycloak.scenario.admin.CreateDeleteClients --server-url=http://localhost:8080 --realm-name=test --client-secret=<client secret for gatling client>
+
 ## Release
 
 If you need to do changes in the "dataset" and then consume it for example from the Openshift pods, you may need the ability to push
