@@ -45,19 +45,7 @@ import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
-import org.keycloak.models.AuthenticatedClientSessionModel;
-import org.keycloak.models.ClientModel;
-import org.keycloak.models.GroupModel;
-import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.KeycloakSessionFactory;
-import org.keycloak.models.PasswordPolicy;
-import org.keycloak.models.RealmModel;
-import org.keycloak.models.RealmProvider;
-import org.keycloak.models.RoleModel;
-import org.keycloak.models.UserCredentialModel;
-import org.keycloak.models.UserModel;
-import org.keycloak.models.UserProvider;
-import org.keycloak.models.UserSessionModel;
+import org.keycloak.models.*;
 import org.keycloak.models.cache.CacheRealmProvider;
 import org.keycloak.models.session.UserSessionPersisterProvider;
 import org.keycloak.models.utils.DefaultRoles;
@@ -645,7 +633,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                             UserSessionModel userSession = session.sessions().createUserSession(realm, user, username, "127.0.0.1", "form", false, null, null);
                             AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
 
-                            persister.createUserSession(userSession, true);
+                            // Actually Create Offline Sessions
+                            UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
+                            persister.createUserSession(offlineUserSession, true);
+
+                            persister.createUserSession(userSession, true); // This is what was here originally (I think the confusion came from the fact that the persistor has offline=true, but I think it also needs to be created using the createOfflineUserSessionModel)
                             persister.createClientSession(clientSession, true);
                         }
 
