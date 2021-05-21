@@ -633,7 +633,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                             UserSessionModel userSession = session.sessions().createUserSession(realm, user, username, "127.0.0.1", "form", false, null, null);
                             AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
 
-                            // Actually Create Offline Sessions
+                            // Convert user and client sessions to offline.
                             UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
                             AuthenticatedClientSessionModel offlineClientSession = session.sessions().createOfflineClientSession(clientSession, userSession);
 
