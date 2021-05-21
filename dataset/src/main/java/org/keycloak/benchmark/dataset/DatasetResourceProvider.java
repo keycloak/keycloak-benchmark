@@ -635,10 +635,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                             // Actually Create Offline Sessions
                             UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
-                            persister.createUserSession(offlineUserSession, true);
+                            AuthenticatedClientSessionModel offlineClientSession = session.sessions().createOfflineClientSession(clientSession, userSession);
 
-                            persister.createUserSession(userSession, true); // This is what was here originally (I think the confusion came from the fact that the persistor has offline=true, but I think it also needs to be created using the createOfflineUserSessionModel)
-                            persister.createClientSession(clientSession, true);
+                            persister.createUserSession(offlineUserSession, true);
+                            persister.createClientSession(offlineClientSession, true);
                         }
 
                         if (sessionIndex % (config.getThreadsCount() * offlineSessionsPerTransaction) == 0) {
