@@ -56,7 +56,6 @@ import org.keycloak.models.RealmProvider;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
-import org.keycloak.models.UserProvider;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
 import org.keycloak.models.session.UserSessionPersisterProvider;
@@ -645,8 +644,12 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                             UserSessionModel userSession = session.sessions().createUserSession(realm, user, username, "127.0.0.1", "form", false, null, null);
                             AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
 
-                            persister.createUserSession(userSession, true);
-                            persister.createClientSession(clientSession, true);
+                            // Convert user and client sessions to offline.
+                            UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
+                            AuthenticatedClientSessionModel offlineClientSession = session.sessions().createOfflineClientSession(clientSession, userSession);
+
+                            persister.createUserSession(offlineUserSession, true);
+                            persister.createClientSession(offlineClientSession, true);
                         }
 
                         if (sessionIndex % (config.getThreadsCount() * offlineSessionsPerTransaction) == 0) {
