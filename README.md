@@ -167,6 +167,10 @@ Extract the `keycloak-benchmark-${version}.[zip|tar.gz]` file.
 
 ### Run
 
+Before running tests, make sure realms are configured as follows:
+
+* Realms must have `User Registration` setting enabled.
+
 To start running tests:
 
     ./kcb.sh
