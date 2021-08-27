@@ -28,7 +28,7 @@ First is needed to build the provider, then to deploy it to the target Keycloak.
 Build the project and deploy to the target Keycloak/RHSSO server
 
     mvn clean install
-    cp target/keycloak-benchmark-dataset-*.jar $KEYCLOAK_HOME/standalone/deployments/
+    cp dataset/target/keycloak-benchmark-dataset-*.jar $KEYCLOAK_HOME/standalone/deployments/
     
 Instead of copying to `standalone/deployments`, the alternative is to deploy as a module
 
@@ -165,11 +165,26 @@ As a result, you should have a ZIP and tar.gz file in the target folder.
 
 Extract the `keycloak-benchmark-${version}.[zip|tar.gz]` file.
 
-### Run
+### Prepare keycloak for testing
 
 Before running tests, make sure realms are configured as follows:
 
 * Realms must have `User Registration` setting enabled.
+
+Some scenarios (`CreateDeleteClients` and `CrawlUsers`) require a service account with the clientId `gatling`:
+
+* select the realm that is used for testing
+* create a client  with the name `gatling`
+   * set access type to `confidential`
+   * check `Service Account Enabled`
+   * enter a valid redirect uri (e.g. `http://localhost`)  
+   * click save
+* Change to the tab `Sevice Account Roles`
+   * select for `realm-management` in the `Client Roles` listbox
+   * assign the roles `manage-clients` and `view-users`
+* the client secret to be passed to the tests can be copied from the `Credentials` tab
+
+### Run
 
 To start running tests:
 
@@ -197,15 +212,8 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.AuthorizationCode`: Authorization Code Grant Type
 * `keycloak.scenario.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint. After username+password login, there is no exchange of OAuth2 "code" for the tokens) 
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
-
-#### Create and delete clients
-
-To run the create and delete clients scenario you need to first create a service account with the clientId `gatling`.
-It needs service account roles on realm-management/manage-clients.
-
-Here's an example run:
-
-    ./kcb.sh --scenario=keycloak.scenario.admin.CreateDeleteClients --server-url=http://localhost:8080 --realm-name=test --client-secret=<client secret for gatling client>
+* `keycloak.scenario.admin.CreateDeleteClients`: Create and deleted clients (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.UserCrawl`: Crawls all users page by page (requires `--client-secret=<client secret for gatling client>`)
 
 ## Release
 
