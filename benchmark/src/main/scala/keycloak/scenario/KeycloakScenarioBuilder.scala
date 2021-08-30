@@ -181,7 +181,7 @@ class KeycloakScenarioBuilder {
         .formParam("login", "Log in")
         .check(
           status.is(302), header("Location").saveAs("login-redirect"),
-          header("Location").transform( t=>{
+          header("Location").transform(t => {
             val codeStart = t.indexOf(CODE_PATTERN)
             if (codeStart == -1) {
               return null
@@ -323,5 +323,22 @@ class KeycloakScenarioBuilder {
     this
   }
 
+  def viewPagesOfUsers(pageSize: Int, numberOfPages: Int): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .repeat(numberOfPages, "page") {
+        exec(session => {
+          session.set("max", pageSize)
+            .set("first", session("page").as[Int] * pageSize)
+        })
+          .exec(http("${realm}/users?first=${first}&max=${max}")
+            .get(ADMIN_ENDPOINT + "/users")
+            .header("Authorization", "Bearer ${token}")
+            .queryParam("first", "${first}")
+            .queryParam("max", "${max}")
+            .check(status.is(200)))
+          .exitHereIfFailed
+      }
+    this
+  }
 }
 
