@@ -757,18 +757,18 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     final String currentRealmId = realmId;
 
                     // Run this concurrently with multiple threads
-                    executor.addTask(session -> {
+                    executor.addTask(executorSession -> {
                         logger.debugf("Will delete realm %s", currentRealmId);
 
-                        RealmContext context = new RealmContext(config);
+                        KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
+                            boolean deleted = session.realms().removeRealm(currentRealmId);
 
-                        boolean deleted = session.realms().removeRealm(currentRealmId);
-
-                        if (deleted) {
-                            timerLogger.info(logger, "Deleted realm %s", currentRealmId);
-                        } else {
-                            logger.warnf("Realm %s did not exist", currentRealmId);
-                        }
+                            if (deleted) {
+                                timerLogger.info(logger, "Deleted realm %s", currentRealmId);
+                            } else {
+                                logger.warnf("Realm %s did not exist", currentRealmId);
+                            }
+                        }, config.getTransactionTimeoutInSeconds());
                     });
 
                 }
