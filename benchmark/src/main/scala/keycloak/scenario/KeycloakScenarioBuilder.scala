@@ -7,12 +7,14 @@ import io.gatling.core.structure.ChainBuilder
 import io.gatling.http.Predef._
 import keycloak.Utils
 import keycloak.Utils.randomUUID
-import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, BASE_URL, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, downCounterAboveZero}
+import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, downCounterAboveZero}
+import keycloak.scenario._private.AdminConsoleScenarioBuilder.DATE_FMT
 import org.keycloak.benchmark.Config
 
+import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicInteger
+import scala.concurrent.duration.DurationDouble
 import scala.util.Random
-import scala.concurrent.duration._
 
 /**
  * @author <a href="mailto:mstrukel@redhat.com">Marko Strukelj</a>
@@ -278,14 +280,25 @@ class KeycloakScenarioBuilder {
 
   def serviceAccountToken(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("Get service account token")
-        .post(TOKEN_ENDPOINT)
-        .formParam("grant_type", "client_credentials")
-        .formParam("client_id", "gatling")
-        .formParam("client_secret", "${clientSecret}")
-        .check(jsonPath("$..access_token").find.saveAs("token")))
-      .exitHereIfFailed
+      .exec(getServiceAccountTokenExec())
     this
+  }
+
+  private def getServiceAccountTokenExec(): ChainBuilder = {
+    exec(http("Get service account token")
+      .post(TOKEN_ENDPOINT)
+      .formParam("grant_type", "client_credentials")
+      .formParam("client_id", "gatling")
+      .formParam("client_secret", "${clientSecret}")
+      .check(
+        jsonPath("$..access_token").find.saveAs("token"),
+        jsonPath("$..expires_in").find.saveAs("expiresIn"),
+        header("Date").saveAs("tokenTime")
+      ))
+      .exitHereIfFailed
+      .exec(s => {
+        s.set("accessTokenRefreshTime", ZonedDateTime.parse(s("tokenTime").as[String], DATE_FMT).toEpochSecond * 1000)
+      })
   }
 
 
@@ -330,6 +343,9 @@ class KeycloakScenarioBuilder {
           session.set("max", pageSize)
             .set("first", session("page").as[Int] * pageSize)
         })
+          .doIf(s => needTokenRefresh(s)) {
+            getServiceAccountTokenExec()
+          }
           .exec(http("${realm}/users?first=${first}&max=${max}")
             .get(ADMIN_ENDPOINT + "/users")
             .header("Authorization", "Bearer ${token}")
@@ -339,6 +355,13 @@ class KeycloakScenarioBuilder {
           .exitHereIfFailed
       }
     this
+  }
+
+  def needTokenRefresh(sess: Session): Boolean = {
+    val lastRefresh = sess("accessTokenRefreshTime").as[Long]
+
+    // 5 seconds before expiry is time to refresh
+    lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis()
   }
 }
 
