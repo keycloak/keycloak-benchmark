@@ -54,6 +54,11 @@ This is request to create 100 new clients in the realm `realm-5` . Each client w
 like <<client_id>>-secret (For example `client-156-secret` in case of the client `client-156`):
 
     http://localhost:8080/auth/realms/master/dataset/create-clients?count=200&realm-name=realm-5
+
+You can also configure the access-type (`bearer-only`, `confidential` or `public`) and whether the client should be a
+service-account-client with these two parameters:
+
+    ...&client-access-type=bearer-only&service-account-client=false
  
 ### Create many users
    

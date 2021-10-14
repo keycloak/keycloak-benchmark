@@ -942,17 +942,30 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             client.setClientId(clientId);
             client.setName(clientId);
             client.setEnabled(true);
-            client.setServiceAccountsEnabled(true);
             client.setDirectAccessGrantsEnabled(true);
             client.setSecret(clientId.concat("-secret"));
             client.setRedirectUris(Arrays.asList("*"));
-            client.setPublicClient(false);
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
+
+            switch(config.getClientAccessType()) {
+                case "bearer-only":
+                    client.setBearerOnly(true);
+                    break;
+                case "public":
+                    client.setPublicClient(true);
+                    break;
+                case "confidential":
+                default:
+                    client.setPublicClient(false);
+                    break;
+            }
 
             ClientModel model = ClientManager.createClient(session, realm, client);
 
             // Enable service account
-            new ClientManager(new RealmManager(session)).enableServiceAccount(model);
+            if(Boolean.parseBoolean(config.getIsServiceAccountClient())) {
+                new ClientManager(new RealmManager(session)).enableServiceAccount(model);
+            }
 
             context.clientCreated(model);
 
