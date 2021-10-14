@@ -18,7 +18,6 @@
 
 package org.keycloak.benchmark.dataset;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -958,18 +957,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             client.setPublicClient(false);
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
-            ClientModel model = null;
-            try {
-                model = ClientManager.createClient(session, realm, client, true);
-            } catch (NoSuchMethodError nsme) {
-                // From Keycloak 13
-                try {
-                    Method createClient = ClientManager.class.getMethod("createClient", KeycloakSession.class, RealmModel.class, ClientRepresentation.class);
-                    model = (ClientModel) createClient.invoke(null, session, realm, client);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            ClientModel model = ClientManager.createClient(session, realm, client, true);
 
             // Enable service account
             new ClientManager(new RealmManager(session)).enableServiceAccount(model);
@@ -1081,11 +1069,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             realm.getDefaultGroups();
             logger.debugf("CACHE: After obtain default groups in realm %s", realm.getName());
 
-            try {
-                DefaultRoles.getDefaultRoles(realm);
-            } catch (NoClassDefFoundError ncdfe) {
-                // Since Keycloak 13
-            }
+            DefaultRoles.getDefaultRoles(realm);
             logger.debugf("CACHE: After obtain default roles in realm %s", realm.getName());
 
             // Just obtain first 20 clients for assign client roles - to avoid unecessary DB calls here to load all the clients and then their roles
