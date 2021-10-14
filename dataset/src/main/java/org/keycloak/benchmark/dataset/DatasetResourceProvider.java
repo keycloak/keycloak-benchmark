@@ -18,6 +18,16 @@
 
 package org.keycloak.benchmark.dataset;
 
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,25 +67,14 @@ import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
-import org.keycloak.models.session.UserSessionPersisterProvider;
-import org.keycloak.models.utils.DefaultRoles;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.services.managers.ClientManager;
 import org.keycloak.services.managers.RealmManager;
+import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
-
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -618,8 +617,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     // Run this concurrently with multiple threads
                     executor.addTask(session -> {
 
-                        UserSessionPersisterProvider persister = session.getProvider(UserSessionPersisterProvider.class);
-
                         int realmIdx = new Random().nextInt(lastRealmIndex + 1);
                         String realmName = config.getRealmPrefix() + realmIdx;
                         RealmModel realm = session.realms().getRealmByName(realmName);
@@ -644,11 +641,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                             AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
 
                             // Convert user and client sessions to offline.
-                            UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
-                            AuthenticatedClientSessionModel offlineClientSession = session.sessions().createOfflineClientSession(clientSession, userSession);
+                            new UserSessionManager(session).createOrUpdateOfflineSession(clientSession, userSession);
 
-                            persister.createUserSession(offlineUserSession, true);
-                            persister.createClientSession(offlineClientSession, true);
                         }
 
                         if (sessionIndex % (config.getThreadsCount() * offlineSessionsPerTransaction) == 0) {
@@ -957,7 +951,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             client.setPublicClient(false);
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
-            ClientModel model = ClientManager.createClient(session, realm, client, true);
+            ClientModel model = ClientManager.createClient(session, realm, client);
 
             // Enable service account
             new ClientManager(new RealmManager(session)).enableServiceAccount(model);
@@ -1069,7 +1063,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             realm.getDefaultGroups();
             logger.debugf("CACHE: After obtain default groups in realm %s", realm.getName());
 
-            DefaultRoles.getDefaultRoles(realm);
+            realm.getDefaultRole().getCompositesStream();
             logger.debugf("CACHE: After obtain default roles in realm %s", realm.getName());
 
             // Just obtain first 20 clients for assign client roles - to avoid unecessary DB calls here to load all the clients and then their roles
