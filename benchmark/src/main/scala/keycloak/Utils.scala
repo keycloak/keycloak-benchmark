@@ -2,7 +2,7 @@ package keycloak
 
 import java.net.URLEncoder
 import java.util.UUID
-import scala.concurrent.forkjoin.ThreadLocalRandom
+import java.util.concurrent.ThreadLocalRandom
 import scala.util.Random
 
 /**

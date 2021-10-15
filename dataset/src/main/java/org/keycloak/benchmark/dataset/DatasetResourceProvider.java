@@ -18,14 +18,22 @@
 
 package org.keycloak.benchmark.dataset;
 
-import java.lang.reflect.Method;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
@@ -58,25 +66,14 @@ import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
-import org.keycloak.models.session.UserSessionPersisterProvider;
-import org.keycloak.models.utils.DefaultRoles;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.services.managers.ClientManager;
 import org.keycloak.services.managers.RealmManager;
+import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
-
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -375,7 +372,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             int startIndex = ConfigUtil.findFreeEntityIndex(index -> {
                 String username = config.getUserPrefix() + index;
-                return baseSession.users().getUserByUsername(username, realm) != null;
+                return baseSession.users().getUserByUsername(realm, username) != null;
             });
             config.setStart(startIndex);
 
@@ -523,7 +520,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                             Event event = new Event();
                             event.setClientId("account");
-                            event.setDetails(new HashMap());
+                            event.setDetails(new HashMap<>());
                             event.setError("error");
                             event.setIpAddress("127.0.0.1");
                             event.setRealmId(realmName);
@@ -619,8 +616,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     // Run this concurrently with multiple threads
                     executor.addTask(session -> {
 
-                        UserSessionPersisterProvider persister = session.getProvider(UserSessionPersisterProvider.class);
-
                         int realmIdx = new Random().nextInt(lastRealmIndex + 1);
                         String realmName = config.getRealmPrefix() + realmIdx;
                         RealmModel realm = session.realms().getRealmByName(realmName);
@@ -629,13 +624,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                         }
                         // Just use user like "user-0"
                         String username = config.getUserPrefix() + "0";
-                        UserModel user = session.users().getUserByUsername(username, realm);
+                        UserModel user = session.users().getUserByUsername(realm, username);
                         if (user == null) {
                             throw new IllegalStateException("Not found user with username '" + username + "' in the realm '" + realmName + "'");
                         }
                         // Just use client like "client-0"
                         String clientId = config.getClientPrefix() + "0";
-                        ClientModel client = session.realms().getClientByClientId(clientId, realm);
+                        ClientModel client = session.clients().getClientByClientId(realm, clientId);
                         if (client == null) {
                             throw new IllegalStateException("Not found client with clientId  '" + client + "' in the realm '" + clientId + "'");
                         }
@@ -645,11 +640,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                             AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
 
                             // Convert user and client sessions to offline.
-                            UserSessionModel offlineUserSession = session.sessions().createOfflineUserSession(userSession);
-                            AuthenticatedClientSessionModel offlineClientSession = session.sessions().createOfflineClientSession(clientSession, userSession);
+                            new UserSessionManager(session).createOrUpdateOfflineSession(clientSession, userSession);
 
-                            persister.createUserSession(offlineUserSession, true);
-                            persister.createClientSession(offlineClientSession, true);
                         }
 
                         if (sessionIndex % (config.getThreadsCount() * offlineSessionsPerTransaction) == 0) {
@@ -737,8 +729,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     timerLogger.info(logger, "Will obtain list of all realms to remove");
 
                     // Don't cache realms as we are just about to remove them
-                    realmIds = sessionn.getProvider(RealmProvider.class).getRealms()
-                            .stream()
+                    realmIds = sessionn.getProvider(RealmProvider.class).getRealmsStream()
                             .filter(realm -> realm.getName().startsWith(config.getRealmPrefix()))
                             .map(RealmModel::getId)
                             .collect(Collectors.toList());
@@ -871,7 +862,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             int startIndex = ConfigUtil.findFreeEntityIndex(index -> {
                 String username = config.getUserPrefix() + index;
-                return baseSession.users().getUserByUsername(username, realm) != null;
+                return baseSession.users().getUserByUsername(realm, username) != null;
             });
 
             String response = startIndex == 0 ? "No user created yet in realm " + realm.getName() : config.getUserPrefix() + (startIndex - 1);
@@ -958,18 +949,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             client.setPublicClient(false);
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
-            ClientModel model = null;
-            try {
-                model = ClientManager.createClient(session, realm, client, true);
-            } catch (NoSuchMethodError nsme) {
-                // From Keycloak 13
-                try {
-                    Method createClient = ClientManager.class.getMethod("createClient", KeycloakSession.class, RealmModel.class, ClientRepresentation.class);
-                    model = (ClientModel) createClient.invoke(null, session, realm, client);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            ClientModel model = ClientManager.createClient(session, realm, client);
 
             // Enable service account
             new ClientManager(new RealmManager(session)).enableServiceAccount(model);
@@ -1053,8 +1033,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             RealmModel realm = session.realms().getRealm(context.getRealm().getId());
             context.setRealm(realm);
 
-            Set<RoleModel> roles = realm.getRoles();
-            List<RoleModel> sortedRoles = roles.stream()
+            List<RoleModel> sortedRoles = realm.getRolesStream()
                     .filter(roleModel -> roleModel.getName().startsWith(config.getRealmRolePrefix()))
                     .sorted((role1, role2) -> {
                         String name1 = role1.getName().substring(config.getRealmRolePrefix().length());
@@ -1066,8 +1045,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             logger.debugf("CACHE: After obtain realm roles in realm %s", realm.getName());
 
-            List<GroupModel> groups = realm.getGroups();
-            List<GroupModel> sortedGroups = groups.stream()
+            List<GroupModel> sortedGroups = realm.getGroupsStream()
                     .filter(groupModel -> groupModel.getName().startsWith(config.getGroupPrefix()))
                     .sorted((group1, group2) -> {
                         String name1 = group1.getName().substring(config.getGroupPrefix().length());
@@ -1078,18 +1056,14 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             context.setGroups(sortedGroups);
 
             logger.debugf("CACHE: After obtain groups in realm %s", realm.getName());
-            realm.getDefaultGroups();
+            realm.getDefaultGroupsStream().collect(Collectors.toList());
             logger.debugf("CACHE: After obtain default groups in realm %s", realm.getName());
 
-            try {
-                DefaultRoles.getDefaultRoles(realm);
-            } catch (NoClassDefFoundError ncdfe) {
-                // Since Keycloak 13
-            }
+            realm.getDefaultRole().getCompositesStream().collect(Collectors.toList());
             logger.debugf("CACHE: After obtain default roles in realm %s", realm.getName());
 
             // Just obtain first 20 clients for assign client roles - to avoid unecessary DB calls here to load all the clients and then their roles
-            List<ClientModel> clients = realm.getClients(0, 20);
+            List<ClientModel> clients = realm.getClientsStream(0, 20).collect(Collectors.toList());
             logger.debugf("CACHE: After realm.getClients in realm %s", realm.getName());
 
             List<RoleModel> sortedClientRoles = new ArrayList<>();
@@ -1100,22 +1074,22 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                         String name2 = client2.getClientId().substring(config.getClientPrefix().length());
                         return Integer.parseInt(name1) - Integer.parseInt(name2);
                     })
-                    .peek(client -> {
-                        // Sort client roles and add to the shared list
-                        List<RoleModel> currentClientRoles = client.getRoles().stream()
-                                .filter(roleModel -> roleModel.getName().startsWith(config.getClientPrefix()))
-                                .sorted((role1, role2) -> {
-                                    int index1 = role1.getName().indexOf(config.getClientRolePrefix()) + config.getClientRolePrefix().length();
-                                    int index2 = role2.getName().indexOf(config.getClientRolePrefix()) + config.getClientRolePrefix().length();
-                                    String name1 = role1.getName().substring(index1);
-                                    String name2 = role2.getName().substring(index2);
-                                    return Integer.parseInt(name1) - Integer.parseInt(name2);
-                                })
-                                .collect(Collectors.toList());
-                        sortedClientRoles.addAll(currentClientRoles);
+                    .collect(Collectors.toList());
 
+            sortedClients.forEach(client -> {
+                // Sort client roles and add to the shared list
+                List<RoleModel> currentClientRoles = client.getRolesStream()
+                    .filter(roleModel -> roleModel.getName().startsWith(config.getClientPrefix()))
+                    .sorted((role1, role2) -> {
+                        int index1 = role1.getName().indexOf(config.getClientRolePrefix()) + config.getClientRolePrefix().length();
+                        int index2 = role2.getName().indexOf(config.getClientRolePrefix()) + config.getClientRolePrefix().length();
+                        String name1 = role1.getName().substring(index1);
+                        String name2 = role2.getName().substring(index2);
+                        return Integer.parseInt(name1) - Integer.parseInt(name2);
                     })
                     .collect(Collectors.toList());
+                sortedClientRoles.addAll(currentClientRoles);
+            });
 
             logger.debugf("CACHE: After client roles loaded in the realm %s", realm.getName());
             context.setClients(sortedClients);
