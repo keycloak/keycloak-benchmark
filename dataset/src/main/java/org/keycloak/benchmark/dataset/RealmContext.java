@@ -21,13 +21,13 @@ package org.keycloak.benchmark.dataset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
-import org.keycloak.models.UserModel;
 
 /**
  * Collection of objects, which were created and are related to the particular realm. This collection is "maintained" here to avoid
@@ -43,8 +43,8 @@ public class RealmContext {
 
     private RealmModel realm;
 
-    private List<ClientModel> clients = Collections.synchronizedList(new ArrayList<>());
-
+    private final AtomicLong clientsCount = new AtomicLong();
+    
     private List<RoleModel> realmRoles = new ArrayList<>();
 
     // All client roles of all clients
@@ -52,7 +52,7 @@ public class RealmContext {
 
     private List<GroupModel> groups = new ArrayList<>();
 
-    private final List<UserModel> users = Collections.synchronizedList(new ArrayList<>());
+    private final AtomicLong usersCount = new AtomicLong();
 
     public RealmContext(DatasetConfig config) {
         this.config = config;
@@ -70,18 +70,18 @@ public class RealmContext {
         this.realm = realm;
     }
 
-    public void clientCreated(ClientModel client) {
-        clients.add(client);
+    public void incClientCount() {
+        clientsCount.incrementAndGet();
     }
 
-    public List<ClientModel> getClients() {
-        return clients;
+    public void setClientCount(long clientCount) {
+        clientsCount.set(clientCount);
     }
 
-    public void setClients(List<ClientModel> clients) {
-        this.clients = Collections.synchronizedList(clients);
+    public long getClientCount() {
+        return clientsCount.get();
     }
-
+    
     public void realmRoleCreated(RoleModel role) {
         realmRoles.add(role);
     }
@@ -118,11 +118,11 @@ public class RealmContext {
         this.groups = groups;
     }
 
-    public void userCreated(UserModel user) {
-        this.users.add(user);
+    public void incUserCount() {
+        this.usersCount.incrementAndGet();
     }
 
-    public List<UserModel> getUsers() {
-        return users;
+    public long getUserCount() {
+        return this.usersCount.get();
     }
 }
