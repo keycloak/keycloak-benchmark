@@ -90,6 +90,14 @@ public class DatasetConfig {
     @QueryParamFill(paramName = "client-role-prefix", defaultValue = "client-role-", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS })
     private String clientRolePrefix;
 
+    // Check if created clients should be service account clients
+    @QueryParamFill(paramName = "client-access-type", defaultValue = "confidential", operations = {CREATE_REALMS, CREATE_CLIENTS})
+    private String clientAccessType;
+
+    // Check if created clients should be service account clients
+    @QueryParamFill(paramName = "service-account-client", defaultValue = "true", operations = {CREATE_REALMS, CREATE_CLIENTS})
+    private String isServiceAccountClient;
+
     // When creating clients, every client will have this amount of client roles created
     @QueryParamIntFill(paramName = "client-roles-per-client", defaultValue = 10, operations = { CREATE_REALMS, CREATE_CLIENTS })
     private Integer clientRolesPerClient;
@@ -263,6 +271,14 @@ public class DatasetConfig {
 
     public Integer getTaskTimeout() {
         return taskTimeout;
+    }
+
+    public String getClientAccessType() {
+        return clientAccessType;
+    }
+
+    public String getIsServiceAccountClient() {
+        return isServiceAccountClient;
     }
 
     public void setToString(String toString) {
