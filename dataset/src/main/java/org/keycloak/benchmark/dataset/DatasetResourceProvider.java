@@ -31,7 +31,6 @@ import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REAL
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -157,7 +156,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 final int currentRealmIndex = realmIndex;
 
                 // Run this concurrently with multiple threads
-                executor.addTask(executorSession -> {
+                executor.addTask(() -> {
                     logger.infof("Started creation of realm %s", config.getRealmPrefix() + currentRealmIndex);
 
                     RealmContext context = new RealmContext(config);
@@ -300,7 +299,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 logger.tracef("clientsStartIndex: %d, clientsEndIndex: %d", clientsStartIndex, endIndex);
 
                 // Run this concurrently with multiple threads
-                executor.addTask(session -> {
+                executor.addTaskRunningInTransaction(session -> {
 
                     createClients(context, timerLogger, session, clientsStartIndex, endIndex);
 
@@ -395,7 +394,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 logger.tracef("usersStartIndex: %d, usersEndIndex: %d", usersStartIndex, endIndex);
 
                 // Run this concurrently with multiple threads
-                executor.addTask(session -> {
+                executor.addTaskRunningInTransaction(session -> {
 
                     createUsers(context, timerLogger, session, usersStartIndex, endIndex);
 
@@ -474,7 +473,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 final int eventsEndIndex = i + eventsPerTransaction;
 
                 // Run this concurrently with multiple threads
-                executor.addTask(session -> {
+                executor.addTaskRunningInTransaction(session -> {
 
                     EventStoreProvider eventStore = session.getProvider(EventStoreProvider.class);
 
@@ -568,7 +567,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 final int sessionIndex = i + offlineSessionsPerTransaction;
 
                 // Run this concurrently with multiple threads
-                executor.addTask(session -> {
+                executor.addTaskRunningInTransaction(session -> {
 
                     int realmIdx = new Random().nextInt(lastRealmIndex + 1);
                     String realmName = config.getRealmPrefix() + realmIdx;
@@ -686,22 +685,19 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
 
             for (String realmId : realmIds) {
-
                 final String currentRealmId = realmId;
 
                 // Run this concurrently with multiple threads
-                executor.addTask(executorSession -> {
+                executor.addTaskRunningInTransaction(session -> {
                     logger.debugf("Will delete realm %s", currentRealmId);
 
-                    KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
-                        boolean deleted = session.realms().removeRealm(currentRealmId);
+                    boolean deleted = session.realms().removeRealm(currentRealmId);
 
-                        if (deleted) {
-                            timerLogger.info(logger, "Deleted realm %s", currentRealmId);
-                        } else {
-                            logger.warnf("Realm %s did not exist", currentRealmId);
-                        }
-                    }, config.getTransactionTimeoutInSeconds());
+                    if (deleted) {
+                        timerLogger.info(logger, "Deleted realm %s", currentRealmId);
+                    } else {
+                        logger.warnf("Realm %s did not exist", currentRealmId);
+                    }
                 });
             }
 

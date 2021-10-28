@@ -46,13 +46,13 @@ public class ExecutorHelper {
         this.config = config;
     }
 
+    public void addTask(Runnable task) {
+        Future f = executor.submit(task);
+        futures.add(f);
+    }
 
-    public void addTask(KeycloakSessionTask sessionTask) {
-        Future f = executor.submit(() -> {
-
-            KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, sessionTask, config.getTransactionTimeoutInSeconds());
-
-        });
+    public void addTaskRunningInTransaction(KeycloakSessionTask sessionTask) {
+        Future f = executor.submit(() -> KeycloakModelUtils.runJobInTransactionWithTimeout(sessionFactory, sessionTask, config.getTransactionTimeoutInSeconds()));
         futures.add(f);
     }
 
