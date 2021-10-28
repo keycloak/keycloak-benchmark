@@ -53,8 +53,7 @@ public class TaskManager {
 
     public String addTaskIfNotInProgress(TimerLogger task, int taskTimeoutInSeconds) {
         String str = task.toString();
-        String existing = workCache.putIfAbsent(KEY, str, taskTimeoutInSeconds, TimeUnit.SECONDS);
-        return existing;
+        return workCache.putIfAbsent(KEY, str, taskTimeoutInSeconds, TimeUnit.SECONDS);
     }
 
     public void removeExistingTask(boolean successfullyFinished) {

@@ -133,11 +133,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             }
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> {
-
-                createRealmsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, startIndex, realmEndIndex);
-
-            }).start();
+            new Thread(() -> createRealmsImpl(timerLogger, config, startIndex, realmEndIndex)).start();
             started = true;
 
             return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
@@ -279,11 +275,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             config.setStart(startIndex);
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> {
-
-                createClientsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, realm);
-
-            }).start();
+            new Thread(() -> createClientsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, realm)).start();
             started = true;
 
             return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
@@ -377,11 +369,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             config.setStart(startIndex);
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> {
-
-                createUsersImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, realm);
-
-            }).start();
+            new Thread(() -> createUsersImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, realm)).start();
             started = true;
 
             return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
@@ -480,11 +468,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.infof("Will create events in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> {
-
-                createEventsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex);
-
-            }).start();
+            new Thread(() -> createEventsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex)).start();
             started = true;
 
             return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
@@ -584,11 +568,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.infof("Will create offline sessions in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> {
-
-                createOfflineSessionsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex);
-
-            }).start();
+            new Thread(() -> createOfflineSessionsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex)).start();
             started = true;
 
             return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
@@ -698,11 +678,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.infof("Trigger removing realms with the configuration: %s", config);
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> {
-
-                removeRealmsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config);
-
-            }).start();
+            new Thread(() -> removeRealmsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config)).start();
             started = true;
 
             return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
