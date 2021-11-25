@@ -110,6 +110,9 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "groups-per-realm", defaultValue = 20, operations = { CREATE_REALMS })
     private Integer groupsPerRealm;
 
+    @QueryParamIntFill(paramName = "groups-per-transaction", defaultValue = 100, operations = { CREATE_REALMS })
+    private Integer groupsPerTransaction;
+
     // Prefix for newly created users
     @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS, CREATE_OFFLINE_SESSIONS, LAST_USER })
     private String userPrefix;
@@ -283,6 +286,10 @@ public class DatasetConfig {
 
     public void setToString(String toString) {
         this.toString = toString;
+    }
+
+    public Integer getGroupsPerTransaction() {
+        return groupsPerTransaction;
     }
 
     @Override

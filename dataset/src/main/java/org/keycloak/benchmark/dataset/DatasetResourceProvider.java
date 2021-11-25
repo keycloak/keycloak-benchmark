@@ -169,12 +169,12 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                         createRealmRoles(context);
                         timerLogger.debug(logger, "Created %d roles in realm %s", context.getRealmRoles().size(), context.getRealm().getName());
 
-                        createGroups(context);
-                        timerLogger.debug(logger, "Created %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
-                        timerLogger.info(logger, "Created realm, realm roles and groups in realm %s", context.getRealm().getName());
-
                     }, config.getTransactionTimeoutInSeconds());
-
+                    
+                    // create each 100 groups per transaction as default case 
+                    // (to avoid transaction timeouts when creating too many groups in one transaction)
+                    createGroupsInMultipleTransactions(config, context, timerLogger);
+                    
                     // Step 2 - create clients (Using single executor for now... For multiple executors run separate create-clients endpoint)
                     for (int i = 0; i < config.getClientsPerRealm(); i += config.getClientsPerTransaction()) {
                         int clientsStartIndex = i;
@@ -205,6 +205,22 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             executor.shutDown();
             new TaskManager(baseSession).removeExistingTask(true);
         }
+    }
+
+    private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, TimerLogger timerLogger) {
+
+        for (int i = 0; i < config.getGroupsPerRealm(); i += config.getGroupsPerTransaction()) {
+            int groupsStartIndex = i;
+            int groupEndIndex = Math.min(groupsStartIndex + config.getGroupsPerTransaction(), config.getGroupsPerRealm());
+            logger.tracef("groupsStartIndex: %d, groupsEndIndex: %d", groupsStartIndex, groupEndIndex);
+            
+            KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), 
+                    session -> createGroups(context, groupsStartIndex, groupEndIndex, session), 
+                    config.getTransactionTimeoutInSeconds());
+            
+            timerLogger.debug(logger, "Created %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
+        }
+        timerLogger.info(logger, "Created all %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
     }
 
     private Response handleDatasetException(DatasetException de) {
@@ -896,13 +912,12 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         timerLogger.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
     }
 
-    private void createGroups(RealmContext context) {
+    private void createGroups(RealmContext context, int startIndex, int endIndex, KeycloakSession session) {
         RealmModel realm = context.getRealm();
-
-        for (int i = 0; i < context.getConfig().getGroupsPerRealm(); i++) {
+        for (int i = startIndex; i < endIndex; i++) {
             String groupName = context.getConfig().getGroupPrefix() + i;
-            GroupModel group = realm.createGroup(groupName);
-            context.groupCreated(group);
+            GroupModel groupModel = session.groups().createGroup(realm, groupName);
+            context.groupCreated(groupModel);
         }
     }
 
