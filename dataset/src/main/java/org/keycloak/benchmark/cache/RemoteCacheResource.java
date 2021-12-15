@@ -33,8 +33,8 @@ import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.cache.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
+import org.keycloak.connections.infinispan.InfinispanUtil;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.sessions.infinispan.util.InfinispanUtil;
 import org.keycloak.utils.MediaType;
 
 /**

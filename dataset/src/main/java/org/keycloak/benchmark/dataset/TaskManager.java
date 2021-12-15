@@ -25,8 +25,8 @@ import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.commons.api.BasicCache;
 import org.jboss.logging.Logger;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
+import org.keycloak.connections.infinispan.InfinispanUtil;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.sessions.infinispan.util.InfinispanUtil;
 
 /**
  * Management of executed tasks and making sure that there won't be multiple tasks in progress (EG. there is not creation of 1000 realms triggered accidentally 2 times)
