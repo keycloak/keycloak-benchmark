@@ -19,12 +19,14 @@
 package org.keycloak.benchmark.dataset;
 
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.jboss.logging.Logger;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.KeycloakSessionTask;
@@ -39,6 +41,7 @@ public class ExecutorHelper {
     private final KeycloakSessionFactory sessionFactory;
     private final DatasetConfig config;
     private final Queue<Future> futures = new LinkedList<>();
+    protected static final Logger logger = Logger.getLogger(ExecutorHelper.class);
 
     public ExecutorHelper(int threadCount, KeycloakSessionFactory sessionFactory, DatasetConfig config) {
         executor = Executors.newFixedThreadPool(threadCount);
@@ -58,13 +61,20 @@ public class ExecutorHelper {
 
 
     public void waitForAllToFinish() {
-        for (Future future : futures) {
+        logger.info("Waiting for tasks to complete");
+        
+        for (Optional<Future> runningTask = getFirstRunningTask(); runningTask.isPresent(); runningTask = getFirstRunningTask()) {
             try {
-                future.get();
-            } catch (ExecutionException | InterruptedException ee) {
-                throw new RuntimeException(ee); // Maybe something more sophisticated needed...
+                runningTask.get().get(); // wait for task to complete
+            } catch (ExecutionException | InterruptedException e) {
+                logger.errorf("Error waiting for tasks to complete", e);
             }
         }
+        logger.info("All tasks finished");
+    }
+
+    private Optional<Future> getFirstRunningTask() {
+        return futures.stream().filter(f -> !f.isDone()).findFirst();
     }
 
     public void shutDown() {
