@@ -34,6 +34,16 @@
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-services</artifactId>
             <scope>provided</scope>
+            <exclusions>
+                <!-- keycloak-services contains the wrong version of resteasy,
+                  -   so we exclude it here and add the dependency in the correct
+                  -   version manually (see ../pom.xml)
+                -->
+                <exclusion>
+                    <artifactId>resteasy-multipart-provider</artifactId>
+                    <groupId>org.jboss.resteasy</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
@@ -46,7 +56,7 @@
         </dependency>
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-jaxrs</artifactId>
+            <artifactId>resteasy-core</artifactId>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
