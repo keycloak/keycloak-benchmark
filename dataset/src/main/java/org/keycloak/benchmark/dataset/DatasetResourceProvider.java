@@ -187,9 +187,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                         }, config.getTransactionTimeoutInSeconds());
 
-                        timerLogger.debug(logger, "Created %d clients in realm %s", context.getClients().size(), context.getRealm().getName());
+                        timerLogger.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
                     }
-                    timerLogger.info(logger, "Created all %d clients in realm %s", context.getClients().size(), context.getRealm().getName());
+                    timerLogger.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
 
                     // Step 3 - cache realm. This will cache the realm in Keycloak cache (looks like best regarding performance to do it in separate transaction)
                     cacheRealmAndPopulateContext(context);
@@ -206,10 +206,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                         }, config.getTransactionTimeoutInSeconds());
 
-                        timerLogger.debug(logger, "Created %d users in realm %s", context.getUsers().size(), context.getRealm().getName());
+                        timerLogger.debug(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
                     }
 
-                    timerLogger.info(logger, "Created all %d users in realm %s. Finished creation of realm.", context.getUsers().size(), context.getRealm().getName());
+                    timerLogger.info(logger, "Created all %d users in realm %s. Finished creation of realm.", context.getUserCount(), context.getRealm().getName());
                 });
 
             }
@@ -306,7 +306,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     timerLogger.debug(logger, "Created clients in realm %s from %d to %d", context.getRealm().getName(), clientsStartIndex, endIndex);
 
                     if (((endIndex - startIndex) / config.getClientsPerTransaction()) % 20 == 0) {
-                        timerLogger.info(logger, "Created %d clients in realm %s", context.getClients().size(), context.getRealm().getName());
+                        timerLogger.info(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
                     }
 
                 });
@@ -315,7 +315,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Created all %d clients in realm %s", context.getClients().size(), context.getRealm().getName());
+            timerLogger.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
         } finally {
             executor.shutDown();
             new TaskManager(baseSession).removeExistingTask(true);
@@ -401,7 +401,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     timerLogger.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
 
                     if (((endIndex - startIndex) / config.getUsersPerTransaction()) % 20 == 0) {
-                        timerLogger.info(logger, "Created %d users in realm %s", context.getUsers().size(), context.getRealm().getName());
+                        timerLogger.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
                     }
 
                 });
@@ -410,7 +410,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Created all %d users in realm %s", context.getUsers().size(), context.getRealm().getName());
+            timerLogger.info(logger, "Created all %d users in realm %s", context.getUserCount(), context.getRealm().getName());
 
         } finally {
             executor.shutDown();
@@ -900,7 +900,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 new ClientManager(new RealmManager(session)).enableServiceAccount(model);
             }
 
-            context.clientCreated(model);
+            context.incClientCount();
 
             for (int k = 0; k < config.getClientRolesPerClient() ; k++) {
                 String roleName = clientId + "-" + config.getClientRolePrefix() + k;
@@ -909,7 +909,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             }
         }
 
-        timerLogger.debug(logger, "Created %d clients in realm %s", context.getClients().size(), context.getRealm().getName());
+        timerLogger.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
     }
 
     private void createGroups(RealmContext context) {
@@ -966,7 +966,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
             }
 
-            context.userCreated(user);
+            context.incUserCount();
         }
     }
 
@@ -1038,7 +1038,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             });
 
             logger.debugf("CACHE: After client roles loaded in the realm %s", realm.getName());
-            context.setClients(sortedClients);
+            context.setClientCount(sortedClients.size());
             context.setClientRoles(sortedClientRoles);
 
         }, config.getTransactionTimeoutInSeconds());
