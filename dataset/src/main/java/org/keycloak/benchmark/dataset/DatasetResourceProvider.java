@@ -155,7 +155,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                 final int currentRealmIndex = realmIndex;
 
-                // Run this concurrently with multiple threads
+                // Run this concurrently in multiple threads
                 executor.addTask(() -> {
                     logger.infof("Started creation of realm %s", config.getRealmPrefix() + currentRealmIndex);
 
@@ -195,29 +195,12 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     cacheRealmAndPopulateContext(context);
 
                     // Step 4 - create users
-                    for (int i = 0; i < config.getUsersPerRealm(); i += config.getUsersPerTransaction()) {
-                        int usersStartIndex = i;
-                        int endIndex = Math.min(usersStartIndex + config.getUsersPerTransaction(), config.getUsersPerRealm());
-                        logger.tracef("usersStartIndex: %d, usersEndIndex: %d", usersStartIndex, endIndex);
-
-                        KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
-
-                            createUsers(context, timerLogger, session, usersStartIndex, endIndex);
-
-                        }, config.getTransactionTimeoutInSeconds());
-
-                        timerLogger.debug(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
-                    }
-
-                    timerLogger.info(logger, "Created all %d users in realm %s. Finished creation of realm.", context.getUserCount(), context.getRealm().getName());
+                    addUserCreationTasks(context, timerLogger, config, executor, 0, config.getUsersPerRealm());
+                    timerLogger.info(logger, "Triggered creation of %d users in realm %s. Finished creation of realm.", config.getUsersPerRealm(), context.getRealm().getName());
                 });
-
             }
-
             executor.waitForAllToFinish();
-
             timerLogger.info(logger, "Created all realms from '%s' to '%s'", config.getRealmPrefix() + startIndex, config.getRealmPrefix() + (realmEndIndex - 1));
-
         } finally {
             executor.shutDown();
             new TaskManager(baseSession).removeExistingTask(true);
@@ -232,8 +215,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
         return Response.status(400).entity(TaskResponse.error(de.getMessage())).build();
     }
-
-
+    
     @GET
     @Path("/create-clients")
     @NoCache
@@ -387,37 +369,39 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             timerLogger.info(logger, "Cached realm %s", context.getRealm().getName());
 
             // Create users now
-            for (int i = startIndex; i < (startIndex + config.getCount()); i += config.getUsersPerTransaction()) {
-                final int usersStartIndex = i;
-                final int endIndex = Math.min(usersStartIndex + config.getUsersPerTransaction(), startIndex + config.getCount());
-
-                logger.tracef("usersStartIndex: %d, usersEndIndex: %d", usersStartIndex, endIndex);
-
-                // Run this concurrently with multiple threads
-                executor.addTaskRunningInTransaction(session -> {
-
-                    createUsers(context, timerLogger, session, usersStartIndex, endIndex);
-
-                    timerLogger.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
-
-                    if (((endIndex - startIndex) / config.getUsersPerTransaction()) % 20 == 0) {
-                        timerLogger.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
-                    }
-
-                });
-
-            }
-
+            addUserCreationTasks(context, timerLogger, config, executor, startIndex, config.getCount());
             executor.waitForAllToFinish();
 
             timerLogger.info(logger, "Created all %d users in realm %s", context.getUserCount(), context.getRealm().getName());
 
         } finally {
-            executor.shutDown();
-            new TaskManager(baseSession).removeExistingTask(true);
+            if (executor != null) {
+                executor.shutDown();
+            }
         }
     }
 
+    private void addUserCreationTasks(RealmContext context, TimerLogger timerLogger, DatasetConfig config, ExecutorHelper executor, int startIndex, int usersCount) {
+
+        for (int i = startIndex; i < (startIndex + usersCount); i += config.getUsersPerTransaction()) {
+            final int usersStartIndex = i;
+            final int endIndex = Math.min(usersStartIndex + config.getUsersPerTransaction(), startIndex + usersCount);
+
+            logger.tracef("usersStartIndex: %d, usersEndIndex: %d", usersStartIndex, endIndex);
+
+            // Run this concurrently with multiple threads
+            executor.addTaskRunningInTransaction(session -> {
+                createUsers(context, timerLogger, session, usersStartIndex, endIndex);
+
+                timerLogger.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
+
+                if (((endIndex - startIndex) / config.getUsersPerTransaction()) % 20 == 0) {
+                    timerLogger.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
+                }
+            });
+        }
+    }
+    
 
     @GET
     @Path("/create-events")
