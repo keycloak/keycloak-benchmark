@@ -60,11 +60,25 @@ public class Config {
      */
     public static final String clientRedirectUrl = System.getProperty("client-redirect-uri");
 
-    /**
-     * The number of users per second
-     */
-    public static final double usersPerSec = Double.valueOf(System.getProperty("users-per-sec", "1"));
+    public static final Double usersPerSec;
 
+    public static final Integer concurrentUsers;
+
+    public static final WorkloadModel workloadModel;
+    
+    static {
+        usersPerSec = Double.valueOf(System.getProperty("users-per-sec", "0"));
+        concurrentUsers = Integer.valueOf(System.getProperty("concurrent-users", "0"));
+        if (usersPerSec > 0 && concurrentUsers == 0) {
+            workloadModel = WorkloadModel.OPEN;
+        } else if (concurrentUsers > 0 && usersPerSec == 0) {
+            workloadModel = WorkloadModel.CLOSED;
+        } else {
+            throw new IllegalArgumentException("Unable to determine Gatling workload model. "
+                    + "Specify either `--users-per-sec` for the OPEN workload model, or `--concurrent-users` for the CLOSED workload model.");
+        }
+    }
+    
     /**
      * The ramp up period, in seconds, so that new users are linearly created in a period of time.
      */
@@ -155,16 +169,17 @@ public class Config {
                 userName == null ? "Not defined" : userName,
                 userPassword == null ? "Not defined" : userPassword);
     }
-
+    
     public static String toStringRuntimeParameters() {
-        return String.format(
-                "  users-per-sec: %s\n"
-                        + "  ramp-up: %s\n"
-                        + "  warm-up: %s\n"
-                        + "  measurement: %s\n"
-                        + "  user-think-time: %s\n"
-                        + "  refresh-token-period: %s",
-                usersPerSec, rampUpPeriod, warmUpPeriod, measurementPeriod, userThinkTime, refreshTokenPeriod);
+        return  (workloadModel == WorkloadModel.OPEN
+                ? String.format("  users-per-sec: %s (Open Workload Model)\n", usersPerSec)
+                : String.format("  concurrent-users: %s (Closed Workload Model)\n", concurrentUsers))
+                + String.format("  ramp-up: %s\n"
+                              + "  warm-up: %s\n"
+                              + "  measurement: %s\n"
+                              + "  user-think-time: %s\n"
+                              + "  refresh-token-period: %s",
+                rampUpPeriod, warmUpPeriod, measurementPeriod, userThinkTime, refreshTokenPeriod);
     }
 
     public static String toStringTimestamps() {

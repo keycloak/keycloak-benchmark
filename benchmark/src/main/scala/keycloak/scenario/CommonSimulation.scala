@@ -5,6 +5,7 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef.http
 import org.keycloak.benchmark.gatling.log.LogProcessor
 import org.keycloak.benchmark.Config
+import org.keycloak.benchmark.WorkloadModel
 
 import scala.Console.println
 
@@ -37,13 +38,22 @@ abstract class CommonSimulation extends Simulation {
   def setUp(name: String, builder : KeycloakScenarioBuilder): Unit = {
     val scn = scenario(name).exec(builder.chainBuilder)
     setUp(
-      scn.inject(
-        rampUsersPerSec(0.001) to Config.usersPerSec during (Config.rampUpPeriod),
-        constantUsersPerSec(Config.usersPerSec) during (Config.warmUpPeriod + Config.measurementPeriod))
-        .protocols(defaultHttpProtocol()))
-      .assertions(
-        global.failedRequests.count.lt(Config.maxFailedRequests + 1),
-        global.responseTime.mean.lt(Config.maxMeanReponseTime))
+      (
+        if (Config.workloadModel == WorkloadModel.CLOSED)
+          scn.inject(
+            rampConcurrentUsers(0) to (Config.concurrentUsers) during(Config.rampUpPeriod),
+            constantConcurrentUsers(Config.concurrentUsers) during(Config.warmUpPeriod + Config.measurementPeriod)
+          )
+        else
+          scn.inject(
+            rampUsersPerSec(0.001) to Config.usersPerSec during (Config.rampUpPeriod),
+            constantUsersPerSec(Config.usersPerSec) during (Config.warmUpPeriod + Config.measurementPeriod)
+          )
+      ).protocols(defaultHttpProtocol())
+    ).assertions(
+      global.failedRequests.count.lt(Config.maxFailedRequests + 1),
+      global.responseTime.mean.lt(Config.maxMeanReponseTime))
+
   }
 
   before {
