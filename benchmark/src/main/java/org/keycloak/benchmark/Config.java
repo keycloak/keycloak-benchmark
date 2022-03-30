@@ -126,7 +126,7 @@ public class Config {
     public static final String serverUris;
     public static final List<String> serverUrisList;
     // assertion properties
-    public static final int maxFailedRequests = Integer.getInteger("sla-failed-requests", 0);
+    public static final double maxErrorPercentage = Double.valueOf(System.getProperty("sla-error-percentage", "0"));
     public static final int maxMeanReponseTime = Integer.getInteger("sla-mean-response-time", 300);
     public static SimpleDateFormat SIMPLE_TIME = new SimpleDateFormat("HH:mm:ss");
 
@@ -194,9 +194,9 @@ public class Config {
     }
 
     public static String toStringSLA() {
-        return String.format("  Failed Requests: %s\n"
-                        + "  Mean Response Time: %s",
-                maxFailedRequests,
+        return String.format("  Max Error Percentage: %s\n"
+                           + "  Max Mean Response Time: %s",
+                maxErrorPercentage,
                 maxMeanReponseTime);
     }
 
