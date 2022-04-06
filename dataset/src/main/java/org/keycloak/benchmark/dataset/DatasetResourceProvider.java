@@ -485,7 +485,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     EventStoreProvider eventStore = session.getProvider(EventStoreProvider.class);
 
-					for (int j = eventsStartIndex; j < eventsEndIndex; j++) {
+		    for (int j = eventsStartIndex; j < eventsEndIndex; j++) {
                         int realmIdx = new Random().nextInt(lastRealmIndex + 1);
                         String realmName = config.getRealmPrefix() + realmIdx;
 
