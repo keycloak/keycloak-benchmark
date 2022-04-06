@@ -470,14 +470,22 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             // Create events now
             int eventsPerTransaction = 10000;
             for (int i = 0; i < config.getCount(); i += eventsPerTransaction) {
-                final int eventsEndIndex = i + eventsPerTransaction;
+                final int eventsStartIndex = i;
+				final int eventsEndIndex;
+				
+				if (i + eventsPerTransaction < config.getCount()) {
+					eventsEndIndex = i + eventsPerTransaction;
+				}
+				else {
+					eventsEndIndex = config.getCount();
+				}
 
                 // Run this concurrently with multiple threads
                 executor.addTaskRunningInTransaction(session -> {
 
                     EventStoreProvider eventStore = session.getProvider(EventStoreProvider.class);
 
-                    for (int j = 0; j < eventsPerTransaction; j++) {
+		    for (int j = eventsStartIndex; j < eventsEndIndex; j++) {
                         int realmIdx = new Random().nextInt(lastRealmIndex + 1);
                         String realmName = config.getRealmPrefix() + realmIdx;
 
