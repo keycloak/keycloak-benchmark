@@ -105,6 +105,8 @@ class AdminConsoleScenarioBuilder {
       // TODO store AUTH_SESSION_ID cookie for use with oauth.authorize?
       .exitHereIfFailed
 
+      // Store the current timestamp BEFORE it's actually sent (as we don't know how long the request will take or if it will succeed at all)
+      .exec(_.set("requestEpoch", System.currentTimeMillis()))
       .exec(http("Console Redirect")
         .get("/auth/admin/master/console/")
         .headers(UI_HEADERS)
@@ -125,8 +127,8 @@ class AdminConsoleScenarioBuilder {
             .check(status.is(200),
               jsonPath("$.access_token").saveAs("accessToken"),
               jsonPath("$.refresh_token").saveAs("refreshToken"),
-              jsonPath("$.expires_in").saveAs("expiresIn"),
-              header("Date").saveAs("tokenTime")),
+              jsonPath("$.expires_in").saveAs("expiresIn")
+              ),
 
           http("Console REST - messages.json")
             .get("/auth/admin/master/console/messages.json?lang=en")
@@ -142,8 +144,7 @@ class AdminConsoleScenarioBuilder {
         )
       )
       .exec(s => {
-        // How to not have to duplicate this block of code?
-        s.set("accessTokenRefreshTime", ZonedDateTime.parse(s("tokenTime").as[String], DATE_FMT).toEpochSecond * 1000)
+        s.set("accessTokenRefreshTime", s.attributes("requestEpoch"))
       })
       .exec(http("Console REST - whoami")
         .get("/auth/admin/master/console/whoami")
@@ -573,7 +574,9 @@ class AdminConsoleScenarioBuilder {
   def refreshTokenIfExpired(): AdminConsoleScenarioBuilder = {
     chainBuilder = chainBuilder
       .doIf(s => needTokenRefresh(s)) {
-        exec(http("JS Adapter Token - Refresh tokens")
+        // Store the current timestamp BEFORE it's actually sent (as we don't know how long the request will take or if it will succeed at all)
+        exec(_.set("requestEpoch", System.currentTimeMillis()))
+        .exec(http("JS Adapter Token - Refresh tokens")
           .post("/auth/realms/master/protocol/openid-connect/token")
           .headers(ACCEPT_ALL)
           .formParam("grant_type", "refresh_token")
@@ -582,11 +585,11 @@ class AdminConsoleScenarioBuilder {
           .check(status.is(200),
             jsonPath("$.access_token").saveAs("accessToken"),
             jsonPath("$.refresh_token").saveAs("refreshToken"),
-            jsonPath("$.expires_in").saveAs("expiresIn"),
-            header("Date").saveAs("tokenTime")))
+            jsonPath("$.expires_in").saveAs("expiresIn")
+          ))
 
           .exec(s => {
-            s.set("accessTokenRefreshTime", ZonedDateTime.parse(s("tokenTime").as[String], DATE_FMT).toEpochSecond * 1000)
+            s.set("accessTokenRefreshTime", s.attributes("requestEpoch"))
           })
       }
     this
