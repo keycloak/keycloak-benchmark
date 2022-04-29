@@ -320,7 +320,7 @@ class KeycloakScenarioBuilder {
       .exec(http("List clients")
         .get(ADMIN_ENDPOINT + "/clients")
         .header("Authorization", "Bearer ${token}")
-        .queryParam("maxResults", 2)
+        .queryParam("max", 2)
         .check(status.is(200)))
       .exitHereIfFailed
     this
