@@ -285,19 +285,20 @@ class KeycloakScenarioBuilder {
   }
 
   private def getServiceAccountTokenExec(): ChainBuilder = {
-    exec(http("Get service account token")
+    // Store the current timestamp BEFORE it's actually sent (as we don't know how long the request will take or if it will succeed at all)
+    exec(_.set("requestEpoch", System.currentTimeMillis()))
+    .exec(http("Get service account token")
       .post(TOKEN_ENDPOINT)
       .formParam("grant_type", "client_credentials")
       .formParam("client_id", "gatling")
       .formParam("client_secret", "${clientSecret}")
       .check(
         jsonPath("$..access_token").find.saveAs("token"),
-        jsonPath("$..expires_in").find.saveAs("expiresIn"),
-        header("Date").saveAs("tokenTime")
+        jsonPath("$..expires_in").find.saveAs("expiresIn")
       ))
       .exitHereIfFailed
       .exec(s => {
-        s.set("accessTokenRefreshTime", ZonedDateTime.parse(s("tokenTime").as[String], DATE_FMT).toEpochSecond * 1000)
+        s.set("accessTokenRefreshTime", s.attributes("requestEpoch"))
       })
   }
 
