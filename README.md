@@ -221,6 +221,12 @@ To use a different server URL and scenario:
 You can set different options to change how tests should be executed. For a complete list of the available options, see
 [Config](benchmark/src/main/java/org/keycloak/benchmark/Config.java).
 
+### Logging
+
+You can enable HTTP logging using the following additional options:
+* `--log-http-on-failure`: HTTP requests and responses will be logged when the scenario expectations are not met
+* `--log-http-always`: HTTP requests and responses will *always* be logged
+
 ### Report
 
 Check reports at the `result` directory.

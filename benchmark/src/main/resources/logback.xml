@@ -22,9 +22,19 @@
         <appender-ref ref="CONSOLE"/>
     </root>
 
-    <!-- Uncomment for logging ALL HTTP request and responses -->
-    <!-- 	<logger name="io.gatling.http" level="TRACE" /> -->
-    <!-- Uncomment for logging ONLY FAILED HTTP request and responses -->
+    <if condition='isDefined("log-http-on-failure")'>
+    <then>
+       <!-- Logging ONLY FAILED HTTP request and responses -->
+        <logger name="io.gatling.http.engine.response" level="DEBUG" />
+    </then>
+    </if>
+    <if condition='isDefined("log-http-always")'>
+    <then>
+       <!-- Logging ALL HTTP request and responses -->
+        <logger name="io.gatling.http.engine.response" level="TRACE" />
+    </then>
+    </if>
+
     <logger name="io.gatling" level="WARN"/>
 
     <logger name="org.keycloak" level="WARN" additivity="false">
