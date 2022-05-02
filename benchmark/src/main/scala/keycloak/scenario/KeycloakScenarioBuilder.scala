@@ -7,7 +7,7 @@ import io.gatling.core.structure.ChainBuilder
 import io.gatling.http.Predef._
 import keycloak.Utils
 import keycloak.Utils.randomUUID
-import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, downCounterAboveZero}
+import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, REALMS_ENDPOINT, downCounterAboveZero}
 import keycloak.scenario._private.AdminConsoleScenarioBuilder.DATE_FMT
 import org.keycloak.benchmark.Config
 
@@ -25,6 +25,7 @@ object KeycloakScenarioBuilder {
   val LOGIN_ENDPOINT = BASE_URL + "/protocol/openid-connect/auth"
   val LOGOUT_ENDPOINT = BASE_URL + "/protocol/openid-connect/logout"
   val TOKEN_ENDPOINT = BASE_URL + "/protocol/openid-connect/token"
+  val REALMS_ENDPOINT = "${keycloakServer}/admin/realms"
   val ADMIN_ENDPOINT = "${keycloakServer}/admin/realms/${realm}"
   val CODE_PATTERN = "code="
 
@@ -302,6 +303,19 @@ class KeycloakScenarioBuilder {
       })
   }
 
+  def createRealm(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(_.set("createdRealmId", randomUUID()))
+      .exec(http("Create realm")
+        .post(REALMS_ENDPOINT)
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody("""{"id":"${createdRealmId}","realm":"${createdRealmId}","enabled": true}"""))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("location")))
+      .exitHereIfFailed
+    this
+  }
 
   def createClient(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
