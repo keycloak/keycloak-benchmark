@@ -176,7 +176,7 @@ Before running tests, make sure realms are configured as follows:
 
 * Realms must have `User Registration` setting enabled.
 
-Some scenarios (`CreateDeleteClients` and `CrawlUsers`) require a service account with the clientId `gatling`:
+Some scenarios (`CreateDeleteClients`, and `CrawlUsers`, `CreateRealms`) require a service account with the clientId `gatling`:
 
 * select the realm that is used for testing
 * create a client  with the name `gatling`
@@ -188,6 +188,21 @@ Some scenarios (`CreateDeleteClients` and `CrawlUsers`) require a service accoun
    * select for `realm-management` in the `Client Roles` listbox
    * assign the roles `manage-clients` and `view-users`
 * the client secret to be passed to the tests can be copied from the `Credentials` tab
+
+#### Scenario `keycloak.scenario.admin.CreateRealms`
+
+This scenario requires the following Client settings, in addition to the requirements above:
+
+* In to the `Scopes` tab
+    * Set `Full Scope Allowed` to `Off`
+    * Add role `create-realm` in the `Realm Roles` section
+* In the `Service Account Roles` tab
+    * assign the roles `create-realm` in the `Realm Roles` section
+
+The `Full Scope Allowed` flag is especially important to disable, because if enabled,
+the access token will contain *all* the accesses to all the realms,
+leading to the token becoming too large after roughly 40 created realms
+(receiving `431 Request Header Fields Too Large` responses in this case).
 
 ### Run
 
@@ -219,6 +234,7 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
 * `keycloak.scenario.admin.CreateDeleteClients`: Create and deleted clients (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.UserCrawl`: Crawls all users page by page (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateRealms`: Create realms (requires `--client-secret=<client secret for gatling client>` and `--realm-name=master`)
 
 ## Release
 
