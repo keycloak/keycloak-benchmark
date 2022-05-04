@@ -5,7 +5,7 @@ import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
 
 class CreateDeleteClients extends CommonSimulation {
 
-  setUp("CRUD clients", new KeycloakScenarioBuilder()
+  setUp("Create, List and Delete clients", new KeycloakScenarioBuilder()
     .serviceAccountToken()
     .createClient()
     .listClients()

@@ -5,7 +5,7 @@ import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
 
 class CreateRealms extends CommonSimulation {
 
-  setUp("CRUD realms", new KeycloakScenarioBuilder()
+  setUp("Create realms", new KeycloakScenarioBuilder()
     .serviceAccountToken()
     .createRealm()
   )
