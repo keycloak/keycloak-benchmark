@@ -303,6 +303,7 @@ class KeycloakScenarioBuilder {
       })
   }
 
+  //Realms
   def createRealm(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(_.set("createdRealmId", randomUUID()))
@@ -312,11 +313,53 @@ class KeycloakScenarioBuilder {
         .header("Content-Type", "application/json")
         .body(StringBody("""{"id":"${createdRealmId}","realm":"${createdRealmId}","enabled": true}"""))
         .check(status.is(201))
-        .check(header("Location").notNull.saveAs("location")))
+        .check(header("Location").notNull.saveAs("realmLocation")))
+      .exec(session => (session.removeAll("createdRealmId")))
       .exitHereIfFailed
     this
   }
 
+  //Client Scopes
+  def createClientScopes(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(_.set("createdClientScopeId", randomUUID()))
+      .exec(http("Create client scopes")
+        .post(ADMIN_ENDPOINT + "/client-scopes")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody(
+          """ {"attributes":{"display.on.consent.screen":"true","include.in.token.scope":"true"},
+            | "name":"${createdClientScopeId}","protocol":"openid-connect"} """.stripMargin))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("clientScopeLocation")))
+      .exec(session => (session.removeAll("createdClientScopeId")))
+      .exitHereIfFailed
+    this
+  }
+
+  def listClientScopes(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List client Scopes")
+        .get(ADMIN_ENDPOINT + "/client-scopes")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("max", 2)
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def deleteClientScopes(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Delete client scopes")
+        .delete("${clientScopeLocation}")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(204)))
+      .exec(session => (session.removeAll("clientScopeLocation")))
+      .exitHereIfFailed
+    this
+  }
+
+  //Clients
   def createClient(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Create client")
@@ -325,7 +368,7 @@ class KeycloakScenarioBuilder {
         .header("Content-Type", "application/json")
         .body(StringBody("{}"))
         .check(status.is(201))
-        .check(header("Location").notNull.saveAs("location")))
+        .check(header("Location").notNull.saveAs("clientLocation")))
       .exitHereIfFailed
     this
   }
@@ -344,9 +387,10 @@ class KeycloakScenarioBuilder {
   def deleteClient(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Delete client")
-        .delete("${location}")
+        .delete("${clientLocation}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))
+      .exec(session => (session.removeAll("clientLocation")))
       .exitHereIfFailed
     this
   }

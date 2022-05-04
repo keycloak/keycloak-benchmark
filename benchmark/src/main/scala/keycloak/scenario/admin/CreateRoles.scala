@@ -3,10 +3,10 @@ package keycloak.scenario.admin
 import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
 
 
-class CreateRealms extends CommonSimulation {
+class CreateRoles extends CommonSimulation {
 
-  setUp("Create realms", new KeycloakScenarioBuilder()
+  setUp("CRUD Roles", new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .createRealm()
+    //.createRoles()
   )
 }
