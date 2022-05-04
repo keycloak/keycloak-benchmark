@@ -342,7 +342,6 @@ class KeycloakScenarioBuilder {
       .exec(http("List client Scopes")
         .get(ADMIN_ENDPOINT + "/client-scopes")
         .header("Authorization", "Bearer ${token}")
-        .queryParam("max", 2)
         .check(status.is(200)))
       .exitHereIfFailed
     this
