@@ -3,10 +3,11 @@ package keycloak.scenario.admin
 import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
 
 
-class CreateRealms extends CommonSimulation {
+class CreateDeleteRealms extends CommonSimulation {
 
-  setUp("Create realms", new KeycloakScenarioBuilder()
+  setUp("Create then Delete realms", new KeycloakScenarioBuilder()
     .adminCliToken()
     .createRealm()
+    .deleteRealm()
   )
 }

@@ -25,7 +25,7 @@ Before running tests, make sure realms are configured as follows:
 
 * Realms must have `User Registration` setting enabled.
 
-Some scenarios (`CreateDeleteClients`, and `CrawlUsers`, `CreateRealms`, `CreateDeleteClientScopes`) require a service account with the clientId `gatling`:
+Some scenarios (`CreateDeleteClients`, and `CrawlUsers`, `CreateDeleteClientScopes`) require a service account with the clientId `gatling`:
 
 * select the realm that is used for testing
 * create a client  with the name `gatling`
@@ -38,20 +38,19 @@ Some scenarios (`CreateDeleteClients`, and `CrawlUsers`, `CreateRealms`, `Create
    * assign the roles `manage-clients` and `view-users`
 * the client secret to be passed to the tests can be copied from the `Credentials` tab
 
-#### Scenario `keycloak.scenario.admin.CreateRealms`
+#### Scenarios `keycloak.scenario.admin.CreateRealms` and `keycloak.scenario.admin.CreateDeleteRealms`
 
-This scenario requires the following Client settings, in addition to the requirements above:
+These scenarios are using the root admin account to perform realm operations with the built-in `admin-cli` client.
 
-* In to the `Scopes` tab
-    * Set `Full Scope Allowed` to `Off`
-    * Add role `create-realm` in the `Realm Roles` section
-* In the `Service Account Roles` tab
-    * assign the roles `create-realm` in the `Realm Roles` section
+This information is specified to the scenarios with options `--admin-username` and `--admin-password`.
 
-The `Full Scope Allowed` flag is especially important to disable, because if enabled,
-the access token will contain *all* the accesses to all the realms,
-leading to the token becoming too large after roughly 40 created realms
-(receiving `431 Request Header Fields Too Large` responses in this case).
+Usage of a service account token is irrelevant with these scenarios, because:
+
+* real-world realm operations are performed using root admin credentials
+* deleting a just-created realm requires realm-specific permissions which are set onto a realm-specific
+  client, which would require to logout then login again using the realm-specific client to perform the realm deletion operation
+* as the token includes all realm permissions, it would grow very fast and would quickly exceed
+  the maximum length for header (leading to `431 Request Header Fields Too Large` responses).
 
 ### Run
 
@@ -83,7 +82,8 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
 * `keycloak.scenario.admin.CreateDeleteClients`: Create and deleted clients (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.UserCrawl`: Crawls all users page by page (requires `--client-secret=<client secret for gatling client>`)
-* `keycloak.scenario.admin.CreateRealms`: Create realms (requires `--client-secret=<client secret for gatling client>` and `--realm-name=master`)
+* `keycloak.scenario.admin.CreateRealms`: Create realms (requires `--admin-username=<admin login>` and `--admin-password=<admin password>`)
+* `keycloak.scenario.admin.CreateDeleteRealms`: Create and immediately delete realms (requires `--admin-username=<admin login>` and `--admin-password=<admin password>`)
 
 ## Release
 
