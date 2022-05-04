@@ -60,6 +60,16 @@ public class Config {
      */
     public static final String clientRedirectUrl = System.getProperty("client-redirect-uri");
 
+    /**
+     * If set, tests requiring admin credentials will run using the provided {@code admin-username}.
+     */
+    public static final String adminUsername = System.getProperty("admin-username");
+
+    /**
+     * If set, tests requiring admin credentials will run using the provided {@code admin-password}.
+     */
+    public static final String adminPassword = System.getProperty("admin-password");
+
     public static final Double usersPerSec;
 
     public static final Integer concurrentUsers;
