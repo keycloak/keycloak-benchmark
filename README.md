@@ -152,7 +152,7 @@ See if item with ID "123" exists in the specified remote cache:
     http://localhost:8080/auth/realms/master/remote-cache/sessions/contains/123
     
 ## Benchmark
-
+ 
 [How to Run the Keycloak Benchmark module](benchmark/BENCHMARK.md)
 
 ## Release
