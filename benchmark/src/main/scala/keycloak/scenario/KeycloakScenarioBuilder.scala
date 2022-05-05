@@ -303,6 +303,57 @@ class KeycloakScenarioBuilder {
       })
   }
 
+  //Roles
+  def listRoles(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List Roles")
+        .get(ADMIN_ENDPOINT + "/roles")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("max", 2)
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def createRoles(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(_.set("createdRoleId", randomUUID()))
+      .exec(http("Create roles")
+        .post(ADMIN_ENDPOINT + "/roles")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("roleLocation")))
+      .exitHereIfFailed
+    this
+  }
+
+  //Groups
+  def listGroups(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List groups")
+        .get(ADMIN_ENDPOINT + "/groups")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("max", 2)
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def createGroups(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(_.set("createdGroupId", randomUUID()))
+      .exec(http("Create groups")
+        .post(ADMIN_ENDPOINT + "/groups")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody("""{ "name" : "${createdGroupId}" }"""))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("groupLocation")))
+      .exitHereIfFailed
+    this
+  }
+
   //Realms
   def createRealm(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
@@ -313,8 +364,7 @@ class KeycloakScenarioBuilder {
         .header("Content-Type", "application/json")
         .body(StringBody("""{"id":"${createdRealmId}","realm":"${createdRealmId}","enabled": true}"""))
         .check(status.is(201))
-        .check(header("Location").notNull.saveAs("realmLocation")))
-      .exec(session => (session.removeAll("createdRealmId")))
+        .check(header("Location").notNull.saveAs("location")))
       .exitHereIfFailed
     this
   }
@@ -367,7 +417,7 @@ class KeycloakScenarioBuilder {
         .header("Content-Type", "application/json")
         .body(StringBody("{}"))
         .check(status.is(201))
-        .check(header("Location").notNull.saveAs("clientLocation")))
+        .check(header("Location").notNull.saveAs("location")))
       .exitHereIfFailed
     this
   }
@@ -386,10 +436,9 @@ class KeycloakScenarioBuilder {
   def deleteClient(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Delete client")
-        .delete("${clientLocation}")
+        .delete("${location}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("clientLocation")))
       .exitHereIfFailed
     this
   }
