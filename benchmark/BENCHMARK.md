@@ -25,7 +25,7 @@ Before running tests, make sure realms are configured as follows:
 
 * Realms must have `User Registration` setting enabled.
 
-Some scenarios (`CreateDeleteClients`, and `CrawlUsers`, `CreateRealms`, `CreateDeleteClientScopes`) require a service account with the clientId `gatling`:
+Some scenarios require a service account with the clientId `gatling`:
 
 * select the realm that is used for testing
 * create a client  with the name `gatling`
@@ -35,8 +35,17 @@ Some scenarios (`CreateDeleteClients`, and `CrawlUsers`, `CreateRealms`, `Create
    * click save
 * Change to the tab `Sevice Account Roles`
    * select for `realm-management` in the `Client Roles` listbox
-   * assign the roles `manage-clients` and `view-users`
+   * assign the roles, based on the below role-mapping table for the respective load simulation scenario
 * the client secret to be passed to the tests can be copied from the `Credentials` tab
+
+| Scenario Name            |       Assigned Roles       |
+|--------------------------|:--------------------------:|
+| CreateDeleteClients      | manage-clients, view-users |
+| CrawlUsers               | manage-clients, view-users |
+| CreateDeleteClientScopes | manage-clients, view-users |
+| CreateDeleteRoles        |       manage-realms        |
+| CreateDeleteGroups       |        manage-users        |
+
 
 #### Scenario `keycloak.scenario.admin.CreateRealms`
 
