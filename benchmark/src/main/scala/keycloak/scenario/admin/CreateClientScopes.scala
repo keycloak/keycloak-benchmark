@@ -7,7 +7,7 @@ class CreateClientScopes extends CommonSimulation {
 
   setUp("Create and List client scopes", new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .createClientScopes()
+    .createClientScope()
     .listClientScopes()
   )
 }

@@ -306,6 +306,82 @@ class KeycloakScenarioBuilder {
       })
   }
 
+  //Roles
+  def listRoles(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List Roles")
+        .get(ADMIN_ENDPOINT + "/roles")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("max", 2)
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def createRole(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(_.set("createdRoleId", randomUUID()))
+      .exec(http("Create Role")
+        .post(ADMIN_ENDPOINT + "/roles")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody("""{ "name" : "${createdRoleId}" }"""))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("roleLocation")))
+      .exec(session => (session.removeAll("createdRoleId")))
+      .exitHereIfFailed
+    this
+  }
+
+  def deleteRole(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Delete Role")
+        .delete("${roleLocation}")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(204)))
+      .exec(session => (session.removeAll("roleLocation")))
+      .exitHereIfFailed
+    this
+  }
+
+  //Groups
+  def listGroups(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List Groups")
+        .get(ADMIN_ENDPOINT + "/groups")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("max", 2)
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def createGroup(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(_.set("createdGroupId", randomUUID()))
+      .exec(http("Create Group")
+        .post(ADMIN_ENDPOINT + "/groups")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody("""{ "name" : "${createdGroupId}" }"""))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("groupLocation")))
+      .exec(session => (session.removeAll("createdGroupId")))
+      .exitHereIfFailed
+    this
+  }
+
+  def deleteGroup(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Delete Group")
+        .delete("${groupLocation}")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(204)))
+      .exec(session => (session.removeAll("groupLocation")))
+      .exitHereIfFailed
+    this
+  }
+
   def adminCliToken(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       // Store the current timestamp BEFORE it's actually sent (as we don't know how long the request will take or if it will succeed at all)
@@ -355,7 +431,7 @@ class KeycloakScenarioBuilder {
   }
 
   //Client Scopes
-  def createClientScopes(): KeycloakScenarioBuilder = {
+  def createClientScope(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(_.set("createdClientScopeId", randomUUID()))
       .exec(http("Create client scopes")
@@ -382,9 +458,9 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def deleteClientScopes(): KeycloakScenarioBuilder = {
+  def deleteClientScope(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("Delete client scopes")
+      .exec(http("Delete client scope")
         .delete("${clientScopeLocation}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))
