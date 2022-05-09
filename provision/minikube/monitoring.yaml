@@ -1,0 +1,63 @@
+# https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
+
+namespaceOverride: monitoring
+
+grafana:
+  namespaceOverride: monitoring
+  adminPassword: keycloak
+  sidecar:
+    datasources:
+      enabled: false
+      defaultDatasourceEnabled: false
+  # values in dependent chart / https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
+  grafana.ini:
+    feature_toggles:
+      enable: tempoSearch tempoBackendSearch
+    auth.anonymous:
+      enabled: true
+      org_role: Admin
+      org_name: Main Org.
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-kube-prometheus-prometheus.monitoring:9090/
+        access: proxy
+        isDefault: true
+        editable: false
+      - name: Tempo
+        type: tempo
+        url: http://tempo.monitoring.svc:3100/
+        access: proxy
+        isDefault: false
+        editable: false
+
+kube-state-metrics:
+  namespaceOverride: monitoring
+
+prometheus-node-exporter:
+  namespaceOverride: monitoring
+
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubelet:
+  cAdvisor:
+    # remove embedded cAdvisor metrics as they are unreliable and have gaps
+    # (at least on minikube on Linux with podman/cri-o
+    enabled: false
+
+prometheus:
+  prometheusSpec:
+    podMonitorSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorSelectorNilUsesHelmValues: false
+

@@ -1,0 +1,25 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: grafana
+  name: grafana-ingress
+  namespace: monitoring
+spec:
+  defaultBackend:
+    service:
+      name: prometheus-grafana
+      port:
+        number: 3000
+  rules:
+    - host: grafana.{{ .Values.hostname }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: prometheus-grafana
+                port:
+                  number: 3000
+            path: /
+            pathType: ImplementationSpecific
