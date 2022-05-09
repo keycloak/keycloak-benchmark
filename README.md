@@ -1,5 +1,7 @@
 # Keycloak Benchmark
 
+[![Java CI with Maven](https://github.com/keycloak/keycloak-benchmark/actions/workflows/build.yml/badge.svg)](https://github.com/keycloak/keycloak-benchmark/actions/workflows/build.yml)
+
 This repository contains the necessary tools to run performances tests on a Keycloak server.
 
 Section `Dataset` is to prefill the Keycloak/RHSSO DB with big amount of objects. Then section `Gatling` is to run the performance test itself
