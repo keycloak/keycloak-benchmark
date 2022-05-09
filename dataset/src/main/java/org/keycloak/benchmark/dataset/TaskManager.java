@@ -41,8 +41,9 @@ public class TaskManager {
 
     protected static final Logger logger = Logger.getLogger(TaskManager.class);
 
+    @SuppressWarnings("unchecked")
     public TaskManager(KeycloakSession session) {
-        Cache workCache = session.getProvider(InfinispanConnectionProvider.class).getCache(InfinispanConnectionProvider.WORK_CACHE_NAME);
+        Cache<String, String> workCache = session.getProvider(InfinispanConnectionProvider.class).getCache(InfinispanConnectionProvider.WORK_CACHE_NAME);
         RemoteCache<String, String> remoteCache = InfinispanUtil.getRemoteCache(workCache);
         this.workCache = (remoteCache == null) ? workCache : remoteCache;
     }
