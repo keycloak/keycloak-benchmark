@@ -7,7 +7,7 @@ import io.gatling.core.structure.ChainBuilder
 import io.gatling.http.Predef._
 import keycloak.Utils
 import keycloak.Utils.randomUUID
-import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, REALMS_ENDPOINT, downCounterAboveZero}
+import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, REALMS_ENDPOINT, MASTER_REALM_TOKEN_ENDPOINT, downCounterAboveZero}
 import keycloak.scenario._private.AdminConsoleScenarioBuilder.DATE_FMT
 import org.keycloak.benchmark.Config
 
@@ -25,6 +25,7 @@ object KeycloakScenarioBuilder {
   val LOGIN_ENDPOINT = BASE_URL + "/protocol/openid-connect/auth"
   val LOGOUT_ENDPOINT = BASE_URL + "/protocol/openid-connect/logout"
   val TOKEN_ENDPOINT = BASE_URL + "/protocol/openid-connect/token"
+  val MASTER_REALM_TOKEN_ENDPOINT = "${keycloakServer}/realms/master/protocol/openid-connect/token"
   val REALMS_ENDPOINT = "${keycloakServer}/admin/realms"
   val ADMIN_ENDPOINT = "${keycloakServer}/admin/realms/${realm}"
   val CODE_PATTERN = "code="
@@ -111,7 +112,9 @@ class KeycloakScenarioBuilder {
       "password" -> userPassword,
       "clientId" -> clientId,
       "clientSecret" -> clientSecret,
-      "redirectUri" -> redirectUri
+      "redirectUri" -> redirectUri,
+      "adminUsername" -> Config.adminUsername,
+      "adminPassword" -> Config.adminPassword
     )
   })
     .exitHereIfFailed
@@ -315,10 +318,10 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def createRoles(): KeycloakScenarioBuilder = {
+  def createRole(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(_.set("createdRoleId", randomUUID()))
-      .exec(http("Create Roles")
+      .exec(http("Create Role")
         .post(ADMIN_ENDPOINT + "/roles")
         .header("Authorization", "Bearer ${token}")
         .header("Content-Type", "application/json")
@@ -330,9 +333,9 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def deleteRoles(): KeycloakScenarioBuilder = {
+  def deleteRole(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("Delete Roles")
+      .exec(http("Delete Role")
         .delete("${roleLocation}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))
@@ -353,10 +356,10 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def createGroups(): KeycloakScenarioBuilder = {
+  def createGroup(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(_.set("createdGroupId", randomUUID()))
-      .exec(http("Create Groups")
+      .exec(http("Create Group")
         .post(ADMIN_ENDPOINT + "/groups")
         .header("Authorization", "Bearer ${token}")
         .header("Content-Type", "application/json")
@@ -368,14 +371,35 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def deleteGroups(): KeycloakScenarioBuilder = {
+  def deleteGroup(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("Delete Groups")
+      .exec(http("Delete Group")
         .delete("${groupLocation}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))
       .exec(session => (session.removeAll("groupLocation")))
       .exitHereIfFailed
+    this
+  }
+
+  def adminCliToken(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      // Store the current timestamp BEFORE it's actually sent (as we don't know how long the request will take or if it will succeed at all)
+      .exec(_.set("requestEpoch", System.currentTimeMillis()))
+      .exec(http("Get admin-cli token")
+        .post(MASTER_REALM_TOKEN_ENDPOINT)
+        .formParam("grant_type", "password")
+        .formParam("client_id", "admin-cli")
+        .formParam("username", "${adminUsername}")
+        .formParam("password", "${adminPassword}")
+        .check(
+          jsonPath("$..access_token").find.saveAs("token"),
+          jsonPath("$..expires_in").find.saveAs("expiresIn")
+        ))
+        .exitHereIfFailed
+        .exec(s => {
+          s.set("accessTokenRefreshTime", s.attributes("requestEpoch"))
+        })
     this
   }
 
@@ -389,13 +413,25 @@ class KeycloakScenarioBuilder {
         .header("Content-Type", "application/json")
         .body(StringBody("""{"id":"${createdRealmId}","realm":"${createdRealmId}","enabled": true}"""))
         .check(status.is(201))
-        .check(header("Location").notNull.saveAs("realmLocation")))
+        .check(header("Location").notNull))
+      .exitHereIfFailed
+    this
+  }
+
+  def deleteRealm(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Delete realm")
+        .delete(REALMS_ENDPOINT + "/${createdRealmId}")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .check(status.is(204)))
+      .exec(session => (session.removeAll("createdRealmId")))
       .exitHereIfFailed
     this
   }
 
   //Client Scopes
-  def createClientScopes(): KeycloakScenarioBuilder = {
+  def createClientScope(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(_.set("createdClientScopeId", randomUUID()))
       .exec(http("Create client scopes")
@@ -422,9 +458,9 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def deleteClientScopes(): KeycloakScenarioBuilder = {
+  def deleteClientScope(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("Delete client scopes")
+      .exec(http("Delete client scope")
         .delete("${clientScopeLocation}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))

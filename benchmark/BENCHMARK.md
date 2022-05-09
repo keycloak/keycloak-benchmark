@@ -40,27 +40,32 @@ Some scenarios require a service account with the clientId `gatling`:
 
 | Scenario Name            |       Assigned Roles       |
 |--------------------------|:--------------------------:|
-| CreateDeleteClients      | manage-clients, view-users |
+| CreateClient             | manage-clients, view-users |
+| CreateDeleteClient       | manage-clients, view-users |
 | CrawlUsers               | manage-clients, view-users |
-| CreateDeleteClientScopes | manage-clients, view-users |
-| CreateDeleteRoles        |       manage-realms        |
-| CreateDeleteGroups       |        manage-users        |
+| CreateClientScope        | manage-clients, view-users |
+| CreateDeleteClientScope  | manage-clients, view-users |
+| CreateRole               |       manage-realm         |
+| CreateDeleteRole         |       manage-realm         |
+| CreateClientScope        | manage-clients, view-users |
+| CreateDeleteClientScope  | manage-clients, view-users |
+| CreateGroup              |       manage-users         |
+| CreateDeleteGroup        |       manage-users         |
 
 
-#### Scenario `keycloak.scenario.admin.CreateRealms`
+#### Scenarios `keycloak.scenario.admin.CreateRealms` and `keycloak.scenario.admin.CreateDeleteRealms`
 
-This scenario requires the following Client settings, in addition to the requirements above:
+These scenarios are using the root admin account to perform realm operations with the built-in `admin-cli` client.
 
-* In to the `Scopes` tab
-    * Set `Full Scope Allowed` to `Off`
-    * Add role `create-realm` in the `Realm Roles` section
-* In the `Service Account Roles` tab
-    * assign the roles `create-realm` in the `Realm Roles` section
+This information is specified to the scenarios with options `--admin-username` and `--admin-password`.
 
-The `Full Scope Allowed` flag is especially important to disable, because if enabled,
-the access token will contain *all* the accesses to all the realms,
-leading to the token becoming too large after roughly 40 created realms
-(receiving `431 Request Header Fields Too Large` responses in this case).
+Usage of a service account token is irrelevant with these scenarios, because:
+
+* real-world realm operations are performed using root admin credentials
+* deleting a just-created realm requires realm-specific permissions which are set onto a realm-specific
+  client, which would require to logout then login again using the realm-specific client to perform the realm deletion operation
+* as the token includes all realm permissions, it would grow very fast and would quickly exceed
+  the maximum length for header (leading to `431 Request Header Fields Too Large` responses).
 
 ### Run
 
@@ -90,9 +95,17 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.AuthorizationCode`: Authorization Code Grant Type
 * `keycloak.scenario.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint. After username+password login, there is no exchange of OAuth2 "code" for the tokens) 
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
-* `keycloak.scenario.admin.CreateDeleteClients`: Create and deleted clients (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteClient`: Create and deleted clients (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateClient`: Create clients (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteRole`: Create and deleted roles (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateRole`: Create roles (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteGroup`: Create and deleted groups (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateGroup`: Create groups (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteClientScope`: Create and deleted client scopes (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateClientScope`: Create client scope (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.UserCrawl`: Crawls all users page by page (requires `--client-secret=<client secret for gatling client>`)
-* `keycloak.scenario.admin.CreateRealms`: Create realms (requires `--client-secret=<client secret for gatling client>` and `--realm-name=master`)
+* `keycloak.scenario.admin.CreateRealm`: Create realms (requires `--admin-username=<admin login>` and `--admin-password=<admin password>`)
+* `keycloak.scenario.admin.CreateDeleteRealm`: Create and immediately delete realms (requires `--admin-username=<admin login>` and `--admin-password=<admin password>`)
 
 ## Release
 
