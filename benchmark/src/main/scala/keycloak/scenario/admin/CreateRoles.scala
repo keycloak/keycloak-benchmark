@@ -7,7 +7,7 @@ class CreateRoles extends CommonSimulation {
 
   setUp("Create and List Roles", new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .createRoles()
+    .createRole()
     .listRoles()
   )
 }

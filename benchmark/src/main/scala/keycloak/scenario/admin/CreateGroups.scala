@@ -7,6 +7,6 @@ class CreateGroups extends CommonSimulation {
 
   setUp("Create and List Groups", new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .createGroups()
+    .createGroup()
     .listGroups())
 }

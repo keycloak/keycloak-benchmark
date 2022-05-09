@@ -7,8 +7,8 @@ class CreateDeleteClientScopes extends CommonSimulation {
 
   setUp("Create, List and Delete client scopes", new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .createClientScopes()
+    .createClientScope()
     .listClientScopes()
-    .deleteClientScopes()
+    .deleteClientScope()
   )
 }

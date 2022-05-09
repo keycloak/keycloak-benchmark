@@ -45,12 +45,12 @@ Some scenarios require a service account with the clientId `gatling`:
 | CrawlUsers               | manage-clients, view-users |
 | CreateClientScope        | manage-clients, view-users |
 | CreateDeleteClientScope  | manage-clients, view-users |
-| CreateRole               |       manage-realm         |
-| CreateDeleteRole         |       manage-realm         |
+| CreateRole               |        manage-realm        |
+| CreateDeleteRole         |        manage-realm        |
 | CreateClientScope        | manage-clients, view-users |
 | CreateDeleteClientScope  | manage-clients, view-users |
-| CreateGroup              |       manage-users         |
-| CreateDeleteGroup        |       manage-users         |
+| CreateGroup              |        manage-users        |
+| CreateDeleteGroup        |        manage-users        |
 
 
 #### Scenarios `keycloak.scenario.admin.CreateRealms` and `keycloak.scenario.admin.CreateDeleteRealms`

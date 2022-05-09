@@ -7,8 +7,8 @@ class CreateDeleteGroups extends CommonSimulation {
 
   setUp("Create, List and Delete Groups", new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .createGroups()
+    .createGroup()
     .listGroups()
-    .deleteGroups()
+    .deleteGroup()
     )
 }
