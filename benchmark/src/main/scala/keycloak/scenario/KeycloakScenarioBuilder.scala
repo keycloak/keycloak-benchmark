@@ -312,8 +312,11 @@ class KeycloakScenarioBuilder {
       .exec(http("List Roles")
         .get(ADMIN_ENDPOINT + "/roles")
         .header("Authorization", "Bearer ${token}")
+        .queryParam("first", 0)
         .queryParam("max", 2)
-        .check(status.is(200)))
+        .check(
+          status.is(200),
+          jsonPath("$[*]").count.lte(2)))
       .exitHereIfFailed
     this
   }
@@ -350,8 +353,11 @@ class KeycloakScenarioBuilder {
       .exec(http("List Groups")
         .get(ADMIN_ENDPOINT + "/groups")
         .header("Authorization", "Bearer ${token}")
+        .queryParam("first", 0)
         .queryParam("max", 2)
-        .check(status.is(200)))
+        .check(
+          status.is(200),
+          jsonPath("$[*]").count.lte(2)))
       .exitHereIfFailed
     this
   }
@@ -489,7 +495,9 @@ class KeycloakScenarioBuilder {
         .get(ADMIN_ENDPOINT + "/clients")
         .header("Authorization", "Bearer ${token}")
         .queryParam("max", 2)
-        .check(status.is(200)))
+        .check(
+          status.is(200),
+          jsonPath("$[*]").count.lte(2)))
       .exitHereIfFailed
     this
   }
