@@ -30,6 +30,20 @@ More instances are possible when adding more than 8 GB of RAM.
 The podman driver on Linux currently supports at the moment only up to 5 instances of Keycloak due to the number of open files limit that is actually a limit of the number of threads.
 After that, the containers will complain that they're unable to start more processes.
 
+== Architecture
+
+This describes the runtime view of the setup:
+
+.Minikube runtime view
+image::minikube-runtime-view.svg[]
+
+The setup is as follows:
+
+* Minikube runs a virtual machine
+* Via a configured in ingress, a local browser can access different services running in Minikube like Keycloak and Grafana
+* Keycloak connects to a PostgreSQL DB running inside Minikube
+* Prometheus collects metrics, and Tempo collects traces
+
 == Prerequisites
 
 The following needs to be installed on the local machine:
