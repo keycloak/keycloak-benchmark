@@ -262,3 +262,32 @@ helm search repo grafana
 helm install tempo grafana/tempo -n monitoring -f tempo.yaml
 helm upgrade tempo grafana/tempo -n monitoring -f tempo.yaml
 ----
+
+== Pause/Resume setup
+
+The setup can be paused and resumed without restarting/reinstalling all pods.
+
+To stop, run the following command:
+
+[source,bash]
+----
+minikube stop
+----
+
+To resume, run the following command and specify the driver you used when running minikube originally.
+
+[source,bash]
+----
+minikube start --driver=...
+----
+
+After minikube has been re-started, it might have a different IP address for the ingress.
+Due to that, all ingresses need to be updated.
+Do this by running helm:
+
+[source,bash]
+----
+helm upgrade monitoring --set hostname=$(minikube ip).nip.io monitoring
+helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
+----
+

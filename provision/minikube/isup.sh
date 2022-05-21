@@ -19,12 +19,12 @@ declare -A SERVICES=( \
  ["https://kubebox.${HOST}/"]="" \
  )
 
-for SERVICE in ${!SERVICES[@]}; do
+for SERVICE in "${!SERVICES[@]}"; do
   RETRIES=MAXRETRIES
   # loop until we connect successfully or failed
   until curl -k -f -v ${SERVICE}${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
-    if [ $RETRIES == $MAXRETRIES]
+    if [ $RETRIES == $MAXRETRIES ]
     then
       echo -n "Waiting for services to start on ${URL}"
     fi
