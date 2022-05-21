@@ -128,7 +128,10 @@ spec:
               protocol: TCP
               name: otel-prometheus
 {{ end }}
-          resources: {}
+          resources:
+            limits:
+              cpu: "2000m"
+              memory: "1500Mi"
           volumeMounts:
             - mountPath: /mnt/certificates
               name: keycloak-tls-certificates
