@@ -14,6 +14,7 @@ The helm charts for Keycloak can be configured to just deploy Kubernetes without
 
 This setup has an optional OpenTelemetry setup that will gather additional metrics and will publish traces from within Keycloak to Grafana's Tempo service.
 This allows to measure the latency per endpoint, and tracing of the database statements executed by a given REST endpoint.
+It also collects the logs of all containers inside Loki that can be queried from Grafana.
 
 == Alternatives considered
 
@@ -81,7 +82,7 @@ After that, the containers will complain that they're unable to start more proce
 This describes the runtime view of the setup:
 
 .Minikube runtime view
-image::minikube-runtime-view.svg[]
+image::minikube-runtime-view.dio.svg[]
 
 The setup is as follows:
 
@@ -89,6 +90,7 @@ The setup is as follows:
 * Via a configured in ingress, a local browser can access different services running in Minikube like Keycloak and Grafana
 * Keycloak connects to a PostgreSQL DB running inside Minikube
 * Prometheus collects metrics, and Tempo collects traces
+* Promtail collects logs and sends it to Loki which stores them
 
 == Prerequisites
 
@@ -261,6 +263,17 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm search repo grafana
 helm install tempo grafana/tempo -n monitoring -f tempo.yaml
 helm upgrade tempo grafana/tempo -n monitoring -f tempo.yaml
+----
+
+Add Loki to store information about logs, and promtail to collect the logs from all containers.
+
+[source,shell]
+----
+helm install loki grafana/loki -n monitoring -f loki.yaml
+helm install promtail grafana/promtail -n monitoring -f promtail.yaml
+
+helm upgrade loki grafana/loki -n monitoring -f loki.yaml
+helm upgrade promtail grafana/promtail -n monitoring -f promtail.yaml
 ----
 
 == Pause/Resume setup
