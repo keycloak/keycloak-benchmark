@@ -16,6 +16,7 @@ declare -A SERVICES=( \
  ["https://keycloak.${HOST}/"]="realms/master/.well-known/openid-configuration" \
  ["https://grafana.${HOST}/"]="" \
  ["https://prometheus.${HOST}/"]="" \
+ ["https://jaeger.${HOST}/"]="" \
  ["https://kubebox.${HOST}/"]="" \
  )
 

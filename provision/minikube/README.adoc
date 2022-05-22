@@ -12,9 +12,12 @@ https://github.com/astefanutti/kubebox[Kubebox] is installed for a minimal UI to
 
 The helm charts for Keycloak can be configured to just deploy Kubernetes without the dependency on the PodMonitor and ServiceMonitor dependencies.
 
-This setup has an optional OpenTelemetry setup that will gather additional metrics and will publish traces from within Keycloak to Grafana's Tempo service.
+This setup has an optional OpenTelemetry setup that will gather additional metrics and will publish traces from within Keycloak to Jaeger service.
 This allows to measure the latency per endpoint, and tracing of the database statements executed by a given REST endpoint.
 It also collects the logs of all containers inside Loki that can be queried from Grafana.
+
+It also contains Tempo as an alternative tracing option.
+While traces are submited via otel successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't doesn't return some traces (for example deletion of users).
 
 == Alternatives considered
 
@@ -274,6 +277,15 @@ helm install promtail grafana/promtail -n monitoring -f promtail.yaml
 
 helm upgrade loki grafana/loki -n monitoring -f loki.yaml
 helm upgrade promtail grafana/promtail -n monitoring -f promtail.yaml
+----
+
+Installing Jaeger as a tracing solution
+
+[source,shell]
+----
+helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+helm install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
+helm upgrade jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
 ----
 
 == Pause/Resume setup

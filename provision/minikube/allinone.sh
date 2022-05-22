@@ -16,6 +16,8 @@ helm repo update
 kubectl create namespace monitoring
 helm install prometheus prometheus-community/kube-prometheus-stack -f monitoring.yaml
 helm install monitoring --set hostname=$(minikube ip).nip.io monitoring
+helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+helm install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
 helm install tempo grafana/tempo -n monitoring -f tempo.yaml
 helm install loki grafana/loki -n monitoring -f loki.yaml
 helm install promtail grafana/promtail -n monitoring -f promtail.yaml

@@ -57,13 +57,14 @@ spec:
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.name=keycloak
             - name: OTEL_TRACES_EXPORTER
-              value: otlp
-            - name: OTEL_METRICS_EXPORTER
-              value: prometheus
+              # with otel+tempo 1.4.1 forwarding of traces works, but searching is not returning all values for now, for example delete users was missing
+              value: jaeger
+            - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+              value: http://jaeger-collector.monitoring.svc:14250
             - name: OTEL_TRACES_SAMPLER
               value: always_on
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://tempo.monitoring.svc:4317
+            - name: OTEL_METRICS_EXPORTER
+              value: prometheus
 {{ else }}
             - name: JAVA_OPTS_APPEND
               # using non-blocking random, make DNS lookups expire after 10 seconds and not cache them forever
