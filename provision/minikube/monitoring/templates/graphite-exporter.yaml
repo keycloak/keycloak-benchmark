@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphite-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: graphite-exporter
+spec:
+  ports:
+    - name: prometheus
+      protocol: TCP
+      port: 9108
+      targetPort: 9108
+    - name: graphite
+      protocol: TCP
+      port: 9109
+      targetPort: 9109
+  selector:
+    app.kubernetes.io/name: graphite-exporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphite-exporter-nodeport
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: graphite-exporter-nodeport
+spec:
+  type: NodePort
+  ports:
+    - name: graphite
+      protocol: TCP
+      port: 9109
+      nodePort: 30007
+  selector:
+    app.kubernetes.io/name: graphite-exporter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: graphite-exporter
+  name: graphite-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: graphite-exporter
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      name: graphite-exporter
+      labels:
+        app.kubernetes.io/name: graphite-exporter
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/graphite-configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - args:
+            - --graphite.mapping-config=/etc/graphite/graphite_mapping.yaml
+          image: prom/graphite-exporter:latest
+          imagePullPolicy: Always
+          startupProbe:
+            httpGet:
+              path: /
+              port: 9108
+            failureThreshold: 250
+            initialDelaySeconds: 10
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9108
+            failureThreshold: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9108
+            failureThreshold: 10
+            periodSeconds: 10
+          name: graphite-exporter
+          ports:
+            - containerPort: 9108
+              protocol: TCP
+              name: prometheus
+            - containerPort: 9109
+              protocol: TCP
+              name: graphite
+          volumeMounts:
+            - mountPath: /etc/graphite
+              name: graphite-exporter
+      restartPolicy: Always
+      volumes:
+        - name: graphite-exporter
+          configMap:
+            name: graphite-exporter
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/name: graphite-exporter
+    jobLabel: node-exporter
+  name: graphite-exporter
+  namespace: monitoring
+spec:
+  endpoints:
+    - port: prometheus
+  jobLabel: graphite-exporter
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: graphite-exporter

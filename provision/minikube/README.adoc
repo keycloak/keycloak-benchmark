@@ -94,6 +94,7 @@ The setup is as follows:
 * Keycloak connects to a PostgreSQL DB running inside Minikube
 * Prometheus collects metrics, and Jaeger collects traces
 * Promtail collects logs and sends it to Loki which stores them
+* Gatling can run locally and send Graphite metrics via a node port to a collector inside Minikube
 
 == Prerequisites
 
@@ -320,3 +321,21 @@ helm upgrade monitoring --set hostname=$(minikube ip).nip.io monitoring
 helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
 ----
 
+== Running Gatling
+
+To run the benchmarks using Gatling on your local machine and to forward the metrics to the Graphite exporter in Minkube, you'll need to pass the IP-address of Minikube as an environment variable that is then used inside `gatling.conf`.
+
+[source,bash]
+----
+export GRAPHITE_TCP_ADDR=$(minikube ip)
+----
+
+The mapping of Gatling's metrics to Prometheus a metric name and labels is configured in `graphite_mapping.yaml`.
+Once the test runs, the metrics are available as `gatling_users` and `gatling_requests`.
+
+This setup assumes that only one load driver is running.
+If more load drivers are running, change the `rootPathPrefix` in Gatling's configuration and the `gatling.conf` setup need to change.
+For now, this is considered out-of-scope as one Gatling instance can generate several orders magnitudes more load than needed.
+
+The Prometheus Gatling exporter will hold the metrics for 5 minutes and then forget them.
+By that time, Prometheus will have already scraped them and stored the values in its database.
