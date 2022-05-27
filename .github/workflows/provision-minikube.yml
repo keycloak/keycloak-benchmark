@@ -1,0 +1,48 @@
+name: Minikube CI
+
+on:
+  push:
+    # dependabot will create both branches and pull request
+    # only run on pull requests to avoid running twice and creating a release draft
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - 'provision/minikube/**'
+      - '.github/workflows/provision-minikube.yml'
+  pull_request:
+    paths:
+      - 'provision/minikube/**'
+      - '.github/workflows/provision-minikube.yml'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: azure/setup-helm@v2.0
+        with:
+          version: 'v3.8.2'
+      - uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.23.3'
+      - name: Setup Minikube-Kubernetes
+        uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: 'v1.25.2'
+          kubernetes version: 'v1.23.3'
+          github token: ${{ secrets.GITHUB_TOKEN }}
+          driver: docker
+      - name: Provision everything
+        working-directory: provision/minikube
+        run: |
+          # minikube tunnel &
+          ./rebuild.sh
+          minikube service list
+          kubectl get ingress -A
+          docker ps
+          kubectl get pods -A -w &
+          kubectl get events -A -w &
+          ./isup.sh 
+          killall kubectl || exit 0

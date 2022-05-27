@@ -10,7 +10,7 @@ else
 fi
 
 
-MAXRETRIES=50
+MAXRETRIES=600
 
 declare -A SERVICES=( \
  ["https://keycloak.${HOST}/"]="realms/master/.well-known/openid-configuration" \
@@ -21,13 +21,13 @@ declare -A SERVICES=( \
  )
 
 for SERVICE in "${!SERVICES[@]}"; do
-  RETRIES=MAXRETRIES
+  RETRIES=$MAXRETRIES
   # loop until we connect successfully or failed
   until curl -k -f -v ${SERVICE}${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
-    if [ $RETRIES == $MAXRETRIES ]
+    if [ "${RETRIES}" == "${MAXRETRIES}" ]
     then
-      echo -n "Waiting for services to start on ${URL}"
+      echo -n "Waiting for services to start on ${SERVICE}"
     fi
 
     RETRIES=$(($RETRIES - 1))
@@ -37,8 +37,10 @@ for SERVICE in "${!SERVICES[@]}"; do
         exit 1
     fi
     # wait a bit
-    echo -n "."
-    sleep 1
+    if [ "$GITHUB_ACTIONS" == "" ]; then
+      echo -n "."
+    fi
+    sleep 5
   done
   echo ${SERVICE} is up
 done
