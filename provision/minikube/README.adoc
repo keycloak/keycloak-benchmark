@@ -321,6 +321,12 @@ helm upgrade monitoring --set hostname=$(minikube ip).nip.io monitoring
 helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
 ----
 
+== Running `kcadm.sh` with invalid TLS certificates
+
+The minikube setup doesn't contain trusted TLS certificates, and the certificates will also not match the hostnames.
+
+To disable the TLS checks in Java, see the module `provision/tlsdisableagent` for details on how to run for example `kcadm.sh`.
+
 == Running Gatling
 
 To run the benchmarks using Gatling on your local machine and to forward the metrics to the Graphite exporter in Minkube, you'll need to pass the IP-address of Minikube as an environment variable that is then used inside `gatling.conf`.

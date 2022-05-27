@@ -1,0 +1,27 @@
+= TLS Check disabling agent
+:icons: font
+
+This is an agent that allows us to disable checking TLS certificates as getting matching TLS certificates might be difficult in a local development setup.
+
+== More information
+
+This utilizes the https://github.com/alech/java-instrumentation-tool[Java Instrumentation Tool] that is available on GitHub.
+
+== Building and using the agent
+
+Run the following script
+
+[source,bash]
+----
+./buildtlsagent.sh
+----
+
+Afterwards, add this agent to the JVM options as in the following example for `kcadm.sh`.
+
+NOTE: for running the Gatling tests, this agent is not needed. Gatling will connect anyway.
+
+[source,bash]
+----
+export KC_OPTS="-javaagent:${PWD}/tlscheckdisable-agent.jar"
+./kcadm.sh config credentials --server https://keycloak....nip.io/ --realm master --user ... --password ...
+----
