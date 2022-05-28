@@ -19,7 +19,7 @@ public class ClassTransformer implements ClassFileTransformer {
             String targetClassName,
             ClassLoader targetClassLoader,
             LinkedList<Hook> hooks) {
-        System.out.println("[Agent] ClassTransformer constructor, " + targetClassName + ", " + targetClassLoader);
+        System.err.println("[Agent] ClassTransformer constructor, " + targetClassName + ", " + targetClassLoader);
         this.targetClassName = targetClassName;
         this.targetClassLoader = targetClassLoader;
         this.hooks = hooks;
@@ -32,7 +32,7 @@ public class ClassTransformer implements ClassFileTransformer {
             Class<?> classBeingRedefined,
             ProtectionDomain protectionDomain,
             byte[] classfileBuffer) {
-        //System.out.println("[Agent] ClassTransformer.transform(), " + className + ", " + loader);
+        //System.err.println("[Agent] ClassTransformer.transform(), " + className + ", " + loader);
         byte[] byteCode = classfileBuffer;
         String finalTargetClassName = this.targetClassName
                 .replaceAll("\\.", "/");
@@ -50,7 +50,7 @@ public class ClassTransformer implements ClassFileTransformer {
                 String shortClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
                 CtBehavior m;
                 for (Hook h : this.hooks) {
-                    System.out.println("[Agent] Transforming class " + this.targetClassName + ", method " + h.method + ", param types " + String.join(";", h.strParams));
+                    System.err.println("[Agent] Transforming class " + this.targetClassName + ", method " + h.method + ", param types " + String.join(";", h.strParams));
                     params = strParamsToCtClassParams(h.strParams);
                     if (shortClassName.equals(h.method)) {
                         m = cc.getDeclaredConstructor(params);
@@ -61,7 +61,7 @@ public class ClassTransformer implements ClassFileTransformer {
                         );
                     }
                     if (h.where == WhereToPatch.INSERTBEFORE) {
-                        System.out.println("[Agent] adding code before " + h.method);
+                        System.err.println("[Agent] adding code before " + h.method);
                         m.insertBefore(h.codePatch);
                     }
                 }

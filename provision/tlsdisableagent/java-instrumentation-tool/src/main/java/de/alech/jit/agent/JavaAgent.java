@@ -23,9 +23,9 @@ public class JavaAgent {
             agentArgs = System.getProperty("agentargs");
         }
         if ((agentArgs != null) && agentArgs.equals("showloadedclasses")) {
-            System.out.println("[Agent] loaded classes:");
+            System.err.println("[Agent] loaded classes:");
             for (Class<?> clazz : inst.getAllLoadedClasses()) {
-                System.out.println("[Agent]   - " + clazz.getName());
+                System.err.println("[Agent]   - " + clazz.getName());
             }
         }
 
@@ -84,7 +84,7 @@ public class JavaAgent {
             LinkedList<Hook> hooks,
             Instrumentation instrumentation) {
         for (Hook h : hooks) {
-            System.out.println("[Agent] transforming " + clazz.getName() + "." + h.method);
+            System.err.println("[Agent] transforming " + clazz.getName() + "." + h.method);
         }
         ClassTransformer dt = new ClassTransformer(
                 clazz.getName(),
