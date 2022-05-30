@@ -53,6 +53,7 @@ Some scenarios require a service account with the clientId `gatling`:
 Instead of following the above manual steps, you can use this [manage_gatling_client](manage_gatling_client.sh) script to do the setup for you.
 
 Login to the Keycloak server using the kcadm cli script, which comes with any Keycloak distribution
+
 ```shell
 $KEYCLOAK_HOME/bin/kcadm.sh config credentials --server http://localhost:8081/auth --realm master --user admin --password admin
 ```
