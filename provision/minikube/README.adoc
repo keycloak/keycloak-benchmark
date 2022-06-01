@@ -92,6 +92,7 @@ The setup is as follows:
 * Minikube runs a virtual machine.
 * Via a configured ingress, a local browser can access different services running in Minikube like Keycloak and Grafana.
 * Keycloak connects to a PostgreSQL DB running inside Minikube.
+* The PostgreSQL DB inside minikube is accessible via a node port from the host.
 * Prometheus collects metrics, and Jaeger collects traces.
 * Promtail collects logs and sends it to Loki which stores them.
 * Gatling can run locally and send Graphite metrics via a node port to a collector inside Minikube.
@@ -333,6 +334,30 @@ helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
 The minikube setup doesn't contain trusted TLS certificates, and the certificates will also not match the hostnames.
 
 To disable the TLS checks in Java, see the module `provision/tlsdisableagent` for details on how to run for example `kcadm.sh`.
+
+== Accessing the PostgreSQL database inside minikube
+
+To access the PostgreSQL database running inside minikube, there are the following options:
+
+* Execute a shell using `kubectl`:
++
+----
+kubectl exec `kubectl get pods --selector=app=postgres -n keycloak -o name` -n keycloak -it -- psql --user keycloak
+----
+
+* Open the web-based sqlpad pod. Run the `isup.sh` shell script to see the URL. +
+Log in with username `admin` and password `admin`.
+
+* Connect via a local DB client:
++
+--
+. Retrieve minikube's IP address using `minikube ip`
+. Assuming that the IP-address is `192.168.39.39`, point your DB tool at the JDBC URL `jdbc:postgresql://192.168.39.39:30009/keycloak`.
++
+The connection details: Port will always be `30009`, username is `keycloak`, password is `pass`, database name is `keycloak`.
+--
++
+NOTE: Minikube's IP address will change every time you re-create the minikube instance.
 
 == Running Gatling
 
