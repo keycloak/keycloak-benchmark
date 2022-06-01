@@ -1,0 +1,23 @@
+mappings:
+# https://gatling.io/docs/gatling/guides/realtime_monitoring/
+# https://github.com/prometheus/graphite_exporter
+
+# Parsing entries like "gatling.createrealms.users.Create_realms.active"
+- match: gatling.*.users.*.*
+  name: gatling_users
+  labels:
+    simulation: $1
+    scenario: $2
+    # active|waiting|done
+    status: $3
+
+# Parsing entries like "gatling.createrealms.Get_admin-cli_token.ok.stdDev"
+- match: gatling.*.*.*.*
+  name: gatling_requests
+  labels:
+    simulation: $1
+    request: $2
+    # ok|ko|all
+    outcome: $3
+    # count|min|max|mean|stdDev|percentilesXX
+    function: $4

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: graphite-exporter
+  namespace: monitoring
+data:
+{{ (.Files.Glob "config/graphite_mapping.yaml").AsConfig | indent 2 }}

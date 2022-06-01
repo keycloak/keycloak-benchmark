@@ -1,0 +1,34 @@
+{{ if .Values.monitoring }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: keycloak
+    jobLabel: node-exporter
+  name: keycloak-metrics
+  namespace: {{ .Values.namespace }}
+spec:
+  endpoints:
+    - port: http
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+  jobLabel: jobLabel
+  selector:
+    matchLabels:
+      app: keycloak
+---
+{{ if .Values.otel }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: keycloak-otel
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  podMetricsEndpoints:
+    - port: otel-prometheus
+{{ end }}
+{{ end }}

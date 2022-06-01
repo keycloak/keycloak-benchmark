@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubebox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubebox
+  labels:
+    template: kubebox
+  namespace: kubebox
+spec:
+  ports:
+    - name: kubebox
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    name: kubebox
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubebox
+  annotations:
+    kubernetes.io/ingress.allow-http: "true"
+    ingress.kubernetes.io/ssl-redirect: "false"
+  namespace: kubebox
+spec:
+  rules:
+    - host: kubebox.{{ .Values.hostname }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: kubebox
+                port:
+                  number: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubebox
+  namespace: kubebox
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      name: kubebox
+  template:
+    metadata:
+      name: kubebox
+      labels:
+        name: kubebox
+    spec:
+      serviceAccountName: kubebox
+      containers:
+        - image: astefanutti/kubebox:server
+          imagePullPolicy: Always
+          name: kubebox
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubebox
+  namespace: kubebox
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubebox
+  namespace: kubebox
+subjects:
+  - kind: ServiceAccount
+    name: kubebox
+    namespace: kubebox
+roleRef:
+  kind: ClusterRole
+  name: kubebox
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubebox
+  namespace: kubebox
+rules:
+  - apiGroups:
+      - '*'
+    resources:
+      - '*'
+    verbs:
+      - get
+      - watch
+      - list

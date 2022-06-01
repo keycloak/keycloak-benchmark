@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-nodeport
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: jaeger
+spec:
+  type: NodePort
+  ports:
+    - name: grpc-http
+      protocol: TCP
+      port: 14250
+      nodePort: 30008
+  selector:
+    app.kubernetes.io/name: jaeger

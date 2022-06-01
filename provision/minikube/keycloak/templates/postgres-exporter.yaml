@@ -1,0 +1,87 @@
+{{ if .Values.monitoring }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: postgres-exporter
+  name: postgres-exporter
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter
+    spec:
+      containers:
+        - env:
+            - name: DATA_SOURCE_NAME
+              value: postgresql://keycloak:pass@postgres:5432/keycloak?sslmode=disable
+          image: quay.io/prometheuscommunity/postgres-exporter:v0.10.1
+          imagePullPolicy: Always
+          startupProbe:
+            httpGet:
+              path: /metrics
+              port: 9187
+            failureThreshold: 20
+            initialDelaySeconds: 10
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9187
+            failureThreshold: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9187
+            failureThreshold: 10
+            periodSeconds: 10
+          name: postgres-exporter
+          ports:
+            - containerPort: 9187
+              name: metrics
+              protocol: TCP
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: postgres-exporter
+  name: postgres-exporter
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - port: 9187
+      name: metrics
+      protocol: TCP
+      targetPort: 9187
+  selector:
+    app: postgres-exporter
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: postgres-exporter
+  name: postgres-exporter
+  namespace: {{ .Values.namespace }}
+spec:
+  endpoints:
+    - port: metrics
+  jobLabel: jobLabel
+  selector:
+    matchLabels:
+      app: postgres-exporter
+{{ end }}

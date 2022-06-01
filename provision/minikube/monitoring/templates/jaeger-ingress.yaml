@@ -1,0 +1,25 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: jaeger
+  name: jaeger-ingress
+  namespace: monitoring
+spec:
+  defaultBackend:
+    service:
+      name: jaeger-query
+      port:
+        number: 16686
+  rules:
+    - host: jaeger.{{ .Values.hostname }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: jaeger-query
+                port:
+                  number: 16686
+            path: /
+            pathType: ImplementationSpecific
