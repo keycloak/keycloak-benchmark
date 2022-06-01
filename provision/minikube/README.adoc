@@ -257,8 +257,14 @@ Install Keycloak including monitoring (with commands for update and uninstall fo
 
 Set `monitoring` to `false` to install Keycloak without monitoring options.
 
+Set `otel` to `true` to install Keycloak with opentelemetry enabled.
+
 [source,shell]
 ----
+kubectl create namespace keycloak
+kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/kubernetes.yml
 helm install keycloak --set hostname=$(minikube ip).nip.io keycloak
 helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
 helm uninstall keycloak

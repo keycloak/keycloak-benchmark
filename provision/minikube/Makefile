@@ -39,6 +39,10 @@ uninstall-monitoring:
 
 .PHONY: all
 install-keycloak:
+	kubectl create namespace keycloak | true
+	kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+	kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+	kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/kubernetes.yml
 	helm install keycloak --set hostname=$(shell minikube ip).nip.io keycloak | true
 
 .PHONY: all

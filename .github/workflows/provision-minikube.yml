@@ -37,12 +37,8 @@ jobs:
       - name: Provision everything
         working-directory: provision/minikube
         run: |
-          # minikube tunnel &
           ./rebuild.sh
-          minikube service list
-          kubectl get ingress -A
-          docker ps
           kubectl get pods -A -w &
           kubectl get events -A -w &
           ./isup.sh 
-          killall kubectl || exit 0
+          killall kubectl

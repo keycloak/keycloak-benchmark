@@ -19,5 +19,10 @@ helm install loki grafana/loki -n monitoring -f loki.yaml \
 helm install promtail grafana/promtail -n monitoring -f promtail.yaml \
 || helm upgrade promtail grafana/promtail -n monitoring -f promtail.yaml
 
+kubectl create namespace keycloak
+kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/kubernetes.yml
+
 helm install keycloak --set hostname=$(minikube ip).nip.io keycloak \
 || helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
