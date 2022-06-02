@@ -23,7 +23,7 @@ declare -A SERVICES=( \
 for SERVICE in "${!SERVICES[@]}"; do
   RETRIES=$MAXRETRIES
   # loop until we connect successfully or failed
-  until kubectl get ingress -A | grep ${SERVICE} >/dev/null 2>/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
+  until kubectl get ingress -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
     if [ "${RETRIES}" == "${MAXRETRIES}" ] && [ "$GITHUB_ACTIONS" == "" ]
     then
