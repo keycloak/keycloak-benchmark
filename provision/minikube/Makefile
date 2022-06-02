@@ -32,6 +32,7 @@ install-monitoring:
 	helm upgrade --install monitoring --set hostname=$(shell minikube ip).nip.io monitoring
 	helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml
 	helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
+	helm upgrade --install promtail grafana/promtail -n monitoring -f promtail.yaml
 
 .PHONY: all
 uninstall-monitoring:
