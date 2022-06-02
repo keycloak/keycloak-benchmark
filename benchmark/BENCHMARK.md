@@ -61,7 +61,7 @@ $KEYCLOAK_HOME/bin/kcadm.sh config credentials --server http://localhost:8081/au
 and then run this, for creating the needed realm and client
 
 ```shell
-./manage_gatling_client.sh
+./manage_gatling_client.sh -c gatling
 ```
 
 or run this, to recreate the realm and client for any reason

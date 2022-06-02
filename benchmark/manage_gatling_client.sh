@@ -24,7 +24,7 @@ function create_realm {
   if kcadm.sh get realms/${REALM_NAME} | grep -q ${REALM_NAME}; then
     echo -e "INFO: Skipping Realm creation as realm exists\n"
   else
-    echo -e "INFO: Creating Realm with realm id: ${REALM_NAME}\n"
+    echo -e "INFO: Creating Realm with realm id: ${REALM_NAME}"
     kcadm.sh create realms -s realm=$REALM_NAME -s enabled=true -o > /dev/null
   fi
 }
@@ -53,7 +53,7 @@ REALM_NAME=realm-0
 CLIENT_ID=gatling
 DELETE_ENTITIES='false'
 
-while getopts "k:r:c:d:" arg; do
+while getopts "k:r:c:d" arg; do
   case $arg in
     k) KEYCLOAK_HOME="$OPTARG";
         ;;
