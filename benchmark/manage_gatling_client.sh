@@ -61,7 +61,7 @@ while getopts "k:r:c:d" arg; do
         ;;
     c) CLIENT_ID="$OPTARG";
         ;;
-    d) DELETE_ENTITIES="$OPTARG";
+    d) DELETE_ENTITIES=true;
         ;;
     \?) echo "ERROR: Invalid option: -${OPTARG}" >&2
         usage
