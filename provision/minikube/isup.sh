@@ -25,7 +25,7 @@ for SERVICE in "${!SERVICES[@]}"; do
   # loop until we connect successfully or failed
   until kubectl get ingress -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
-    if [ "${RETRIES}" == "${MAXRETRIES}" ] && [ "$GITHUB_ACTIONS" == "" ]
+    if [ "${RETRIES}" == "${MAXRETRIES}" ] && [ "${CI}" != "true" ]
     then
       echo -n "Waiting for services to start on ${SERVICE}"
     fi
