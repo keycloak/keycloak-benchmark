@@ -43,14 +43,33 @@ Some scenarios require a service account with the clientId `gatling`:
 | CreateClient             | manage-clients, view-users |
 | CreateDeleteClient       | manage-clients, view-users |
 | CrawlUsers               | manage-clients, view-users |
-| CreateClientScope        | manage-clients, view-users |
-| CreateDeleteClientScope  | manage-clients, view-users |
 | CreateRole               |        manage-realm        |
 | CreateDeleteRole         |        manage-realm        |
 | CreateClientScope        | manage-clients, view-users |
 | CreateDeleteClientScope  | manage-clients, view-users |
 | CreateGroup              |        manage-users        |
 | CreateDeleteGroup        |        manage-users        |
+
+Instead of following the above manual steps, you can use this [manage_gatling_client](manage_gatling_client.sh) script to do the setup for you.
+
+Login to the Keycloak server using the kcadm cli script, which comes with any Keycloak distribution
+
+```shell
+$KEYCLOAK_HOME/bin/kcadm.sh config credentials --server http://localhost:8081/auth --realm master --user admin --password admin
+```
+
+and then run this, for creating the needed realm and client
+
+```shell
+./manage_gatling_client.sh -c gatling
+```
+
+or run this, to recreate the realm and client for any reason
+
+```shell
+./manage_gatling_client.sh -d
+```
+
 
 
 #### Scenarios `keycloak.scenario.admin.CreateRealms` and `keycloak.scenario.admin.CreateDeleteRealms`
