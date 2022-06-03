@@ -364,7 +364,7 @@ class KeycloakScenarioBuilder {
         .post(ADMIN_ENDPOINT + "/users")
         .header("Authorization", "Bearer ${token}")
         .header("Content-Type", "application/json")
-        .body(StringBody("""{"username":"joinGroup-${username}"}"""))
+        .body(StringBody("""{"username":"${username}"}"""))
         .check(status.is(201))
         .check(header("Location").notNull.saveAs("user-location")))
       .exitHereIfFailed
