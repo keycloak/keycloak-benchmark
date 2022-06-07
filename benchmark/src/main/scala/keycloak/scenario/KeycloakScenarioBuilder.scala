@@ -534,6 +534,44 @@ class KeycloakScenarioBuilder {
     this
   }
 
+  def createUser(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .feed(Iterator.continually(Map("username" -> randomUUID())))
+      .exec(http("Create user")
+        .post(ADMIN_ENDPOINT + "/users")
+        .header("Authorization", "Bearer ${token}")
+        .header("Content-Type", "application/json")
+        .body(StringBody("""{"username":"${username}"}"""))
+        .check(status.is(201))
+        .check(header("Location").notNull.saveAs("user-location")))
+      .exitHereIfFailed
+    this
+  }
+
+  def joinGroup(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Join group")
+        .put("${user-location}/groups/${group-id}")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(204)))
+      .exitHereIfFailed
+    this
+  }
+
+  def findGroup(groupName: String): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+        .exec(http("Find group")
+          .get(ADMIN_ENDPOINT + "/groups")
+          .header("Authorization", "Bearer ${token}")
+          .header("Accept-Encoding", "application/json")
+          .queryParam("search", groupName)
+          .queryParam("max", "1")
+          .check(status.is(200))
+          .check(jsonPath("$[0].id").notNull.saveAs("group-id")))
+      .exitHereIfFailed
+    this
+  }
+
   def needTokenRefresh(sess: Session): Boolean = {
     val lastRefresh = sess("accessTokenRefreshTime").as[Long]
 

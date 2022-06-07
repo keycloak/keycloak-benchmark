@@ -151,6 +151,11 @@ public class Config {
      */
     public static final int userNumberOfPages = Integer.getInteger("user-number-of-pages", 10);
 
+    // join-group-scenario properties
+    /**
+     * The group name used to find a group and determine which group the user should join.
+     */
+    public static final String joinGroup_groupName = System.getProperty("join-group-group-name");
 
     static {
         // if KEYCLOAK_SERVER_URIS env var is set, and system property serverUris is not set
