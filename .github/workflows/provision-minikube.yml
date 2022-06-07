@@ -34,15 +34,18 @@ jobs:
           kubernetes version: 'v1.23.3'
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
+          start args: --memory 4096
       - name: Provision everything
         working-directory: provision/minikube
         run: |
-          # minikube tunnel &
           ./rebuild.sh
-          minikube service list
-          kubectl get ingress -A
-          docker ps
-          kubectl get pods -A -w &
-          kubectl get events -A -w &
           ./isup.sh 
-          killall kubectl || exit 0
+          kubectl get pods -A
+          kubectl get events -A
+      - name: Show logs on failure
+        if: ${{ failure() }}
+        working-directory: provision/minikube
+        run: |
+          kubectl get pods -A
+          kubectl get events -A
+        

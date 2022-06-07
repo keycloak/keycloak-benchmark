@@ -1,22 +1,16 @@
 {{ if .Values.monitoring }}
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+kind: PodMonitor
 metadata:
-  labels:
-    app: keycloak
-    jobLabel: node-exporter
   name: keycloak-metrics
   namespace: {{ .Values.namespace }}
 spec:
-  endpoints:
-    - port: http
-      scheme: https
-      tlsConfig:
-        insecureSkipVerify: true
-  jobLabel: jobLabel
   selector:
     matchLabels:
       app: keycloak
+  podMetricsEndpoints:
+    # todo: targetPort is deprecated, ask the operator to specify a name instead
+    - targetPort: 8443
 ---
 {{ if .Values.otel }}
 apiVersion: monitoring.coreos.com/v1

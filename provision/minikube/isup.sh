@@ -13,19 +13,19 @@ fi
 MAXRETRIES=600
 
 declare -A SERVICES=( \
- ["https://keycloak.${HOST}/"]="realms/master/.well-known/openid-configuration" \
- ["https://grafana.${HOST}/"]="" \
- ["https://prometheus.${HOST}/"]="" \
- ["https://jaeger.${HOST}/"]="" \
- ["https://kubebox.${HOST}/"]="" \
+ ["keycloak.${HOST}"]="realms/master/.well-known/openid-configuration" \
+ ["grafana.${HOST}"]="" \
+ ["prometheus.${HOST}"]="" \
+ ["jaeger.${HOST}"]="" \
+ ["kubebox.${HOST}"]="" \
  )
 
 for SERVICE in "${!SERVICES[@]}"; do
   RETRIES=$MAXRETRIES
   # loop until we connect successfully or failed
-  until curl -k -f -v ${SERVICE}${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
+  until kubectl get ingress -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
-    if [ "${RETRIES}" == "${MAXRETRIES}" ]
+    if [ "${RETRIES}" == "${MAXRETRIES}" ] && [ "${CI}" != "true" ]
     then
       echo -n "Waiting for services to start on ${SERVICE}"
     fi
@@ -42,5 +42,5 @@ for SERVICE in "${!SERVICES[@]}"; do
     fi
     sleep 5
   done
-  echo ${SERVICE} is up
+  echo https://${SERVICE}/ is up
 done
