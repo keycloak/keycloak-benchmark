@@ -555,7 +555,9 @@ class KeycloakScenarioBuilder {
             .header("Authorization", "Bearer ${token}")
             .queryParam("first", 0)
             .queryParam("max", 2)
-            .check(status.is(200)))
+            .check(
+              status.is(200),
+              jsonPath("$[*]").count.lte(2)))
           .exitHereIfFailed
     this
   }
