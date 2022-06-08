@@ -215,6 +215,15 @@ dnf install cri-o
 minikube start --driver=kvm2 --docker-opt="default-ulimit=nofile=102400:102400"
 ----
 
+This requires libvirtd to run.
+
+----
+sudo systemctl enable libvirtd
+sudo systemctl start libvirtd
+sudo usermod -a -G libvirt $USER
+# now relogin, for usermod to become effective
+----
+
 For a lightweight installation that today doesn't scale beyond 3-5 Keycloak instances:
 
 [source,shell]
@@ -352,3 +361,37 @@ For now, this is considered out-of-scope as one Gatling instance can generate se
 
 The Prometheus Gatling exporter will hold the metrics for 5 minutes and then forget them.
 By that time, Prometheus will have already scraped them and stored the values in its database.
+
+== Connecting to a remote host running minikube
+
+When running minikube on a remote host, the ports will not be accessible remotely from outside of the host.
+If they would, this would be a security concern due to the default passwords and sometimes no password being used on the applications deployed on minikube and the Kubernetes API itself.
+
+To connect to Keycloak and other services remotely, one way is to use SSH port forwarding.
+
+As Keycloak is quick specific about the configured port and IP address, the port forwarding needs to bind the same port as on minikube.
+As it is running on minikube with port 443, this requires running ssh as root so that it can bind port 443 locally.
+
+Given the IP address of minikube on the remote host retrieved by `mininkube ip` with content of `192.168.39.19` the following steps work.
+
+[NOTE]
+====
+Whenever the minikube instance on the remote host is re-created, it will receive a different IP address and the commands need to be adjusted.
+====
+
+. Add an entry to the local `hosts` file that points the host names of minikube:
++
+----
+127.0.0.1 kubebox.192.168.39.19.nip.io grafana.192.168.39.19.nip.io keycloak.192.168.39.19.nip.io
+----
+
+. Put the current user's ssh keys in for the root user, so that `sudo ssh` has access to them.
+
+. Run ssh with port forwarding:
++
+----
+sudo ssh -L 443:192.168.39.19:443 user@remotehost
+----
+
+Now point the browser to \https://keycloak.192.168.39.19.nip.io as usual to interact with the application.
+With the SSH tunnel in place, the response times are a bit slower, so users will not be able to run a representative load test with gatling on their local machine and minikube running on the remote machine.
