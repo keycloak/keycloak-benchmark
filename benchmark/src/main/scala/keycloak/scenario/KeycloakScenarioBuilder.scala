@@ -543,7 +543,32 @@ class KeycloakScenarioBuilder {
         .header("Content-Type", "application/json")
         .body(StringBody("""{"username":"${username}"}"""))
         .check(status.is(201))
-        .check(header("Location").notNull.saveAs("user-location")))
+        .check(header("Location").notNull.saveAs("userLocation")))
+      .exitHereIfFailed
+    this
+  }
+
+  def listUsers(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+          .exec(http("List Users")
+            .get(ADMIN_ENDPOINT + "/users")
+            .header("Authorization", "Bearer ${token}")
+            .queryParam("first", 0)
+            .queryParam("max", 2)
+            .check(
+              status.is(200),
+              jsonPath("$[*]").count.lte(2)))
+          .exitHereIfFailed
+    this
+  }
+
+  def deleteUser(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Delete User")
+        .delete("${userLocation}")
+        .header("Authorization", "Bearer ${token}")
+        .check(status.is(204)))
+      .exec(session => (session.removeAll("userLocation")))
       .exitHereIfFailed
     this
   }
@@ -551,7 +576,7 @@ class KeycloakScenarioBuilder {
   def joinGroup(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Join group")
-        .put("${user-location}/groups/${group-id}")
+        .put("${userLocation}/groups/${group-id}")
         .header("Authorization", "Bearer ${token}")
         .check(status.is(204)))
       .exitHereIfFailed

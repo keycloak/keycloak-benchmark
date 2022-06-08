@@ -38,17 +38,19 @@ Some scenarios require a service account with the clientId `gatling`:
    * assign the roles, based on the below role-mapping table for the respective load simulation scenario
 * the client secret to be passed to the tests can be copied from the `Credentials` tab
 
-| Scenario Name            |       Assigned Roles       |
-|--------------------------|:--------------------------:|
-| CreateClient             | manage-clients, view-users |
-| CreateDeleteClient       | manage-clients, view-users |
-| CrawlUsers               | manage-clients, view-users |
-| CreateRole               |        manage-realm        |
-| CreateDeleteRole         |        manage-realm        |
-| CreateClientScope        | manage-clients, view-users |
-| CreateDeleteClientScope  | manage-clients, view-users |
-| CreateGroup              |        manage-users        |
-| CreateDeleteGroup        |        manage-users        |
+| Scenario Name           |       Assigned Roles       |
+|-------------------------|:--------------------------:|
+| CreateClient            | manage-clients, view-users |
+| CreateDeleteClient      | manage-clients, view-users |
+| CrawlUsers              | manage-clients, view-users |
+| CreateRole              |        manage-realm        |
+| CreateDeleteRole        |        manage-realm        |
+| CreateClientScope       | manage-clients, view-users |
+| CreateDeleteClientScope | manage-clients, view-users |
+| CreateGroup             |        manage-users        |
+| CreateDeleteGroup       |        manage-users        |
+| CreateUsers             |        manage-users        |
+| CreateDeleteUsers       |        manage-users        |
 
 Instead of following the above manual steps, you can use this [manage_gatling_client](manage_gatling_client.sh) script to do the setup for you.
 
@@ -114,13 +116,15 @@ These are the available test scenarios:
 * `keycloak.scenario.authentication.AuthorizationCode`: Authorization Code Grant Type
 * `keycloak.scenario.authentication.LoginUserPassword`: Browser Login (only Authorization Endpoint. After username+password login, there is no exchange of OAuth2 "code" for the tokens) 
 * `keycloak.scenario.authentication.ClientSecret`: Client Secret (Client Credentials Grant)
-* `keycloak.scenario.admin.CreateDeleteClient`: Create and deleted clients (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteClient`: Create and delete clients (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.CreateClient`: Create clients (requires `--client-secret=<client secret for gatling client>`)
-* `keycloak.scenario.admin.CreateDeleteRole`: Create and deleted roles (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteUsers`: Create and delete users (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateUsers`: Create users.. (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteRole`: Create and delete roles (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.CreateRole`: Create roles (requires `--client-secret=<client secret for gatling client>`)
-* `keycloak.scenario.admin.CreateDeleteGroup`: Create and deleted groups (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteGroup`: Create and delete groups (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.CreateGroup`: Create groups (requires `--client-secret=<client secret for gatling client>`)
-* `keycloak.scenario.admin.CreateDeleteClientScope`: Create and deleted client scopes (requires `--client-secret=<client secret for gatling client>`)
+* `keycloak.scenario.admin.CreateDeleteClientScope`: Create and delete client scopes (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.CreateClientScope`: Create client scope (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.UserCrawl`: Crawls all users page by page (requires `--client-secret=<client secret for gatling client>`)
 * `keycloak.scenario.admin.CreateRealm`: Create realms (requires `--admin-username=<admin login>` and `--admin-password=<admin password>`)
