@@ -11,6 +11,9 @@ spec:
   podMetricsEndpoints:
     # todo: targetPort is deprecated, ask the operator to specify a name instead
     - targetPort: 8443
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
 ---
 {{ if .Values.otel }}
 apiVersion: monitoring.coreos.com/v1
