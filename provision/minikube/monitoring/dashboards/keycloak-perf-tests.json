@@ -324,7 +324,7 @@
               "exemplar": false,
               "expr": "sum(rate(container_network_receive_bytes_total{job=\"cadvisor/cadvisor\",container_label_io_kubernetes_pod_namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
               "hide": false,
-              "legendFormat": "{{container_label_io_kubernetes_pod_name}}",
+              "legendFormat": "{{container_label_io_kubernetes_pod_name}} receive",
               "range": true,
               "refId": "B"
             },
@@ -336,7 +336,7 @@
               "exemplar": false,
               "expr": "- sum(rate(container_network_transmit_bytes_total{job=\"cadvisor/cadvisor\",container_label_io_kubernetes_pod_namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
               "hide": false,
-              "legendFormat": "{{container_label_io_kubernetes_pod_name}}",
+              "legendFormat": "{{container_label_io_kubernetes_pod_name}} transmit",
               "range": true,
               "refId": "A"
             }
