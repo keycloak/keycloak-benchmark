@@ -256,7 +256,7 @@ Install Prometheus and Grafana.
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 kubectl create namespace monitoring
-helm upgrade --install prometheus prometheus-community/kube-prometheus-stack -f monitoring.yaml
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.$(minikube ip).nip.io -f monitoring.yaml
 ----
 
 Install Customizations for Grafana, including an ingress for minikube.

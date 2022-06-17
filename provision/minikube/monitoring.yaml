@@ -11,6 +11,11 @@ grafana:
       defaultDatasourceEnabled: false
   # values in dependent chart / https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
   grafana.ini:
+    snapshots:
+      external_enabled: false
+    server:
+      # use --set grafana."grafana\.ini".server.root_url=... for this
+      root_url: "specify-on-cli"
     feature_toggles:
       enable: tempoSearch tempoBackendSearch
     auth.anonymous:

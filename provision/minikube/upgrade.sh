@@ -5,7 +5,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
 
 kubectl create namespace monitoring || true
-helm upgrade --install prometheus prometheus-community/kube-prometheus-stack -f monitoring.yaml
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.$(minikube ip).nip.io -f monitoring.yaml
 helm upgrade --install monitoring --set hostname=$(minikube ip).nip.io monitoring
 helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
 helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml

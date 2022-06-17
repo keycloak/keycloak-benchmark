@@ -18,7 +18,7 @@ minikube addons enable ingress
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 kubectl create namespace monitoring
-helm upgrade --install prometheus prometheus-community/kube-prometheus-stack -f monitoring.yaml
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.$(minikube ip).nip.io -f monitoring.yaml
 helm upgrade --install monitoring --set hostname=$(minikube ip).nip.io monitoring
 helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
 helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
