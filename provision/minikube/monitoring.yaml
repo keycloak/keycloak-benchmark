@@ -27,6 +27,7 @@ grafana:
       apiVersion: 1
       datasources:
       - name: Prometheus
+        uid: PBFA97CFB590B2093
         type: prometheus
         url: http://prometheus-kube-prometheus-prometheus.monitoring:9090/
         access: proxy
@@ -35,23 +36,44 @@ grafana:
         jsonData:
           timeInterval: 30s
       - name: Tempo
+        uid: P214B5B846CF3925F
         type: tempo
         url: http://tempo.monitoring.svc:3100/
         access: proxy
         isDefault: false
         editable: false
       - name: Jaeger
+        uid: PC9A941E8F2E49454
         type: jaeger
         url: "http://jaeger-query.monitoring.svc:16686"
         access: proxy
         isDefault: false
         editable: false
+        jsonData:
+          tracesToLogs:
+            datasourceUid: P8E80F9AEF21F6940
+            filterByTraceID: true,
+            mapTagNamesEnabled: true
+            mappedTags:
+              - key: "hostname"
+                value: "pod"
+            spanStartTimeShift: "-1h"
+            spanEndTimeShift: "1h"
       - name: Loki
+        uid: P8E80F9AEF21F6940
         type: loki
         url: "http://loki.monitoring.svc:3100"
         access: proxy
         isDefault: false
         editable: false
+        jsonData:
+          maxLines: 1000
+          derivedFields:
+            - datasourceUid: PC9A941E8F2E49454
+              matcherRegex: '"trace_id":"(\w*)"'
+              name: traceID
+              # url will be interpreted as query for the datasource
+              url: '$${__value.raw}'
 
 kube-state-metrics:
   namespaceOverride: monitoring
