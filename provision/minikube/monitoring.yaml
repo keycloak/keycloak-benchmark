@@ -35,6 +35,9 @@ grafana:
         editable: false
         jsonData:
           timeInterval: 30s
+          exemplarTraceIdDestinations:
+            - datasourceUid: PC9A941E8F2E49454
+              name: trace_id
       - name: Tempo
         uid: P214B5B846CF3925F
         type: tempo
@@ -95,6 +98,8 @@ kubelet:
 
 prometheus:
   prometheusSpec:
+    enableFeatures:
+      - exemplar-storage
     podMonitorSelector: {}
     podMonitorSelectorNilUsesHelmValues: false
     ruleSelector: {}
