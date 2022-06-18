@@ -3,6 +3,7 @@ set -euxo pipefail
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+helm repo update
 
 kubectl create namespace monitoring || true
 helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.$(minikube ip).nip.io -f monitoring.yaml

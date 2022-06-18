@@ -14,6 +14,14 @@ config:
             - json:
                 expressions:
                   log_line: log
+            - json:
+                expressions:
+                  loggerName: loggerName
+                  level: level
+                source: log_line
+            - labels:
+                level: level
+                loggerName: loggerName
             - replace:
                 expression: "(.+)"
                 replace: "{{.log_line}}"
