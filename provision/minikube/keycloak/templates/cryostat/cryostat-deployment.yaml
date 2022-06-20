@@ -1,0 +1,149 @@
+{{ if .Values.cryostat }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: cryostat
+    app.kubernetes.io/name: cryostat
+    kind: cryostat
+  name: cryostat
+  namespace: keycloak
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cryostat
+      kind: cryostat
+  template:
+    metadata:
+      labels:
+        app: cryostat
+        kind: cryostat
+      name: cryostat
+      namespace: keycloak
+    spec:
+      containers:
+      - env:
+        - name: CRYOSTAT_SSL_PROXIED
+          value: "true"
+        - name: CRYOSTAT_ALLOW_UNTRUSTED_SSL
+          value: "true"
+        - name: CRYOSTAT_WEB_PORT
+          value: "8181"
+        - name: CRYOSTAT_LISTEN_PORT
+          value: "9090"
+        - name: CRYOSTAT_CONFIG_PATH
+          value: /opt/cryostat.d/conf.d
+        - name: CRYOSTAT_ARCHIVE_PATH
+          value: /opt/cryostat.d/recordings.d
+        - name: CRYOSTAT_PROBE_TEMPLATE_PATH
+          value: /opt/cryostat.d/templates.d
+        - name: CRYOSTAT_CLIENTLIB_PATH
+          value: /opt/cryostat.d/clientlib.d
+        - name: GRAFANA_DATASOURCE_URL
+          value: http://127.0.0.1:8080
+        - name: CRYOSTAT_DISABLE_SSL
+          value: "true"
+        - name: GRAFANA_DASHBOARD_URL
+          value: https://cryostat-grafana.{{ .Values.hostname }}/
+        - name: CRYOSTAT_WEB_HOST
+          value: cryostat.{{ .Values.hostname }}
+        - name: CRYOSTAT_EXT_WEB_PORT
+          value: '443'
+        - name: CRYOSTAT_DISABLE_JMX_AUTH
+          value: 'true'
+        image: quay.io/cryostat/cryostat:2.1.1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+         failureThreshold: 3
+         httpGet:
+           path: /health
+           port: 8181
+           scheme: HTTP
+         periodSeconds: 10
+         successThreshold: 1
+         timeoutSeconds: 1
+        name: cryostat
+        ports:
+        - containerPort: 8181
+          protocol: TCP
+        - containerPort: 9090
+          protocol: TCP
+        - containerPort: 9091
+          protocol: TCP
+        resources: {}
+        startupProbe:
+          failureThreshold: 18
+          httpGet:
+            path: /health
+            port: 8181
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /opt/cryostat.d/conf.d
+          name: cryostat
+          subPath: config
+        - mountPath: /opt/cryostat.d/recordings.d
+          name: cryostat
+          subPath: flightrecordings
+        - mountPath: /opt/cryostat.d/templates.d
+          name: cryostat
+          subPath: templates
+        - mountPath: /opt/cryostat.d/clientlib.d
+          name: cryostat
+          subPath: clientlib
+        - mountPath: truststore
+          name: cryostat
+          subPath: truststore
+      - env:
+        - name: JFR_DATASOURCE_URL
+          value: http://127.0.0.1:8080
+        envFrom:
+        - secretRef:
+            name: cryostat-grafana-basic
+        image: quay.io/cryostat/cryostat-grafana-dashboard:2.1.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/health
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: cryostat-grafana
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+      - env:
+        - name: LISTEN_HOST
+          value: 127.0.0.1
+        image: quay.io/cryostat/jfr-datasource:2.1.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - --fail
+            - http://127.0.0.1:8080
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: cryostat-jfr-datasource
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      securityContext:
+        fsGroup: 18500
+      serviceAccountName: cryostat
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: cryostat
+        persistentVolumeClaim:
+          claimName: cryostat
+{{end}}

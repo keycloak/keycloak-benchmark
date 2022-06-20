@@ -1,0 +1,17 @@
+{{ if .Values.cryostat }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: cryostat
+  name: cryostat
+  namespace: keycloak
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  storageClassName: standard
+  volumeMode: Filesystem
+{{end}}

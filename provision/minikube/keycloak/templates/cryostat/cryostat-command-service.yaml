@@ -1,0 +1,20 @@
+{{ if .Values.cryostat }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cryostat
+    component: command-channel
+  name: cryostat-command
+  namespace: keycloak
+spec:
+  ports:
+  - name: cmdchan
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: cryostat
+  sessionAffinity: None
+  type: ClusterIP
+{{end}}

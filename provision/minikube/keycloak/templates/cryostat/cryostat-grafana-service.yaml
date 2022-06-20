@@ -1,0 +1,20 @@
+{{ if .Values.cryostat }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cryostat
+    component: grafana
+  name: cryostat-grafana
+  namespace: keycloak
+spec:
+  ports:
+  - name: 3000-tcp
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: cryostat
+  sessionAffinity: None
+  type: ClusterIP
+{{end}}
