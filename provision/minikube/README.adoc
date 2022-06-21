@@ -4,24 +4,25 @@
 
 == About
 
-This describes on how to install Keycloak and a Grafana/Prometheus monitoring stack.
+This describes how to install Keycloak and a Grafana/Prometheus/Jaeger monitoring stack.
 
 This uses minikube to run the containers, and Helm to provision the containers.
+Keycloak itself is provisioned using the Java based Keycloak operator.
 Kubectl is used to interact with minikube on the command line.
 https://github.com/astefanutti/kubebox[Kubebox] is installed for a minimal UI to inspect containers within minikube.
 
 The helm charts for Keycloak can be configured to just deploy Kubernetes without the dependency on the PodMonitor and ServiceMonitor dependencies.
 
-This setup has an optional OpenTelemetry setup that will gather additional metrics and will publish traces from within Keycloak to Jaeger service.
-This allows to measure the latency per endpoint, and tracing of the database statements executed by a given REST endpoint.
+This setup has an optional OpenTelemetry (OTEL) setup that will gather additional metrics and will publish traces from within Keycloak to Jaeger service.
+This allows measuring the latency per endpoint, and tracing of the database statements executed by a given REST endpoint.
 It also collects the logs of all containers inside Loki that can be queried from Grafana.
 
 It also contains Tempo as an alternative tracing option.
-While traces are submited via otel successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't doesn't return some traces (for example deletion of users).
+While traces are submitted via OTEL successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't return some traces (for example deletion of users).
 
 == Alternatives considered
 
-This paragraph describes some of the possible alternatives and how they differ from the current approach:
+This paragraph describes some possible alternatives and how they differ from the current approach:
 
 Docker Compose::
 +
@@ -80,6 +81,24 @@ More instances are possible when adding more than 8 GB of RAM.
 The podman driver on Linux currently supports at the moment only up to 5 instances of Keycloak due to the number of open files limit that is actually a limit of the number of threads.
 After that, the containers will complain that they're unable to start more processes.
 
+=== Cryostat for JFR recordings
+
+The contents of the helm chart have been created originally by the Cryostat operator.
+When analyzing the resources created by the operator in version 2.0, there was no supported way to add the environment variables needed to the cryostat-deployment discovered.
+Due to that, this has now been extracted and placed here as a Helm chart.
+
+The Cryostat instance needs to run in the same namespace as the JVMs it connects to.
+Due to that, it is part of the Keycloak deployment, and not a separate Helm chart.
+
+The profiling created is regular profiling, not async profiling. The profiling will therefore suffer from the safepoint bias problem. See the https://github.com/jvm-profiling-tools/async-profiler#async-profiler[Java async profiler] for details:
+
+[quote, Java async profiler]
+____
+This project is a low overhead sampling profiler for Java that does not suffer from http://psy-lob-saw.blogspot.com/2016/02/why-most-sampling-java-profilers-are.html[Safepoint bias problem]. It features HotSpot-specific APIs to collect stack traces and to track memory allocations. The profiler works with OpenJDK, Oracle JDK and other Java runtimes based on the HotSpot JVM.
+____
+
+For now, not using async profiling should be good enough until proven otherwise.
+
 == Architecture
 
 This describes the runtime view of the setup:
@@ -89,14 +108,15 @@ image::minikube-runtime-view.dio.svg[]
 
 The setup is as follows:
 
-* Minikube runs a virtual machine.
+* https://minikube.sigs.k8s.io/[Minikube] runs a virtual machine.
 * Via a configured ingress, a local browser can access different services running in Minikube like Keycloak and Grafana.
-* Keycloak connects to a PostgreSQL DB running inside Minikube.
-* The PostgreSQL DB inside minikube is accessible via a node port from the host.
-* Prometheus collects metrics, and Jaeger collects traces.
-* Promtail collects logs and sends it to Loki which stores them.
-* Gatling can run locally and send Graphite metrics via a node port to a collector inside Minikube.
-* Jaeger collects traces from Keycloak running inside Minikube, and can also receive traces from a locally running test application.
+* https://www.keycloak.org/[Keycloak] connects to a PostgreSQL database running inside Minikube.
+* https://www.postgresql.org/[The PostgreSQL database] inside minikube is accessible via a node port from the host.
+* https://prometheus.io/[Prometheus] collects metrics, and Jaeger collects traces.
+* https://grafana.com/docs/loki/latest/clients/promtail/[Promtail] collects logs and sends it to Loki which stores them.
+* https://gatling.io/[Gatling] can run locally and send Graphite metrics via a node port to a collector inside Minikube.
+* https://www.jaegertracing.io/[Jaeger] collects traces from Keycloak running inside Minikube, and can also receive traces from a locally running test application.
+* https://cryostat.io/[Cryostat] can connect to Keycloak instances and create Java Flight Recorder (JFR) recordings.
 
 == Prerequisites
 
@@ -166,9 +186,9 @@ minikube dashboard
 ----
 
 This should open the URL in your default browser.
-If it doesn't click on the link it prints on the console.
+If it doesn't open it automatically, click on the link it prints on the console.
 
-Then, open select a namespace in the header (for example `keycloak`) and browse the resources available in that namespace.
+Then, select a namespace in the header (for example `keycloak`) and browse the resources available in that namespace.
 
 === For more insights and backgrounds
 
@@ -368,9 +388,18 @@ The connection details: Port will always be `30009`, username is `keycloak`, pas
 +
 NOTE: Minikube's IP address will change every time you re-create the minikube instance.
 
+== Creating a Java Flight Recorder recording
+
+* Open the Cryostat instance's website. Run the `isup.sh` shell script to see the URL.
+* Click on the menu item menu:Recordings[].
+* Select a target VM.
+* Click on button btn:[Create] to create a new recording and follow the dialogs.
+
+Once the recording is complete, download it directly or archive it to the persistent volume of Cryostat to download it later.
+
 == Running Gatling
 
-To run the benchmarks using Gatling on your local machine and to forward the metrics to the Graphite exporter in Minkube, you'll need to pass the IP-address of Minikube as an environment variable that is then used inside `gatling.conf`.
+To run the benchmarks using Gatling on your local machine and to forward the metrics to the Graphite exporter in Minikube, you'll need to pass the IP-address of Minikube as an environment variable that is then used inside `gatling.conf`.
 
 [source,bash]
 ----
@@ -382,14 +411,14 @@ Once the test runs, the metrics are available as `gatling_users` and `gatling_re
 
 This setup assumes that only one load driver is running.
 If more load drivers are running, change the `rootPathPrefix` in Gatling's configuration and the `gatling.conf` setup need to change.
-For now, this is considered out-of-scope as one Gatling instance can generate several orders magnitudes more load than needed.
+For now, this is considered out-of-scope as one Gatling instance can generate several orders of magnitude more load than needed.
 
 The Prometheus Gatling exporter will hold the metrics for 5 minutes and then forget them.
 By that time, Prometheus will have already scraped them and stored the values in its database.
 
 == Connecting to a remote host running minikube
 
-When running minikube on a remote host, the ports will not be accessible remotely from outside of the host.
+When running minikube on a remote host, the ports will not be accessible remotely from the outside of the host.
 If they would, this would be a security concern due to the default passwords and sometimes no password being used on the applications deployed on minikube and the Kubernetes API itself.
 
 To connect to Keycloak and other services remotely, one way is to use SSH port forwarding.

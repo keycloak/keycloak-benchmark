@@ -1,0 +1,52 @@
+{{ if .Values.cryostat }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: cryostat
+  name: cryostat-ingress
+  namespace: keycloak
+spec:
+  defaultBackend:
+    service:
+      name: cryostat
+      port:
+        number: 8181
+  rules:
+    - host: cryostat.{{ .Values.hostname }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cryostat
+                port:
+                  number: 8181
+            path: /
+            pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: cryostat
+  name: cryostat-grafana
+  namespace: keycloak
+spec:
+  defaultBackend:
+    service:
+      name: cryostat-grafana
+      port:
+        number: 3000
+  rules:
+    - host: cryostat-grafana.{{ .Values.hostname }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cryostat-grafana
+                port:
+                  number: 3000
+            path: /
+            pathType: ImplementationSpecific
+{{end}}

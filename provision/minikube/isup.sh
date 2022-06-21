@@ -19,6 +19,7 @@ declare -A SERVICES=( \
  ["sqlpad.${HOST}"]="" \
  ["jaeger.${HOST}"]="" \
  ["kubebox.${HOST}"]="" \
+ ["cryostat.${HOST}"]="" \
  )
 
 for SERVICE in "${!SERVICES[@]}"; do

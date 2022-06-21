@@ -1,0 +1,19 @@
+{{ if .Values.cryostat }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: keycloak
+  name: keycloak-jfr
+  namespace: keycloak
+spec:
+  ports:
+  - name: jfr-jmx
+    port: 9091
+    protocol: TCP
+    targetPort: 9091
+  selector:
+    app: keycloak
+  sessionAffinity: None
+  type: ClusterIP
+{{ end }}

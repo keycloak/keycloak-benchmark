@@ -1,0 +1,20 @@
+{{ if .Values.cryostat }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cryostat
+    component: cryostat
+  name: cryostat
+  namespace: keycloak
+spec:
+  ports:
+  - name: export
+    port: 8181
+    protocol: TCP
+    targetPort: 8181
+  selector:
+    app: cryostat
+  sessionAffinity: None
+  type: ClusterIP
+{{end}}
