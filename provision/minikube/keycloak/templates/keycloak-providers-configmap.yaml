@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-providers
+  namespace: {{ .Values.namespace }}
+binaryData:
+{{- range $path, $size := .Files.Glob "providers/**" }}
+{{- $name := base $path }}
+  {{ $name }}: {{ $.Files.Get $path | b64enc }}
+{{- end -}}

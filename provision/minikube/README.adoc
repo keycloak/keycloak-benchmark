@@ -358,6 +358,28 @@ helm upgrade monitoring --set hostname=$(minikube ip).nip.io monitoring
 helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
 ----
 
+== Deploying providers to Minikube
+
+Keycloak be extended by providers.
+This is also supported in this setup.
+
+All providers JARs need to be placed in `keycloak/providers`.
+After that, re-deploy Keycloak using either the `upgrade.sh` shell script or the minimal snippet from that file.
+Keycloak will restart and the providers will then be available.
+https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this uses a ConfigMap to place all information Kubernetes, the combined size of all providers encoded as base64 is 1 MiB].
+
+To deploy the dataprovider module, run the following commands from the `provision/minikube` folder:
+
+[source,shell]
+----
+mkdir -p keycloak/providers
+cp ../../dataset/target/keycloak-benchmark-dataset-*.jar keycloak/providers
+helm upgrade --install keycloak --set hostname=$(minikube ip).nip.io keycloak
+----
+
+To test if the dataprovider module has been deployed, test the URL \https://keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status.
+Use the `./isup.sh` script to find out about the IP address of Keycloak.
+
 == Running `kcadm.sh` with invalid TLS certificates
 
 The minikube setup doesn't contain trusted TLS certificates, and the certificates will also not match the hostnames.

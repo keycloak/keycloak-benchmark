@@ -29,7 +29,7 @@ First is needed to build the provider, then to deploy it to the target Keycloak.
 
 Build the project and deploy to the target Keycloak/RHSSO server
 
-    mvn clean install
+    mvn clean install -am -pl dataset
     cp dataset/target/keycloak-benchmark-dataset-*.jar $KEYCLOAK_HOME/standalone/deployments/
     
 Instead of copying to `standalone/deployments`, the alternative is to deploy as a module
