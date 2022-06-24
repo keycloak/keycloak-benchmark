@@ -1,0 +1,9 @@
+{{ if .Values.monitoring }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-exporter
+  namespace: {{ .Values.namespace }}
+data:
+{{ (.Files.Glob "config/pgexporter-queries.yaml").AsConfig | indent 2 }}
+{{ end }}

@@ -19,11 +19,15 @@ spec:
     metadata:
       labels:
         app: postgres-exporter
+      annotations:
+        checksum: {{ include (print $.Template.BasePath "/postgres-exporter-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - env:
             - name: DATA_SOURCE_NAME
               value: postgresql://keycloak:pass@postgres:5432/keycloak?sslmode=disable
+            - name: PG_EXPORTER_EXTEND_QUERY_PATH
+              value: /conf/pgexporter-queries.yaml
           image: quay.io/prometheuscommunity/postgres-exporter:v0.10.1
           imagePullPolicy: Always
           startupProbe:
@@ -50,7 +54,14 @@ spec:
             - containerPort: 9187
               name: metrics
               protocol: TCP
+          volumeMounts:
+            - mountPath: /conf
+              name: config
       restartPolicy: Always
+      volumes:
+        - name: config
+          configMap:
+            name: postgres-exporter
 ---
 apiVersion: v1
 kind: Service

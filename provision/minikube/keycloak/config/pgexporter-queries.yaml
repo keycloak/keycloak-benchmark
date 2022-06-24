@@ -1,0 +1,19 @@
+# This is configuration file for postgres_exporter.
+# Add custom metrics via SQL statements here as described here: https://github.com/prometheus-community/postgres_exporter#adding-new-metrics-via-a-config-file
+# See https://github.com/prometheus-community/postgres_exporter/blob/master/queries.yaml for examples.
+pg_locks_waiting:
+  # language=SQL
+  query: |
+    WITH q_locks AS (select * from pg_locks where granted = false and pid != pg_backend_pid())
+    SELECT (select current_database()) as datname, lower(lockmodes) AS mode, coalesce((select count(*) FROM q_locks WHERE mode = lockmodes), 0) AS count FROM
+    unnest('{AccessShareLock, ExclusiveLock, RowShareLock, RowExclusiveLock, ShareLock, ShareRowExclusiveLock, AccessExclusiveLock, ShareUpdateExclusiveLock}'::text[]) lockmodes;
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - mode:
+        usage: "LABEL"
+        description: "Lock type"
+    - count:
+        usage: "GAUGE"
+        description: "Number of locks"
