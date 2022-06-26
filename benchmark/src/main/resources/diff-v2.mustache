@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<head>
+  {{#scripts}}
+    <script src="{{.}}"></script>
+  {{/scripts}}
+  <style media="screen" type="text/css">
+    th {text-align:left}
+    td {text-align:right}
+    td.win {background-color: chartreuse;}
+    td.loose {background-color: darksalmon;}
+
+  </style>
+</head>
+
+<h1>{{ref.scenario}} Diff report</h1>
+<div id="summaryDiv">
+  <table id="summaryTab">
+    <tr>
+      <td></td>
+      <th>Reference</th>
+      <th>Challenger</th>
+      <th></th>
+    </tr>
+    <tr>
+      <th>Date</th>
+      <td>{{ref.simStat.startDate}}</td>
+      <td>{{challenger.simStat.startDate}}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>Simulation</th>
+      <td>{{ref.simStat.scenario}}</td>
+      <td>{{challenger.simStat.scenario}}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>Duration (s)</th>
+      <td>{{ref.simStat.duration}}</td>
+      <td>{{challenger.simStat.getDuration}}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>Throughput requests/s</th>
+      <td>{{ref.simStat.throughput}}</td>
+      <td>{{challenger.simStat.throughput}}</td>
+      <td class="{{rpsClass}}">{{rpsPercent}} %</td>
+    </tr>
+    <tr>
+      <th>Average response time ms</th>
+      <td>{{ref.simStat.average}}</td>
+      <td>{{challenger.simStat.average}}</td>
+      <td class="{{avgClass}}">{{avgPercent}} %</td>
+    </tr>
+    <tr>
+      <th>p50 response time ms</th>
+      <td>{{ref.simStat.p50}}</td>
+      <td>{{challenger.simStat.p50}}</td>
+    </tr>
+    <tr>
+      <th>p95 response time ms</th>
+      <td>{{ref.simStat.p95}}</td>
+      <td>{{challenger.simStat.p95}}</td>
+    </tr>
+    <tr>
+      <th>p99 response time ms</th>
+      <td>{{ref.simStat.p99}}</td>
+      <td>{{challenger.simStat.p99}}</td>
+    </tr>
+    <tr>
+      <th>Requests</th>
+      <td>{{ref.simStat.count}}</td>
+      <td>{{challenger.simStat.count}}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>Error(s)</th>
+      <td>{{ref.simStat.errorCount}}</td>
+      <td>{{challenger.simStat.errorCount}}</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>Max concurrent users</th>
+      <td>{{ref.simStat.maxUsers}}</td>
+      <td>{{challenger.simStat.maxUsers}}</td>
+      <td></td>
+    </tr>
+  </table>
+</div>
+
+<div id="responseAllDiv"></div>
+{{#getDiffRequests}}
+  <div id="response{{refR.indice}}Div"></div>
+{{/getDiffRequests}}
+
+
+<div id="monitoring">
+  <table>
+    <tr>
+      <td>
+        {{#ref.simStat.graphite.images}}
+          <a class="image" href="{{url}}" title="{{title}}"><img src="{{filename}}" alt="{{title}}"/></a>
+        {{/ref.simStat.graphite.images}}
+      </td>
+      <td>
+        {{#challenger.simStat.graphite.images}}
+          <a class="image" href="{{url}}" title="{{title}}"><img src="{{filename}}" alt="{{title}}"/></a>
+        {{/challenger.simStat.graphite.images}}
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<script>
+
+var dataAll = [
+  {
+    y: {{ref.simStat.durations}},
+    name: 'Reference: {{ref.simStat.average}}ms',
+    boxpoints: {{{ref.simStat.boxpoints}}},
+    jitter: 0.3,
+    pointpos: -1.8,
+    boxmean: 'sd',
+    type: 'box',
+    marker:{
+      size:2,
+      opacity:0.6
+    }
+  },
+  {
+    y: {{challenger.simStat.durations}},
+    name: 'Challenger: {{challenger.simStat.average}}ms',
+    boxpoints: {{{challenger.simStat.boxpoints}}},
+    jitter: 0.3,
+    pointpos: -1.8,
+    boxmean: 'sd',
+    type: 'box',
+    marker:{
+      size:2,
+      opacity:0.6
+    }
+  }
+];
+var layoutAll = {
+  height: 500,
+  width: 900,
+  yaxis: {
+    title: 'Time ms',
+    type: 'log'
+  },
+  showlegend: true,
+  xaxis: {
+      showticklabels: false
+  },
+  title: 'Response time all requests'
+};
+Plotly.newPlot('responseAllDiv', dataAll, layoutAll);
+
+{{#getDiffRequests}}
+var data{{refR.indice}} = [
+  {
+    y: {{refR.durations}},
+    name: 'Reference: {{refR.average}}ms',
+    boxpoints: {{{refR.boxpoints}}},
+    jitter: 0.3,
+    pointpos: -1.8,
+    boxmean: 'sd',
+    type: 'box',
+    marker:{
+      size:2,
+      opacity:0.6
+    }
+  },
+  {
+    y: {{challengerR.durations}},
+    name: 'Challenger: {{challengerR.average}}ms',
+    boxpoints: {{{challengerR.boxpoints}}},
+    jitter: 0.3,
+    pointpos: -1.8,
+    boxmean: 'sd',
+    type: 'box',
+    marker:{
+      size:2,
+      opacity:0.6
+    }
+  }
+];
+var layout{{refR.indice}} = {
+  height: 500,
+  width: 900,
+  yaxis: {
+    title: 'Time ms',
+    type: 'log'
+  },
+  showlegend: true,
+  xaxis: {
+      showticklabels: false
+  },
+  title: '{{refR.request}}'
+};
+Plotly.newPlot('response{{refR.indice}}Div', data{{refR.indice}}, layout{{refR.indice}});
+{{/getDiffRequests}}
+
+
+</script>
