@@ -6,12 +6,12 @@ set -o pipefail
 #Functions
 function usage {
   echo -e "Generate a CSV or HTML (differential or trendline) report from existing gatling simulation.log files \n"
-  echo -e "Usage: $(basename $0) -v GATLING_REPORT_VERSION -s SOURCE_DIR -t TARGET_DIR [-c] \nOptions:" 2>&1
-  echo -e '-v gatling-report release version to use \n refer here for latest versions https://maven-eu.nuxeo.org/nexus/#nexus-search;quick~gatling-report'
-  echo -e '-s source report path(s) where the simulation.log files are located,\nhint: provide the multiple locations in a double quotes'
-  echo '-d destination directory where the report would be stored'
+  echo -e "Usage: $(basename $0) -s SIMULATION_LOGS [-v GATLING_REPORT_VERSION] [-d TARGET_DIR] [-t TEMPLATE] [-c] \nOptions:" 2>&1
+  echo -e "-v gatling-report release version to use, default ${GATLING_REPORT_VERSION} \n   refer here for latest versions https://maven-eu.nuxeo.org/nexus/#nexus-search;quick~gatling-report"
+  echo -e '-s simulation.log files\n   hint: provide multiple locations in a double quotes'
+  echo "-d destination directory where the report would be stored, default ${TARGET_DIR}"
   echo '-t custom mustache template path'
-  echo '-c generate an csv report: default is to generate an HTML report'
+  echo '-c generate a csv report: default is to generate an HTML report'
   exit 1
 }
 
