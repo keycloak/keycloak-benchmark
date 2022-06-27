@@ -107,7 +107,19 @@ You can set different options to change how tests should be executed. For a comp
 
 ### Report
 
-Check reports at the `result` directory.
+For the default gatling generated reports, check reports at the `result` directory.
+
+To generate a custom differential or trend line report from an existing repository of gatling simulations, you can use the [utility script](generate-custom-report.sh) based on [gatling-report](https://github.com/nuxeo/gatling-report/blob/master/README.md) project.
+
+Example Usage:
+```shell
+#for differential with custom template
+./generate-custom-report.sh -v 6.0 -s "~/JPAMapUndertow/simulation.log ~/HotRodUndertow/simulation.log" -d ~/reports/differential/templates -t src/main/resources/diff-v2.mustache
+
+#for trend lines with default template
+./generate-custom-report.sh -v 6.0 -s "~/JPAMapUndertow/simulation.log ~/HotRodUndertow/simulation.log ~/LegacyWildFly/simulation.log" -d ~/reports/trendLines/templates
+```
+
 
 ### Test Scenarios
 
