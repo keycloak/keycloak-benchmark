@@ -1,0 +1,227 @@
+# https://taskfile.dev
+
+version: '3'
+
+output: prefixed
+
+vars:
+  IP:
+    sh: minikube ip
+
+tasks:
+  default:
+    deps:
+      - gatlinguser
+    cmds:
+      - echo Keycloak is ready for load testing!
+      - bash -c ./isup.sh
+    silent: true
+
+  ipchange:
+    deps:
+      - split
+    cmds:
+      - rm -f .task/checksum/keycloak
+      - rm -f .task/checksum/prometheus
+      - rm -f .task/checksum/monitoring
+      - echo -n {{.IP}} > .task/status-{{.TASK}}
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+    status:
+      - test -e .task/status-{{.TASK}}
+      - test "{{.IP}}" == "$(cat .task/status-{{.TASK}})"
+    run: once
+
+  reset-keycloak:
+    deps:
+      - split
+    cmds:
+      - bash -c "kubectl delete deployment/postgres -n keycloak || exit 0"
+      - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
+      # discard status of keycloak to force redeployment
+      - rm -f .task/checksum/keycloak
+      # discard status of gatling user to force redeployment
+      - rm -f .task/checksum/gatlinguser
+      - task: default
+    run: once
+
+  split:
+    desc: Split Taskfile to one-file-per-task for dirty checking
+    run: once
+    cmds:
+      - bash -c ./split.sh
+    sources:
+      - Taskfile.yaml
+      - split.sh
+    silent: true
+
+  prometheus:
+    deps:
+      - split
+      - ipchange
+    cmds:
+      - kubectl create namespace monitoring || true
+      - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io -f monitoring.yaml
+    sources:
+      - monitoring.yaml
+      - .task/subtask-{{.TASK}}.yaml
+
+  monitoring:
+    deps:
+      - prometheus
+      - split
+      - ipchange
+    cmds:
+      - helm upgrade --install monitoring --set hostname={{.IP}}.nip.io monitoring
+      - echo hi
+    sources:
+      - monitoring/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
+
+  jaeger:
+    deps:
+      - split
+    cmds:
+      - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
+    sources:
+      - jaeger.yaml
+      - .task/subtask-{{.TASK}}.yaml
+
+  tempo:
+    deps:
+      - split
+    cmds:
+      - helm repo add grafana https://grafana.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml
+    sources:
+      - tempo.yaml
+      - .task/subtask-{{.TASK}}.yaml
+
+  loki:
+    deps:
+      - split
+    cmds:
+      - helm repo add grafana https://grafana.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml
+    sources:
+      - loki.yaml
+      - .task/subtask-{{.TASK}}.yaml
+
+  promtail:
+    deps:
+      - split
+    cmds:
+      - helm repo add grafana https://grafana.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install promtail grafana/promtail -n monitoring -f promtail.yaml
+    sources:
+      - promtail.yaml
+      - .task/subtask-{{.TASK}}.yaml
+
+  dataset:
+    deps:
+      - split
+    dir: ../..
+    cmds:
+      - mvn -B -am -pl dataset clean install -DskipTests
+    sources:
+      - ../../pom.xml
+      - dataset/pom.xml
+      - dataset/src/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
+    generates:
+      - dataset/target/keycloak-benchmark-dataset-*.jar
+
+  datasetprovider:
+    deps:
+      - dataset
+      - split
+    cmds:
+      - mkdir -p keycloak/providers
+      - cp ../../dataset/target/keycloak-benchmark-dataset-*.jar keycloak/providers
+    sources:
+      - ../../dataset/target/keycloak-benchmark-dataset-*.jar
+      - .task/subtask-{{.TASK}}.yaml
+
+  tlsdisableagent:
+    deps:
+      - split
+    dir: ../tlsdisableagent
+    cmds:
+      - bash -c ./buildtlsagent.sh
+    sources:
+      - ../tlsdisableagent/hooks/*.*
+      - ../tlsdisableagent/buildtlsagent.sh
+      - ../tlsdisableagent/tlscheckdisable.txt
+      - ../tlsdisableagent/java-instrumentation-tool/src/**/*.*
+      - ../tlsdisableagent/java-instrumentation-tool/pom.xml
+      - .task/subtask-{{.TASK}}.yaml
+    generates:
+      - ../tlsdisableagent/tlscheckdisable-agent.jar
+
+  keycloak-cli-download:
+    dir: ..
+    cmds:
+      - mkdir -p keycloak-cli
+      - curl -L https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999-SNAPSHOT.zip -o keycloak-cli/keycloak-999-SNAPSHOT.zip
+    status:
+      - test -f keycloak-cli/keycloak-999-SNAPSHOT.zip
+
+  keycloak-cli-unzip:
+    deps:
+      - keycloak-cli-download
+      - split
+    dir: ..
+    cmds:
+      - rm -rf keycloak-cli/keycloak-999-SNAPSHOT
+      - unzip -q keycloak-cli/keycloak-999-SNAPSHOT.zip -d keycloak-cli
+    sources:
+      - ../keycloak-cli/keycloak-999-SNAPSHOT.zip
+      - .task/subtask-{{.TASK}}.yaml
+
+  gatlinguser:
+    deps:
+      - keycloak-cli-unzip
+      - tlsdisableagent
+      - keycloak
+      - split
+      - ipchange
+    env:
+      KC_OPTS: "-javaagent:../tlsdisableagent/tlscheckdisable-agent.jar"
+      KEYCLOAK_HOME: "../keycloak-cli/keycloak-999-SNAPSHOT"
+    cmds:
+      - bash -c "../keycloak-cli/keycloak-999-SNAPSHOT/bin/kcadm.sh config credentials --server https://keycloak.{{.IP}}.nip.io/ --realm master --user admin --password admin"
+      - bash -c "../../benchmark/manage_gatling_client.sh -r realm-0 -d"
+    sources:
+      - ../../benchmark/manage_gatling_client.sh
+      - .task/subtask-{{.TASK}}.yaml
+      # if keycloak's database deployment changes, this will restart the DB and the Gatling user needs to be re-created
+      - .task/status-keycloak-db.json
+
+  keycloak:
+    deps:
+      - monitoring
+      - datasetprovider
+      - split
+      - ipchange
+    cmds:
+      - task: jaeger
+      - task: loki
+      - task: tempo
+      - task: promtail
+      - kubectl create namespace keycloak || true
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/kubernetes.yml
+      - helm upgrade --install keycloak --set hostname={{.IP}}.nip.io keycloak
+      - kubectl get deployment/postgres -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json
+      - bash -c ./isup.sh
+    sources:
+      - keycloak/**/*.*
+      - .task/subtask-{{.TASK}}.yaml

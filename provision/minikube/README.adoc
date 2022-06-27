@@ -125,6 +125,8 @@ The following needs to be installed on the local machine:
 * https://minikube.sigs.k8s.io/docs/start/[Minikube]
 * https://helm.sh/docs/intro/install/[Helm]
 * https://kubernetes.io/docs/tasks/tools/[kubectl]
+* https://taskfile.dev/installation/#get-the-binary[task]
+* https://github.com/mikefarah/yq/#install[yq]
 
 The installation can be performed on Linux as follows:
 
@@ -135,6 +137,7 @@ The installation can be performed on Linux as follows:
 source <(minikube completion bash)
 source <(helm completion bash)
 source <(kubectl completion bash)
+source <(yq shell-completion bash)
 ----
 
 ////
@@ -238,6 +241,7 @@ minikube start --driver=kvm2 --docker-opt="default-ulimit=nofile=102400:102400"
 
 This requires libvirtd to run.
 
+[source,bash]
 ----
 sudo systemctl enable libvirtd
 sudo systemctl start libvirtd
@@ -269,66 +273,92 @@ Adding ingress
 minikube addons enable ingress
 ----
 
-Install Prometheus and Grafana.
+All other installations are scripted using `task`.
+It will run all tasks in the correct order and in parallel when possible.
+If a task definition changes, it will run it again.
+Use `task -f` to force running all tasks again, for example after you've reset minikube.
 
-[source,shell]
+== Automation using the tool _task_
+
+There are several dependencies that need to be built and executed in the right order.
+To simplify upgrades and fast iterations during development, all steps and dependencies have been scripted using https://taskfile.dev/installation/#get-the-binary[_task_].
+Think of this tool as a modern version of _make_ that allows simple check-summing of input files and parallel execution of tasks.
+
+All tasks are described in the `Taskfile.yaml` file.
+If one of the commands in a task fails, the whole task will fail.
+If there are parallel tasks running and one of the tasks fails, _task_ will kill the other tasks running in parallel.
+
+The following list shows some command line examples:
+
+`task`::
+Executes the `default` task, which will update the minikube installation with the latest changes.
+Run it after every local change to a file, or after pulling changes from upstream via git.
+
+`task -f`::
+Executes the `default` task, but execute all tasks event if no source file has been changed.
+Run it after minikube has been re-created.
+
+`task <taskname>`::
+Execute a specific from the `Taskfile.yaml`.
+Most tasks are set up to run only when modified, so task might reply with `task: Task "<taskname>" is up to date`.
+To force execution of a task, add the `-f` flag.
+This will then execute both the task and its dependencies.
+
+`task --dry`::
+Show which tasks would be executed.
+Run it to see what commands _task_ would execute on the next run.
+Can be combined with a task name and the `-f` flag.
+
+`task -C 1`::
+Start in single-threaded mode, which might help analyzing problems, as the output won't be mixed.
+Use this option to debugging task descriptions.
+Can be combined with a task name.
+
+`task -h`::
+Start in single-threaded mode, which might help analyzing problems, as the output won't be mixed.
+Use this option to find out more about task.
+Can be combined with a task name.
+
+Find out more about this tool on its homepage that includes its manual: https://taskfile.dev/
+
+=== Analyzing a failed _task_ run
+
+To analyze a failed run, proceed as follows:
+
+. Identify the failed task by looking at the last line
+. Scroll upwards to find the last executed command of that task and the output of that command.
+
+Example output that failed when executing a `kubectl` command in the `keycloak` task:
+
+[source,subs="+quotes"]
 ----
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-kubectl create namespace monitoring
-helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.$(minikube ip).nip.io -f monitoring.yaml
+task: **[keycloak]** kubectl create namespace keycloak || true
+**[keycloak]** The connection to the server localhost:8080 was refused - did you specify the right host or port?
+task: **[keycloak]** kubectl -n keycloak apply ...
+**[keycloak]** The connection to the server localhost:8080 was refused - did you specify the right host or port?
+[tlsdisableagent] [INFO] Scanning for projects...
+[tlsdisableagent] [INFO]
+[tlsdisableagent] [INFO] ------------...
+...
+task: Failed to run task "**keycloak**": exit status 1
 ----
 
-Install Customizations for Grafana, including an ingress for minikube.
-Login to Grafana with admin / keycloak unless anonymous login is enabled.
+== Adding custom dashboards
+
+Login to Grafana with admin / keycloak when anonymous login is not sufficient.
 
 Custom dashboards are included in folder `monitoring/dashbaords`.
-Add more dashboards there as new files, and a `helm update` will install the latest versions in the minikube cluster.
+Add more dashboards there as new files, and `task` will install the latest versions in the minikube cluster.
 
-[source,shell]
-----
-helm upgrade --install monitoring --set hostname=$(minikube ip).nip.io monitoring
-----
+== Customizing Keycloak
 
-Install Keycloak including monitoring.
+Keycloak is installed with monitoring enabled.
 
-Set `monitoring` to `false` to install Keycloak without monitoring options.
+Add local customizations via `keycloak/values.yaml`:
 
-Set `otel` to `true` to install Keycloak with opentelemetry enabled.
+* Set `monitoring` to `false` to install Keycloak without monitoring options.
 
-[source,shell]
-----
-kubectl create namespace keycloak
-kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
-kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
-kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/kubernetes.yml
-helm upgrade --install keycloak --set hostname=$(minikube ip).nip.io keycloak
-----
-
-Add Tempo for tracing
-
-[source,shell]
-----
-helm repo add grafana https://grafana.github.io/helm-charts
-helm search repo grafana
-helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml
-----
-
-Add Loki to store information about logs, and promtail to collect the logs from all containers.
-
-[source,shell]
-----
-helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml
-helm upgrade --install promtail grafana/promtail -n monitoring -f promtail.yaml
-----
-
-Installing Jaeger as a tracing solution
-
-[source,shell]
-----
-helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
-helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
-----
+* Set `otel` to `true` to install Keycloak with opentelemetry enabled.
 
 == Pause/Resume setup
 
@@ -341,21 +371,25 @@ To stop, run the following command:
 minikube stop
 ----
 
-To resume, run the following command and specify the driver you used when running minikube originally.
+To resume, run the following command.
 
 [source,bash]
 ----
-minikube start --driver=...
+minikube start
 ----
 
 After minikube has been re-started, it might have a different IP address for the ingress.
 Due to that, all ingresses need to be updated.
-Do this by running helm:
+Do this, run `task`.
+
+== Reset the system under test aka Keycloak
+
+This will clear the database and restart the Keycloak instance.
+Once that is complete, it re-initializes the user for Gatling.
 
 [source,bash]
 ----
-helm upgrade monitoring --set hostname=$(minikube ip).nip.io monitoring
-helm upgrade keycloak --set hostname=$(minikube ip).nip.io keycloak
+task reset-keycloak
 ----
 
 == Deploying providers to Minikube
@@ -364,18 +398,12 @@ Keycloak be extended by providers.
 This is also supported in this setup.
 
 All providers JARs need to be placed in `keycloak/providers`.
-After that, re-deploy Keycloak using either the `upgrade.sh` shell script or the minimal snippet from that file.
+
+After updating the files there, run `task`.
 Keycloak will restart and the providers will then be available.
 https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this uses a ConfigMap to place all information Kubernetes, the combined size of all providers encoded as base64 is 1 MiB].
 
-To deploy the dataprovider module, run the following commands from the `provision/minikube` folder:
-
-[source,shell]
-----
-mkdir -p keycloak/providers
-cp ../../dataset/target/keycloak-benchmark-dataset-*.jar keycloak/providers
-helm upgrade --install keycloak --set hostname=$(minikube ip).nip.io keycloak
-----
+The dataprovider module is deployed by default.
 
 To test if the dataprovider module has been deployed, test the URL \https://keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status.
 Use the `./isup.sh` script to find out about the IP address of Keycloak.
