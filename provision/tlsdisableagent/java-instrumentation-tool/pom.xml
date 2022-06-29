@@ -55,5 +55,23 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>default-tools.jar</id>
+            <activation>
+                <jdk>(,9)</jdk>
+            </activation>
+            <dependencies>
+                <!-- when running openjdk, make sure that "-devel" has been installed like for example java-1.8.0-openjdk-devel -->
+                <dependency>
+                    <groupId>com.sun</groupId>
+                    <artifactId>tools</artifactId>
+                    <version>1.8</version>
+                    <scope>system</scope>
+                    <systemPath>${java.home}/../lib/tools.jar</systemPath>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
 </project>
