@@ -30,7 +30,8 @@ tasks:
     status:
       - test -e .task/status-{{.TASK}}
       - test "{{.IP}}" == "$(cat .task/status-{{.TASK}})"
-    run: once
+    # avoid 'once' until https://github.com/go-task/task/issues/715 has been fixed
+    # run: once
 
   reset-keycloak:
     deps:
@@ -43,11 +44,11 @@ tasks:
       # discard status of gatling user to force redeployment
       - rm -f .task/checksum/gatlinguser
       - task: default
-    run: once
 
   split:
     desc: Split Taskfile to one-file-per-task for dirty checking
-    run: once
+    # avoid 'once' until https://github.com/go-task/task/issues/715 has been fixed
+    # run: once
     cmds:
       - bash -c ./split.sh
     sources:
