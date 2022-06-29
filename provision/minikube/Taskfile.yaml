@@ -30,8 +30,8 @@ tasks:
     status:
       - test -e .task/status-{{.TASK}}
       - test "{{.IP}}" == "$(cat .task/status-{{.TASK}})"
-    # avoid 'once' until https://github.com/go-task/task/issues/715 has been fixed
-    # run: once
+    # avoid 'once' until https://github.com/go-task/task/issues/715 when running with parameter '-C 1'
+    run: once
 
   reset-keycloak:
     deps:
@@ -47,8 +47,8 @@ tasks:
 
   split:
     desc: Split Taskfile to one-file-per-task for dirty checking
-    # avoid 'once' until https://github.com/go-task/task/issues/715 has been fixed
-    # run: once
+    # avoid 'once' until https://github.com/go-task/task/issues/715 when running with parameter '-C 1'
+    run: once
     cmds:
       - bash -c ./split.sh
     sources:
@@ -197,6 +197,7 @@ tasks:
       KC_OPTS: "-javaagent:../tlsdisableagent/tlscheckdisable-agent.jar"
       KEYCLOAK_HOME: "../keycloak-cli/keycloak-999-SNAPSHOT"
     cmds:
+      - bash -c ./isup.sh
       - bash -c "../keycloak-cli/keycloak-999-SNAPSHOT/bin/kcadm.sh config credentials --server https://keycloak.{{.IP}}.nip.io/ --realm master --user admin --password admin"
       - bash -c "../../benchmark/manage_gatling_client.sh -r realm-0 -d"
     sources:

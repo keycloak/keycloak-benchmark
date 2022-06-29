@@ -318,7 +318,8 @@ Can be combined with a task name.
 ====
 There seems to be an open bug that can lead to deadlocks, see https://github.com/go-task/task/issues/715[go-task/task#715].
 
-Until this has been fixed, avoid `run: once` or `run: when_changed` within the task file.
+Until this has been fixed, whenever running with the parameter `-C 1`, comment out all `run: once` and `run: when_changed` within the task file.
+Previous attempts to remove those statements temporarily lead to problems as those tasks were executed multiple times in parallel.
 ====
 
 `task -h`::
