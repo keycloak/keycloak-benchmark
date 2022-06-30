@@ -17,9 +17,6 @@ This setup has an optional OpenTelemetry (OTEL) setup that will gather additiona
 This allows measuring the latency per endpoint, and tracing of the database statements executed by a given REST endpoint.
 It also collects the logs of all containers inside Loki that can be queried from Grafana.
 
-It also contains Tempo as an alternative tracing option.
-While traces are submitted via OTEL successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't return some traces (for example deletion of users).
-
 == Alternatives considered
 
 This paragraph describes some possible alternatives and how they differ from the current approach:
@@ -75,11 +72,28 @@ This project should eventually evolve to a setup with multiple namespaces to rep
 
 == Limitations
 
+=== Minikube driver
+
 For Linux, the kvm2 driver is needed for a scalable solution (tested 15 Keycloak replicas).
 More instances are possible when adding more than 8 GB of RAM.
 
 The podman driver on Linux currently supports at the moment only up to 5 instances of Keycloak due to the number of open files limit that is actually a limit of the number of threads.
 After that, the containers will complain that they're unable to start more processes.
+
+=== Minikube persistent store
+
+The PVCs in Minikube will be mounted from the local filesystem.
+Due to that, the PVC sizes will not be checked and one service might fill the disk so much that it becomes unavailable for everyone else as well.
+
+=== Jaeger and sampling of tracing
+
+The data collected for each trace are large and can lead to a fast out-of-memory situation with the Jaeger pod.
+To minimize the amount of data collected, the value `OTEL_TRACES_SAMPLER_ARG` is set a 0.001 to trace only on out of a thousand requests.
+Tracing is disabled by default and can be enabled in Keycloak's helm chart's `values.yaml` file.
+
+As an alternative tracing solution, Tempo was considered.
+While traces are submitted via OTEL successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't return some traces (for example deletion of users).
+Therefore, for now, Jaeger tracing is used.
 
 === Cryostat for JFR recordings
 
@@ -117,6 +131,9 @@ The setup is as follows:
 * https://gatling.io/[Gatling] can run locally and send Graphite metrics via a node port to a collector inside Minikube.
 * https://www.jaegertracing.io/[Jaeger] collects traces from Keycloak running inside Minikube, and can also receive traces from a locally running test application.
 * https://cryostat.io/[Cryostat] can connect to Keycloak instances and create Java Flight Recorder (JFR) recordings.
+
+Logs, traces and metrics are stored within Minikube for 60 days.
+This can be overwritten by adding in an `.env` file with the setting `KB_RETENTION=XXd` to change it to a different value.
 
 == Prerequisites
 

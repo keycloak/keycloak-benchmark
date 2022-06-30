@@ -1,5 +1,15 @@
-#  https://github.com/grafana/helm-charts/tree/main/charts/loki
+#  https://github.com/grafana/helm-charts/blob/main/charts/loki/values.yaml
 
 serviceMonitor:
   enabled: true
 
+persistence:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+
+config:
+  table_manager:
+    retention_deletes_enabled: true
+    retention_period: 60d

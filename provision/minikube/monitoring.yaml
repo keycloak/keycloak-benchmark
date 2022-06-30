@@ -38,13 +38,13 @@ grafana:
           exemplarTraceIdDestinations:
             - datasourceUid: PC9A941E8F2E49454
               name: trace_id
-      - name: Tempo
-        uid: P214B5B846CF3925F
-        type: tempo
-        url: http://tempo.monitoring.svc:3100/
-        access: proxy
-        isDefault: false
-        editable: false
+      #- name: Tempo
+      #  uid: P214B5B846CF3925F
+      #  type: tempo
+      #  url: http://tempo.monitoring.svc:3100/
+      #  access: proxy
+      #  isDefault: false
+      #  editable: false
       - name: Jaeger
         uid: PC9A941E8F2E49454
         type: jaeger
@@ -106,4 +106,13 @@ prometheus:
     ruleSelectorNilUsesHelmValues: false
     serviceMonitorSelector: {}
     serviceMonitorSelectorNilUsesHelmValues: false
+    retention: 60d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
 

@@ -7,6 +7,9 @@ output: prefixed
 vars:
   IP:
     sh: minikube ip
+  KB_RETENTION: '{{default "60d" .KB_RETENTION}}'
+
+dotenv: ['.env']
 
 tasks:
   default:
@@ -24,6 +27,7 @@ tasks:
       - rm -f .task/checksum/keycloak
       - rm -f .task/checksum/prometheus
       - rm -f .task/checksum/monitoring
+      - mkdir -p .task
       - echo -n {{.IP}} > .task/status-{{.TASK}}
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -56,18 +60,32 @@ tasks:
       - split.sh
     silent: true
 
+  env:
+    cmds:
+      # create marker files that can then be checked in other tasks
+      - mkdir -p .task
+      - echo {{.KB_RETENTION}} > .task/var-KB_RETENTION
+    run: once
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+    status:
+      - test "{{.KB_RETENTION}}" == "$(cat .task/var-KB_RETENTION)"
+
   prometheus:
     deps:
       - split
       - ipchange
+      - env
     cmds:
       - kubectl create namespace monitoring || true
       - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io -f monitoring.yaml
+      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack -f monitoring.yaml --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io --set prometheus.prometheusSpec.retention={{.KB_RETENTION}}
     sources:
       - monitoring.yaml
       - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KB_RETENTION
+    run: once
 
   monitoring:
     deps:
@@ -76,7 +94,6 @@ tasks:
       - ipchange
     cmds:
       - helm upgrade --install monitoring --set hostname={{.IP}}.nip.io monitoring
-      - echo hi
     sources:
       - monitoring/**/*.*
       - .task/subtask-{{.TASK}}.yaml
@@ -84,21 +101,32 @@ tasks:
   jaeger:
     deps:
       - split
+      - prometheus
+      - env
+    env:
+      KB_RETENTION: '{{.KB_RETENTION}}'
     cmds:
       - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger.yaml
+      - helm upgrade --install jaeger jaegertracing/jaeger -n monitoring -f jaeger/values.yaml
+      - envsubst < jaeger/deployment-patch.yaml > .task/subtask-{{.TASK}}-patchfile.yaml
+      - echo $KB_RETENTION
+      - kubectl patch deployment jaeger -n monitoring --patch-file .task/subtask-{{.TASK}}-patchfile.yaml
     sources:
-      - jaeger.yaml
+      - jaeger/**/*.*
       - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KB_RETENTION
 
   tempo:
     deps:
       - split
+      - prometheus
     cmds:
-      - helm repo add grafana https://grafana.github.io/helm-charts
-      - helm repo update
-      - helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml
+      # For now, Jaeger will store the traces, and Tempo is disabled.
+      # - helm repo add grafana https://grafana.github.io/helm-charts
+      # - helm repo update
+      # - helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml
+      - helm delete tempo -n monitoring || exit 0
     sources:
       - tempo.yaml
       - .task/subtask-{{.TASK}}.yaml
@@ -106,17 +134,24 @@ tasks:
   loki:
     deps:
       - split
+      - env
+      - prometheus
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml
+      # A loki update might fail as a stateful set can't be updated. If that fails, uninstall and re-install.
+      - > 
+        bash -c "helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}} 
+        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}})"
     sources:
       - loki.yaml
       - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KB_RETENTION
 
   promtail:
     deps:
       - split
+      - prometheus
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
       - helm repo update
@@ -212,11 +247,11 @@ tasks:
       - datasetprovider
       - split
       - ipchange
+      - jaeger
+      - loki
+      - tempo
+      - promtail
     cmds:
-      - task: jaeger
-      - task: loki
-      - task: tempo
-      - task: promtail
       - kubectl create namespace keycloak || true
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
