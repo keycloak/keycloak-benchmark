@@ -389,11 +389,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             executor.waitForAllToFinish();
 
             timerLogger.info(logger, "Created all %d users in realm %s", context.getUserCount(), context.getRealm().getName());
+            new TaskManager(baseSession).removeExistingTask(true);
 
         } finally {
             if (executor != null) {
                 executor.shutDown();
             }
+            new TaskManager(baseSession).removeExistingTask(false);
         }
     }
 
