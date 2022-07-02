@@ -12,7 +12,8 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
     DRIVER=hyperv
   fi
   minikube config set driver ${DRIVER}
-  minikube start --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400"
+  minikube config set container-runtime cri-o
+  minikube start --container-runtime=cri-o --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400"
 fi
 minikube addons enable ingress
 echo -e "use\n\n  kubectl get pods -A -w\n\nto get information about starting pods\n\n"
