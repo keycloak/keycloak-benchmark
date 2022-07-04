@@ -142,7 +142,7 @@ class KeycloakScenarioBuilder {
         .queryParam("scope", "openid profile")
         .check(status.is(200),
           regex("action=\"([^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("login-form-uri"),
-          regex("href=\"/auth(/realms/[^\"]*/login-actions/registration[^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("registration-link")))
+          regex("href=\"(/auth)?(/realms/[^\"]*/login-actions/registration[^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("registration-link")))
       // if already logged in the check will fail with:
       // status.find.is(200), but actually found 302
       // The reason is that instead of returning the login page we are immediately redirected to the app that requested authentication
