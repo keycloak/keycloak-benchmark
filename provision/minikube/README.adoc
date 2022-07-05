@@ -513,3 +513,6 @@ sudo ssh -L 443:192.168.39.19:443 user@remotehost
 
 Now point the browser to \https://keycloak.192.168.39.19.nip.io as usual to interact with the application.
 With the SSH tunnel in place, the response times are a bit slower, so users will not be able to run a representative load test with gatling on their local machine and minikube running on the remote machine.
+
+To optimize the server side of the connection, consider updating the `MaxSessions` parameter in sshd, as otherwise the number sessions via one SSH session would be restricted to 10, and users might see a blocking browser.
+A recommended number would be 100.
