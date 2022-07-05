@@ -77,16 +77,17 @@ public class Config {
     public static final WorkloadModel workloadModel;
     
     static {
-        usersPerSec = Double.valueOf(System.getProperty("users-per-sec", "0"));
+        double usersPerSecTmp = Double.valueOf(System.getProperty("users-per-sec", "0"));
         concurrentUsers = Integer.valueOf(System.getProperty("concurrent-users", "0"));
-        if (usersPerSec > 0 && concurrentUsers == 0) {
+        if (usersPerSecTmp > 0 && concurrentUsers == 0) {
             workloadModel = WorkloadModel.OPEN;
-        } else if (concurrentUsers > 0 && usersPerSec == 0) {
+        } else if (concurrentUsers > 0 && usersPerSecTmp == 0) {
             workloadModel = WorkloadModel.CLOSED;
         } else {
-            throw new IllegalArgumentException("Unable to determine Gatling workload model. "
-                    + "Specify either `--users-per-sec` for the OPEN workload model, or `--concurrent-users` for the CLOSED workload model.");
+            workloadModel = WorkloadModel.OPEN; // default, like "--users-per-sec=1" was specified
+            usersPerSecTmp=1.0;
         }
+        usersPerSec = usersPerSecTmp;
     }
     
     /**
