@@ -1,0 +1,266 @@
+= Other information
+
+== Automation using the tool _task_
+
+There are several dependencies that need to be built and executed in the right order.
+To simplify upgrades and fast iterations during development, all steps and dependencies have been scripted using https://taskfile.dev/installation/#get-the-binary[_task_].
+Think of this tool as a modern version of _make_ that allows simple check-summing of input files and parallel execution of tasks.
+
+All tasks are described in the `Taskfile.yaml` file.
+If one of the commands in a task fails, the whole task will fail.
+If there are parallel tasks running and one of the tasks fails, _task_ will kill the other tasks running in parallel.
+
+For environment-specific settings, add a `.env` file with the contents necessary for your environment.
+
+The following list shows some command line examples:
+
+`task`::
+Executes the `default` task, which will update the minikube installation with the latest changes.
+Run it after every local change to a file, or after pulling changes from upstream via git.
+
+`task -f`::
+Executes the `default` task, but execute all tasks event if no source file has been changed.
+Run it after minikube has been re-created.
+
+`task <taskname>`::
+Execute a specific task from the `Taskfile.yaml`.
+Most tasks are set up to run only when modified, so task might reply with `task: Task "<taskname>" is up to date`.
+To force execution of a task, add the `-f` flag.
+This will then execute both the task and its dependencies.
+
+`task <var>=<value>`::
+Set a variable with a specific value, then run the task.
+Use it for example to set the storage type in a one-off run: `task KC_STORAGE=jpa`.
+
+`task --dry`::
+Show which tasks would be executed.
+Run it to see what commands _task_ would execute on the next run.
+Can be combined with a task name and the `-f` flag.
+
+`task -C 1`::
+Start in single-threaded mode, which might help analyzing problems, as the output won't be mixed.
+Use this option to debugging task descriptions.
+Can be combined with a task name.
++
+[WARNING]
+====
+There seems to be an open bug that can lead to deadlocks, see https://github.com/go-task/task/issues/715[go-task/task#715].
+
+Until this has been fixed, whenever running with the parameter `-C 1`, comment out all `run: once` and `run: when_changed` within the task file.
+Previous attempts to remove those statements temporarily lead to problems as those tasks were executed multiple times in parallel.
+====
+
+`task -h`::
+Start in single-threaded mode, which might help analyzing problems, as the output won't be mixed.
+Use this option to find out more about task.
+Can be combined with a task name.
+
+Find out more about this tool on its homepage that includes its manual: https://taskfile.dev/
+
+=== Analyzing a failed _task_ run
+
+To analyze a failed run, proceed as follows:
+
+. Identify the failed task by looking at the last line
+. Scroll upwards to find the last executed command of that task and the output of that command.
+
+Example output that failed when executing a `kubectl` command in the `keycloak` task:
+
+[source,subs="+quotes"]
+----
+task: **[keycloak]** kubectl create namespace keycloak || true
+**[keycloak]** The connection to the server localhost:8080 was refused - did you specify the right host or port?
+task: **[keycloak]** kubectl -n keycloak apply ...
+**[keycloak]** The connection to the server localhost:8080 was refused - did you specify the right host or port?
+[tlsdisableagent] [INFO] Scanning for projects...
+[tlsdisableagent] [INFO]
+[tlsdisableagent] [INFO] ------------...
+...
+task: Failed to run task "**keycloak**": exit status 1
+----
+
+== Adding custom dashboards
+
+Login to Grafana with admin / keycloak when anonymous login is not sufficient.
+
+Custom dashboards are included in folder `monitoring/dashbaords`.
+Add more dashboards there as new files, and `task` will install the latest versions in the minikube cluster.
+
+== Customizing Keycloak
+
+Keycloak is installed with monitoring enabled.
+
+Add local customizations via `keycloak/values.yaml`:
+
+* Set `monitoring` to `false` to install Keycloak without monitoring options.
+
+* Set `otel` to `true` to install Keycloak with opentelemetry enabled.
+
+* Set `disableCaches` to `true` to disable caches in the Keycloak's JPA legacy store.
+
+== Pause/Resume setup
+
+The setup can be paused and resumed without restarting/reinstalling all pods.
+
+To stop, run the following command:
+
+[source,bash]
+----
+minikube stop
+----
+
+To resume, run the following command.
+
+[source,bash]
+----
+minikube start
+----
+
+After minikube has been re-started, it might have a different IP address for the ingress.
+Due to that, all ingresses need to be updated.
+Do this, run `task`.
+
+== Reset the system under test aka Keycloak
+
+This will clear the database and restart the Keycloak instance.
+Once that is complete, it re-initializes the user for Gatling.
+
+[source,bash]
+----
+task reset-keycloak
+----
+
+== Deploying providers to Minikube
+
+Keycloak be extended by providers.
+This is also supported in this setup.
+
+All providers JARs need to be placed in `keycloak/providers`.
+
+After updating the files there, run `task`.
+Keycloak will restart and the providers will then be available.
+https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this uses a ConfigMap to place all information Kubernetes, the combined size of all providers encoded as base64 is 1 MiB].
+
+The dataprovider module is deployed by default.
+
+To test if the dataprovider module has been deployed, test the URL \https://keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status.
+Use the `./isup.sh` script to find out about the IP address of Keycloak.
+
+== Running `kcadm.sh` with invalid TLS certificates
+
+The minikube setup doesn't contain trusted TLS certificates, and the certificates will also not match the hostnames.
+
+To disable the TLS checks in Java, see the module `provision/tlsdisableagent` for details on how to run for example `kcadm.sh`.
+
+== Accessing the PostgreSQL database inside minikube
+
+To access the PostgreSQL database running inside minikube, there are the following options:
+
+* Execute a shell using `kubectl`:
++
+----
+kubectl exec `kubectl get pods --selector=app=postgres -n keycloak -o name` -n keycloak -it -- psql --user keycloak
+----
+
+* Open the web-based sqlpad pod.
+Run the `isup.sh` shell script to see the URL. +
+Log in with username `admin` and password `admin`.
+
+* Connect via a local DB client:
++
+--
+. Retrieve minikube's IP address using `minikube ip`
+. Assuming that the IP-address is `192.168.39.39`, point your DB tool at the JDBC URL `jdbc:postgresql://192.168.39.39:30009/keycloak`.
++
+The connection details: Port will always be `30009`, username is `keycloak`, password is `pass`, database name is `keycloak`.
+--
++
+NOTE: Minikube's IP address will change every time you re-create the minikube instance.
+
+== Accessing the CockroachDB inside minikube
+
+CockroachDB is a store available for the JPA map storage.
+It can be enabled via the following settings in the `.env` file:
+
+[source]
+----
+KC_DATABASE=cockroach
+KC_STORAGE=jpa
+----
+
+Once these settings have been deployed using `task`, the DB console is available at \https://cockroach.<minikube ip>.
+
+Like the PostgreSQL database, it is also available in SQLPad.
+To access it from the local machine with an IDE or database tool, use the same configuration as for PostgreSQL and exchange the port `30009` with `30010`.
+
+== Metrics from the PostgresSQL database
+
+There is an instance of https://github.com/prometheus-community/postgres_exporter[postgres_exporter] running in minikube and its metrics are collected in Prometheus.
+
+Additional SQL query for metrics can be defined in `pgexporter-queries.yaml`.
+
+== Creating a Java Flight Recorder recording
+
+* Open the Cryostat instance's website.
+Run the `isup.sh` shell script to see the URL.
+* Click on the menu item menu:Recordings[].
+* Select a target VM.
+* Click on button btn:[Create] to create a new recording and follow the dialogs.
+
+Once the recording is complete, download it directly or archive it to the persistent volume of Cryostat to download it later.
+
+== Running Gatling
+
+To run the benchmarks using Gatling on your local machine and to forward the metrics to the Graphite exporter in Minikube, you'll need to pass the IP-address of Minikube as an environment variable that is then used inside `gatling.conf`.
+
+[source,bash]
+----
+export GRAPHITE_TCP_ADDR=$(minikube ip)
+----
+
+The mapping of Gatling's metrics to Prometheus a metric name and labels is configured in `graphite_mapping.yaml`.
+Once the test runs, the metrics are available as `gatling_users` and `gatling_requests`.
+
+This setup assumes that only one load driver is running.
+If more load drivers are running, change the `rootPathPrefix` in Gatling's configuration and the `gatling.conf` setup need to change.
+For now, this is considered out-of-scope as one Gatling instance can generate several orders of magnitude more load than needed.
+
+The Prometheus Gatling exporter will hold the metrics for 5 minutes and then forget them.
+By that time, Prometheus will have already scraped them and stored the values in its database.
+
+== Connecting to a remote host running minikube
+
+When running minikube on a remote host, the ports will not be accessible remotely from the outside of the host.
+If they would, this would be a security concern due to the default passwords and sometimes no password being used on the applications deployed on minikube and the Kubernetes API itself.
+
+To connect to Keycloak and other services remotely, one way is to use SSH port forwarding.
+
+As Keycloak is quick specific about the configured port and IP address, the port forwarding needs to bind the same port as on minikube.
+As it is running on minikube with port 443, this requires running ssh as root so that it can bind port 443 locally.
+
+Given the IP address of minikube on the remote host retrieved by `mininkube ip` with content of `192.168.39.19` the following steps work.
+
+[NOTE]
+====
+Whenever the minikube instance on the remote host is re-created, it will receive a different IP address and the commands need to be adjusted.
+====
+
+. Add an entry to the local `hosts` file that points the host names of minikube:
++
+----
+127.0.0.1 kubebox.192.168.39.19.nip.io grafana.192.168.39.19.nip.io keycloak.192.168.39.19.nip.io
+----
+
+. Put the current user's ssh keys in for the root user, so that `sudo ssh` has access to them.
+
+. Run ssh with port forwarding:
++
+----
+sudo ssh -L 443:192.168.39.19:443 user@remotehost
+----
+
+Now point the browser to \https://keycloak.192.168.39.19.nip.io as usual to interact with the application.
+With the SSH tunnel in place, the response times are a bit slower, so users will not be able to run a representative load test with gatling on their local machine and minikube running on the remote machine.
+
+To optimize the server side of the connection, consider updating the `MaxSessions` parameter in sshd, as otherwise the number sessions via one SSH session would be restricted to 10, and users might see a blocking browser.
+A recommended number would be 100.

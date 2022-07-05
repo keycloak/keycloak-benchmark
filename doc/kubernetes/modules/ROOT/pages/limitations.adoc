@@ -1,0 +1,52 @@
+= Limitations
+
+== Minikube driver
+
+For Linux, the kvm2 driver is needed for a scalable solution (tested 15 Keycloak replicas).
+More instances are possible when adding more than 8 GB of RAM.
+
+The podman driver on Linux currently supports at the moment only up to 5 instances of Keycloak due to the number of open files limit that is actually a limit of the number of threads.
+After that, the containers will complain that they're unable to start more processes.
+
+== Minikube runtime
+
+When testing the cri-o runtime on a bigger machine, https://github.com/keycloak/keycloak-benchmark/issues/128[starting pods and accessing them via the Kubernetes API and via the web browser was flaky].
+Pods`' liveness probes were failing now and then, and pods restarted.
+After some analysis, the reason was still unclear, it might have been related to the limited number of open files.
+
+== Minikube persistent store
+
+The PVCs in Minikube will be mounted from the local filesystem.
+Due to that, the PVC sizes will not be checked and one service might fill the disk so much that it becomes unavailable for everyone else as well.
+
+== Jaeger and sampling of tracing
+
+The data collected for each trace are large and can lead to a fast out-of-memory situation with the Jaeger pod.
+To minimize the amount of data collected, the value `OTEL_TRACES_SAMPLER_ARG` is set a 0.001 to trace only on out of a thousand requests.
+Tracing is disabled by default and can be enabled in Keycloak's helm chart's `values.yaml` file.
+
+As an alternative tracing solution, Tempo was considered.
+While traces are submitted via OTEL successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't return some traces (for example deletion of users).
+Therefore, for now, Jaeger tracing is used.
+
+== Cryostat for JFR recordings
+
+The contents of the helm chart have been created originally by the Cryostat operator.
+When analyzing the resources created by the operator in version 2.0, there was no supported way to add the environment variables needed to the cryostat-deployment discovered.
+Due to that, this has now been extracted and placed here as a Helm chart.
+
+The Cryostat instance needs to run in the same namespace as the JVMs it connects to.
+Due to that, it is part of the Keycloak deployment, and not a separate Helm chart.
+
+The profiling created is regular profiling, not async profiling.
+The profiling will therefore suffer from the safepoint bias problem.
+See the https://github.com/jvm-profiling-tools/async-profiler#async-profiler[Java async profiler] for details:
+
+[quote,Java async profiler]
+____
+This project is a low overhead sampling profiler for Java that does not suffer from Safepoint bias problem.
+It features HotSpot-specific APIs to collect stack traces and to track memory allocations.
+The profiler works with OpenJDK, Oracle JDK and other Java runtimes based on the HotSpot JVM.
+____
+
+For now, not using async profiling should be good enough until proven otherwise.

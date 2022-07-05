@@ -1,0 +1,18 @@
+= Kubernetes Guide for Keycloak Benchmark
+:navtitle: Welcome
+
+This describes how to install Keycloak and a Grafana/Prometheus/Jaeger monitoring stack.
+
+This uses minikube to run the containers, and Helm to provision the containers.
+Keycloak itself is provisioned using the Java based Keycloak operator.
+Kubectl is used to interact with minikube on the command line.
+https://github.com/astefanutti/kubebox[Kubebox] is installed for a minimal UI to inspect containers within minikube.
+
+The helm charts for Keycloak can be configured to just deploy Kubernetes without the dependency on the PodMonitor and ServiceMonitor dependencies.
+
+This setup has an optional OpenTelemetry (OTEL) setup that will gather additional metrics and will publish traces from within Keycloak to Jaeger service.
+This allows measuring the latency per endpoint, and tracing of the database statements executed by a given REST endpoint.
+It also collects the logs of all containers inside Loki that can be queried from Grafana.
+
+It also contains Tempo as an alternative tracing option.
+While traces are submitted via OTEL successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't return some traces (for example deletion of users).

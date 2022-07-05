@@ -1,0 +1,45 @@
+= Alternatives considered
+
+This paragraph describes some possible alternatives and how they differ from the current approach:
+
+Docker Compose::
++
+--
+* This setup would have been more minimal, as it wouldn't require a virtual machine for its setup.
+
+* Docker Compose would support CPU limits when running real Docker, but not Podman.
+
+* Docker Compose doesn't support templating so customizing different setups with different CPU limits is difficult while such templating is available with Helm for Minikube.
+For the Grafana stack there is a good customizable Helm template with no such way for Docker Compose.
+--
++
+*Decision:* Go with Minikube, while still keeping Docker Compose as a minimal setup for ad-hoc testing and to allow for a small effort solution for the community.
+(Proposed by Alexander Schwartz in May 2022)
++
+*Scope:* Docker Compose will contain only Keycloak and a database, and will not contain a monitoring stack, and will not impose any CPU limits.
+
+OpenShift Local (formerly known as CodeReady Containers)::
++
+--
+* It would have the same capabilities as Minishift, with operator support already installed.
+It could be setup automatically (if the developer registers for a Red Hat account and would get a pull secret).
+
+* OpenShift style Monitoring could be installed either via the standard monitoring functionality/operators, and possibly with additional extensions.
+On the other hand, the helm charts seem to be more configurable than the OpenShift operator.
+
+* The team of the Keycloak Java operator is working with Minikube to test it, and the operator hub functionality can be installed within minutes with a shell script.
+This would allow for running the Keycloak operator on Minishift for this setup as well.
+
+* OpenShift Local will always use a VM, and will be more heavyweight in terms of CPU and RAM usage.
+Installing OpenShift is a bigger step for a community contributor.
+In the long term, maintaining the setup for both OpenShift and Minikube might be a higher maintenance cost.
+Installing OpenShift Local from scratch takes a lot longer than installing Minishift, as OpenShift comes with a lot more Operators that need to download and start their containers and will wait for dependencies.
+
+* Minikube has a mechanism to build containers in a lightweight way locally and provide them to the running Minikube instance.
+The alternative for OpenShift would be https://docs.openshift.com/container-platform/4.10/cicd/builds/creating-build-inputs.html#builds-binary-source_creating-build-inputs[binary builds].
+--
++
+*Decision:* Go with Minikube for now.
+Add additional parameterization to the Helm scripts later where needed to deploy on OpenShift (either Local or regular).
+Revisit the decision later once the first OpenShift deployments have been made.
+(Proposed by Alexander Schwartz in May 2022)
