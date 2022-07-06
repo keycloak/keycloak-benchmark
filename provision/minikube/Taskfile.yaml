@@ -20,6 +20,17 @@ tasks:
       - bash -c ./isup.sh
     silent: true
 
+  ulimit:
+    deps:
+      - split
+    cmds:
+      - bash -c ./set-ulimit.sh
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+      - set-ulimit.sh
+    status:
+      - test "$(minikube ssh -- ulimit -n)"=="102400"
+
   ipchange:
     deps:
       - split
@@ -243,6 +254,7 @@ tasks:
 
   keycloak:
     deps:
+      - ulimit
       - monitoring
       - datasetprovider
       - split
