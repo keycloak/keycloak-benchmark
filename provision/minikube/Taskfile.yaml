@@ -7,7 +7,10 @@ output: prefixed
 vars:
   IP:
     sh: minikube ip
-  KB_RETENTION: '{{default "60d" .KB_RETENTION}}'
+  KB_RETENTION: '{{default "7d" .KB_RETENTION}}'
+  KC_DB_POOL_INITIAL_SIZE: '{{default "5" .KC_DB_POOL_INITIAL_SIZE}}'
+  KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
+  KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
 
 dotenv: ['.env']
 
@@ -65,11 +68,17 @@ tasks:
       # create marker files that can then be checked in other tasks
       - mkdir -p .task
       - echo {{.KB_RETENTION}} > .task/var-KB_RETENTION
+      - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
+      - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
+      - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
     status:
       - test "{{.KB_RETENTION}}" == "$(cat .task/var-KB_RETENTION)"
+      - test "{{.KC_DB_POOL_INITIAL_SIZE}}" == "$(cat .task/var-KC_DB_POOL_INITIAL_SIZE)"
+      - test "{{.KC_DB_POOL_MAX_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MAX_SIZE)"
+      - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
 
   prometheus:
     deps:
@@ -251,14 +260,22 @@ tasks:
       - loki
       - tempo
       - promtail
+      - env
     cmds:
       - kubectl create namespace keycloak || true
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/kubernetes.yml
-      - helm upgrade --install keycloak --set hostname={{.IP}}.nip.io keycloak
+      - >
+        helm upgrade --install keycloak
+        --set hostname={{.IP}}.nip.io 
+        --set db-pool-initial-size={{.KC_DB_POOL_INITIAL_SIZE}}
+        --set db-pool-min-size={{.KC_DB_POOL_MIN_SIZE}}
+        --set db-pool-max-size={{.KC_DB_POOL_MAX_SIZE}}
+        keycloak
       - kubectl get deployment/postgres -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json
       - bash -c ./isup.sh
     sources:
       - keycloak/**/*.*
       - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KC_DB_POOL*
