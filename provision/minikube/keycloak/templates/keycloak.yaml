@@ -12,6 +12,12 @@ spec:
       value: postgres
     - name: db-url
       value: jdbc:postgresql://postgres:5432/keycloak
+    - name: db-pool-min-size
+      value: {{ quote .Values.dbPoolInitialSize }}
+    - name: db-pool-max-size
+      value: {{ quote .Values.dbPoolMaxSize }}
+    - name: db-pool-initial-size
+      value: {{ quote .Values.dbPoolMinSize }}
     - name: log-console-output
       value: json
     - name: metrics-enabled
