@@ -80,6 +80,12 @@ More instances are possible when adding more than 8 GB of RAM.
 The podman driver on Linux currently supports at the moment only up to 5 instances of Keycloak due to the number of open files limit that is actually a limit of the number of threads.
 After that, the containers will complain that they're unable to start more processes.
 
+=== Minikube runtime
+
+When testing the cri-o runtime on a bigger machine, https://github.com/keycloak/keycloak-benchmark/issues/128[starting pods and accessing them via the Kubernetes API and via the web browser was flaky].
+Pods`' liveness probes were failing now and then, and pods restarted.
+After some analysis, the reason was still unclear, it might have been related to the limited number of open files.
+
 === Minikube persistent store
 
 The PVCs in Minikube will be mounted from the local filesystem.
@@ -134,7 +140,7 @@ The setup is as follows:
 * https://www.jaegertracing.io/[Jaeger] collects traces from Keycloak running inside Minikube, and can also receive traces from a locally running test application.
 * https://cryostat.io/[Cryostat] can connect to Keycloak instances and create Java Flight Recorder (JFR) recordings.
 
-Logs, traces and metrics are stored within Minikube for 60 days.
+Logs, traces and metrics are stored within Minikube for 7 days.
 This can be overwritten by adding in an `.env` file with the setting `KB_RETENTION=XXd` to change it to a different value.
 
 == Prerequisites
