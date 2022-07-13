@@ -81,4 +81,5 @@ sh $PROJECT_HOME/benchmark/generate-custom-report.sh -v 6.0 -s "$REPORTS_HOME/$R
 echo "INFO: generated the report and it should be available at http://$(hostname)/$REPORT_DIR"
 
 cd $REPORTS_HOME/$REPORT_DIR && zip -qur $REPORT_DIR.zip CustomReport
+cp $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip $JENKINS_WORKSPACE/archives/
 echo "INFO: End of the Run"
