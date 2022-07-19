@@ -11,6 +11,7 @@ vars:
   KC_DB_POOL_INITIAL_SIZE: '{{default "5" .KC_DB_POOL_INITIAL_SIZE}}'
   KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
+  KC_STORAGE: '{{default "" .KC_STORAGE}}'
 
 dotenv: ['.env']
 
@@ -46,6 +47,7 @@ tasks:
     cmds:
       - bash -c "kubectl delete deployment/postgres -n keycloak || exit 0"
       - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
+      - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
       # discard status of keycloak to force redeployment
       - rm -f .task/checksum/keycloak
       # discard status of gatling user to force redeployment
@@ -71,6 +73,7 @@ tasks:
       - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
       - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
       - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
+      - echo {{.KC_STORAGE}} > .task/var-KC_STORAGE
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -79,6 +82,7 @@ tasks:
       - test "{{.KC_DB_POOL_INITIAL_SIZE}}" == "$(cat .task/var-KC_DB_POOL_INITIAL_SIZE)"
       - test "{{.KC_DB_POOL_MAX_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MAX_SIZE)"
       - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
+      - test "{{.KC_STORAGE}}" == "$(cat .task/var-KC_STORAGE)"
 
   prometheus:
     deps:
@@ -249,6 +253,7 @@ tasks:
       - .task/subtask-{{.TASK}}.yaml
       # if keycloak's database deployment changes, this will restart the DB and the Gatling user needs to be re-created
       - .task/status-keycloak-db.json
+      - .task/var-KC_STORAGE
 
   keycloak:
     deps:
@@ -272,10 +277,11 @@ tasks:
         --set db-pool-initial-size={{.KC_DB_POOL_INITIAL_SIZE}}
         --set db-pool-min-size={{.KC_DB_POOL_MIN_SIZE}}
         --set db-pool-max-size={{.KC_DB_POOL_MAX_SIZE}}
+        --set storage={{.KC_STORAGE}}
         keycloak
       - kubectl get deployment/postgres -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json
       - bash -c ./isup.sh
     sources:
       - keycloak/**/*.*
       - .task/subtask-{{.TASK}}.yaml
-      - .task/var-KC_DB_POOL*
+      - .task/var-KC_*
