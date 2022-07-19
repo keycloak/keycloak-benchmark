@@ -313,6 +313,8 @@ All tasks are described in the `Taskfile.yaml` file.
 If one of the commands in a task fails, the whole task will fail.
 If there are parallel tasks running and one of the tasks fails, _task_ will kill the other tasks running in parallel.
 
+For environment-specific settings, add a `.env` file with the contents necessary for your environment.
+
 The following list shows some command line examples:
 
 `task`::
@@ -324,10 +326,14 @@ Executes the `default` task, but execute all tasks event if no source file has b
 Run it after minikube has been re-created.
 
 `task <taskname>`::
-Execute a specific from the `Taskfile.yaml`.
+Execute a specific task from the `Taskfile.yaml`.
 Most tasks are set up to run only when modified, so task might reply with `task: Task "<taskname>" is up to date`.
 To force execution of a task, add the `-f` flag.
 This will then execute both the task and its dependencies.
+
+`task <var>=<value>`::
+Set a variable with a specific value, then run the task.
+Use it for example to set the storage type in a one-off run: `task KC_STORAGE=jpa`.
 
 `task --dry`::
 Show which tasks would be executed.

@@ -18,6 +18,10 @@ spec:
       value: {{ quote .Values.dbPoolMaxSize }}
     - name: db-pool-initial-size
       value: {{ quote .Values.dbPoolMinSize }}
+{{ if ne .Values.storage "" }}
+    - name: storage
+      value: {{ quote .Values.storage }}
+{{ end }}
     - name: log-console-output
       value: json
     - name: metrics-enabled
