@@ -140,8 +140,9 @@ The setup is as follows:
 * https://www.jaegertracing.io/[Jaeger] collects traces from Keycloak running inside Minikube, and can also receive traces from a locally running test application.
 * https://cryostat.io/[Cryostat] can connect to Keycloak instances and create Java Flight Recorder (JFR) recordings.
 
-Logs, traces and metrics are stored within Minikube for 7 days.
-This can be overwritten by adding in an `.env` file with the setting `KB_RETENTION=XXd` to change it to a different value.
+Logs, traces and metrics are stored within Minikube for 7 days = 168 hours.
+This can be overwritten by adding in an `.env` file with the setting `KB_RETENTION=XXh` to change it to a different value.
+Currently, Jaeger requires this to be set in hours, as it doesn't understand this to be set in days.
 
 == Prerequisites
 
