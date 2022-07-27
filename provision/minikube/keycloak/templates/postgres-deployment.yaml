@@ -1,3 +1,4 @@
+{{ if eq .Values.database "postgres" }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,8 +29,6 @@ spec:
               value: keycloak
             - name: POSTGRES_DB
               value: keycloak
-            - name: ANY
-              value: VALUE
           image: postgres:13.2
           imagePullPolicy: Always
           startupProbe:
@@ -53,4 +52,4 @@ spec:
             - containerPort: 5432
               protocol: TCP
       restartPolicy: Always
-
+{{ end }}

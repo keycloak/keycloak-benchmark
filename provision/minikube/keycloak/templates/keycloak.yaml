@@ -11,7 +11,11 @@ spec:
     - name: db
       value: postgres
     - name: db-url
+{{ if eq .Values.database "postgres" }}
       value: jdbc:postgresql://postgres:5432/keycloak
+{{ else }}
+      value: jdbc:postgresql://cockroach:26257/keycloak?sslmode=disable
+{{ end }}
     - name: db-pool-min-size
       value: {{ quote .Values.dbPoolInitialSize }}
     - name: db-pool-max-size

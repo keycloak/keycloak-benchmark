@@ -1,3 +1,4 @@
+{{ if eq .Values.database "postgres" }}
 {{ if .Values.monitoring }}
 ---
 apiVersion: apps/v1
@@ -95,4 +96,5 @@ spec:
   selector:
     matchLabels:
       app: postgres-exporter
+{{ end }}
 {{ end }}

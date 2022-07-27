@@ -35,11 +35,25 @@ spec:
             - name: SQLPAD_SEED_DATA_PATH
               value: /etc/sqlpad/seed-data
             - name: SQLPAD_CONNECTIONS__pgdemo__name
-              value: Postgres Keycloak
+{{ if eq .Values.database "postgres" }}
+              value: PostgresSQL Keycloak
+{{ else }}
+              value: CockroachDB Keycloak
+{{ end }}
             - name: SQLPAD_CONNECTIONS__pgdemo__driver
               value: postgres
             - name: SQLPAD_CONNECTIONS__pgdemo__host
+{{ if eq .Values.database "postgres" }}
               value: postgres
+{{ else }}
+              value: cockroach
+{{ end }}
+            - name: SQLPAD_CONNECTIONS__pgdemo__port
+{{ if eq .Values.database "postgres" }}
+              value: '5432'
+{{ else }}
+              value: '26257'
+{{ end }}
             - name: SQLPAD_CONNECTIONS__pgdemo__database
               value: keycloak
             - name: SQLPAD_CONNECTIONS__pgdemo__username

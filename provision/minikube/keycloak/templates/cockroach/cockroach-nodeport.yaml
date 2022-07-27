@@ -1,17 +1,17 @@
-{{ if eq .Values.database "postgres" }}
+{{ if eq .Values.database "cockroach" }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-nodeport
+  name: cockroach-nodeport
   namespace: {{ .Values.namespace }}
   labels:
-    app: postgres
+    app: cockroach
 spec:
   type: NodePort
   ports:
     - protocol: TCP
-      port: 5432
-      nodePort: 30009
+      port: 26257
+      nodePort: 30010
   selector:
-    app: postgres
+    app: cockroach
 {{ end }}
