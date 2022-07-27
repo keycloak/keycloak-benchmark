@@ -477,6 +477,22 @@ The connection details: Port will always be `30009`, username is `keycloak`, pas
 +
 NOTE: Minikube's IP address will change every time you re-create the minikube instance.
 
+== Accessing the CockroachDB inside minikube
+
+CockroachDB is a store available for the JPA map storage.
+It can be enabled via the following settings in the `.env` file:
+
+[source]
+----
+KC_DATABASE=cockroach
+KC_STORAGE=jpa
+----
+
+Once these settings have been deployed using `task`, the DB console is available at \https://cockroach.<minikube ip>.
+
+Like the PostgreSQL database, it is also available in SQLPad.
+To access it from the local machine with an IDE or database tool, use the same configuration as for PostgreSQL and exchange the port `30009` with `30010`.
+
 == Metrics from the PostgresSQL database
 
 There is an instance of https://github.com/prometheus-community/postgres_exporter[postgres_exporter] running in minikube and its metrics are collected in Prometheus.

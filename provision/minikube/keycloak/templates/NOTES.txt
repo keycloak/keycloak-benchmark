@@ -7,8 +7,15 @@ sqlpad will be available on http://sqlpad.{{ .Values.hostname }}
 {{ if .Values.cryostat -}}
 Cryostat will be available on https://cryostat.{{ .Values.hostname }}
 {{ end -}}
+{{ if eq .Values.database "postgres" -}}
 Connect to PostgreSQL on {{ .Values.hostname }}:30009
   user: keycloak
   password: pass
-  JDBC-URL: jdbc:postgresql://{{ .Values.hostname }}:30009/keycloak
-
+  JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:30009/keycloak
+{{ else -}}
+Connect to CockroachDB on {{ .Values.hostname }}:30010
+  user: keycloak
+  password: pass
+  JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:30010/keycloak
+  Console URL: https://cockroach.{{ .Values.hostname }}/
+{{ end -}}
