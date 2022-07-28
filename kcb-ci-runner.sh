@@ -17,6 +17,9 @@ if $RESET_KEYCLOAK; then
     task reset-keycloak KC_STORAGE="chm"
   elif [ "$KEYCLOAK_STORAGE" = "JPA-Map-CockroachDB" ]; then
     task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach"
+  else 
+    echo "Invalid KEYCLOAK_STORAGE: \"$KEYCLOAK_STORAGE\"."
+    exit 1
   fi
   echo "INFO: task reset-keycloak has been run with Storage as $KEYCLOAK_STORAGE"
   cd $PROJECT_HOME
