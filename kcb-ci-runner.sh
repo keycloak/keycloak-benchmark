@@ -6,10 +6,19 @@ MINIKUBE_HOME=$PROJECT_HOME/provision/minikube
 
 echo "INFO: reset the keycloak based on the parametrized input"
 export RESET_KEYCLOAK=${RESET_KEYCLOAK:-true}
+export KEYCLOAK_STORAGE=${KEYCLOAK_STORAGE:-"JPA-Legacy-PostgreSQL"}
 if $RESET_KEYCLOAK; then
   cd $MINIKUBE_HOME
-  task reset-keycloak
-  echo "INFO: task reset-keycloak has been run"
+  if [ "$KEYCLOAK_STORAGE" = "JPA-Map-PostgreSQL" ]; then
+    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="postgres"
+  elif [ "$KEYCLOAK_STORAGE" = "JPA-Legacy-PostgreSQL" ]; then
+    task reset-keycloak KC_DATABASE="postgres"
+  elif [ "$KEYCLOAK_STORAGE" = "ConcurrentHashMap-Map" ]; then
+    task reset-keycloak KC_STORAGE="chm"
+  elif [ "$KEYCLOAK_STORAGE" = "JPA-Map-CockroachDB" ]; then
+    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach"
+  fi
+  echo "INFO: task reset-keycloak has been run with Storage as $KEYCLOAK_STORAGE"
   cd $PROJECT_HOME
 else
   echo "INFO: Keycloak DB is not reset for this run"
@@ -58,7 +67,7 @@ cd $KCB_HOME
 #Remove old results before the run
 rm -rf results/; mkdir -p results/
 export RESULTS_HOME=$KCB_HOME/results
-export REPORT_DIR=$SCENARIO-$(date -u "+%Y%m%dT%H%M%S%Z")
+export REPORT_DIR=$SCENARIO-$KEYCLOAK_STORAGE-$(date -u "+%Y%m%dT%H%M%S%Z")
 
 #Execute the keycloak benchmark and start simulation
 echo "INFO: Running kcb.sh"
@@ -67,7 +76,7 @@ echo "INFO: Running kcb.sh"
 --server-url=$KC_SERVER_URL --client-secret=$CLIENT_SECRET \
 $WORKLOAD_PARAM \
 --ramp-up=$RAMPUP --measurement=$MEASUREMENT \
---ramp-down=$RAMPDOWN --user-think-time=$USER_THINK_TIME
+--ramp-down=$RAMPDOWN --user-think-time=$USER_THINK_TIME || true
 
 echo "INFO: Archive simulation.log and gatling HTML reports, for the run"
 cd $RESULTS_HOME
@@ -81,5 +90,5 @@ sh $PROJECT_HOME/benchmark/generate-custom-report.sh -v 6.0 -s "$REPORTS_HOME/$R
 echo "INFO: generated the report and it should be available at http://$(hostname)/$REPORT_DIR"
 
 cd $REPORTS_HOME/$REPORT_DIR && zip -qur $REPORT_DIR.zip CustomReport
-cp $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip $JENKINS_WORKSPACE/archives/
+cp -a $REPORTS_HOME/$REPORT_DIR/* $JENKINS_WORKSPACE/archives/
 echo "INFO: End of the Run"
