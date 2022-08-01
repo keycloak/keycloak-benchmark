@@ -87,6 +87,8 @@ mkdir -p $REPORTS_HOME/$REPORT_DIR/SimulationLogs
 cp $RESULTS_HOME/*/simulation.log $REPORTS_HOME/$REPORT_DIR/SimulationLogs
 zip -qr $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip . 
 cd $REPORTS_HOME/$REPORT_DIR && unzip $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip
+touch load_run_parameters.txt && chmod 0755 load_run_parameters.txt
+echo -e "WORKLOAD_PARAM: $WORKLOAD_PARAM\nRAMP_UP: $RAMPUP\nRAMP_DOWN: $RAMPDOWN\nMEASUREMENT: $MEASUREMENT\nUSER_THINKTIME: $USER_THINK_TIME\nKCB_VERSION: $KCB_VERSION\nKCB_REVISION: $KCB_REVISION" >> load_run_parameters.txt
 
 #Generate Custom Report
 sh $PROJECT_HOME/benchmark/generate-custom-report.sh -v 6.0 -s "$REPORTS_HOME/$REPORT_DIR/SimulationLogs/simulation.log" -d "$REPORTS_HOME/$REPORT_DIR/CustomReport"
