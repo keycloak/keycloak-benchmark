@@ -22,6 +22,16 @@ spec:
       value: {{ quote .Values.dbPoolMaxSize }}
     - name: db-pool-initial-size
       value: {{ quote .Values.dbPoolMinSize }}
+{{ if .Values.disableCaches }}
+    - name: cache-realm-enabled
+      value: 'false'
+    - name: cache-user-enabled
+      value: 'false'
+    - name: cache-authorization-enabled
+      value: 'false'
+    - name: spi-public-key-cache-infinispan-enabled
+      value: 'false'
+{{ end }}
 {{ if ne .Values.storage "" }}
     - name: storage
       value: {{ quote .Values.storage }}
