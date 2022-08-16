@@ -41,13 +41,19 @@ export SLA_ERROR_PERCENTAGE=${SLA_ERROR_PERCENTAGE:-0}
 export SLA_MEAN_RESPONSE_TIME=${SLA_MEAN_RESPONSE_TIME:-400}
 
 export WORKLOAD_MODEL=${WORKLOAD_MODEL}
-if [ "$WORKLOAD_MODEL" = "open" ]; then 
+if [ "$WORKLOAD_MODEL" = "open" ]; then
     export WORKLOAD_PARAM="--users-per-sec=$WORKLOAD_UNIT"
 elif [ "$WORKLOAD_MODEL" = "closed" ]; then 
     export WORKLOAD_PARAM="--concurrent-users=$WORKLOAD_UNIT"
 else 
     echo "Invalid WORKLOAD_MODEL: \"$WORKLOAD_MODEL\". Valid values: \"open\" or \"closed\"."
     exit 1
+fi
+
+if [[ "$SCENARIO" == *"Realm"* ]]; then
+      export WORKLOAD_PARAM="$WORKLOAD_PARAM --admin-username=admin --admin-password=admin"
+else
+      export WORKLOAD_PARAM="$WORKLOAD_PARAM --client-secret=$CLIENT_SECRET"
 fi
 
 #pull latest project and build
@@ -76,7 +82,7 @@ export REPORT_DIR=$SCENARIO-$KEYCLOAK_STORAGE-$(date -u "+%Y%m%dT%H%M%S%Z")
 echo "INFO: Running kcb.sh"
 
 ./bin/kcb.sh --scenario=keycloak.scenario.$SCENARIO \
---server-url=$KC_SERVER_URL --client-secret=$CLIENT_SECRET \
+--server-url=$KC_SERVER_URL \
 $WORKLOAD_PARAM \
 --ramp-up=$RAMPUP --measurement=$MEASUREMENT \
 --ramp-down=$RAMPDOWN --user-think-time=$USER_THINK_TIME || true
