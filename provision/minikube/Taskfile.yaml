@@ -283,9 +283,9 @@ tasks:
       - env
     cmds:
       - kubectl create namespace keycloak || true
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
-      - kubectl -n keycloak apply -f kubernetes.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml
       - >
         helm upgrade --install keycloak
         --set hostname={{.IP}}.nip.io 
