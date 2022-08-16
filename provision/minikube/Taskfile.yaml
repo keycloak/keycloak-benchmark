@@ -221,9 +221,16 @@ tasks:
     dir: ..
     cmds:
       - mkdir -p keycloak-cli
-      - curl -L https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999-SNAPSHOT.zip -o keycloak-cli/keycloak-999-SNAPSHOT.zip
+      - rm -f keycloak-cli/*.zip
+      # if the nightly release doesn't exist, download a specific release as a fallback
+      # revisit once https://github.com/keycloak-rel/keycloak-rel/issues/47 as been fixed
+      - > 
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999-SNAPSHOT.zip -o keycloak-cli/keycloak.zip ||
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/19.0.1/keycloak-19.0.1.zip -o keycloak-cli/keycloak.zip
     status:
-      - test -f keycloak-cli/keycloak-999-SNAPSHOT.zip
+      - test -f keycloak-cli/keycloak.zip
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
 
   keycloak-cli-unzip:
     deps:
@@ -231,11 +238,15 @@ tasks:
       - split
     dir: ..
     cmds:
-      - rm -rf keycloak-cli/keycloak-999-SNAPSHOT
-      - unzip -q keycloak-cli/keycloak-999-SNAPSHOT.zip -d keycloak-cli
+      # remove temporary folders to be extra safe
+      - rm -rf keycloak-cli/keycloak-999-SNAPSHOT keycloak-cli/keycloak-19.0.1
+      - rm -rf keycloak-cli/keycloak
+      - unzip -o -q keycloak-cli/keycloak.zip -d keycloak-cli
+      # the output folder depends on the version we're about to unpack
+      - mv keycloak-cli/keycloak-999-SNAPSHOT keycloak-cli/keycloak || mv keycloak-cli/keycloak-19.0.1 keycloak-cli/keycloak
     sources:
-      - ../keycloak-cli/keycloak-999-SNAPSHOT.zip
-      - .task/subtask-{{.TASK}}.yaml
+      - keycloak-cli/keycloak.zip
+      - minikube/.task/subtask-{{.TASK}}.yaml
 
   gatlinguser:
     deps:
@@ -246,10 +257,10 @@ tasks:
       - ipchange
     env:
       KC_OPTS: "-javaagent:../tlsdisableagent/tlscheckdisable-agent.jar"
-      KEYCLOAK_HOME: "../keycloak-cli/keycloak-999-SNAPSHOT"
+      KEYCLOAK_HOME: "../keycloak-cli/keycloak"
     cmds:
       - bash -c ./isup.sh
-      - bash -c "../keycloak-cli/keycloak-999-SNAPSHOT/bin/kcadm.sh config credentials --server https://keycloak.{{.IP}}.nip.io/ --realm master --user admin --password admin"
+      - bash -c "../keycloak-cli/keycloak/bin/kcadm.sh config credentials --server https://keycloak.{{.IP}}.nip.io/ --realm master --user admin --password admin"
       - bash -c "../../benchmark/manage_gatling_client.sh -r realm-0 -d"
     sources:
       - ../../benchmark/manage_gatling_client.sh
