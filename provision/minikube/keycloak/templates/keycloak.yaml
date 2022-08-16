@@ -54,6 +54,9 @@ spec:
   instances: 1
   unsupported:
     podTemplate:
+      metadata:
+        annotations:
+          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres-deployment.yaml") . | sha256sum }}
       spec:
         containers:
           -
@@ -82,11 +85,6 @@ spec:
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
-              # putting this as an environment variable as updating annotations is not supported by the Keycloak Operator
-              # see: https://github.com/keycloak/keycloak/blob/6812bad2ae34a6467e7cbccfecb4a11c0626db39/operator/app/src/main/java/org/keycloak/operator/controllers/KeycloakDeployment.java#L97-L103
-              # will be resolved in https://github.com/keycloak/keycloak/issues/12699
-              - name: CHECKSUM
-                value: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres-deployment.yaml") . | sha256sum }}
               - name: JAVA_OPTS_APPEND
                 # using non-blocking random, make DNS lookups expire after 10 seconds and not cache them forever
                 value: >
