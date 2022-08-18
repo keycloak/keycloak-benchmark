@@ -35,6 +35,11 @@ spec:
 {{ if ne .Values.storage "" }}
     - name: storage
       value: {{ quote .Values.storage }}
+    # this might eventually be set automatically by the operator
+    # TODO: value should be stored as a secret instead in a production environment
+    # https://github.com/keycloak/keycloak/issues/13377
+    - name: storage-deployment-state-version-seed
+      value: some-secret-seed
 {{ end }}
     - name: log-console-output
       value: json
