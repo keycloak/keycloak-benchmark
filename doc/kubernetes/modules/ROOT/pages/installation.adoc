@@ -1,0 +1,123 @@
+= Installation
+
+== For the impatient
+
+The installation has been scripted in `rebuild.sh`.
+If an existing minikube instance exists, it will destroy it first.
+Run this script, and see the URLs printed in the console to access the different services.
+
+Wait a bit for all containers to be pulled from the internet, then get started.
+
+The following commands helps to watch the pods being started, use kbd:[Ctrl+C] to end watching.
+
+[source,shell]
+----
+kubectl get pods -A -w
+----
+
+The following script will check if all services are running and will output a list of available URLs.
+
+[source,shell]
+----
+./isup.sh
+----
+
+To update an existing Minikube setup created with an earlier version of this project, use `upgrade.sh`.
+It will install all changes in the Helm charts and Grafana charts.
+
+To open a dashboard showing all Kubernetes resources, run the following command:
+
+[source,shell]
+----
+minikube dashboard
+----
+
+This should open the URL in your default browser.
+If it doesn't open it automatically, click on the link it prints on the console.
+
+Then, select a namespace in the header (for example `keycloak`) and browse the resources available in that namespace.
+
+== For more insights and backgrounds
+
+This section will show the different steps with variants, explain them a bit more.
+It also shows the `helm upgrade` commands that can update parts of the stack incrementally which helps development and upgrades.
+
+Startup Minikube in default mode with a VM.
+Per default, it will use 2 CPUs, and this can be adjusted
+
+[source,shell]
+----
+minikube start
+----
+
+Start with customized settings.
+
+[source,shell]
+----
+minikube stop
+minikube delete
+minikube start --memory 8192 --cpus 4
+----
+
+Depending on the driver, adjusting the settings might work for an already created minikube instance.
+
+[source,shell]
+----
+minikube stop
+minikube config set memory 8192
+minikube config set cpus 4
+minikube start
+----
+
+Startup Minikube on Linux w/ podman driver.
+This allows faster startup times, less overhead, and no limitation (?) on CPU usage.
+
+////
+Installation of cri-o not needed, cri-o will run inside the minikube podman?
+dnf module enable cri-o:1.19
+dnf install cri-o
+////
+
+[source,shell]
+----
+minikube start --driver=kvm2 --container-runtime=cri-o --docker-opt="default-ulimit=nofile=102400:102400"
+----
+
+This requires libvirtd to run.
+
+[source,bash]
+----
+sudo systemctl enable libvirtd
+sudo systemctl start libvirtd
+sudo usermod -a -G libvirt $USER
+# now relogin, for usermod to become effective
+----
+
+For a lightweight installation that today doesn't scale beyond 3-5 Keycloak instances:
+
+[source,shell]
+----
+minikube start --driver=podman --container-runtime=cri-o
+----
+
+On Linux, allow to use podman and crio via sudo:
+
+. run `sudo visudo`
+. add the following to the sudoer's file
++
+----
+username ALL=(ALL) NOPASSWD: /usr/bin/podman
+username ALL=(ALL) NOPASSWD: /usr/bin/crictl
+----
+
+Adding ingress
+
+[source,shell]
+----
+minikube addons enable ingress
+----
+
+All other installations are scripted using `task`.
+It will run all tasks in the correct order and in parallel when possible.
+If a task definition changes, it will run it again.
+Use `task -f` to force running all tasks again, for example after you've reset minikube.

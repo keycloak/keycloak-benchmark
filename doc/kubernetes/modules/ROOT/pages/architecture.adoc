@@ -1,0 +1,22 @@
+= Architecture
+
+This describes the runtime view of the setup:
+
+.Minikube runtime view
+image::minikube-runtime-view.dio.svg[]
+
+The setup is as follows:
+
+* https://minikube.sigs.k8s.io/[Minikube] runs a virtual machine.
+* Via a configured ingress, a local browser can access different services running in Minikube like Keycloak and Grafana.
+* https://www.keycloak.org/[Keycloak] connects to a PostgreSQL database running inside Minikube.
+* https://www.postgresql.org/[The PostgreSQL database] inside minikube is accessible via a node port from the host.
+* https://prometheus.io/[Prometheus] collects metrics, and Jaeger collects traces.
+* https://grafana.com/docs/loki/latest/clients/promtail/[Promtail] collects logs and sends it to Loki which stores them.
+* https://gatling.io/[Gatling] can run locally and send Graphite metrics via a node port to a collector inside Minikube.
+* https://www.jaegertracing.io/[Jaeger] collects traces from Keycloak running inside Minikube, and can also receive traces from a locally running test application.
+* https://cryostat.io/[Cryostat] can connect to Keycloak instances and create Java Flight Recorder (JFR) recordings.
+
+Logs, traces and metrics are stored within Minikube for 7 days = 168 hours.
+This can be overwritten by adding in an `.env` file with the setting `KB_RETENTION=XXh` to change it to a different value.
+Currently, Jaeger requires this to be set in hours, as it doesn't understand this to be set in days.

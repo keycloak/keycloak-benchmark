@@ -14,6 +14,11 @@ on:
       - 'provision/minikube/**'
       - '.github/workflows/provision-minikube.yml'
 
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
 
@@ -38,7 +43,7 @@ jobs:
       - name: Add yq
         run: |
           mkdir -p $GITHUB_WORKSPACE/bin
-          wget https://github.com/mikefarah/yq/releases/download/v4.25.3/yq_linux_amd64 -O $GITHUB_WORKSPACE/bin/yq 
+          wget https://github.com/mikefarah/yq/releases/download/v4.25.3/yq_linux_amd64 -O $GITHUB_WORKSPACE/bin/yq
           chmod +x $GITHUB_WORKSPACE/bin/yq
       - name: Setup Minikube-Kubernetes
         uses: manusa/actions-setup-minikube@v2.7.0
@@ -61,4 +66,4 @@ jobs:
         run: |
           kubectl get pods -A
           kubectl get events -A
-        
+

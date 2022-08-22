@@ -1,0 +1,35 @@
+= Prerequisites
+
+The following needs to be installed on the local machine:
+
+* https://minikube.sigs.k8s.io/docs/start/[Minikube]
+* https://helm.sh/docs/intro/install/[Helm]
+* https://kubernetes.io/docs/tasks/tools/[kubectl]
+* https://taskfile.dev/installation/#get-the-binary[task]
+* https://github.com/mikefarah/yq/#install[yq]
+
+The installation can be performed on Linux as follows:
+
+. Download each executable and place it in ~/bin
+. Add the following snippet to ~/.bashrc to allow auto-completion of commands
++
+----
+source <(minikube completion bash)
+source <(helm completion bash)
+source <(kubectl completion bash)
+source <(yq shell-completion bash)
+----
+
+////
+Not needed for kvm2 driver
+
+Increase the number of files by adding the following to `/etc/systemd/system.conf` and `/etc/systemd/user.conf`:
+
+----
+DefaultLimitNOFILE=102400:524288
+----
+
+Test the settings afterwards using `ulimit -n`, it should match the first value.
+
+WARNING: There still seems to eb a limit of around ~2k container threads in total that prevents more than 5 running instances of Keycloak.
+////

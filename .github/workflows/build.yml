@@ -8,11 +8,18 @@ on:
       - 'dependabot/**'
     paths-ignore:
       - 'provision/**'
-      - '.github/workflows/provision-minikube.yml'
+      - '.github/workflows/*.yml'
+      - '!.github/workflows/build.yml'
   pull_request:
     paths-ignore:
       - 'provision/**'
-      - '.github/workflows/provision-minikube.yml'
+      - '.github/workflows/*.yml'
+      - '!.github/workflows/build.yml'
+
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
