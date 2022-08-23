@@ -23,13 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.x'
-      - uses: actions/cache@v2
-        with:
-          path: 'antora/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('antora/yarn.lock') }}
+          cache: 'yarn'
+          cache-dependency-path: 'antora/yarn.lock'
       - name: Build docs
         working-directory: antora
         run: ./build.sh
