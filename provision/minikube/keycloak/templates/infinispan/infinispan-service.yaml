@@ -1,0 +1,20 @@
+{{ if eq .Values.database "infinispan" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: infinispan
+  name: infinispan
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+    - port: 11222
+      name: console
+      protocol: TCP
+      targetPort: 11222
+  selector:
+    app: infinispan
+  sessionAffinity: None
+  type: ClusterIP
+{{ end }}
