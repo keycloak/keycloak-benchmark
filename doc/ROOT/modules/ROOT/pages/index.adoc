@@ -1,16 +1,23 @@
 = Kubernetes Benchmark
 :navtitle: Welcome
 
-Welcome to this guide!
+The https://github.com/keycloak/keycloak-benchmark[Keycloak Benchmark repository] contains the necessary tools to run performance tests of a https://www.keycloak.org/[Keycloak server].
 
-There is documentation for different areas:
+It has the following goals:
 
-xref:dataset-guide::index.adoc[]::
-How to seed data for a Keycloak benchmark test.
+. Setup Keycloak for reproducible results.
+. Run load tests against any Keycloak instance.
+. Use an observability stack to analyze test runs.
 
-xref:benchmark-guide::index.adoc[]::
-How to run Keycloak benchmark tests against a provisioned instance of Keycloak.
+The repository has multiple modules that can be used together or separately to achieve this:
 
-xref:kubernetes-guide::index.adoc[]::
-How to deploy Keycloak in a Kubernetes-like environment, for example Minikube.
+* The xref:benchmark-guide::index.adoc[benchmark module] contains load tests based on Gatling.
 
+* The provisioning module contains a more advanced xref:kubernetes-guide::index.adoc[Kubernetes setup] based on minikube,  and docker-compose scripts for a simpler setup.
+The setup for minikube contains a Grafana based observability stack while the docker-compose based setup doesn't.
+
+* The xref:dataset-guide::index.adoc[dataset module] contains a Keycloak add-on that can create entities in a Keycloak data store to prepare it for a load test.
+
+== Next steps
+
+Continue to xref:getting-started.adoc[] to set up an environment and run load tests.
