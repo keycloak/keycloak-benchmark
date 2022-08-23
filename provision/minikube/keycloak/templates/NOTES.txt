@@ -12,6 +12,11 @@ Connect to PostgreSQL on {{ .Values.hostname }}:30009
   user: keycloak
   password: pass
   JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:30009/keycloak
+{{ else if eq .Values.database "infinispan" -}}
+Connect to Infinispan on {{ .Values.hostname }}:30011
+  user: admin
+  password: admin
+  Console URL: https://infinispan.{{ .Values.hostname }}/
 {{ else -}}
 Connect to CockroachDB on {{ .Values.hostname }}:30010
   user: keycloak

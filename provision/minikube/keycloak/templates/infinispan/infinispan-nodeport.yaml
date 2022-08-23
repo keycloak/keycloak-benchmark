@@ -1,0 +1,17 @@
+{{ if eq .Values.database "infinispan" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: infinispan-nodeport
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: infinispan
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 11222
+      nodePort: 30011
+  selector:
+    app: infinispan
+{{ end }}

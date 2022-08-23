@@ -8,13 +8,25 @@ metadata:
 spec:
   hostname: keycloak.{{ .Values.hostname }}
   serverConfiguration:
+{{ if eq .Values.database "postgres" }}
     - name: db
       value: postgres
     - name: db-url
-{{ if eq .Values.database "postgres" }}
       value: jdbc:postgresql://postgres:5432/keycloak
-{{ else }}
+{{ else if eq .Values.database "cockroach" }}
+    - name: db
+      value: postgres
+    - name: db-url
       value: jdbc:postgresql://cockroach:26257/keycloak?sslmode=disable
+{{ else if eq .Values.database "infinispan" }}
+    - name: storage-hotrod-host
+      value: infinispan
+    - name: storage-hotrod-port
+      value: '11222'
+    - name: storage-hotrod-username
+      value: admin
+    - name: storage-hotrod-password
+      value: admin
 {{ end }}
     - name: db-pool-min-size
       value: {{ quote .Values.dbPoolInitialSize }}
