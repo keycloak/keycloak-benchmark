@@ -1,0 +1,104 @@
+= Customizing the deployment
+:description: The deployment of Keycloak can be customized using environment settings to support different storages and other features.
+
+{description}
+The central location to change to changes this is an `.env` file in the `provision/minikube` folder.
+
+== Default deployment
+
+include::partial$default-deployment.adoc[]
+
+See xref:storage-configurations.adoc[] to see which storage options are available.
+
+== Changing the default deployment
+
+To change the default, create an `.env` in the `provision/minikube` folder.
+
+An example configuration as below enables CockroachDB and the map storage with JPA.
+
+[source]
+----
+KC_DATABASE=cockroach
+KC_STORAGE=jpa
+----
+
+include::partial$rerun-task-after-changes.adoc[]
+
+As an alternative way the parameters can be passed on the command line of the task command:
+
+[source,bash]
+----
+task KC_STORAGE="jpa" KC_DATABASE="cockroach"
+----
+
+== Available Keycloak configuration options
+
+The following configuration options are available to configure Keycloak and other parts of the system under test.
+All default values are configured in the `link:{github-files}/provision/minikube/Taskfile.yaml[Taskfile.yaml]`.
+
+KC_DATABASE::
+Set the storage to be deployed as Keycloak's database.
++
+Default value: `postgres`
++
+Available options:
++
+--
+* `postgres` -- deploy a single-node PostgreSQL instance.
+* `cockroach` -- deploy a single-node CockroachDB instance.
+* `infinispan` -- deploy a single-node Infinispan instance. See xref:storage/infinispan.adoc[] for more information.
+--
+
+[[KC_STORAGE,KC_STORAGE]]
+KC_STORAGE::
+Set the storage configuration parameter for Keycloak.
++
+Default value: empty
++
+Available options:
++
+--
+* empty -- will deploy Keycloak with the legacy store. This requires `KC_DATABASE` to be set to `postgres`.
+* `jpa` -- will deploy Keycloak with the new map store configured for JPA. This requires `KC_DATABASE` to be set to `postgres` or `cockroach`.
+* `hotrod` -- will deploy Keycloak with the new map store configured for HotRod. This requires `KC_DATABASE` to be set to `infinispan`. See xref:storage/infinispan.adoc[] for more information.
+* `chm` -- will deploy Keycloak with the new map store configured with Concurrent Hash Map, which is an in-memory store that is not shared between Keycloak instances.
+--
+
+[[KC_DB_POOL_INITIAL_SIZE,KC_DB_POOL_INITIAL_SIZE]]
+KC_DB_POOL_INITIAL_SIZE::
+Set the initial database size of the DB connection pool.
++
+Default value: `5`
++
+--
+include::partial$configure-db-connection-pool-best-practices.adoc[]
+--
+
+KC_DB_POOL_MAX_SIZE::
+Set the storage configuration parameter for Keycloak.
++
+Default value: `10`
++
+The maximum number of DB connections multiplied by the maximum number of running Keycloak instances must not exceed the maximum number of permitted database connections for the database.
+The default PostgreSQL instance is configured for up to 100 DB connections.
++
+See <<KC_DB_POOL_INITIAL_SIZE>> for additional information.
+
+KC_DB_POOL_MIN_SIZE::
+Set the storage configuration parameter for Keycloak.
++
+Default value: `5`
++
+See <<KC_DB_POOL_INITIAL_SIZE>> for more information.
+
+== Available Benchmark options
+
+The following configuration options are available to configure the helper applications.
+All default values are configured in the `link:{github-files}/provision/minikube/Taskfile.yaml[Taskfile.yaml]`.
+
+KB_RETENTION::
+Retention period in hours to keep logs, metrics and traces.
++
+Default: `168h`
++
+Available options: Can be changed to any value in hours that is a multiple of 24h.
