@@ -45,8 +45,20 @@ Available options:
 +
 --
 * `postgres` -- deploy a single-node PostgreSQL instance.
++
+See xref:storage/postgres.adoc[] for more information.
+
 * `cockroach` -- deploy a single-node CockroachDB instance.
-* `infinispan` -- deploy a single-node Infinispan instance. See xref:storage/infinispan.adoc[] for more information.
++
+See xref:storage/cockroach.adoc[] for more information.
+
+* `infinispan` -- deploy a single-node Infinispan instance.
++
+See xref:storage/infinispan.adoc[] for more information.
+
+* `none` -- deploy no data store.
++
+See xref:storage/concurrent-hash-map.adoc[] for more information.
 --
 
 [[KC_STORAGE,KC_STORAGE]]
@@ -58,10 +70,21 @@ Default value: empty
 Available options:
 +
 --
-* empty -- will deploy Keycloak with the legacy store. This requires `KC_DATABASE` to be set to `postgres`.
-* `jpa` -- will deploy Keycloak with the new map store configured for JPA. This requires `KC_DATABASE` to be set to `postgres` or `cockroach`.
-* `hotrod` -- will deploy Keycloak with the new map store configured for HotRod. This requires `KC_DATABASE` to be set to `infinispan`. See xref:storage/infinispan.adoc[] for more information.
-* `chm` -- will deploy Keycloak with the new map store configured with Concurrent Hash Map, which is an in-memory store that is not shared between Keycloak instances.
+* empty -- deploys Keycloak with the legacy store.
+This requires `KC_DATABASE` to be set to `postgres`.
+* `jpa` -- deploys Keycloak with the new map store configured for JPA.
+This requires `KC_DATABASE` to be set to `postgres` or `cockroach`.
++
+See xref:storage/postgres.adoc[] or xref:storage/cockroach.adoc[] for more information.
+
+* `hotrod` -- deploys Keycloak with the new map store configured for HotRod.
+This requires `KC_DATABASE` to be set to `infinispan`.
++
+See xref:storage/infinispan.adoc[] for more information.
+
+* `chm` -- deploys Keycloak with the new map store configured with Concurrent Hash Map, which is an in-memory store that is not shared between Keycloak instances.
++
+See xref:storage/concurrent-hash-map.adoc[] for more information.
 --
 
 [[KC_DB_POOL_INITIAL_SIZE,KC_DB_POOL_INITIAL_SIZE]]

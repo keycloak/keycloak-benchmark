@@ -1,3 +1,4 @@
+{{ if or (eq .Values.database "postgres") (eq .Values.database "cockroach") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -133,3 +134,4 @@ spec:
             path: /
             pathType: ImplementationSpecific
 ---
+{{end}}

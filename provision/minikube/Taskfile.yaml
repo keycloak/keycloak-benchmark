@@ -138,7 +138,7 @@ tasks:
       - split
       - prometheus
     cmds:
-      # For now, Jaeger will store the traces, and Tempo is disabled.
+      # For now, Jaeger stores the traces, and Tempo is disabled.
       # - helm repo add grafana https://grafana.github.io/helm-charts
       # - helm repo update
       # - helm upgrade --install tempo grafana/tempo -n monitoring -f tempo.yaml
@@ -156,8 +156,8 @@ tasks:
       - helm repo add grafana https://grafana.github.io/helm-charts
       - helm repo update
       # A loki update might fail as a stateful set can't be updated. If that fails, uninstall and re-install.
-      - > 
-        bash -c "helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}} 
+      - >
+        bash -c "helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}}
         || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}})"
     sources:
       - loki.yaml
@@ -226,7 +226,7 @@ tasks:
       - rm -f keycloak-cli/*.zip
       # if the nightly release doesn't exist, download a specific release as a fallback
       # revisit once https://github.com/keycloak-rel/keycloak-rel/issues/47 as been fixed
-      - > 
+      - >
         curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999-SNAPSHOT.zip -o keycloak-cli/keycloak.zip ||
         curl -L -f https://github.com/keycloak/keycloak/releases/download/19.0.1/keycloak-19.0.1.zip -o keycloak-cli/keycloak.zip
     status:
@@ -267,7 +267,7 @@ tasks:
     sources:
       - ../../benchmark/manage_gatling_client.sh
       - .task/subtask-{{.TASK}}.yaml
-      # if keycloak's database deployment changes, this will restart the DB and the Gatling user needs to be re-created
+      # if keycloak's database deployment changes, this restarts the DB and the Gatling user needs to be re-created
       - .task/status-keycloak-db.json
       - .task/var-KC_STORAGE
       - .task/var-KC_DATABASE
@@ -290,14 +290,19 @@ tasks:
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml
       - >
         helm upgrade --install keycloak
-        --set hostname={{.IP}}.nip.io 
+        --set hostname={{.IP}}.nip.io
         --set db-pool-initial-size={{.KC_DB_POOL_INITIAL_SIZE}}
         --set db-pool-min-size={{.KC_DB_POOL_MIN_SIZE}}
         --set db-pool-max-size={{.KC_DB_POOL_MAX_SIZE}}
         --set storage={{.KC_STORAGE}}
         --set database={{.KC_DATABASE}}
         keycloak
-      - kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json
+      - >
+        bash -c '
+        if [ "{{.KC_DATABASE}}" != "none" ];
+        then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        else echo "none" > .task/status-{{.TASK}}-db.json;
+        fi'
       - bash -c ./isup.sh
     sources:
       - keycloak/**/*.*

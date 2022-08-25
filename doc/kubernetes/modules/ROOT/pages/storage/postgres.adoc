@@ -1,0 +1,70 @@
+= Using PostgreSQL storage
+:description: The deployment of Keycloak can use a PostgreSQL instance when deployed with old legacy or the new map storage.
+
+{description}
+
+== Enabling PostgreSQL storage
+
+Using a PostgreSQL database is available both the old legacy store and in Keycloak's new JPA map storage.
+It can be enabled via the following settings in the `.env` file in the `provision/kubernetes` folder.
+
+Use the following settings to activate the legacy store:
+
+[source]
+----
+KC_DATABASE=postgres
+KC_STORAGE=
+----
+
+Use the following setting to enable the new JPA map store:
+
+[source]
+----
+KC_DATABASE=postgres
+KC_STORAGE=jpa
+----
+
+See xref:customizing-deployment.adoc[] for a list of all configuration options.
+
+include::partial$rerun-task-after-changes.adoc[]
+
+The deployment adds a new PostgreSQL pod to the minikube setup and removes all other storage pods that are no longer necessary.
+Every time the pod is restarted, the database is cleared.
+
+Keycloak connects to the PostgreSQL database pod inside minikube and populates the DB schema.
+Database metrics are available in Grafana.
+The xref:util/sqlpad.adoc[SQL Pad] allows accessing the database via the browser.
+
+image::storage/minikube-runtime-view-postgres.dio.svg[]
+
+== Verifying the setup
+
+The automated script verifies that Keycloak starts up, which requires that PostgreSQL start up first.
+
+== Connecting a local application to PostgreSQL
+
+PostgreSQL's database port is also available as a node port so that it can be accessed from a local application.
+Assuming the command `minikube ip` returned `192.168.39.39`, the JDBC URL is `jdbc:postgresql://192.168.39.39:30009/keycloak`.
+
+include::partial$minikube-ip-change.adoc[]
+
+It can be used, for example, to connect the developer's IDE to the database.
+
+The connection details: Port is always `30009`, username is `keycloak`, password is `pass`, database name is `keycloak`.
+
+== Connecting to the database on the command line
+
+To start an SQL shell inside the PostgreSQL container, use the following command:
+
+[source,bash]
+----
+kubectl exec `kubectl get pods --selector=app=postgres -n keycloak -o name` -n keycloak -it -- psql --user keycloak
+----
+
+== Metrics from the PostgresSQL database
+
+There is an instance of https://github.com/prometheus-community/postgres_exporter[postgres_exporter] running in minikube and its metrics are collected in Prometheus.
+
+Additional SQL query for metrics can be defined in link:{github-files}/provision/minikube/keycloak/config/pgexporter-queries.yaml[pgexporter-queries.yaml].
+
+

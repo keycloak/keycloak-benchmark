@@ -20,7 +20,9 @@ See xref:customizing-deployment.adoc[] for a list of all configuration options.
 
 include::partial$rerun-task-after-changes.adoc[]
 
-The deployment adds a new Infinispan pod to the minikube setup and will remove all other storage pods that are no longer necessary.
+The deployment adds a new Infinispan pod to the minikube setup and removes all other storage pods that are no longer necessary.
+Every time the pod is restarted, the database is cleared.
+
 Keycloak connects to the new Infinispan pod inside minikube, and <<accessing-the-infinispan-console,Infinispan's web console is available via the local browser>>.
 
 image::storage/minikube-runtime-view-infinispan.dio.svg[]
@@ -35,20 +37,26 @@ A user can test the setup by <<accessing-the-infinispan-console,accessing Infini
 
 Assuming the command `minikube ip` returned `192.168.39.39`, the console is available on \http://infinispan.192.168.39.39.nip.io.
 
-The default username is `admin` with the password `admin`.
+include::partial$minikube-ip-change.adoc[]
+
+The username is `admin` with the password `admin`.
 
 == Connecting a local application to Infinispan
 
 Infinispan's port is also available as a node port so that it can be accessed from a local application.
-Assuming that the IP-address is `192.168.39.39`, point the local instance to `192.168.39.39:30011`.
+Assuming the command `minikube ip` returned `192.168.39.39`, point the local instance to `192.168.39.39:30011`.
+
+include::partial$minikube-ip-change.adoc[]
 
 It can be used, for example, with Infinispan's command line client.
 
+The username is `admin` with the password `admin`.
+
 [WARNING]
 ====
-The infinispan instance running inside the pod will advertise its pod IP address to the caller that is not accessible from the outside of minikube.
+The infinispan instance running inside the pod advertises its pod IP address to the caller that is not accessible from the outside of minikube.
 
-Due to this, accessing Infinispan from an application running outside minikube will most likely fail until the required but yet unknown parameters are passed to either the application or the pod.
+Due to this, accessing Infinispan from an application running outside minikube most likely fails until the required but yet unknown parameters are passed to either the application or the pod.
 ====
 
 
