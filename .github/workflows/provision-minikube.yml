@@ -58,6 +58,10 @@ jobs:
         run: |
           PATH=$PATH:$GITHUB_WORKSPACE/bin
           ./rebuild.sh
+          task # default configuration PostgreSQL and legacy store
+          task KC_DATABASE=cockroach KC_STORAGE=jpa
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod
+          task KC_DATABASE=none KC_STORAGE=chm
           kubectl get pods -A
           kubectl get events -A
       - name: Show logs on failure

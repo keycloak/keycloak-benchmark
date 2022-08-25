@@ -16,7 +16,6 @@ declare -A SERVICES=( \
  ["keycloak.${HOST}"]="realms/master/.well-known/openid-configuration" \
  ["grafana.${HOST}"]="" \
  ["prometheus.${HOST}"]="" \
- ["sqlpad.${HOST}"]="" \
  ["jaeger.${HOST}"]="api/services" \
  ["kubebox.${HOST}"]="" \
  ["cryostat.${HOST}"]="" \

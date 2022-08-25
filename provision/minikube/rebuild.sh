@@ -16,5 +16,5 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
   minikube start --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400"
 fi
 minikube addons enable ingress
-echo -e "use\n\n  kubectl get pods -A -w\n\nto get information about starting pods\n\n"
-task -f
+rm -rf .task
+echo "Minikube initialized. Now run 'task' to provision it with Keycloak"
