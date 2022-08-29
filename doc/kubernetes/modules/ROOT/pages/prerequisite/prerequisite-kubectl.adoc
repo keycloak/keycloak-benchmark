@@ -1,0 +1,38 @@
+= Installing kubectl as a pre-requisite
+:navtitle: Installing kubectl
+:description: Kubectl is a pre-requisite to provision applications to Kubernetes.
+
+{description}
+It needs to be installed before the  xref:installation.adoc[] can begin.
+
+== Installing kubectl
+
+The recommended installation is to download the latest binary from the Helm homepage and put it into the user's `~/bin` directory.
+
+The installation guide is available in the https://kubernetes.io/docs/tasks/tools/[Kubernetes tools installation guide].
+
+== Optional installation steps for kubectl
+
+Add the following snippet to the file `~/.bashrc` to allow auto-completion of commands:
+
+[source,bash]
+----
+source <(kubectl completion bash)
+----
+
+== Verifying the installation of kubectl
+
+The command:
+
+// avoid calling `kubectl version` here, as it trys to connect to minikube that might then fail or timeout
+[source,bash]
+----
+kubectl --help
+----
+
+Should print an output like:
+
+----
+kubectl controls the Kubernetes cluster manager.
+...
+----

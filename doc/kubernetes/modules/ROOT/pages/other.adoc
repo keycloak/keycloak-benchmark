@@ -1,5 +1,90 @@
 = Other information
 
+== More insights into the installation
+
+This section shows the different steps with variants, explain them a bit more.
+It also shows the `helm upgrade` commands that can update parts of the stack incrementally which helps development and upgrades.
+
+Startup minikube in default mode with a VM.
+Per default, it uses 2 CPUs, and this can be adjusted
+
+[source,shell]
+----
+minikube start
+----
+
+Start with customized settings.
+
+[source,shell]
+----
+minikube stop
+minikube delete
+minikube start --memory 8192 --cpus 4
+----
+
+Depending on the driver, adjusting the settings might work for an already created minikube instance.
+
+[source,shell]
+----
+minikube stop
+minikube config set memory 8192
+minikube config set cpus 4
+minikube start
+----
+
+Startup minikube on Linux w/ podman driver.
+This allows faster startup times, less overhead, and no limitation (?) on CPU usage.
+
+////
+Installation of cri-o not needed, cri-o runs inside the minikube podman?
+dnf module enable cri-o:1.19
+dnf install cri-o
+////
+
+[source,shell]
+----
+minikube start --driver=kvm2 --container-runtime=cri-o --docker-opt="default-ulimit=nofile=102400:102400"
+----
+
+This requires libvirtd to run.
+
+[source,bash]
+----
+sudo systemctl enable libvirtd
+sudo systemctl start libvirtd
+sudo usermod -a -G libvirt $USER
+# now relogin, for usermod to become effective
+----
+
+For a lightweight installation that today doesn't scale beyond 3-5 Keycloak instances:
+
+[source,shell]
+----
+minikube start --driver=podman --container-runtime=cri-o
+----
+
+On Linux, allow to use podman and crio via sudo:
+
+. run `sudo visudo`
+. add the following to the sudoer's file
++
+----
+username ALL=(ALL) NOPASSWD: /usr/bin/podman
+username ALL=(ALL) NOPASSWD: /usr/bin/crictl
+----
+
+Adding ingress
+
+[source,shell]
+----
+minikube addons enable ingress
+----
+
+All other installations are scripted using `task`.
+It runs all tasks in the correct order and in parallel when possible.
+If a task definition changes, it runs it again.
+Use `task -f` to force running all tasks again, for example after you've reset minikube.
+
 == Automation using the tool _task_
 
 There are several dependencies that need to be built and executed in the right order.

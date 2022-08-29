@@ -1,32 +1,56 @@
-= Installation
+= Installing Keycloak on Minikube
 
-== For the impatient
+== Prerequisites to the installation
 
-The installation has been scripted in `rebuild.sh`.
-If an existing minikube instance exists, it destroys it first.
-Run this script, and see the URLs printed in the console to access the different services.
+The following prerequisites need to be installed on the local machine first.
 
-Onc minikube has been set up, run the `task` command to provision all containers.
-Re-run the `task` command later if any configuration changed.
+Each linked page contains an installation description and a command to verify the successful installation of the prerequisite.
 
-Wait a bit for all containers to be pulled from the internet, then get started.
+* xref:prerequisite/prerequisite-minikube.adoc[minikube]
+* xref:prerequisite/prerequisite-helm.adoc[Helm]
+* xref:prerequisite/prerequisite-kubectl.adoc[kubectl]
+* xref:prerequisite/prerequisite-task.adoc[task]
+* xref:prerequisite/prerequisite-yq.adoc[yq]
 
-The following commands helps to watch the pods being started, use kbd:[Ctrl+C] to end watching.
+After all pre-requisites are installed, continue with the next section.
+
+== Installing Keycloak Benchmark on minikube
+
+WARNING: If an existing minikube instance exists, this installation replaces it with a new one.
+
+To set up the minikube instance with Keycloak Benchmark, invoke the following commands in this order:
+
+. Check out the Git repository from https://github.com/keycloak/keycloak-benchmark/.
+
+. Change to the folder `provision/minikube`.
+
+. Run the shell script `./rebuild.sh` to set up a minikube instance.
+
+. Run the `task` command to provision all containers on minikube.
+This might take some time until all containers have been pulled from the internet, see <<observing-the-installation>> on how to see how it progresses.
+
+When the configuration changes later, re-run the `task` command, and it updates the installation.
+Don't run `./rebuild.sh` unless there is the need to re-create the complete Keycloak Benchmark environment as it will take a lot longer and will download all containers from the internet again.
+
+[#observing-the-installation]
+== Observing the installation
+
+Run the following command in a separate window to see the different pods starts.
+Use kbd:[Ctrl+C] to end watching.
 
 [source,shell]
 ----
 kubectl get pods -A -w
 ----
 
-The following script checks if all services are running and outputs a list of available URLs.
+== Verifying the installation
+
+Run the following script to check if all services are running and receive a list of available URLs:
 
 [source,shell]
 ----
 ./isup.sh
 ----
-
-To update an existing minikube setup created with an earlier version of this project, use `upgrade.sh`.
-It installs all changes in the Helm charts and Grafana charts.
 
 To open a dashboard showing all Kubernetes resources, run the following command:
 
@@ -35,92 +59,7 @@ To open a dashboard showing all Kubernetes resources, run the following command:
 minikube dashboard
 ----
 
-This should open the URL in your default browser.
+This should open the URL in the user's default browser.
 If it doesn't open it automatically, click on the link it prints on the console.
 
 Then, select a namespace in the header (for example `keycloak`) and browse the resources available in that namespace.
-
-== For more insights and backgrounds
-
-This section shows the different steps with variants, explain them a bit more.
-It also shows the `helm upgrade` commands that can update parts of the stack incrementally which helps development and upgrades.
-
-Startup minikube in default mode with a VM.
-Per default, it uses 2 CPUs, and this can be adjusted
-
-[source,shell]
-----
-minikube start
-----
-
-Start with customized settings.
-
-[source,shell]
-----
-minikube stop
-minikube delete
-minikube start --memory 8192 --cpus 4
-----
-
-Depending on the driver, adjusting the settings might work for an already created minikube instance.
-
-[source,shell]
-----
-minikube stop
-minikube config set memory 8192
-minikube config set cpus 4
-minikube start
-----
-
-Startup minikube on Linux w/ podman driver.
-This allows faster startup times, less overhead, and no limitation (?) on CPU usage.
-
-////
-Installation of cri-o not needed, cri-o runs inside the minikube podman?
-dnf module enable cri-o:1.19
-dnf install cri-o
-////
-
-[source,shell]
-----
-minikube start --driver=kvm2 --container-runtime=cri-o --docker-opt="default-ulimit=nofile=102400:102400"
-----
-
-This requires libvirtd to run.
-
-[source,bash]
-----
-sudo systemctl enable libvirtd
-sudo systemctl start libvirtd
-sudo usermod -a -G libvirt $USER
-# now relogin, for usermod to become effective
-----
-
-For a lightweight installation that today doesn't scale beyond 3-5 Keycloak instances:
-
-[source,shell]
-----
-minikube start --driver=podman --container-runtime=cri-o
-----
-
-On Linux, allow to use podman and crio via sudo:
-
-. run `sudo visudo`
-. add the following to the sudoer's file
-+
-----
-username ALL=(ALL) NOPASSWD: /usr/bin/podman
-username ALL=(ALL) NOPASSWD: /usr/bin/crictl
-----
-
-Adding ingress
-
-[source,shell]
-----
-minikube addons enable ingress
-----
-
-All other installations are scripted using `task`.
-It runs all tasks in the correct order and in parallel when possible.
-If a task definition changes, it runs it again.
-Use `task -f` to force running all tasks again, for example after you've reset minikube.
