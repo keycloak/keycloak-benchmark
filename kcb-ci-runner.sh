@@ -17,6 +17,8 @@ if $RESET_KEYCLOAK; then
     task reset-keycloak KC_STORAGE="chm"
   elif [ "$KEYCLOAK_STORAGE" = "JPA-Map-CockroachDB" ]; then
     task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach"
+  elif [ "$KEYCLOAK_STORAGE" = "HotRod-Map" ]; then
+    task reset-keycloak KC_STORAGE="hotrod" KC_DATABASE="infinispan"
   else 
     echo "Invalid KEYCLOAK_STORAGE: \"$KEYCLOAK_STORAGE\"."
     exit 1
