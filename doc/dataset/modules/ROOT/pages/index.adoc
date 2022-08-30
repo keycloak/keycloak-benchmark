@@ -44,6 +44,38 @@ Then in the file `$KEYCLOAK_HOME/standalone/configuration/standalone.xml` add th
 
 See Keycloak server development guide for more details.
 
+== Basic usage - data import script
+
+This script contains basic operations described in the next chapters.
+We do not currently support specific customizations except creating realms with specified users and clients.
+Please, run the script dataset_import.sh with the help option.
+
+----
+./dataset_import.sh -h
+OR
+./dataset_import.sh --help
+----
+
+You will see these examples:
+----
+Dataset import to the local minikube Keycloak application.
+Usage:
+1) create realm/s with default values: -r | --create-realms 10
+2) create custom realm/s (clients,users): -R | --create-custom-realms '10 100 100'
+3) create clients in specific realm: -c | --create-clients '100 realm-0'
+4) create users in specific realm: -u | --create-users '100 realm-0'
+5) create events in specific realm: -e | --create-events '100 realm-0'
+7) create offline sessions in specific realm: -o | --create-offline-sessions '100 realm-0'
+8) delete specific realm/s with prefix -d | --delete-realms realm
+9) dataset provider status -s | --status
+10) dataset import script usage -h | --help
+----
+
+Example of creating 10 new realms:
+----
+./dataset_import.sh -r 10
+----
+
 == Create many realms
 
 You need to call this HTTP REST requests.
