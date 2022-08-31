@@ -1,0 +1,17 @@
+{{ if eq .Values.database "cockroach" }}
+{{ if .Values.monitoring }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: cockroach-metrics
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: cockroach
+  podMetricsEndpoints:
+    # todo: targetPort is deprecated, ask the operator to specify a name instead
+    - targetPort: 8080
+      path: /_status/vars
+{{ end }}
+{{ end }}
