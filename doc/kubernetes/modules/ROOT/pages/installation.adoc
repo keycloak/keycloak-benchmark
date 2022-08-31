@@ -2,17 +2,24 @@
 
 == Prerequisites to the installation
 
-The following prerequisites need to be installed on the local machine first.
+* A network downstream speed of at least 10 Mbps to allow for a timely download of all necessary images and containers.
+A slower downstream might lead to timeouts and pods might not start.
 
+* 4 CPU cores, 8 GB of free RAM and free disk space of ~20 GB to run the minikube instance with Keycloak and observability tools inside.
+
+* The following tools need to be installed on the local machine.
++
 Each linked page contains an installation description and a command to verify the successful installation of the prerequisite.
-
++
+--
 * xref:prerequisite/prerequisite-minikube.adoc[minikube]
 * xref:prerequisite/prerequisite-helm.adoc[Helm]
 * xref:prerequisite/prerequisite-kubectl.adoc[kubectl]
 * xref:prerequisite/prerequisite-task.adoc[task]
 * xref:prerequisite/prerequisite-yq.adoc[yq]
+--
 
-After all pre-requisites are installed, continue with the next section.
+After all tools are installed, continue with the next section.
 
 == Installing Keycloak Benchmark on minikube
 
@@ -28,6 +35,9 @@ To set up the minikube instance with Keycloak Benchmark, invoke the following co
 
 . Run the `task` command to provision all containers on minikube.
 This might take some time until all containers have been pulled from the internet, see <<observing-the-installation>> on how to see how it progresses.
++
+While this can complete within 5 minutes with a fast internet downstream speed, this might take up to 15 minutes for slow connections.
+A network downstream slower than 10 Mbps might lead to timeouts, and pods might not start with the error code ImagePullBackOff.
 
 When the configuration changes later, re-run the `task` command, and it updates the installation.
 Don't run `./rebuild.sh` unless there is the need to re-create the complete Keycloak Benchmark environment as it will take a lot longer and will download all containers from the internet again.
