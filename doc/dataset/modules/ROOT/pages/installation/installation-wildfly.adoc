@@ -1,0 +1,52 @@
+= Installing the dataset provider in a Keycloak Wildfly distribution (legacy)
+:description: This installs the provider into an already running Keycloak distribution running on Wildfly.
+:navtitle: Installing on Keycloak Wildfly
+
+{description}
+Note that Keycloak Wildfly is only supported up to and including Version Keycloak 19.
+Later versions only support Keycloak Quarkus.
+See xref:installation/installation-quarkus.adoc[] for more information.
+
+include::partial$warning-not-in-production.adoc[]
+
+== Prerequisites
+
+One of the following:
+
+* xref:downloading-provider.adoc[]
+* xref:building-provider.adoc[]
+
+== Installing the dataset provider on Wildfly
+
+Copy the previously built or downloaded JAR file to the Keycloak folder:
+
+----
+cp dataset/target/keycloak-benchmark-dataset-*.jar $KEYCLOAK_HOME/standalone/deployments/
+----
+
+Instead of copying to `standalone/deployments`, the alternative is to deploy as a module
+
+----
+$KEYCLOAK_HOME/bin/jboss-cli.sh --command="module add --name=org.keycloak.keycloak-benchmark --resources=$JAR_NAME --dependencies=org.keycloak.keycloak-common,org.keycloak.keycloak-core,org.keycloak.keycloak-server-spi,org.keycloak.keycloak-server-spi-private,org.keycloak.keycloak-services,org.keycloak.keycloak-model-infinispan,javax.ws.rs.api,org.jboss.resteasy.resteasy-jaxrs,org.jboss.logging,org.infinispan,org.infinispan.commons,org.infinispan.client.hotrod,org.infinispan.persistence.remote"
+----
+
+Then in the file `$KEYCLOAK_HOME/standalone/configuration/standalone.xml` add this additional line to the `providers` element of keycloak server subsystem:
+
+----
+<provider>module:org.keycloak.keycloak-benchmark</provider>
+----
+
+== Verifying the installation
+
+To verify the installation, access the URL of your Keycloak server at:
+
+----
+http://example.org/auth/realms/master/dataset/status
+----
+
+On successful installation, it shows a message similar to:
+
+----
+{"status":"No task in progress. New task can be started"}
+----
+

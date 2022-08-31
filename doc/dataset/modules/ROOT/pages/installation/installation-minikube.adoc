@@ -1,0 +1,38 @@
+= Installing the dataset provider in Keycloak on minikube
+:description: This describes the installation of the database on minikube.
+:navtitle: Installing on minikube
+
+{description}
+
+include::partial$warning-not-in-production.adoc[]
+
+With the minikube setup that is part of Keycloak benchmark, the dataset provider is installed automatically.
+
+== Prerequisites
+
+* xref:kubernetes-guide::installation.adoc[]
+
+== Installing on minikube
+
+The installation including building the provider locally is part of the provisioning script.
+
+The steps include:
+
+. Building the dataset provider using Maven from the local sources.
+. Placing it in the folder `provision/minikube/keycloak/providers`.
+. Running Helm to deploy Keycloak plus the provider to the locally running minikube.
+. Wait for the re-deployment to complete.
+
+== Verifying the installation
+
+To verify the installation, access the URL of your Keycloak server at:
+
+----
+https://keycloak.xxxxxx.nip.io/realms/master/dataset/status
+----
+
+On successful installation, it shows a message similar to:
+
+----
+{"status":"No task in progress. New task can be started"}
+----

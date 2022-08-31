@@ -29,12 +29,12 @@ import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -122,9 +122,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             int realmEndIndex = startIndex + config.getCount();
 
-            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " realms from " + config.getRealmPrefix() + startIndex + " to " + config.getRealmPrefix() + (realmEndIndex - 1));
+            Task task = Task.start("Creation of " + config.getCount() + " realms from " + config.getRealmPrefix() + startIndex + " to " + config.getRealmPrefix() + (realmEndIndex - 1));
             TaskManager taskManager = new TaskManager(baseSession);
-            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
             if (existingTask != null) {
                 return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
             } else {
@@ -132,10 +132,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             }
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> createRealmsImpl(timerLogger, config, startIndex, realmEndIndex)).start();
+            new Thread(() -> createRealmsImpl(task, config, startIndex, realmEndIndex)).start();
             started = true;
 
-            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         } finally {
@@ -146,7 +146,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Implementation of creating many realms. This is triggered outside of HTTP request to not block HTTP request
-    private void createRealmsImpl(TimerLogger timerLogger, DatasetConfig config, int startIndex, int realmEndIndex) {
+    private void createRealmsImpl(Task task, DatasetConfig config, int startIndex, int realmEndIndex) {
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
             logger.infof("Will start creating realms from '%s' to '%s'", config.getRealmPrefix() + startIndex, config.getRealmPrefix() + (realmEndIndex - 1));
@@ -164,63 +164,62 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     // Step 1 - create realm, realmRoles and groups
                     KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
                         createAndSetRealm(context, currentRealmIndex, session);
-                        timerLogger.debug(logger, "Created realm %s", context.getRealm().getName());
+                        task.debug(logger, "Created realm %s", context.getRealm().getName());
 
                         createRealmRoles(context);
-                        timerLogger.debug(logger, "Created %d roles in realm %s", context.getRealmRoles().size(), context.getRealm().getName());
+                        task.debug(logger, "Created %d roles in realm %s", context.getRealmRoles().size(), context.getRealm().getName());
 
                     }, config.getTransactionTimeoutInSeconds());
-                    
-                    // create each 100 groups per transaction as default case 
+
+                    // create each 100 groups per transaction as default case
                     // (to avoid transaction timeouts when creating too many groups in one transaction)
-                    createGroupsInMultipleTransactions(config, context, timerLogger);
-                    
+                    createGroupsInMultipleTransactions(config, context, task);
+
                     // Step 2 - create clients (Using single executor for now... For multiple executors run separate create-clients endpoint)
                     for (int i = 0; i < config.getClientsPerRealm(); i += config.getClientsPerTransaction()) {
                         int clientsStartIndex = i;
                         int endIndex = Math.min(clientsStartIndex + config.getClientsPerTransaction(), config.getClientsPerRealm());
                         logger.tracef("clientsStartIndex: %d, clientsEndIndex: %d", clientsStartIndex, endIndex);
 
-                        KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
+                        KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session ->
+                                createClients(context, task, session, clientsStartIndex, endIndex), config.getTransactionTimeoutInSeconds());
 
-                            createClients(context, timerLogger, session, clientsStartIndex, endIndex);
-
-                        }, config.getTransactionTimeoutInSeconds());
-
-                        timerLogger.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
+                        task.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
                     }
-                    timerLogger.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
+                    task.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
 
                     // Step 3 - cache realm. This will cache the realm in Keycloak cache (looks like best regarding performance to do it in separate transaction)
                     cacheRealmAndPopulateContext(context);
 
                     // Step 4 - create users
-                    addUserCreationTasks(context, timerLogger, config, executor, 0, config.getUsersPerRealm());
-                    timerLogger.info(logger, "Triggered creation of %d users in realm %s. Finished creation of realm.", config.getUsersPerRealm(), context.getRealm().getName());
+                    addUserCreationTasks(context, task, config, executor, 0, config.getUsersPerRealm());
+                    task.info(logger, "Triggered creation of %d users in realm %s. Finished creation of realm.", config.getUsersPerRealm(), context.getRealm().getName());
                 });
             }
             executor.waitForAllToFinish();
-            timerLogger.info(logger, "Created all realms from '%s' to '%s'", config.getRealmPrefix() + startIndex, config.getRealmPrefix() + (realmEndIndex - 1));
+            task.info(logger, "Created all realms from '%s' to '%s'", config.getRealmPrefix() + startIndex, config.getRealmPrefix() + (realmEndIndex - 1));
+            success();
+        } catch (Exception ex) {
+            logException(ex);
         } finally {
-            executor.shutDown();
-            new TaskManager(baseSession).removeExistingTask(true);
+            cleanup(executor);
         }
     }
 
-    private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, TimerLogger timerLogger) {
+    private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, Task task) {
 
         for (int i = 0; i < config.getGroupsPerRealm(); i += config.getGroupsPerTransaction()) {
             int groupsStartIndex = i;
             int groupEndIndex = Math.min(groupsStartIndex + config.getGroupsPerTransaction(), config.getGroupsPerRealm());
             logger.tracef("groupsStartIndex: %d, groupsEndIndex: %d", groupsStartIndex, groupEndIndex);
-            
-            KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), 
-                    session -> createGroups(context, groupsStartIndex, groupEndIndex, session), 
+
+            KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(),
+                    session -> createGroups(context, groupsStartIndex, groupEndIndex, session),
                     config.getTransactionTimeoutInSeconds());
-            
-            timerLogger.debug(logger, "Created %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
+
+            task.debug(logger, "Created %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
         }
-        timerLogger.info(logger, "Created all %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
+        task.info(logger, "Created all %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
     }
 
     private Response handleDatasetException(DatasetException de) {
@@ -231,7 +230,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
         return Response.status(400).entity(TaskResponse.error(de.getMessage())).build();
     }
-    
+
     @GET
     @Path("/create-clients")
     @NoCache
@@ -242,9 +241,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         try {
             DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, CREATE_CLIENTS);
 
-            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " clients in the realm " + config.getRealmName());
+            Task task = Task.start("Creation of " + config.getCount() + " clients in the realm " + config.getRealmName());
             TaskManager taskManager = new TaskManager(baseSession);
-            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
             if (existingTask != null) {
                 return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
             } else {
@@ -266,10 +265,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             config.setStart(startIndex);
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> createClientsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, realm)).start();
+            new Thread(() -> createClientsImpl(task, baseSession.getKeycloakSessionFactory(), config, realm)).start();
             started = true;
 
-            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         } finally {
@@ -280,7 +279,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Implementation of creating many clients. This is triggered outside of HTTP request to not block HTTP request
-    private void createClientsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, RealmModel realm) {
+    private void createClientsImpl(Task task, KeycloakSessionFactory sessionFactory, DatasetConfig config, RealmModel realm) {
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), sessionFactory, config);
         try {
             int startIndex = config.getStart();
@@ -299,12 +298,12 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 // Run this concurrently with multiple threads
                 executor.addTaskRunningInTransaction(session -> {
 
-                    createClients(context, timerLogger, session, clientsStartIndex, endIndex);
+                    createClients(context, task, session, clientsStartIndex, endIndex);
 
-                    timerLogger.debug(logger, "Created clients in realm %s from %d to %d", context.getRealm().getName(), clientsStartIndex, endIndex);
+                    task.debug(logger, "Created clients in realm %s from %d to %d", context.getRealm().getName(), clientsStartIndex, endIndex);
 
                     if (((endIndex - startIndex) / config.getClientsPerTransaction()) % 20 == 0) {
-                        timerLogger.info(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
+                        task.info(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
                     }
 
                 });
@@ -313,10 +312,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
+            task.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
+            success();
+
+        } catch (Exception ex) {
+            logException(ex);
         } finally {
-            executor.shutDown();
-            new TaskManager(baseSession).removeExistingTask(true);
+            cleanup(executor);
         }
     }
 
@@ -331,9 +333,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         try {
             DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, CREATE_USERS);
 
-            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " users in the realm " + config.getRealmName());
+            Task task = Task.start("Creation of " + config.getCount() + " users in the realm " + config.getRealmName());
             TaskManager taskManager = new TaskManager(baseSession);
-            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
             if (existingTask != null) {
                 return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
             } else {
@@ -355,10 +357,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             config.setStart(startIndex);
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> createUsersImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, realm)).start();
+            new Thread(() -> createUsersImpl(task, config, realm)).start();
             started = true;
 
-            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         } finally {
@@ -369,7 +371,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Implementation of creating many users. This is triggered outside of HTTP request to not block HTTP request
-    private void createUsersImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, RealmModel realm) {
+    private void createUsersImpl(Task task, DatasetConfig config, RealmModel realm) {
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
             int startIndex = config.getStart();
@@ -382,24 +384,23 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             // Cache the realm (It is probably good due the defaultRoles and defaultGroups when creating users, which would otherwise need to be lookup from DB)
             cacheRealmAndPopulateContext(context);
-            timerLogger.info(logger, "Cached realm %s", context.getRealm().getName());
+            task.info(logger, "Cached realm %s", context.getRealm().getName());
 
             // Create users now
-            addUserCreationTasks(context, timerLogger, config, executor, startIndex, config.getCount());
+            addUserCreationTasks(context, task, config, executor, startIndex, config.getCount());
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Created all %d users in realm %s", context.getUserCount(), context.getRealm().getName());
-            new TaskManager(baseSession).removeExistingTask(true);
+            task.info(logger, "Created all %d users in realm %s", context.getUserCount(), context.getRealm().getName());
+            success();
 
+        } catch (Exception ex) {
+            logException(ex);
         } finally {
-            if (executor != null) {
-                executor.shutDown();
-            }
-            new TaskManager(baseSession).removeExistingTask(false);
+            cleanup(executor);
         }
     }
 
-    private void addUserCreationTasks(RealmContext context, TimerLogger timerLogger, DatasetConfig config, ExecutorHelper executor, int startIndex, int usersCount) {
+    private void addUserCreationTasks(RealmContext context, Task task, DatasetConfig config, ExecutorHelper executor, int startIndex, int usersCount) {
 
         for (int i = startIndex; i < (startIndex + usersCount); i += config.getUsersPerTransaction()) {
             final int usersStartIndex = i;
@@ -409,17 +410,17 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             // Run this concurrently with multiple threads
             executor.addTaskRunningInTransaction(session -> {
-                createUsers(context, timerLogger, session, usersStartIndex, endIndex);
+                createUsers(context, session, usersStartIndex, endIndex);
 
-                timerLogger.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
+                task.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
 
                 if (((endIndex - startIndex) / config.getUsersPerTransaction()) % 20 == 0) {
-                    timerLogger.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
+                    task.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
                 }
             });
         }
     }
-    
+
 
     @GET
     @Path("/create-events")
@@ -439,9 +440,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 throw new DatasetException("Not found any realm with prefix '" + config.getRealmName() + "'");
             }
 
-            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " events");
+            Task task = Task.start("Creation of " + config.getCount() + " events");
             TaskManager taskManager = new TaskManager(baseSession);
-            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
             if (existingTask != null) {
                 return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
             } else {
@@ -452,10 +453,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.infof("Will create events in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> createEventsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex)).start();
+            new Thread(() -> createEventsImpl(task, config, lastRealmIndex)).start();
             started = true;
 
-            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         } finally {
@@ -466,7 +467,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Implementation of creating many events. This is triggered outside of HTTP request to not block HTTP request
-    private void createEventsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, int lastRealmIndex) {
+    private void createEventsImpl(Task task, DatasetConfig config, int lastRealmIndex) {
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
             // Create events now
@@ -474,7 +475,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             for (int i = 0; i < config.getCount(); i += eventsPerTransaction) {
                 final int eventsStartIndex = i;
 				final int eventsEndIndex;
-				
+
 				if (i + eventsPerTransaction < config.getCount()) {
 					eventsEndIndex = i + eventsPerTransaction;
 				}
@@ -505,7 +506,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     }
 
                     if (eventsEndIndex % (config.getThreadsCount() * eventsPerTransaction) == 0) {
-                        timerLogger.info(logger, "Created %d events", eventsEndIndex);
+                        task.info(logger, "Created %d events", eventsEndIndex);
                     }
 
                 });
@@ -514,11 +515,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Created all %d events", config.getCount());
+            task.info(logger, "Created all %d events", config.getCount());
+            success();
 
+        } catch (Exception ex) {
+            logException(ex);
         } finally {
-            executor.shutDown();
-            new TaskManager(baseSession).removeExistingTask(true);
+            cleanup(executor);
         }
     }
 
@@ -541,9 +544,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 throw new DatasetException("Not found any realm with prefix '" + config.getRealmName() + "'");
             }
 
-            TimerLogger timerLogger = TimerLogger.start("Creation of " + config.getCount() + " offline sessions");
+            Task task = Task.start("Creation of " + config.getCount() + " offline sessions");
             TaskManager taskManager = new TaskManager(baseSession);
-            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
             if (existingTask != null) {
                 return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
             } else {
@@ -554,10 +557,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.infof("Will create offline sessions in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> createOfflineSessionsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config, lastRealmIndex)).start();
+            new Thread(() -> createOfflineSessionsImpl(task, config, lastRealmIndex)).start();
             started = true;
 
-            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         } finally {
@@ -568,7 +571,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Implementation of creating many offline sessions. This is triggered outside of HTTP request to not block HTTP request
-    private void createOfflineSessionsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config, int lastRealmIndex) {
+    private void createOfflineSessionsImpl(Task task, DatasetConfig config, int lastRealmIndex) {
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
             // Create events now
@@ -608,21 +611,22 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     }
 
                     if (sessionIndex % (config.getThreadsCount() * offlineSessionsPerTransaction) == 0) {
-                        timerLogger.info(logger, "Created %d offline sessions", sessionIndex);
+                        task.info(logger, "Created %d offline sessions", sessionIndex);
                     }
                 });
             }
 
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Created all %d offline sessions", config.getCount());
+            task.info(logger, "Created all %d offline sessions", config.getCount());
+            success();
 
+        } catch (Exception ex) {
+            logException(ex);
         } finally {
-            executor.shutDown();
-            new TaskManager(baseSession).removeExistingTask(true);
+            cleanup(executor);
         }
     }
-
 
     @GET
     @Path("/remove-realms")
@@ -638,15 +642,15 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 throw new DatasetException("Either remove-all need to be true OR both first-to-remove and last-to-remove need to be filled");
             }
 
-            TimerLogger timerLogger;
+            Task task;
             if (config.getRemoveAll()) {
-                timerLogger = TimerLogger.start("Removal of all realms with prefix " + config.getRealmPrefix());
+                task = Task.start("Removal of all realms with prefix " + config.getRealmPrefix());
             } else {
-                timerLogger = TimerLogger.start("Removal of all realms from " + config.getRealmPrefix() + config.getFirstToRemove() + " to " + config.getRealmPrefix() + (config.getLastToRemove() - 1));
+                task = Task.start("Removal of all realms from " + config.getRealmPrefix() + config.getFirstToRemove() + " to " + config.getRealmPrefix() + (config.getLastToRemove() - 1));
             }
 
             TaskManager taskManager = new TaskManager(baseSession);
-            String existingTask = taskManager.addTaskIfNotInProgress(timerLogger, config.getTaskTimeout());
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
             if (existingTask != null) {
                 return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
             } else {
@@ -656,10 +660,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.infof("Trigger removing realms with the configuration: %s", config);
 
             // Run this in separate thread to not block HTTP request
-            new Thread(() -> removeRealmsImpl(timerLogger, baseSession.getKeycloakSessionFactory(), config)).start();
+            new Thread(() -> removeRealmsImpl(task, config)).start();
             started = true;
 
-            return Response.ok(TaskResponse.taskStarted(timerLogger.toString(), getStatusUrl())).build();
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
         } catch (DatasetException de) {
             return handleDatasetException(de);
         } finally {
@@ -670,13 +674,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Implementation of removing all realms. This is triggered outside of HTTP request to not block HTTP request
-    private void removeRealmsImpl(TimerLogger timerLogger, KeycloakSessionFactory sessionFactory, DatasetConfig config) {
+    private void removeRealmsImpl(Task task, DatasetConfig config) {
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
             final List<String> realmIds = new ArrayList<>();
             KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
                 if (config.getRemoveAll()) {
-                    timerLogger.info(logger, "Will obtain list of all realms to remove");
+                    task.info(logger, "Will obtain list of all realms to remove");
 
                     // Don't cache realms as we are just about to remove them
                     realmIds.addAll(session.getProvider(RealmProvider.class).getRealmsStream()
@@ -684,7 +688,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                             .map(RealmModel::getId)
                             .collect(Collectors.toList()));
 
-                    timerLogger.info(logger, "Will delete %d realms.", realmIds.size());
+                    task.info(logger, "Will delete %d realms.", realmIds.size());
                 } else {
                     // Just rely that realmName is same as realmId to avoid additional lookups
                     for (int i = config.getFirstToRemove(); i < config.getLastToRemove(); i++) {
@@ -693,31 +697,40 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 }
             }, config.getTransactionTimeoutInSeconds());
 
-
             for (String realmId : realmIds) {
-                final String currentRealmId = realmId;
-
-                // Run this concurrently with multiple threads
                 executor.addTaskRunningInTransaction(session -> {
-                    logger.debugf("Will delete realm %s", currentRealmId);
+                    logger.debugf("Will delete realm %s", realmId);
 
-                    boolean deleted = session.realms().removeRealm(currentRealmId);
+                    // first delete the realm - but keep the realm name for later to remove the client
+                    RealmModel realm = session.realms().getRealm(realmId);
+                    boolean deleted = session.realms().removeRealm(realmId);
 
                     if (deleted) {
-                        timerLogger.info(logger, "Deleted realm %s", currentRealmId);
+                        // then delete the client associated with the realm
+                        RealmModel master = session.realms().getRealmByName("master");
+                        ClientModel clientByClientId = session.clients().getClientByClientId(master, realm.getName() + "-realm");
+                        if (clientByClientId != null) {
+                            session.clients().removeClient(master, clientByClientId.getId());
+                        }
+                    }
+
+                    if (deleted) {
+                        task.info(logger, "Deleted realm %s", realmId);
                     } else {
-                        logger.warnf("Realm %s did not exist", currentRealmId);
+                        logger.warnf("Realm %s did not exist", realmId);
                     }
                 });
             }
 
             executor.waitForAllToFinish();
 
-            timerLogger.info(logger, "Deleted all %d realms", realmIds.size());
+            task.info(logger, "Deleted all %d realms", realmIds.size());
+            success();
 
+        } catch (Exception ex) {
+            logException(ex);
         } finally {
-            executor.shutDown();
-            new TaskManager(baseSession).removeExistingTask(true);
+            cleanup(executor);
         }
     }
 
@@ -728,13 +741,38 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getStatus() {
         TaskManager taskManager = new TaskManager(baseSession);
-        String existingTask = taskManager.getExistingTask();
+        Task task = taskManager.getExistingTask();
 
-        if (existingTask == null) {
+        if (task == null) {
             return Response.ok(TaskResponse.noTaskInProgress()).build();
         } else {
-            return Response.ok(TaskResponse.existingTaskStatus(existingTask)).build();
+            return Response.ok(TaskResponse.existingTaskStatus(task)).build();
         }
+    }
+
+    @GET
+    @Path("/status-completed")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getStatusCompleted() {
+        TaskManager taskManager = new TaskManager(baseSession);
+        Task task = taskManager.getCompletedTask();
+
+        if (task == null) {
+            return Response.status(Response.Status.NOT_FOUND).entity(TaskResponse.noCompletedTask()).build();
+        } else {
+            return Response.ok(TaskResponse.previousTask(task)).build();
+        }
+    }
+
+    @DELETE
+    @Path("/status-completed")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response clearStatusCompleted() {
+        TaskManager taskManager = new TaskManager(baseSession);
+        taskManager.deleteCompletedTask();
+        return Response.noContent().build();
     }
 
 
@@ -863,7 +901,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
 
     // Worker task to be triggered by single executor thread
-    private void createClients(RealmContext context, TimerLogger timerLogger, KeycloakSession session, final int startIndex, final int endIndex) {
+    private void createClients(RealmContext context, Task task, KeycloakSession session, final int startIndex, final int endIndex) {
         RealmModel realm = context.getRealm();
 
         // Eagerly register invalidation to make sure we don't cache the realm in this transaction. Caching will result in bunch of
@@ -887,7 +925,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             client.setEnabled(true);
             client.setDirectAccessGrantsEnabled(true);
             client.setSecret(clientId.concat("-secret"));
-            client.setRedirectUris(Arrays.asList("*"));
+            client.setRedirectUris(List.of("*"));
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
 
             switch(config.getClientAccessType()) {
@@ -919,7 +957,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             }
         }
 
-        timerLogger.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
+        task.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
     }
 
     private void createGroups(RealmContext context, int startIndex, int endIndex, KeycloakSession session) {
@@ -932,7 +970,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Worker task to be triggered by single executor thread
-    private void createUsers(RealmContext context, TimerLogger timerLogger, KeycloakSession session, int startIndex, int endIndex) {
+    private void createUsers(RealmContext context, KeycloakSession session, int startIndex, int endIndex) {
         // Refresh the realm
         RealmModel realm = session.realms().getRealm(context.getRealm().getId());
         DatasetConfig config = context.getConfig();
@@ -946,7 +984,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             user.setEmail(username + String.format("@%s.com", realm.getName()));
 
             String password = String.format("%s-password", username);
-            session.userCredentialManager().updateCredential(realm, user, UserCredentialModel.password(password, false));
+            user.credentialManager().updateCredential(UserCredentialModel.password(password, false));
 
             // Detect which roles we assign to the user
             int roleIndexStartForCurrentUser = (i * config.getRealmRolesPerUser());
@@ -1062,6 +1100,26 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 .path(DatasetResourceProvider.class, "getStatus")
                 .build()
                 .toString();
+    }
+
+    private void logException(Exception ex) {
+        logger.error("unable to complete task", ex);
+    }
+
+    private void cleanup(ExecutorHelper executor) {
+        executor.shutDown();
+        KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session -> {
+            try {
+                new TaskManager(session).removeExistingTask(false);
+            } catch (Exception ex) {
+                logException(ex);
+            }
+        });
+    }
+
+    private void success() {
+        KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session
+                -> new TaskManager(session).removeExistingTask(true));
     }
 
 }

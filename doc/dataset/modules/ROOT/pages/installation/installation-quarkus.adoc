@@ -1,0 +1,37 @@
+= Installing the dataset provider in a Keycloak Quarkus distribution
+:description: This installs the provider into Keycloak Quarkus server
+:navtitle: Installing on Keycloak Quarkus
+
+{description}
+
+include::partial$warning-not-in-production.adoc[]
+
+== Prerequisites
+
+One of the following:
+
+* xref:downloading-provider.adoc[]
+* xref:building-provider.adoc[]
+
+== Installing the dataset provider on Quarkus
+
+Copy the previously built or downloaded JAR file to the provider folder of the Quarkus distribution:
+
+----
+cp dataset/target/keycloak-benchmark-dataset-*.jar $KEYCLOAK_HOME/provider
+----
+
+== Verifying the installation
+
+To verify the installation, access the URL of your Keycloak server at:
+
+----
+http://example.org/realms/master/dataset/status
+----
+
+On successful installation, it shows a message similar to:
+
+----
+{"status":"No task in progress. New task can be started"}
+----
+

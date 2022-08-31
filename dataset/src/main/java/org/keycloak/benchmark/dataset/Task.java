@@ -19,6 +19,8 @@
 package org.keycloak.benchmark.dataset;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Time;
@@ -26,19 +28,48 @@ import org.keycloak.common.util.Time;
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
-public class TimerLogger {
+public class Task {
 
+    public static final String KEY_SUCCESS = "success";
+    public static final String KEY_END_TIME_MS = "endTimeMs";
+    public static final String KEY_MESSAGE = "message";
+    public static final String KEY_START_TIME_MS = "startTimeMs";
     private final String taskMessage;
     private final long startTimeMs;
+    private Boolean success;
+    private Long endTimeMs;
 
-    private TimerLogger(String taskMessage, long startTimeMs) {
+    private Task(String taskMessage, long startTimeMs) {
         this.taskMessage = taskMessage;
         this.startTimeMs = startTimeMs;
     }
 
+    public static Task start(String startMessage) {
+        return new Task(startMessage, Time.currentTimeMillis());
+    }
 
-    public static TimerLogger start(String startMessage) {
-        return new TimerLogger(startMessage, Time.currentTimeMillis());
+    public static Task fromMap(Map<String, String> map) {
+        Task task = new Task(map.get(KEY_MESSAGE), Long.parseLong(map.get(KEY_START_TIME_MS)));
+        if (map.get(KEY_SUCCESS) != null) {
+            task.success = Boolean.parseBoolean(map.get(KEY_SUCCESS));
+        }
+        if (map.get(KEY_END_TIME_MS) != null) {
+            task.endTimeMs = Long.parseLong(map.get(KEY_END_TIME_MS));
+        }
+        return task;
+    }
+
+    public Map<String, String> toMap() {
+        Map<String, String> result = new HashMap<>();
+        result.put(KEY_MESSAGE, taskMessage);
+        result.put(KEY_START_TIME_MS, Long.toString(startTimeMs));
+        if (endTimeMs != null) {
+            result.put(KEY_END_TIME_MS, Long.toString(endTimeMs));
+        }
+        if (success != null) {
+            result.put(KEY_SUCCESS, Boolean.toString(success));
+        }
+        return result;
     }
 
     public void info(Logger logger, String event, Object... params) {
@@ -59,8 +90,15 @@ public class TimerLogger {
 
     @Override
     public String toString() {
-        return String.format("%s, started: %s", taskMessage, new Date(startTimeMs).toString());
+        return String.format("%s, started: %s", taskMessage, new Date(startTimeMs));
     }
 
+    public Boolean isSuccess() {
+        return success;
+    }
 
+    public void SetSuccess(boolean success) {
+        this.success = success;
+        this.endTimeMs = Time.currentTimeMillis();
+    }
 }

@@ -60,15 +60,11 @@ public class ExecutorHelper {
     }
 
 
-    public void waitForAllToFinish() {
+    public void waitForAllToFinish() throws ExecutionException, InterruptedException {
         logger.info("Waiting for tasks to complete");
-        
+
         for (Optional<Future> runningTask = getFirstRunningTask(); runningTask.isPresent(); runningTask = getFirstRunningTask()) {
-            try {
-                runningTask.get().get(); // wait for task to complete
-            } catch (ExecutionException | InterruptedException e) {
-                logger.errorf("Error waiting for tasks to complete", e);
-            }
+            runningTask.get().get(); // wait for task to complete
         }
         logger.info("All tasks finished");
     }

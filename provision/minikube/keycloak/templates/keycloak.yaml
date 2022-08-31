@@ -106,6 +106,7 @@ spec:
                 # using non-blocking random, make DNS lookups expire after 10 seconds and not cache them forever
                 value: >
                   -Djava.security.egd=file:/dev/urandom -Dnetworkaddress.cache.ttl=10 -XX:+ExitOnOutOfMemoryError
+                  -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{ if .Values.otel }}
                   -javaagent:/tmp/opentelemetry-javaagent.jar
 {{ end }}
@@ -126,6 +127,9 @@ spec:
                 protocol: TCP
                 name: jfr-jmx
 {{ end }}
+              - containerPort: 8787
+                protocol: TCP
+                name: jvmdebug
             resources: {}
               # limits:
               #  cpu: "2000m"
@@ -135,7 +139,7 @@ spec:
                 path: /health/ready
                 port: 8443
                 scheme: HTTPS
-              failureThreshold: 250
+              failureThreshold: 600
               initialDelaySeconds: 10
               periodSeconds: 2
             readinessProbe:

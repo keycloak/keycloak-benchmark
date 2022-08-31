@@ -1,0 +1,30 @@
+= Changing the dataset provider
+:description: This guide describes how to create local modifications to the dataset provider by a developer.
+
+{description}
+
+== Overview
+
+This guide targets Java developers.
+
+To be able to test changes made to the provider, the provider needs to be deployed in a running instance of Keycloak.
+After each change to the provider's JAR file, it needs to be re-deployed to Keycloak.
+
+== Prerequisites
+
+Knowledge of Java and of Keycloak's Java APIs necessary or needs to be learned during development.
+
+The recommended setup is to first complete the guide xref:installation/installation-minikube.adoc[] as it is fully scripted and prepared for remote debugging.
+
+Developing the provider against Keycloak Wildfly, or with a locally running instance of Keycloak Quarkus is possible as well, still it is not part of this guide today.
+
+== Preparing changes to the provider
+
+After opening the Keycloak Benchmark project in an IDE, proceed as follows to implement new or changed requirements:
+
+. Change the source code in `/dataset/src` as needed.
+. Run the `task` as described in xref:kubernetes-guide::installation.adoc[] to update the installation.
+This builds a new version of the dataset provider's JAR file, deploys it to minikube and restarts Keycloak.
+. Follow the instructions in xref:kubernetes-guide::util/debugging-keycloak.adoc[] to connect to the running Keycloak instance and debug the provider, and test the provider's API as outlined in xref:using-provider.adoc[].
+. Repeat from step 1 until the requirements are satisfied.
+
