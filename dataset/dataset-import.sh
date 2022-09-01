@@ -5,13 +5,18 @@ set -e
 ### DATASET PROVIDER - KEYCLOAK REST API SERVICE ###
 
 create_realms () {
-  echo "Creating $1 realm/s "
-  execute_command "create-realms?count=$1"
-}
+  if [[ $1 =~ "--" ]]
+  then
+    REALM_COUNT=10
+  else
+    REALM_COUNT=$1
+  fi
+  CLIENT_COUNT=${2:-100}
+  USER_COUNT=${3:-100}
+  PASSWORD_HASHING=${4:-20000}
 
-create_custom_realms () {
-  echo "Creating $1 realm/s with $2 client/s and $3 user/s"
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3"
+  echo "Creating $REALM_COUNT realm/s with $CLIENT_COUNT client/s and $USER_COUNT user/s with $PASSWORD_HASHING password hash iterations."
+  execute_command "create-realms?count=$REALM_COUNT&clients-per-realm=$CLIENT_COUNT&users-per-realm=$USER_COUNT&password-hash-iterations=$PASSWORD_HASHING"
 }
 
 create_clients () {
@@ -81,69 +86,61 @@ execute_command () {
 help () {
   echo "Dataset import to the local minikube Keycloak application."
   echo "Usage: "
-  echo "1) create realm/s with default values: -r | --create-realms 10"
-  echo "2) create custom realm/s (clients,users): -R | --create-custom-realms '10 100 100'"
-  echo "3) create clients in specific realm: -c | --create-clients '100 realm-0'"
-  echo "4) create users in specific realm: -u | --create-users '100 realm-0'"
-  echo "5) create events in specific realm: -e | --create-events '100 realm-0'"
-  echo "7) create offline sessions in specific realm: -o | --create-offline-sessions '100 realm-0'"
-  echo "8) delete specific realm/s with prefix -d | --delete-realms realm"
-  echo "9) dataset provider status -s | --status"
-  echo "10) dataset import script usage -h | --help"
+  echo "1) create realm/s with clients, users and password hash iterations - run it with or without arguments: -r | --create-realms '10 100 100 20000'"
+  echo "2) create clients in specific realm: -c | --create-clients '100 realm-0'"
+  echo "3) create users in specific realm: -u | --create-users '100 realm-0'"
+  echo "4) create events in specific realm: -e | --create-events '100 realm-0'"
+  echo "5) create offline sessions in specific realm: -o | --create-offline-sessions '100 realm-0'"
+  echo "6) delete specific realm/s with prefix -d | --delete-realms realm"
+  echo "7) dataset provider status -s | --status"
+  echo "8) dataset import script usage -h | --help"
 }
 
 main () {
   KEYCLOAK_URI="https://keycloak.$(minikube ip).nip.io/realms/master/dataset/"
-  SHORT_ARGS=r:,R:,c:,u:,e:,o:,d:,s,h
-  LONG_ARGS=create-realms:,create-custom-realms:,create-clients:,create-users:,create-events:,create-offline-sessions:,delete-realms:,help,status
+  SHORT_ARGS=r::,c:,u:,e:,o:,d:,s,h
+  LONG_ARGS=create-realms::,create-clients:,create-users:,create-events:,create-offline-sessions:,delete-realms:,help,status
   ARGS=$(getopt -a -n dataset-import -o ${SHORT_ARGS} -l ${LONG_ARGS} -- "$@")
 
   eval set -- "$ARGS"
 
-  while true
-  do
-    case "$1" in
-      -r|--create-realms)
-        create_realms $2
-        exit 0
-        ;;
-      -R|--create-custom-realms)
-        create_custom_realms $2 $3 $4
-        exit 0
-        ;;
-      -c|--create-clients)
-        create_clients $2 $3
-        exit 0
-        ;;
-      -u|--create-users)
-        create_users $2 $3
-        exit 0
-        ;;
-      -e|--create-events)
-        create_events $2 $3
-        exit 0
-        ;;
-      -o|--create-offline-sessions)
-        create_offline_sessions $2 $3
-        exit 0
-        ;;
-      -d|--delete-realms)
-        delete_realms $2
-        exit 0
-        ;;
-      -s|--status)
-        dataset_provider_status
-        exit 0
-        ;;
-      -h|--help)
-        help
-        exit 0
-        ;;
-      *)
-        echo "Unknown option, use -h | --help to see permitted options."
-        exit 1
-    esac
-  done
+  case "$1" in
+    -r|--create-realms)
+      create_realms $2 $3 $4 $5
+      exit 0
+      ;;
+    -c|--create-clients)
+      create_clients $2 $3
+      exit 0
+      ;;
+    -u|--create-users)
+      create_users $2 $3
+      exit 0
+      ;;
+    -e|--create-events)
+      create_events $2 $3
+      exit 0
+      ;;
+    -o|--create-offline-sessions)
+      create_offline_sessions $2 $3
+      exit 0
+      ;;
+    -d|--delete-realms)
+      delete_realms $2
+      exit 0
+      ;;
+    -s|--status)
+      dataset_provider_status
+      exit 0
+      ;;
+    -h|--help)
+      help
+      exit 0
+      ;;
+    *)
+      echo "Unknown option, use -h | --help to see permitted options."
+      exit 1
+  esac
 }
 
 ## Start of script
