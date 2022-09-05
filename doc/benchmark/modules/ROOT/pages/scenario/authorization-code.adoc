@@ -1,0 +1,43 @@
+= Scenario AuthenticationCode
+
+== Steps of this scenario
+
+. Open the login page.
+. Login with username and password.
+. Exchange the authentication code for a token.
+. Logout.
+
+See the source code at link:{github-files}/benchmark/src/main/scala/keycloak/scenario/authentication/AuthorizationCode.scala[AuthorizationCode.scala] for details.
+
+== Running an example scenario
+
+=== Prerequisites:
+
+* Keycloak is running.
+* Realm, user and client exist with the values listed on the CLI.
+
+See xref:preparing-keycloak.adoc[] for details how to automate this.
+
+=== Running the scenario
+
+The following scenario runs with the default settings for 30 seconds.
+
+See xref:configuration.adoc[] for additional CLI options.
+
+[source,bash]
+----
+bin/kcb.sh \
+  --scenario=keycloak.scenario.authentication.AuthorizationCode \
+  --server-url=http://localhost:8080/ \
+  --realm-name=realm-0 \
+  --username=user-0 \
+  --password=user-password-0 \
+  --client-id=gatling \
+  --client-secret=setup-for-benchmark \
+  --client-redirect-uri=http://localhost:8081 \
+  --log-http-on-failure
+----
+
+== Further Reading
+
+* xref:run/running-benchmark-cli.adoc[]

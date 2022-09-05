@@ -1,0 +1,33 @@
+= Creating a custom report
+:description: Users can create custom reports based on Gatling's simulation log
+
+{description}
+
+Use this report to gain additional insights, or to create a report of a distributed run with multiple simulation runs.
+
+See xref:reporting.adoc[] for more information on how to access information from a Gatling run.
+
+== Preparing the report
+
+To generate a custom report from a previous Gatling run, use the link:{github-files}/benchmark/generate-custom-report.sh[generate-custom-report.sh] based on https://github.com/nuxeo/gatling-report/blob/master/README.md[gatling-report] project.
+
+To create a report from a distributed run with multiple simulation logs, combine the different to a single file first, then run the report.
+
+.Custom report with a custom template
+[source,shell]
+----
+./generate-custom-report.sh -s "simulation.log" -d target
+----
+
+== Opening the report
+
+. Go to the `target` folder and open the file `index.html` in the browser.
+
+== Example of a custom report
+
+[.shadow]
+image::report/custom-report/report-header.png[]
+
+== Further reading
+
+* xref:report/diagram-types.adoc[]

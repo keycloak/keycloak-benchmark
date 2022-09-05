@@ -1,0 +1,27 @@
+= Scenario CreateRealms/CreateDeleteRealms
+:navtitle: Scenario Create*Realms
+
+== Steps of this scenario
+
+...
+
+== Specifics about this scenario
+
+These scenarios are using the root admin account to perform realm operations with the built-in `admin-cli` client.
+
+This information is specified to the scenarios with options `--admin-username` and `--admin-password`.
+
+Usage of a service account token is irrelevant with these scenarios, because:
+
+* real-world realm operations are performed using root admin credentials
+* deleting a just-created realm requires realm-specific permissions which are set onto a realm-specific client, which would require to logout then login again using the realm-specific client to perform the realm deletion operation
+* as the token includes all realm permissions, it would grow very fast and would quickly exceed the maximum length for header (leading to `431 Request Header Fields Too Large` responses).
+
+== Running an example scenario
+
+...
+
+== Further Reading
+
+* xref:run/running-benchmark-cli.adoc[]
+

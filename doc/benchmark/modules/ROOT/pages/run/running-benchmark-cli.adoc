@@ -1,0 +1,48 @@
+= Running benchmarks from the CLI
+:navtitle: Running benchmarks from CLI
+:description: Run the benchmarks from a local machine against a Keycloak instance.
+
+{description}
+
+== Prerequisites
+
+. Either xref:downloading-benchmark.adoc[download the benchmark module] or xref:building-benchmark.adoc[build it locally].
++
+To run the tests as is without local modifications, downloading it is the recommended option.
+
+. Java 11 installed with the `java` executable available on the path.
+
+== Running the test from the CLI
+
+=== Preparations
+
+* Extract the `+keycloak-benchmark-${version}.[zip|tar.gz]+` file
+* xref:preparing-keycloak.adoc[]
+
+=== Running the tests
+
+To start running tests, execute:
+
+[source,bash]
+----
+./kcb.sh
+----
+
+By default, tests expect Keycloak to run on \http://localhost:8080/auth, and the default scenario is `keycloak.scenarion.authentication.ClientSecret`.
+
+To use a different server URL and scenario:
+
+[source,bash]
+----
+./kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=http://localhost:8080
+----
+
+See xref:scenario-overview.adoc[] for an overview over all available scenarios and their configuration options.
+
+See xref:configuration.adoc[] for setting different parameters.
+
+=== Report
+
+For the default gatling generated reports, check reports at the `result` directory.
+For other reports, see xref:reporting.adoc[].
+

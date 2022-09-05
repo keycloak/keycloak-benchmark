@@ -41,7 +41,7 @@ object KeycloakScenarioBuilder {
   val ACCEPT_ALL = Map("Accept" -> "*/*")
 
   val registerAndLogoutScenario = new KeycloakScenarioBuilder()
-    .openLoginPage(true)
+    .openLoginPageWithRegistrationLink(true)
     .browserOpensRegistrationPage()
     .userThinkPause()
     .browserPostsRegistrationDetails()
@@ -130,6 +130,29 @@ class KeycloakScenarioBuilder {
   }
 
   def openLoginPage(pauseAfter: Boolean): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Browser to Log In Endpoint")
+        .get(LOGIN_ENDPOINT)
+        .headers(UI_HEADERS)
+        .queryParam("login", "true")
+        .queryParam("response_type", "code")
+        .queryParam("client_id", "${clientId}")
+        .queryParam("state", "${state}")
+        .queryParam("redirect_uri", "${redirectUri}")
+        .queryParam("scope", "openid profile")
+        .check(status.is(200),
+          regex("action=\"([^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("login-form-uri")))
+      // if already logged in the check will fail with:
+      // status.find.is(200), but actually found 302
+      // The reason is that instead of returning the login page we are immediately redirected to the app that requested authentication
+      .exitHereIfFailed
+    if (pauseAfter) {
+      userThinkPause()
+    }
+    this
+  }
+
+  def openLoginPageWithRegistrationLink(pauseAfter: Boolean): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Browser to Log In Endpoint")
         .get(LOGIN_ENDPOINT)
