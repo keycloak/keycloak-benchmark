@@ -1,0 +1,59 @@
+= Running benchmarks from the CLI
+:description: Run the
+
+== Prerequisites
+
+Either xref:downloading-benchmark.adoc[download the benchmark module] or xref:building-benchmark.adoc[build it locally].
+
+To run the tests as is without local modifications, downloading it is the recommended option.
+
+== Running the test from the CLI
+
+=== Preparations
+
+* Extract the `+keycloak-benchmark-${version}.[zip|tar.gz]+` file
+* Configure a service account depending on the tests to run.
+
+=== Running the tests
+
+To start running tests, execute:
+
+[source,bash]
+----
+./kcb.sh
+----
+
+By default, tests expect Keycloak to run on \http://localhost:8080/auth, and the default scenario is `keycloak.scenarion.authentication.ClientSecret`.
+
+To use a different server URL and scenario:
+
+[source,bash]
+----
+./kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=http://localhost:8080
+----
+
+=== Options
+
+You can set different options to change how tests should be executed.
+For a complete list of the available options, see link:{github-files}/benchmark/src/main/java/org/keycloak/benchmark/Config.java[Config.java].
+
+=== Report
+
+For the default gatling generated reports, check reports at the `result` directory.
+
+To generate a custom differential or trend line report from an existing repository of gatling simulations, you can use the link:{github-files}/benchmark/generate-custom-report.sh[generate-custom-report.sh] based on https://github.com/nuxeo/gatling-report/blob/master/README.md[gatling-report] project.
+
+.Differential report with a custom template
+[source,shell]
+----
+./generate-custom-report.sh -v 6.0 -s "~/JPAMapUndertow/simulation.log ~/HotRodUndertow/simulation.log" -d ~/reports/differential/templates -t src/main/resources/diff-v2.mustache
+----
+
+.Trend report with the default template
+[source,shell]
+----
+# for trend lines with default template
+./generate-custom-report.sh -v 6.0 -s "~/JPAMapUndertow/simulation.log ~/HotRodUndertow/simulation.log ~/LegacyWildFly/simulation.log" -d ~/reports/trendLines/templates
+----
+
+
