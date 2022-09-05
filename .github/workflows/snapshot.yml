@@ -1,9 +1,14 @@
-name: Publish
+name: Snapshot Release
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
+
+concurrency:
+  # Only run once for latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -11,9 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - uses: actions/checkout@v3
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -32,20 +34,29 @@ jobs:
       - name: Build
         run:
           mvn clean install
+      - name: Set version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+      - name: Delete existing release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ( gh release view ${{ steps.get_version.outputs.VERSION }} --repo ${{ github.repository_owner }}/${{ github.event.repository.name }} &> /dev/null ); then
+            gh release delete ${{ steps.get_version.outputs.VERSION }} --repo ${{ github.repository_owner }}/${{ github.event.repository.name }} --yes
+            git push --delete origin ${{ steps.get_version.outputs.VERSION }}
+          fi
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Keycloak Benchmark ${{ github.ref }}
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: Keycloak Benchmark ${{ steps.get_version.outputs.VERSION }}
           draft: false
-          prerelease: false
+          prerelease: true
           body: |
-            Changes in this Release
-            - Renaming benchmark tool module to keycloak-benchmark
-            - Release using GitHub actions
+            Latest version built from the `main` branch.
       - name: Publish dataset
         uses: actions/upload-release-asset@v1
         env:

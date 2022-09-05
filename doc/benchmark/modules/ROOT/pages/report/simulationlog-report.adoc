@@ -1,0 +1,51 @@
+= Using Gatling simulation log
+:description: Gatling's simulation log is a text file. It contains detailed timing of each request.
+
+{description}
+
+See xref:reporting.adoc[] for more information on how to access information from a Gatling run.
+
+== Preparing the simulation log
+
+Gatling creates simulation log automatically during a performance run in the `reports` folder.
+
+== Opening the simulation log
+
+The simulation log is a text file.
+As it contains the detailed timing of each request, it is large.
+It might be too large for a standard file editor, therefore, use a file viewer like for example `less`.
+
+To open the simulation log:
+
+. Go to the `reports` folder and open the file `simulation.log` in a file viewer.
+
+== Example contents from the simulation log
+
+This shows the header of a simulation log.
+
+[source]
+----
+ASSERTION       AAECAAMBAAAAAAAAAAAA
+ASSERTION       AAEDAAEDAQAAAAAAAMByQA==
+RUN     keycloak.scenario.admin.CreateClients   createclients   1658765864198           3.4.2
+USER    Create and List clients START   1658765870186
+REQUEST         Get service account token       1658765870247   1658765870430   OK
+REQUEST         Create client   1658765870558   1658765870653   OK
+REQUEST         List clients    1658765870658   1658765870707   OK
+USER    Create and List clients END     1658765870731
+USER    Create and List clients START   1658765870733
+REQUEST         Get service account token       1658765870734   1658765870815   OK
+REQUEST         Create client   1658765870820   1658765870886   OK
+REQUEST         List clients    1658765870887   1658765870914   OK
+----
+
+== Next steps
+
+The simulation log can be used for custom reports.
+Multiple reports from a distributed load test can be concatenated to a larger file and evaluated together.
+
+See the following pages for custom reports:
+
+* xref:report/custom-report.adoc[]
+* xref:report/differential-report.adoc[]
+* xref:report/trend-report.adoc[]
