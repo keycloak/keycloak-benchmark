@@ -11,17 +11,17 @@ import java.util.List;
 public class Config {
 
     /**
-     * The number of realms available. This number is going to be used to run test scenarios using realms from 0 to {@code realms}.
+     * The number of realms available. This number is going to be used to run test scenarios using realms from 0 to {@code realms} - 1.
      */
     public static final int numOfRealms = Integer.getInteger("realms", 1);
 
     /**
-     * The number of users available in each realm. This number is going to be used to run test scenarios using users from 0 to {@code users-per-realm}.
+     * The number of users available in each realm. This number is going to be used to run test scenarios using users from 0 to {@code users-per-realm} - 1.
      */
     public static final int numUsersPerRealm = Integer.getInteger("users-per-realm", 1);
 
     /**
-     * The number of clients available in each realm. This number is going to be used to run test scenarios using clients from 0 to {@code users-per-realm}.
+     * The number of clients available in each realm. This number is going to be used to run test scenarios using clients from 0 to {@code users-per-realm} - 1.
      */
     public static final int numClientsPerRealm = Integer.getInteger("clients-per-realm", 1);
 
@@ -75,7 +75,7 @@ public class Config {
     public static final Integer concurrentUsers;
 
     public static final WorkloadModel workloadModel;
-    
+
     static {
         double usersPerSecTmp = Double.valueOf(System.getProperty("users-per-sec", "0"));
         concurrentUsers = Integer.valueOf(System.getProperty("concurrent-users", "0"));
@@ -89,7 +89,7 @@ public class Config {
         }
         usersPerSec = usersPerSecTmp;
     }
-    
+
     /**
      * The ramp up period, in seconds, so that new users are linearly created in a period of time.
      */
@@ -185,7 +185,7 @@ public class Config {
                 userName == null ? "Not defined" : userName,
                 userPassword == null ? "Not defined" : userPassword);
     }
-    
+
     public static String toStringRuntimeParameters() {
         return  (workloadModel == WorkloadModel.OPEN
                 ? String.format("  users-per-sec: %s (Open Workload Model)\n", usersPerSec)

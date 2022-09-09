@@ -3,8 +3,219 @@
 
 {description}
 
+This describes the command line options passed to the `kcb.sh` shell script.
+To run the benchmarks, refer to xref:run/running-benchmark-cli.adoc[].
+
 == Configuration Overview
 
+The configuration allows running a benchmark against one or more Keycloak servers, realms, users and clients.
+All those entities need to exist before the test runs.
+See xref:preparing-keycloak.adoc[] on how to do that.
+
+If a configuration parameter allows multiple values (like, for example, the Keycloak server URL) or resolves to a range of values (like, for example, the realm name), those values are randomly assigned to each execution within a scenario.
+
+=== General parameters
+
+[cols='2,1,5a']
+|===
+| CLI option | Default |Notes
+
+| [.nowrap]`--server-url`
+| (not set)
+| The URL of the Keycloak server.
+
+Specify multiple URLs separated with a blank to run the test against multiple server URLs:
+
+`+--server-url="http://host1:8080/ http://host2:8080/"+`
+
+| [.nowrap]`--scenario`
+| ClientSecret scenario
+| The full classname of the scenario to run, for example `keycloak.scenario.authentication.AuthorizationCode`.
+See xref:scenario-overview.adoc[] for a list of all scenarios.
+
+| [.nowrap]`--debug`
+| (not set)
+| If Java remote debugging should be enabled for the Gatling process.
+If the CLI option is set without a parameter, it defaults to port `8787`.
+Add a different port number as the argument to this CLI parameter to change the default port.
+
+| [.nowrap]`--users-per-sec`
+| `1`
+| Open workload model: Numbers of users per second to be added to the simulation.
+Each user will execute the simulation once.
+
+Either `--users-per-sec` or `--concurrent-users` should be specified.
+If none is specified, defaults to `--users-per-sec` set to `1`.
+
+| [.nowrap]`--concurrent-users`
+| (not set)
+| Close workload model: Number of users executing the same scenario multiple times.
+
+Either `--users-per-sec` or `--concurrent-users` should be specified.
+If none is specified, defaults to `--users-per-sec` set to `1`.
+
+| [.nowrap]`--ramp-up`
+| `5`
+| Ramp up time to reach the full load.
+
+| [.nowrap]`--measurement`
+| `30`
+| Measurement time of the test in seconds.
+
+| [.nowrap]`--user-think-time`
+| `0`
+| User think time in seconds used in some scenarios.
+
+| [.nowrap]`--log-http-on-failure`
+| (not set)
+| If set, will log all failed HTTP requests to the console.
+
+Enable this during testing and when analyzing problems.
+Never use it during a load test as it slows down Gatling.
+
+
+| [.nowrap]`--log-http-always`
+| (not set)
+| If set, will log all HTTP requests to the console.
+
+Will log a lot of information.
+Use this only during development.
+Never use it during a load test as it slows down Gatling.
+
+|===
+
+=== Running across multiple realms, users and clients
+
+[cols='2,1,5a']
+|===
+| CLI option | Default |Notes
+
+| [.nowrap]`--realms`
+| `1`
+| The number of realms available. Runs the test scenarios using realms from 0 to `--realms` minus 1.
+
+With the default of `1` and <<realm-prefix,`--realm-prefix`>> not set, this will result in only `realm-0` being used.
+
+| [.nowrap]`--users-per-realm`
+| `1`
+| The number of users available in each realm. Runs the test scenarios using users from 0 to `--users-per-realm` minus 1.
+
+With the default of `1` this will result in only `user-0` being used.
+
+| [.nowrap]`--clients-per-realm`
+| 1
+| The number of clients available in each realm. Runs the test scenarios using clients from 0 to `--users-per-realm` minus 1.
+
+With the default of `1` this will result in only `client-0` being used.
+
+|===
+
+When running the CLI with the following example parameters:
+
+----
+--realm=10 --users-per-realm=10 --client-per-realm=10
+----
+
+This results in the following values being used in the scenarios:
+
+[cols="1,4"]
+|===
+|Entity | Values
+
+|Realm
+|`realm-0 \... realm-9`
+
+|Username
+|`user-0 \... user-9`
+
+|User Password
+|`user-0-password \... user-9-password`
+
+|Client ID
+|`client-0 \... client-9`
+
+|Client Secret
+|`client-0-secret \... client-9-secret`
+
+|Client Redirect URL
+|The account console of the respective realm:
+
+`+http://localhost:8080/realms/realm-0/account ... http://localhost:8080/realms/realm-9/account+`
+
+|===
+
+[#overriding-default-values-for-realms-users-and-clients]
+=== Overriding default values for realms, users and clients
+
+[cols='2,1,5a']
+|===
+| CLI option | Default |Notes
+
+|
+[[realm-prefix]][.nowrap]`--realm-prefix`
+| `realm-`
+| Sets the prefix for the realm name.
+With a value of `myrealm` it uses `myrealm-0`, `myrealm-1`, ....
+
+If not set on the CLI, realm names use the `realm-` prefix. For example: `realm-0`, `realm-1` ....
+
+| [.nowrap]`--realm-name`
+| (not set)
+|If set, tests run using a single realm set in this parameter.
+
+If not set and assuming that <<realm-prefix,`--realm-prefix`>> is not set, the realm names are numbered starting with `realm-0`.
+
+| [.nowrap]`--username`
+| (not set)
+| If set, tests run using a single username set in this parameter.
+
+If not set, the usernames are numbered starting with `user-0`.
+
+| [.nowrap]`--user-password`
+| (not set)
+| If set, tests run using a single password set in this parameter.
+
+If not set, the passwords are numbered starting with `user-0-password`.
+
+| [.nowrap]`--client-id`
+| (not set)
+| If set, tests run using a single client ID set in this parameter.
+
+If not set, the client IDs are numbered starting with `client-0`.
+
+| [.nowrap]`--client-secret`
+| (not set)
+| If set, tests run using a single client secret set in this parameter.
+
+If not set, the client IDs are numbered starting with `client-0-secret`.
+
+| [.nowrap]`--client-redirect-uri`
+| (not set)
+| If set, tests will run using a single client-redirect-URI set in this parameter.
+
+If not set, the redirect URL is the account console of the respective realm.
+
+|===
+
+=== Additional settings
+
+These settings are only necessary if the scenario requires the settings.
+Please refer to the xref:scenario-overview.adoc[scenario overview] to review the scenarios.
+
+[cols='2,1,5']
+|===
+| CLI option | Default |Notes
+
+| [.nowrap]`--admin-username`
+| (not set)
+| Username of the admin user in the `master` realm.
+
+| [.nowrap]`--admin-password`
+| (not set)
+| Password of the admin user in the `master` realm.
+
+|===
+
+== Further reading
+
 For a complete list of the available options, see link:{github-files}/benchmark/src/main/java/org/keycloak/benchmark/Config.java[Config.java].
-
-
