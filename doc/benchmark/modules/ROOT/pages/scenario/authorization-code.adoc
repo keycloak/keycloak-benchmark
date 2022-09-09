@@ -1,6 +1,11 @@
 = Scenario AuthorizationCode
+:description: Login a user with a username and password and exchange the authentication code.
 
-== Steps of this scenario
+{description}.
+
+See xref:scenario-overview.adoc[] for a list of all scenarios.
+
+== Steps of the scenario
 
 . Open the login page.
 . Login with username and password.
@@ -15,10 +20,10 @@ See the source code at link:{github-files}/benchmark/src/main/scala/keycloak/sce
 
 * Keycloak is running.
 * Realm, user and client exist with the values listed on the CLI.
+* The client needs to have client authentication enabled, which results in an OIDC type of confidential access type, as the confidential client secret is used in the authorization code exchange.
+* This scenario doesn't need any service account roles set for the client.
 
 See xref:preparing-keycloak.adoc[] for details how to automate this for the realm and the client.
-
-WARNING: The set-up of the user is not part of the docs linked above and needs to be done manually as of now.
 
 === Running the scenario
 
@@ -33,7 +38,7 @@ bin/kcb.sh \
   --server-url=http://localhost:8080/ \
   --realm-name=realm-0 \
   --username=user-0 \
-  --password=user-password-0 \
+  --user-password=user-password-0 \
   --client-id=gatling \
   --client-secret=setup-for-benchmark \
   --client-redirect-uri=http://localhost:8081 \

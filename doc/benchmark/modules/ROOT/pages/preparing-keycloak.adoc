@@ -12,6 +12,7 @@ To set up a new instance for testing, consider xref:kubernetes-guide::installati
 == Configuration
 
 Choose from the manual and the scripted configuration to set up a realm for a load test.
+To set up a lot of realms, clients and users, consider using the xref:dataset-guide:ROOT:index.adoc[dataset provider].
 
 === Manual configuration
 
@@ -19,6 +20,12 @@ Some scenarios require that `User Registration` setting enabled.
 
 . Select the realm that is used for testing.
 . In the `Realm Settings`, choose the tab `Login` and enable the login screen customization `User Registration`.
+
+Some scenarios require users with password:
+
+. Create a user.
+. In the menu:Credentials[] tab, set a password.
+Make the password non-temporary as Keycloak would otherwise prompt for a password.
 
 Some scenarios require a service account with the clientId `gatling`:
 
@@ -53,6 +60,12 @@ Some scenarios require a service account with the clientId `gatling`:
 === Scripted configuration
 
 Instead of following the above manual steps, you can use this link:{github-files}/benchmark/manage_gatling_client.sh[manage_gatling_client.sh] script to do the setup for you.
+
+[WARNING]
+====
+The scripted setup currently does not set up users.
+Set up users manually, or use the xref:dataset-guide:ROOT:index.adoc[dataset provider].
+====
 
 Login to the Keycloak server using the kcadm cli script, which comes with any Keycloak distribution
 
