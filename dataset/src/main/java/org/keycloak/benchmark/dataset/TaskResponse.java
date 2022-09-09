@@ -20,6 +20,8 @@ package org.keycloak.benchmark.dataset;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Map;
+
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
@@ -31,8 +33,8 @@ public class TaskResponse {
     @JsonProperty("status")
     private String status;
 
-    @JsonProperty("task-id")
-    private String taskId;
+    @JsonProperty("task")
+    private Map<String, String> task;
 
     @JsonProperty("task-status-url")
     private String taskStatusUrl;
@@ -40,10 +42,12 @@ public class TaskResponse {
     public TaskResponse() {
     }
 
-    public TaskResponse(String error, String status, String taskId, String taskStatusUrl) {
+    public TaskResponse(String error, String status, Task task, String taskStatusUrl) {
         this.error = error;
         this.status = status;
-        this.taskId = taskId;
+        if (task != null) {
+            this.task = task.toMap();
+        }
         this.taskStatusUrl = taskStatusUrl;
     }
 
@@ -51,24 +55,32 @@ public class TaskResponse {
         return new TaskResponse(errorMessage, null, null, null);
     }
 
-    public static TaskResponse errorSomeTaskInProgress(String taskInProgress, String taskStatusUrl) {
+    public static TaskResponse errorSomeTaskInProgress(Task taskInProgress, String taskStatusUrl) {
         return new TaskResponse("Task not triggered. There is already existing task in progress. See task-id for details about existing task", null, taskInProgress, taskStatusUrl);
     }
 
-    public static TaskResponse taskStarted(String taskMessage, String taskStatusUrl) {
-        return new TaskResponse(null, "Task started successfully", taskMessage, taskStatusUrl);
+    public static TaskResponse taskStarted(Task task, String taskStatusUrl) {
+        return new TaskResponse(null, "Task started successfully", task, taskStatusUrl);
     }
 
-    public static TaskResponse existingTaskStatus(String taskMessage) {
-        if (taskMessage == null) {
+    public static TaskResponse existingTaskStatus(Task task) {
+        if (task == null) {
             throw new IllegalStateException("Illegal to call with null argument");
         }
 
-        return new TaskResponse(null, "Task in progress", taskMessage, null);
+        return new TaskResponse(null, "Task in progress", task, null);
     }
 
     public static TaskResponse noTaskInProgress() {
         return new TaskResponse(null, "No task in progress. New task can be started", null, null);
+    }
+
+    public static TaskResponse noCompletedTask() {
+        return new TaskResponse(null, "No completed task", null, null);
+    }
+
+    public static TaskResponse previousTask(Task task) {
+        return new TaskResponse(null, "previous task completed", task, null);
     }
 
     public static TaskResponse statusMessage(String statusMessage) {
@@ -100,11 +112,11 @@ public class TaskResponse {
         this.taskStatusUrl = taskStatusUrl;
     }
 
-    public String getTaskId() {
-        return taskId;
+    public Map<String, String> task() {
+        return task;
     }
 
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
+    public void setTask(Map<String, String> task) {
+        this.task = task;
     }
 }

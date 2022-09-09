@@ -18,50 +18,77 @@
 
 package org.keycloak.benchmark.dataset;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.infinispan.Cache;
-import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.commons.api.BasicCache;
 import org.jboss.logging.Logger;
-import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
-import org.keycloak.connections.infinispan.InfinispanUtil;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.SingleUseObjectProvider;
 
 /**
- * Management of executed tasks and making sure that there won't be multiple tasks in progress (EG. there is not creation of 1000 realms triggered accidentally 2 times)
+ * Management of executed tasks and making sure that there won't be multiple tasks in progress (EG. there is no creation of 1000 realms triggered accidentally 2 times).
+ * </p>
+ * It stores its state in the {@link SingleUseObjectProvider} with static key so that it is available across multiple nodes.
  *
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
 public class TaskManager {
 
-    private final BasicCache<String, String> workCache;
+    /* Previous versions of the provider stored their state in the workcache of Infinispan which is part of the legacy store.
+       With that being no longer available after switching to the map storage, this now uses the SingleUseObjectProvider to store a single value.
+       While this might not be a valid strategy for providers running a production environment, this strategy is sufficient for running it in load testing environments. */
+    private final SingleUseObjectProvider singleUseObjectProvider;
 
-    private final String KEY = "dataset_task";
+    private final String KEY_RUNNING = "dataset_task_running";
+    private final String KEY_COMPLETED = "dataset_task_completed";
 
     protected static final Logger logger = Logger.getLogger(TaskManager.class);
 
-    @SuppressWarnings("unchecked")
     public TaskManager(KeycloakSession session) {
-        Cache<String, String> workCache = session.getProvider(InfinispanConnectionProvider.class).getCache(InfinispanConnectionProvider.WORK_CACHE_NAME);
-        RemoteCache<String, String> remoteCache = InfinispanUtil.getRemoteCache(workCache);
-        this.workCache = (remoteCache == null) ? workCache : remoteCache;
+        singleUseObjectProvider = session.getProvider(SingleUseObjectProvider.class);
     }
 
-    public String getExistingTask() {
-        return workCache.get(KEY);
+    public Task getExistingTask() {
+        Map<String, String> existingTask = singleUseObjectProvider.get(KEY_RUNNING);
+        if (existingTask == null) {
+            return null;
+        }
+        return Task.fromMap(existingTask);
     }
 
-    public String addTaskIfNotInProgress(TimerLogger task, int taskTimeoutInSeconds) {
-        String str = task.toString();
-        return workCache.putIfAbsent(KEY, str, taskTimeoutInSeconds, TimeUnit.SECONDS);
+    public Task getCompletedTask() {
+        Map<String, String> existingTask = singleUseObjectProvider.get(KEY_COMPLETED);
+        if (existingTask == null) {
+            return null;
+        }
+        return Task.fromMap(existingTask);
+    }
+
+    public Task addTaskIfNotInProgress(Task task, int taskTimeoutInSeconds) {
+        Map<String, String> existingTask = singleUseObjectProvider.get(KEY_RUNNING);
+        if (existingTask != null) {
+            return Task.fromMap(existingTask);
+        }
+        Map<String, String> notes = task.toMap();
+        singleUseObjectProvider.put(KEY_RUNNING, taskTimeoutInSeconds, notes);
+        return null;
     }
 
     public void removeExistingTask(boolean successfullyFinished) {
-        String existing = this.workCache.remove(KEY);
-        if (existing != null && successfullyFinished) {
-            logger.info("FINISHED TASK: " + existing);
+        Map<String, String> existingTask = singleUseObjectProvider.get(KEY_RUNNING);
+        if (existingTask != null) {
+            singleUseObjectProvider.remove(KEY_RUNNING);
+            Task task = Task.fromMap(existingTask);
+            task.SetSuccess(successfullyFinished);
+            singleUseObjectProvider.remove(KEY_COMPLETED);
+            singleUseObjectProvider.put(KEY_COMPLETED, TimeUnit.DAYS.toSeconds(1), task.toMap());
+            if (successfullyFinished) {
+                logger.info("FINISHED TASK: " + task);
+            }
         }
     }
 
+    public void deleteCompletedTask() {
+        singleUseObjectProvider.remove(KEY_COMPLETED);
+    }
 }
