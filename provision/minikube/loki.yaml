@@ -1,13 +1,23 @@
-#  https://github.com/grafana/helm-charts/blob/main/charts/loki/values.yaml
+#  https://github.com/grafana/loki/blob/main/production/helm/loki/values.yaml
 
-serviceMonitor:
-  enabled: true
+loki:
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: 'filesystem'
+  auth_enabled: false
 
-persistence:
-  enabled: true
-  accessModes:
-    - ReadWriteOnce
-  size: 1Gi
+monitoring:
+  rules:
+    # when enabling rules, the prometheus operator needs to be available in the cluster, otherwise there's the error
+    # Error: Internal error occurred: failed calling webhook "prometheusrulemutate.monitoring.coreos.com":
+    # failed to call webhook: Post "https://prometheus-kube-prometheus-operator.monitoring.svc:443/admission-prometheusrules/mutate?timeout=10s":
+    # dial tcp xxx.xxx.xxx:443: connect: connection refused
+    enabled: false
+
+write:
+  persistence:
+    size: 1Gi
 
 config:
   table_manager:
