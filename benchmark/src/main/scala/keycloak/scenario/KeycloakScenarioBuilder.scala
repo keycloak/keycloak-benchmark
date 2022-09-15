@@ -101,6 +101,14 @@ class KeycloakScenarioBuilder {
       clientSecret = Config.clientSecret;
     }
 
+    var scope = Config.scope;
+
+    if (scope == null) {
+      scope = "openid profile";
+    } else {
+      scope = scope.trim().replace(',', ' ');
+    }
+
     s.setAll("keycloakServer" -> serverUrl,
       "state" -> randomUUID(),
       "wrongPasswordCount" -> new AtomicInteger(Config.badLoginCount),
@@ -114,7 +122,8 @@ class KeycloakScenarioBuilder {
       "clientSecret" -> clientSecret,
       "redirectUri" -> redirectUri,
       "adminUsername" -> Config.adminUsername,
-      "adminPassword" -> Config.adminPassword
+      "adminPassword" -> Config.adminPassword,
+      "scope" -> scope
     )
   })
     .exitHereIfFailed
@@ -139,7 +148,7 @@ class KeycloakScenarioBuilder {
         .queryParam("client_id", "${clientId}")
         .queryParam("state", "${state}")
         .queryParam("redirect_uri", "${redirectUri}")
-        .queryParam("scope", "openid profile")
+        .queryParam("scope", "${scope}")
         .check(status.is(200),
           regex("action=\"([^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("login-form-uri")))
       // if already logged in the check will fail with:
@@ -162,7 +171,7 @@ class KeycloakScenarioBuilder {
         .queryParam("client_id", "${clientId}")
         .queryParam("state", "${state}")
         .queryParam("redirect_uri", "${redirectUri}")
-        .queryParam("scope", "openid profile")
+        .queryParam("scope", "${scope}")
         .check(status.is(200),
           regex("action=\"([^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("login-form-uri"),
           regex("href=\"(/auth)?(/realms/[^\"]*/login-actions/registration[^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("registration-link")))
