@@ -45,6 +45,35 @@ bin/kcb.sh \
   --log-http-on-failure
 ----
 
+== Variants
+
+To create offline sessions, set the parameter xref:configuration.adoc#scope[`--scope`] to a value including `offline_token`, for example, `openid profile offline_token`.
+
+== Error messages
+
+Invalid parameter: redirect_uri::
+This could have the following reasons:
++
+* The client with the given client ID doesn't exist in the given realm or has been mistyped.
++
+_Remedy:_ Check that the client ID given on the command line or as the default exists in the given realm.
+
+* Redirect URI doesn't match the redirect URI configured in the client.
++
+_Remedy:_ Check that the redirect URI given on the command line or as the default matches the redirect URI in the client.
+
+Invalid username or password::
+This could be tested manually by trying to log in as the user on the account console at ++https://{keyloak-server}/realms/{realm}/account/++.
+This could have the following reasons:
++
+* The user with the given username doesn't exist.
++
+_Remedy:_ Check that the user given on the command line or as the default exists in the given realm.
+
+* The user has a different password.
++
+_Remedy:_ Check that the user has the correct password set up.
+
 == Further Reading
 
 * xref:run/running-benchmark-cli.adoc[]
