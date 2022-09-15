@@ -70,6 +70,11 @@ public class Config {
      */
     public static final String adminPassword = System.getProperty("admin-password");
 
+    /**
+     * A comma-separated list of scopes to be set when making authentication requests. If not set, the default scopes are "openid profile".
+     */
+    public static final String scope = System.getProperty("scope");
+
     public static final Double usersPerSec;
 
     public static final Integer concurrentUsers;
