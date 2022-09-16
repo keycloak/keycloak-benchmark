@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 set -euxo pipefail
 
 export REPORTS_HOME=$USER_HOME/reports
@@ -19,7 +19,7 @@ if $RESET_KEYCLOAK; then
     task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach"
   elif [ "$KEYCLOAK_STORAGE" = "HotRod-Map" ]; then
     task reset-keycloak KC_STORAGE="hotrod" KC_DATABASE="infinispan"
-  else 
+  else
     echo "Invalid KEYCLOAK_STORAGE: \"$KEYCLOAK_STORAGE\"."
     exit 1
   fi
@@ -45,9 +45,9 @@ export SLA_MEAN_RESPONSE_TIME=${SLA_MEAN_RESPONSE_TIME:-400}
 export WORKLOAD_MODEL=${WORKLOAD_MODEL}
 if [ "$WORKLOAD_MODEL" = "open" ]; then
     export WORKLOAD_PARAM="--users-per-sec=$WORKLOAD_UNIT"
-elif [ "$WORKLOAD_MODEL" = "closed" ]; then 
+elif [ "$WORKLOAD_MODEL" = "closed" ]; then
     export WORKLOAD_PARAM="--concurrent-users=$WORKLOAD_UNIT"
-else 
+else
     echo "Invalid WORKLOAD_MODEL: \"$WORKLOAD_MODEL\". Valid values: \"open\" or \"closed\"."
     exit 1
 fi
@@ -93,13 +93,13 @@ echo "INFO: Archive simulation.log and gatling HTML reports, for the run"
 cd $RESULTS_HOME
 mkdir -p $REPORTS_HOME/$REPORT_DIR/SimulationLogs
 cp $RESULTS_HOME/*/simulation.log $REPORTS_HOME/$REPORT_DIR/SimulationLogs
-zip -qr $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip . 
+zip -qr $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip .
 cd $REPORTS_HOME/$REPORT_DIR && unzip $REPORTS_HOME/$REPORT_DIR/$REPORT_DIR.zip
 touch load_run_parameters.txt && chmod 0755 load_run_parameters.txt
 echo -e "WORKLOAD_PARAM: $WORKLOAD_PARAM\nRAMP_UP: $RAMPUP\nRAMP_DOWN: $RAMPDOWN\nMEASUREMENT: $MEASUREMENT\nUSER_THINKTIME: $USER_THINK_TIME\nKCB_VERSION: $KCB_VERSION\nKCB_REVISION: $KCB_REVISION" >> load_run_parameters.txt
 
 #Generate Custom Report
-sh $PROJECT_HOME/benchmark/generate-custom-report.sh -v 6.0 -s "$REPORTS_HOME/$REPORT_DIR/SimulationLogs/simulation.log" -d "$REPORTS_HOME/$REPORT_DIR/CustomReport"
+sh $PROJECT_HOME/benchmark/src/main/content/bin/generate-custom-report.sh -v 6.0 -s "$REPORTS_HOME/$REPORT_DIR/SimulationLogs/simulation.log" -d "$REPORTS_HOME/$REPORT_DIR/CustomReport"
 echo "INFO: generated the report and it should be available at http://$(hostname)/$REPORT_DIR"
 
 cd $REPORTS_HOME/$REPORT_DIR && zip -qur $REPORT_DIR.zip CustomReport
