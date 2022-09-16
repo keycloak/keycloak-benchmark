@@ -7,7 +7,7 @@ set -e
 create_realms () {
   if [[ $1 =~ "--" ]]
   then
-    REALM_COUNT=10
+    REALM_COUNT=1
   else
     REALM_COUNT=$1
   fi
