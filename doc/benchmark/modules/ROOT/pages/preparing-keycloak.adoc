@@ -59,13 +59,7 @@ Some scenarios require a service account with the clientId `gatling`:
 
 === Scripted configuration
 
-Instead of following the above manual steps, you can use this link:{github-files}/benchmark/manage_gatling_client.sh[manage_gatling_client.sh] script to do the setup for you.
-
-[WARNING]
-====
-The scripted setup currently does not set up users.
-Set up users manually, or use the xref:dataset-guide:ROOT:index.adoc[dataset provider].
-====
+Instead of following the above manual steps, you can use this link:{github-files}/benchmark/initialize-benchmark-entities.sh[initialize-benchmark-entities.sh] script to do the setup for you.
 
 Login to the Keycloak server using the kcadm cli script, which comes with any Keycloak distribution
 
@@ -75,19 +69,19 @@ $KEYCLOAK_HOME/bin/kcadm.sh config credentials --server http://localhost:8081/au
 
 ----
 
-and then run this, for creating the needed realm and client
+and then run this, for creating the needed realm, client and user
 
 [source,shell]
 ----
-./manage_gatling_client.sh -c gatling
+./initialize-benchmark-entities.sh -r test-realm -c gatling -u user-0
 
 ----
 
-or run this, to recreate the realm and client for any reason
+or use a `-d` flag, to recreate the entities from scratch for any reason
 
 [source,shell]
 ----
-./manage_gatling_client.sh -d
+./initialize-benchmark-entities.sh -r test-realm -c gatling -u user-0 -d
 
 ----
 

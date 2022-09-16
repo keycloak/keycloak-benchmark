@@ -264,9 +264,9 @@ tasks:
     cmds:
       - bash -c ./isup.sh
       - bash -c "../keycloak-cli/keycloak/bin/kcadm.sh config credentials --server https://keycloak.{{.IP}}.nip.io/ --realm master --user admin --password admin"
-      - bash -c "../../benchmark/manage_gatling_client.sh -r realm-0 -d"
+      - bash -c "../../benchmark/initialize-benchmark-entities.sh -r test-realm -d"
     sources:
-      - ../../benchmark/manage_gatling_client.sh
+      - ../../benchmark/initialize-benchmark-entities.sh
       - .task/subtask-{{.TASK}}.yaml
       # if keycloak's database deployment changes, this restarts the DB and the Gatling user needs to be re-created
       - .task/status-keycloak-db.json
