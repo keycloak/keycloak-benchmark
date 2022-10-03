@@ -13,7 +13,7 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
   fi
   minikube config set driver ${DRIVER}
   minikube config set container-runtime docker
-  minikube start --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v1.24.0
+  minikube start --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v1.25.0
 fi
 minikube addons enable ingress
 rm -rf .task
