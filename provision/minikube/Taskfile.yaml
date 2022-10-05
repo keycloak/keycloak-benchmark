@@ -304,8 +304,10 @@ tasks:
         then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
-      # kill all CrashLoopBackOff pods to trigger a fast restart and not wait Kubernetes
-      - bash -c 'kubectl get pods -A | grep CrashLoopBackOff | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
+      # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
+      - bash -c 'kubectl get pods -A | grep BackOff | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
+      # wait a bit for the operator to pick up the changes
+      - bash -c 'sleep 1'
       - bash -c ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
       - minikube ssh -- docker image prune -f

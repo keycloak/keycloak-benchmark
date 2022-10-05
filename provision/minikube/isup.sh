@@ -24,6 +24,27 @@ declare -A SERVICES=( \
 for SERVICE in "${!SERVICES[@]}"; do
   RETRIES=$MAXRETRIES
   # loop until we connect successfully or failed
+
+  if [ "${SERVICE}" == "keycloak.${HOST}" ]
+  then
+    until [ "$(kubectl get keycloak/keycloak -n keycloak -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" == "true" ]
+    do
+      RETRIES=$(($RETRIES - 1))
+      if [ $RETRIES -eq 0 ]
+      then
+          kubectl get keycloak/keycloak -n keycloak -o jsonpath='{.status}'
+          echo
+          echo "Failed waiting for keycloak operator status to become ready"
+          exit 1
+      fi
+      # wait a bit
+      if [ "$GITHUB_ACTIONS" == "" ]; then
+        echo -n "."
+      fi
+      sleep 5
+    done
+  fi
+
   until kubectl get ingress -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
     RETRIES=$(($RETRIES - 1))
