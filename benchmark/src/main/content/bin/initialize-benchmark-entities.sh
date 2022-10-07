@@ -31,25 +31,56 @@ function create_realm {
 }
 
 function create_service_enabled_client_assign_roles {
-  #Create the client application with Service Account Roles setup
-  CID=$(kcadm.sh create clients -r $REALM_NAME -s clientId=$CLIENT_ID -s enabled=true -i)
+  CID=$(kcadm.sh create clients -r $REALM_NAME -i -f - <<EOF
+{
+  "clientId": "$CLIENT_ID",
+  "enabled": true,
+  "clientAuthenticatorType": "client-secret",
+  "secret": "setup-for-benchmark",
+  "redirectUris": [
+    "*"
+  ],
+  "serviceAccountsEnabled": true,
+  "publicClient": false,
+  "protocol": "openid-connect",
+  "attributes": {
+    "post.logout.redirect.uris": "+"
+  }
+}
+EOF
+)
   echo "INFO: Created New ${CLIENT_ID} Client with Client ID ${CID}"
-  #Update the client with necessary attributes
-  kcadm.sh update clients/$CID -r $REALM_NAME  -s "secret=setup-for-benchmark" -s serviceAccountsEnabled=true  -s publicClient=false -s 'redirectUris=["*"]'
   #Assign the necessary Service Account based roles to the client
   kcadm.sh add-roles -r $REALM_NAME --uusername service-account-$CLIENT_ID --cclientid realm-management --rolename manage-clients --rolename view-users --rolename manage-realm --rolename manage-users
 }
 
 function create_oidc_client {
-  #Create the client application with OIDC for Auth Code scenarios with confidential client secret 
-  CID=$(kcadm.sh create clients -r $REALM_NAME -s clientId=client-0 -s clientAuthenticatorType=client-secret -s secret=client-0-secret -s publicClient=false -s 'redirectUris=["*"]' -s serviceAccountsEnabled=true -s enabled=true -i)
+  #Create the client application with OIDC for Auth Code scenarios with confidential client secret
+  CID=$(kcadm.sh create clients -r $REALM_NAME -i -f - <<EOF
+{
+  "clientId": "client-0",
+  "enabled": true,
+  "clientAuthenticatorType": "client-secret",
+  "secret": "client-0-secret",
+  "redirectUris": [
+    "*"
+  ],
+  "serviceAccountsEnabled": true,
+  "publicClient": false,
+  "protocol": "openid-connect",
+  "attributes": {
+    "post.logout.redirect.uris": "+"
+  }
+}
+EOF
+)
   echo "INFO: Created New client-0 Client"
 }
 
 function create_user {
  kcadm.sh create users -s username=$USER_NAME -s enabled=true -r $REALM_NAME
  kcadm.sh set-password -r $REALM_NAME --username $USER_NAME --new-password $USER_NAME-password
- echo "INFO: Created New user ${USER_NAME} in ${REALM_NAME}" 
+ echo "INFO: Created New user ${USER_NAME} in ${REALM_NAME}"
 }
 
 function delete_entities {

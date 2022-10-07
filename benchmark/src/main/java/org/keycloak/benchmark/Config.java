@@ -82,7 +82,7 @@ public class Config {
     public static final WorkloadModel workloadModel;
 
     static {
-        double usersPerSecTmp = Double.valueOf(System.getProperty("users-per-sec", "0"));
+        double usersPerSecTmp = Double.parseDouble(System.getProperty("users-per-sec", "0"));
         concurrentUsers = Integer.valueOf(System.getProperty("concurrent-users", "0"));
         if (usersPerSecTmp > 0 && concurrentUsers == 0) {
             workloadModel = WorkloadModel.OPEN;
@@ -118,7 +118,7 @@ public class Config {
     /**
      * For tests using logout, the percentage of users that should logout.
      */
-    public static final double logoutPercentage = Double.valueOf(System.getProperty("logout-percentage", "0"));
+    public static final double logoutPercentage = Double.parseDouble(System.getProperty("logout-percentage", "100"));
 
     /**
      * For tests relying on user login, the number of bad login attempts.
@@ -135,15 +135,15 @@ public class Config {
 
     // Computed timestamps
     public static final long simulationStartTime = System.currentTimeMillis();
-    public static final long warmUpStartTime = simulationStartTime + rampUpPeriod * 1000;
-    public static final long measurementStartTime = warmUpStartTime + warmUpPeriod * 1000;
-    public static final long measurementEndTime = measurementStartTime + measurementPeriod * 1000;
+    public static final long warmUpStartTime = simulationStartTime + rampUpPeriod * 1000L;
+    public static final long measurementStartTime = warmUpStartTime + warmUpPeriod * 1000L;
+    public static final long measurementEndTime = measurementStartTime + measurementPeriod * 1000L;
 
     public static final String serverUris;
     public static final List<String> serverUrisList;
     // assertion properties
-    public static final double maxErrorPercentage = Double.valueOf(System.getProperty("sla-error-percentage", "0"));
-    public static final int maxMeanReponseTime = Integer.getInteger("sla-mean-response-time", 300);
+    public static final double maxErrorPercentage = Double.parseDouble(System.getProperty("sla-error-percentage", "0"));
+    public static final int maxMeanResponseTime = Integer.getInteger("sla-mean-response-time", 300);
     public static SimpleDateFormat SIMPLE_TIME = new SimpleDateFormat("HH:mm:ss");
 
     // user-crawl-scenario properties
@@ -218,7 +218,7 @@ public class Config {
         return String.format("  Max Error Percentage: %s\n"
                            + "  Max Mean Response Time: %s",
                 maxErrorPercentage,
-                maxMeanReponseTime);
+                maxMeanResponseTime);
     }
 
     public static void validateConfiguration() {

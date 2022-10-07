@@ -6,7 +6,6 @@ class LoginUserPassword extends CommonSimulation {
 
   setUp("Authentication - Login Username/Password", new KeycloakScenarioBuilder()
     .openLoginPage(true)
-    .loginUsernamePassword()
-    .logout(true))
+    .loginUsernamePassword())
 
 }

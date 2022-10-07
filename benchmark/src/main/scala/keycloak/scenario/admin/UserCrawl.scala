@@ -17,7 +17,7 @@ class UserCrawl extends CommonSimulation {
 
     .assertions(
       global.failedRequests.percent.lte(Config.maxErrorPercentage),
-      global.responseTime.mean.lte(Config.maxMeanReponseTime)
+      global.responseTime.mean.lte(Config.maxMeanResponseTime)
     )
 
 }
