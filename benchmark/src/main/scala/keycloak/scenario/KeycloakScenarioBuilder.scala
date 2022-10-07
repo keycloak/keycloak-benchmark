@@ -241,7 +241,13 @@ class KeycloakScenarioBuilder {
         .formParam("client_secret", "${clientSecret}")
         .formParam("redirect_uri", "${redirectUri}")
         .formParam("code", "${code}")
-        .check(status.is(200)))
+        .check(
+          status.is(200),
+          // other elements like the access token not captured as we don't need them in the current scenarios and want to save memory
+          jsonPath("$..id_token").find.saveAs("idToken"),
+        )
+      )
+      .exec(session => (session.removeAll("code")))
       .exitHereIfFailed
     this
   }
@@ -289,8 +295,11 @@ class KeycloakScenarioBuilder {
     exec(http("Browser logout")
       .get(LOGOUT_ENDPOINT)
       .headers(UI_HEADERS)
-      .queryParam("redirect_uri", "${redirectUri}")
+      .queryParam("client_id", "${clientId}")
+      .queryParam("post_logout_redirect_uri", "${redirectUri}")
+      .queryParam("id_token_hint", "${idToken}")
       .check(status.is(302), header("Location").is("${redirectUri}")))
+    .exec(session => session.removeAll("idToken", "redirectUri"))
   }
 
   def randomLogout(): KeycloakScenarioBuilder = {

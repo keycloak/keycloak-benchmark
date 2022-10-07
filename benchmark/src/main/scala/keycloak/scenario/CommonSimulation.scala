@@ -52,7 +52,7 @@ abstract class CommonSimulation extends Simulation {
       ).protocols(defaultHttpProtocol())
     ).assertions(
       global.failedRequests.percent.lte(Config.maxErrorPercentage),
-      global.responseTime.mean.lte(Config.maxMeanReponseTime)
+      global.responseTime.mean.lte(Config.maxMeanResponseTime)
     )
 
   }
