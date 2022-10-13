@@ -26,6 +26,20 @@
             <groupId>io.gatling.highcharts</groupId>
             <artifactId>gatling-charts-highcharts</artifactId>
             <version>${gatling.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-redis</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-jdbc</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-jms</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.codehaus.janino</groupId>
@@ -72,7 +86,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -96,6 +110,13 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>io.gatling:gatling-recorder:*</exclude>
+                                    <exclude>org.scala-lang.modules:scala-swing_2.12:*</exclude>
+                                    <exclude>org.scala-lang.modules:scala-java8-compat_2.12:*</exclude>
+                                </excludes>
+                            </artifactSet>
                         </configuration>
                     </execution>
                 </executions>
