@@ -44,18 +44,20 @@ export SLA_MEAN_RESPONSE_TIME=${SLA_MEAN_RESPONSE_TIME:-400}
 
 export WORKLOAD_MODEL=${WORKLOAD_MODEL}
 if [ "$WORKLOAD_MODEL" = "open" ]; then
-    export WORKLOAD_PARAM="--users-per-sec=$WORKLOAD_UNIT"
+  export WORKLOAD_PARAM="--users-per-sec=$WORKLOAD_UNIT"
 elif [ "$WORKLOAD_MODEL" = "closed" ]; then
-    export WORKLOAD_PARAM="--concurrent-users=$WORKLOAD_UNIT"
+  export WORKLOAD_PARAM="--concurrent-users=$WORKLOAD_UNIT"
 else
-    echo "Invalid WORKLOAD_MODEL: \"$WORKLOAD_MODEL\". Valid values: \"open\" or \"closed\"."
-    exit 1
+  echo "Invalid WORKLOAD_MODEL: \"$WORKLOAD_MODEL\". Valid values: \"open\" or \"closed\"."
+  exit 1
 fi
 
 if [[ "$SCENARIO" == *"Realm"* ]]; then
-      export WORKLOAD_PARAM="$WORKLOAD_PARAM --admin-username=admin --admin-password=admin"
+  export WORKLOAD_PARAM="$WORKLOAD_PARAM --admin-username=admin --admin-password=admin"
+elif [[ "$SCENARIO" == *"authentication"* ]]; then
+  export WORKLOAD_PARAM="$WORKLOAD_PARAM --realm-name=test-realm"
 else
-      export WORKLOAD_PARAM="$WORKLOAD_PARAM --client-secret=$CLIENT_SECRET"
+  export WORKLOAD_PARAM="$WORKLOAD_PARAM --client-secret=$CLIENT_SECRET"
 fi
 
 #pull latest project and build
