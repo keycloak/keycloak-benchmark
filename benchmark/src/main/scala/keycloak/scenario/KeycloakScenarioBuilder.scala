@@ -83,7 +83,7 @@ class KeycloakScenarioBuilder {
       userPassword = Config.userPassword
     }
 
-    var redirectUri = serverUrl.concat("/realms/").concat(realmName).concat("/account");
+    var redirectUri = serverUrl.stripSuffix("/").concat("/realms/").concat(realmName).concat("/account");
 
     if (Config.clientRedirectUrl != null) {
       redirectUri = Config.clientRedirectUrl;
