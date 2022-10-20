@@ -51,7 +51,9 @@ spec:
         # - -docker=unix:///var/run/docker.sock
         # - -docker=unix:///run/docker.sock
         # enable the by-default disabled 'process' metrics
-        - -disable_metrics=advtcp,cpu_topology,cpuset,hugetlb,memory_numa,referenced_memory,resctrl,sched,tcp,udp,percpu
+        # disabled 'disk' to avoid unnecessary disk metrics
+        # disabled 'percpu' to avoid unnecessary per CPU metrics
+        - -disable_metrics=advtcp,cpu_topology,cpuset,hugetlb,memory_numa,referenced_memory,resctrl,sched,tcp,udp,disk,percpu
         securityContext:
           privileged: true
         ports:
@@ -60,7 +62,6 @@ spec:
           protocol: TCP
         resources:
           limits:
-            cpu: 300m
             memory: 2000Mi
           requests:
             cpu: 150m
