@@ -6,8 +6,9 @@ metadata:
   name: keycloak
   namespace: {{ .Values.namespace }}
 spec:
-  hostname: keycloak.{{ .Values.hostname }}
-  serverConfiguration:
+  hostname:
+    hostname: keycloak.{{ .Values.hostname }}
+  additionalOptions:
 {{ if eq .Values.database "postgres" }}
     - name: db
       value: postgres
