@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Set version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec) >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - name: Set up JDK
         uses: actions/setup-java@v3
