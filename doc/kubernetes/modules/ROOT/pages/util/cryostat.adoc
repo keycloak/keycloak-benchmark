@@ -1,0 +1,40 @@
+= Capturing performance metrics with Cryostat
+:description: A user can collect performance metrics about memory allocation and CPU usage with Cryostat.
+
+{description}
+
+== About Cryostat
+
+Cryostat is Java Flight Recorder handling for Containerized Java Applications.
+
+Visit the https://cryostat.io/[Cryostat website] for more information.
+
+== Opening Cryostat
+
+Cryostat is deployed by default.
+
+Assuming the command `minikube ip` returned `192.168.39.39`, the console is available on \http://cryostat.192.168.39.39.nip.io.
+
+The URL is also shown when running the `isup.sh` shell script.
+
+== Creating a Java Flight Recorder recording
+
+* Open the Cryostat instance's website.
+* Click on the menu item menu:Recordings[].
+* Select a target VM.
+* Click on button btn:[Create] to create a new recording and follow the dialogs.
+* As the template, choose menu:Profiling[] to capture CPU and memory profiling information.
+
+Once the recording is complete, download it directly or archive it to the persistent volume of Cryostat to download it later.
+
+== Analyzing a Java Flight Recorder recording
+
+Open the recording in https://www.jetbrains.com/idea/[IntelliJ Ultimate] (the community edition isn't sufficient), or use https://jdk.java.net/jmc/8/[Java Mission Control (JMC)] version 8.
+
+When opening it in IntelliJ Ultimate, choose the menu:Profiler[] tool window, and press the button btn:[Open Snapshot].
+Choose either the tab menu:Flame Graph[] or menu:Method List[].
+In the upper right corner the user can switch between CPU and memory profiling results.
+
+When opening it in JMC, select the menu item menu:Method Profiling[] or menu:Memory[].
+Unfortunately, the flame view seems to be broken in version 8.2.1 on Fedora; it is simply blank.
+Still, the list of methods provides some value.
