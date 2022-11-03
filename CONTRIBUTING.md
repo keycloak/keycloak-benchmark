@@ -1,6 +1,6 @@
 # Keycloak Community
 
-Keycloak is an Open Source Identity and Access Management solution for modern Applications and Services. Keycloak Benchmark is the benchmarking tool supported by the Keycloak Community
+Keycloak is an Open Source Identity and Access Management solution for modern Applications and Services. Keycloak Benchmark is the benchmarking tool supported by the Keycloak Community.
 
 ## Building and working with the codebase
 
@@ -16,9 +16,9 @@ Here's a quick checklist for a good PR, more details below:
 2. One feature/change per PR
 3. One commit per PR
 4. PR rebased on main (`git rebase`, not `git pull`)
-5. Good descriptive commit message, with link to issue
+5. Good descriptive commit message, with a link to the issue
 6. No changes to code not directly related to your PR
-7. Includes documentation
+7. Updates the documentation where necessary
 
 Once you have submitted your PR please monitor it for comments/feedback. We reserve the right to close inactive PRs if
 you do not respond within 4 weeks (bear in mind you can always open a new PR if it is closed due to inactivity).
@@ -45,11 +45,13 @@ refactoring.
 
 ### Testing
 
-It would be great to test the changes locally and add a confirmation that it works would be a good show of faith to us. Right now, we have limited Github Action based checks for certain components to test the new PR related changes, which we hope to improve in the future
+It would be great to test the changes locally and add a confirmation that it works would be a good show of faith to us. There are also some RightGithub Action based checks for certain components to test the PR.
 
 ### Documentation
 
-We require contributions to include relevant documentation. Alongside your PR for code changes, prepare a PR to the [keycloak-benchmark Documentation](https://github.com/keycloak/keycloak-benchmark/doc/).
+We require contributions to include relevant documentation which is available on the [doc folder](https://github.com/keycloak/keycloak-benchmark/doc/) of the repository.
+
+Alongside your code changes, also update the docs as part of the PR.
 
 ### Submitting your PR
 
@@ -63,8 +65,7 @@ We require that you squash to a single commit. You can do this with the `git reb
 is the number of commits you want to squash. See the [Git Documentation](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History)
 for more details.
 
-The above helps us review your PR and also makes it easier for us to maintain the repository. It is also required by
-our automatic merging process.
+The above helps us review your PR and also makes it easier for us to maintain the repository.
 
 We also require that the commit message includes a link to the issue ([linking a pull request to an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue)).
 
@@ -86,7 +87,7 @@ The very last part of the commit message should be a link to the GitHub issue, w
 * Fixes: Issues in a different repository (this shouldn't be used, as issues should be created in the correct repository instead)
 * Resolves: When multiple issues are resolved (this should be avoided)
 
-Although, GitHub allows alternatives (close, closed, fix, fixed), please only use the above formats.
+Although GitHub allows alternatives (close, closed, fix, fixed), please only use the above formats.
 
 Creating multi line commit messages with `git` can be done with:
 
