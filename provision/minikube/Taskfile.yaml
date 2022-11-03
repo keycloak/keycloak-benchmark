@@ -305,7 +305,7 @@ tasks:
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
-      - bash -c 'kubectl get pods -A | grep BackOff | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
+      - bash -c 'kubectl get pods -A | grep -E "(BackOff|Error)" | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
       # wait a bit for the operator to pick up the changes
       - bash -c 'sleep 1'
       - bash -c ./isup.sh
