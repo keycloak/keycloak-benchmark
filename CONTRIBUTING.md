@@ -4,7 +4,10 @@ Keycloak is an Open Source Identity and Access Management solution for modern Ap
 
 ## Building and working with the codebase
 
-Question: Not sure if we should provide more details about this section or have the users pointed to our documentation
+Each module of the code base contains a `README.adoc` with information on how to use and build that module.
+This is a good starting point for both using and contributing to the module.
+
+Sometimes it contains the docs itself, and sometimes it links to the documentation site of the project.
 
 ## Contributing to keycloak-benchmark
 
@@ -45,7 +48,7 @@ refactoring.
 
 ### Testing
 
-It would be great to test the changes locally and add a confirmation that it works would be a good show of faith to us. There are also some RightGithub Action based checks for certain components to test the PR.
+It would be great to test the changes locally and add a confirmation that it works would be a good show of faith to us. There are also some Github Action based checks for certain components to test the PR.
 
 ### Documentation
 
