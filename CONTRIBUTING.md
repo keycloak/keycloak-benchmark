@@ -4,10 +4,14 @@ Keycloak is an Open Source Identity and Access Management solution for modern Ap
 
 ## Building and working with the codebase
 
-Each module of the code base contains a `README.adoc` with information on how to use and build that module.
-This is a good starting point for both using and contributing to the module.
-
+Each module of the code base contains a `README.adoc` file with information on how to use and build that module.
 Sometimes it contains the docs itself, and sometimes it links to the documentation site of the project.
+
+This `README.adoc` file is a good starting point for both using and contributing to the module.
+
+In addition to that, the project's website at https://www.keycloak.org/keycloak-benchmark/ is organized by components, has a navigation for each component and is fully searchable.
+
+If something is missing there, raise a GitHub issue with your question so that the documentation can be updated by the maintainers.
 
 ## Contributing to keycloak-benchmark
 
