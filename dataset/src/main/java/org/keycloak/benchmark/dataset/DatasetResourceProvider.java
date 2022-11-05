@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.DELETE;
@@ -66,6 +67,7 @@ import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
 import org.keycloak.models.utils.KeycloakModelUtils;
+import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
@@ -946,6 +948,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             // Enable service account
             if(Boolean.parseBoolean(config.getIsServiceAccountClient())) {
                 new ClientManager(new RealmManager(session)).enableServiceAccount(model);
+            }
+
+            // Set "post.logout.redirect.uris"
+            if(OIDCAdvancedConfigWrapper.fromClientModel(model).getPostLogoutRedirectUris() == null) {
+                OIDCAdvancedConfigWrapper.fromClientModel(model).setPostLogoutRedirectUris(Collections.singletonList("+"));
             }
 
             context.incClientCount();
