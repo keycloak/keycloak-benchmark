@@ -60,6 +60,10 @@ else
   export WORKLOAD_PARAM="$WORKLOAD_PARAM --client-secret=$CLIENT_SECRET"
 fi
 
+if [[ -n "$LOGOUT_PERCENTAGE" ]]; then
+  export WORKLOAD_PARAM="$WORKLOAD_PARAM --logout-percentage=$LOGOUT_PERCENTAGE"
+fi
+
 #pull latest project and build
 echo "Building '$GIT_PROJECT_NAME' branch 'main'"
 git diff
