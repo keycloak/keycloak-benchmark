@@ -1,16 +1,18 @@
-= Using CockroachDB storage
+= Using CockroachDB single node storage
 :description: The deployment of Keycloak can use a CockroachDB instance when using the new map storage.
 
 {description}
 
+As an alternative CockroachDB setup, there is also xref:./cockroach-operator.adoc[] which has more features and uses more resources.
+
 == Enabling CockroachDB storage
 
-Using a CockroachDB is available in Keycloak's new JPA map storage.
+Using a CockroachDB single node installation is available in Keycloak's new JPA map storage.
 It can be enabled via the following settings in the `.env` file in the `provision/kubernetes` folder:
 
 [source]
 ----
-KC_DATABASE=cockroach
+KC_DATABASE=cockroach-single
 KC_STORAGE=jpa
 ----
 
@@ -24,7 +26,7 @@ Every time the pod is restarted, the database is cleared.
 Keycloak connects to the CockroachDB database pod inside minikube and populates the DB schema.
 The xref:util/sqlpad.adoc[SQL Pad] allows accessing the database via the browser.
 
-image::storage/minikube-runtime-view-cockroach.dio.svg[]
+image::storage/minikube-runtime-view-cockroach-single.dio.svg[]
 
 == Verifying the setup
 
@@ -35,6 +37,8 @@ A user can test the setup by <<accessing-the-cockroachdb-console,accessing Cockr
 == Accessing the CockroachDB console
 
 Assuming the command `minikube ip` returned `192.168.39.39`, the console is available on \http://cockroach.192.168.39.39.nip.io.
+
+The username is `keycloak`, password is `pass`.
 
 include::partial$minikube-ip-change.adoc[]
 

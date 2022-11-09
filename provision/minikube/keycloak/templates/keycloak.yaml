@@ -14,11 +14,16 @@ spec:
       value: postgres
     - name: db-url
       value: jdbc:postgresql://postgres:5432/keycloak
-{{ else if eq .Values.database "cockroach" }}
+{{ else if eq .Values.database "cockroach-single" }}
     - name: db
       value: postgres
     - name: db-url
       value: jdbc:postgresql://cockroach:26257/keycloak?sslmode=disable
+{{ else if eq .Values.database "cockroach-operator" }}
+    - name: db
+      value: postgres
+    - name: db-url
+      value:  jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
 {{ else if eq .Values.database "infinispan" }}
     - name: storage-hotrod-host
       value: infinispan
@@ -169,8 +174,28 @@ spec:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
                 readOnly: true
+{{ if eq .Values.database "cockroach-operator" }}
+              - name: client-certs
+                mountPath: /cockroach/cockroach-certs
+{{ end }}
         volumes:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
-
+{{ if eq .Values.database "cockroach-operator" }}
+          - name: client-certs
+            projected:
+              sources:
+                - secret:
+                    name: cockroach-node
+                    items:
+                      - key: ca.crt
+                        path: ca.crt
+                - secret:
+                    name: cockroach-root-jdbc
+                    items:
+                      - key: tls.crt
+                        path: client.root.crt
+                      - key: tls.pk8
+                        path: client.root.key
+{{ end }}

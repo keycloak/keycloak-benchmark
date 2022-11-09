@@ -1,4 +1,4 @@
-{{ if eq .Values.database "cockroach" }}
+{{ if eq .Values.database "cockroach-operator" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,6 +6,8 @@ metadata:
     app: cockroach
   name: cockroach
   namespace: keycloak
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
 spec:
   defaultBackend:
     service:

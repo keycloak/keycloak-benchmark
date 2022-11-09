@@ -17,10 +17,17 @@ Connect to Infinispan on {{ .Values.hostname }}:30011
   user: admin
   password: admin
   Console URL: https://infinispan.{{ .Values.hostname }}/
-{{ else -}}
+{{ else if eq .Values.database "cockroach-single" -}}
 Connect to CockroachDB on {{ .Values.hostname }}:30010
   user: keycloak
   password: pass
   JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:30010/keycloak
   Console URL: https://cockroach.{{ .Values.hostname }}/
+{{ else if eq .Values.database "cockroach-operator" -}}
+Connect to CockroachDB on {{ .Values.hostname }}:30013
+  JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:30013/keycloak + TLS files in provision/minikube/crdb/
+  user: root
+  Console URL: https://cockroach.{{ .Values.hostname }}/
+  user: keycloak
+  password: pass
 {{ end -}}

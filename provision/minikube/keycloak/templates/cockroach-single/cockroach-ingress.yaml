@@ -1,0 +1,26 @@
+{{ if eq .Values.database "cockroach-single" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: cockroach
+  name: cockroach
+  namespace: keycloak
+spec:
+  defaultBackend:
+    service:
+      name: cockroach
+      port:
+        number: 8080
+  rules:
+    - host: cockroach.{{ .Values.hostname }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cockroach
+                port:
+                  number: 8080
+            path: /
+            pathType: ImplementationSpecific
+{{end}}

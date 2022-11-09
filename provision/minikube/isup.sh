@@ -9,6 +9,8 @@ else
   HOST=$0
 fi
 
+# kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
+kubectl get pods -A | grep -E "(BackOff|Error)" | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n
 
 MAXRETRIES=600
 

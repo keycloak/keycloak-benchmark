@@ -1,4 +1,4 @@
-{{ if eq .Values.database "cockroach" }}
+{{ if eq .Values.database "cockroach-operator" }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,7 +11,8 @@ spec:
   ports:
     - protocol: TCP
       port: 26257
-      nodePort: 30010
+      nodePort: 30013
   selector:
-    app: cockroach
+    app.kubernetes.io/instance: cockroach
+    app.kubernetes.io/name: cockroachdb
 {{ end }}
