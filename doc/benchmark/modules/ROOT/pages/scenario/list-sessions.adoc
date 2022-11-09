@@ -1,0 +1,112 @@
+= Scenario ListSessions
+:description: Login as an admin user with a username and password and list client and user sessions within a Realm
+
+{description}.
+
+See xref:scenario-overview.adoc[] for a list of all scenarios.
+
+== Steps of this scenario
+
+. Open the login page.
+. Login with admin username and password.
+. List the Clients.
+. Lookup a random Client and list all the User Sessions under that client.
+. List the Users.
+. Lookup a random User and list all the Client Sessions under that user.
+
+See the source code at link:{github-files}/benchmark/src/main/scala/keycloak/scenario/admin/ListSessions.scala[ListSessions.scala] for details.
+
+== Specifics about this scenario
+
+These scenarios are using the root admin account to perform realm operations with the built-in `admin-cli` client.
+
+This information is specified to the scenarios with options `--admin-username` and `--admin-password`.
+
+Usage of a service account token is irrelevant with these scenarios, because:
+
+* real-world list session operations are performed using root admin credentials
+* as the token includes all realm permissions, it would grow very fast and would quickly exceed the maximum length for header (leading to `431 Request Header Fields Too Large` responses).
+
+How does the Random lookup work from these methods getClientUUID and getUserUUID from link:{github-files}/benchmark/src/main/scala/keycloak/scenario/KeycloakScenarioBuilder.scala#24[KeycloakScenarioBuilder.scala]
+
+== Running an example scenario
+
+=== Prerequisites:
+
+* Keycloak is running.
+* Realm, user and client exist with the values listed on the CLI.
+* This scenario doesn't need any service account roles set for the client.
+
+The following scenario runs with the default settings for 30 seconds.
+
+See xref:configuration.adoc[] for additional CLI options.
+
+[source,bash]
+----
+bin/kcb.sh \
+--scenario=keycloak.scenario.admin.ListSessions \
+--server-url=http://localhost:8080/ \
+--measurement=30 \
+--username=user-0 \
+--client-id=client-0 \
+--admin-username=admin \
+--admin-password=admin \
+--log-http-on-failure
+----
+
+== Variants
+
+To List sessions from varying number of users and clients, additional pre-requisite is
+
+* Generate large data volume of users and clients using the xref:dataset-guide::using-provider.adoc[] section of the guide, an example being
+
+By using the Dataset Provider api directly,
+[source,bash]
+----
+curl https://keycloak-server/realms/master/dataset/create-realms?realm-name=realm-0&count=1&clients-per-realm=30&users-per-realm=200
+----
+or
+By using the link:{github-files}/dataset/dataset-import.sh[dataset-import.sh] script
+[source,bash]
+----
+./dataset-import.sh -r '1 5 200 1000'
+----
+
+* User the below example command to scale the users and clients randomness with a given range
+
+[source,bash]
+----
+bin/kcb.sh \
+--scenario=keycloak.scenario.admin.ListSessions \
+--server-url=http://localhost:8080/ \
+--measurement=30 \
+--users-per-realm=30 \
+--clients-per-realm=5 \
+--admin-username=admin \
+--admin-password=admin \
+--log-http-on-failure
+----
+
+== Error messages
+
+Invalid username or password::
+This could be tested manually by trying to log in as the user on the account console at ++https://{keyloak-server}/realms/{realm}/account/++.
+This could have the following reasons:
++
+* The user with the given username doesn't exist.
++
+_Remedy:_ Check that the user given on the command line or as the default exists in the given realm.
+
+* The user has a different password.
++
+_Remedy:_ Check that the user has the correct password set up.
+
+* The range provided by --users-per-realm and --clients-per-realm is larger than the seeded users and clients from the xref:dataset-guide::using-provider.adoc[] module.
++
+_Remedy:_ Check that the range is smaller for --users-per-realm and --clients-per-realm than the available users and clients.
+
+
+== Further Reading
+
+* xref:run/running-benchmark-cli.adoc[]
+
