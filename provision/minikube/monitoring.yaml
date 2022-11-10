@@ -10,6 +10,16 @@ grafana:
       enabled: false
       defaultDatasourceEnabled: false
   # values in dependent chart / https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
+  image:
+    repository: aocenas/grafana
+    tag: profiling-ds-2
+  env:
+    GF_DIAGNOSTICS_PROFILING_ENABLED: true
+    GF_DIAGNOSTICS_PROFILING_ADDR: 0.0.0.0
+    GF_DIAGNOSTICS_PROFILING_PORT: 6060
+  podAnnotations:
+    phlare.grafana.com/scrape: 'true'
+    phlare.grafana.com/port: '6060'
   grafana.ini:
     snapshots:
       external_enabled: false
@@ -17,7 +27,7 @@ grafana:
       # use --set grafana."grafana\.ini".server.root_url=... for this
       root_url: "specify-on-cli"
     feature_toggles:
-      enable: tempoSearch tempoBackendSearch
+      enable: tempoSearch tempoBackendSearch flameGraph
     auth.anonymous:
       enabled: true
       org_role: Admin
@@ -38,6 +48,10 @@ grafana:
           exemplarTraceIdDestinations:
             - datasourceUid: PC9A941E8F2E49454
               name: trace_id
+      - name: Phlare
+        type: phlare
+        uid: phlare-test
+        url: http://phlare:4100/
       #- name: Tempo
       #  uid: P214B5B846CF3925F
       #  type: tempo

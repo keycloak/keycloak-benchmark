@@ -97,6 +97,7 @@ tasks:
       - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       - helm repo update
       - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --version 39.11.0 -f monitoring.yaml --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io --set prometheus.prometheusSpec.retention={{.KB_RETENTION}}
+      - helm -n monitoring upgrade --install phlare grafana/phlare --version 0.1.0
     sources:
       - monitoring.yaml
       - .task/subtask-{{.TASK}}.yaml
