@@ -1,0 +1,47 @@
+= Keycloak under load
+:description: This topic describes how Keycloak behaves under a high load.
+
+{description}
+It also offers configuration best practices to prepare Keycloak for a high load.
+
+== Database connections
+
+Creating new database connections is expensive as it takes time.
+Creating them when a request arrives will delay the response, so it is good to have them created before the request arrives.
+It can also contribute to a https://en.wikipedia.org/wiki/Cache_stampede[stampede effect] where creating a lot of connections in a short time makes things worse as it slows down the system and blocks threads.
+Closing a connection also invalidates all service side statements caching for that connection.
+
+include::partial$configure-db-connection-pool-best-practices.adoc[]
+
+See xref:customizing-deployment.adoc#KC_DB_POOL_INITIAL_SIZE[the Keycloak deployment configuration options `KC_DB_*`]
+
+== Threads
+
+Starting with Keycloak 20.0.0 and running Quarkus, all Keycloak requests are dispatched to the executor pool of Quarkus (see https://github.com/keycloak/keycloak/pull/15193[keycloak#15193]).
+
+Before that change, regular Keycloak requests were handled on the Vert.x worker pool and could therefore exhaust it, the liveness probe could fail, and Keycloak pods would restart under a high load.
+
+Since this change, the threads behave as follows:
+
+* All Keycloak requests are handled on the Quarkus executor pool.
+This is configured in https://quarkus.io/guides/all-config#quarkus-core_quarkus.thread-pool.max-threads[`quarkus.thread-pool.max-threads`] and has a maximum size of at least 200 threads.
+Depending on the available CPU cores it can grow even larger.
+Threads are created as needed, and will end when no longer needed, so the system will scale up and down as needed.
++
+When the load and the number of threads increases, the bottleneck will usually be the database connections.
+Once a request can't acquire a database connection, it will fail with a message in the log like `Unable to acquire JDBC Connection` or similar as described in xref:error-messages.adoc#keycloak-message-error-failed-to-obtain-jdbc-connection[the known error messages].
+The caller will receive a response with a 5xx HTTP status code indicating a server side error.
++
+With the number of threads in the executor pool being an order of magnitude larger than the number of database connections and with requests failing when no database connection is available within the https://quarkus.io/guides/all-config#quarkus-agroal_quarkus.datasource.jdbc.acquisition-timeout[`quarkus.datasource.jdbc.acquisition-timeout`] (5 seconds default), this is an effective https://en.wikipedia.org/wiki/Demand_response#Load_shedding[load-shedding behavior] where it returns an error response instead of queueing requests for an indefinite amount of time.
++
+There should be no need to configure a specific value for these configuration options.
+
+* All health and liveness probes are handled in the Vert.x worker pool.
+This is configured in https://quarkus.io/guides/all-config#quarkus-vertx_quarkus.vertx.worker-pool-size[`quarkus.vertx.worker-pool-size`] and has a default of 20 threads.
+As it is independent of requests queueing up in the executor pool, health and liveness will still be handled fast and without a delay, so it is safe to use them in Kubernetes without having pods restarted under a high load.
++
+There should be no need to configure a specific value for this.
+
+In order for Java to create threads, when running on Linux it needs to have file handles available.
+Therefore, the number of open files (as retrieved as `ulimit -n` on Linux) need to provide head-space for Keycloak to increase the number of threads needed.
+Each thread will also consume memory, and the container memory limits need to be set to a value that allows for this or the pod will be killed by Kubernetes.

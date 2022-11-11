@@ -4,17 +4,33 @@
 
 {description}
 
-== Keycloak fails to start with message `ERROR: Failed to obtain JDBC connection`
+[#keycloak-message-error-failed-to-obtain-jdbc-connection]
+== Keycloak message `ERROR: Failed to obtain JDBC connection`
 
 Context::
 This error message can appear when running Keycloak with a relational database like PostgreSQL or CockroachDB.
++
+Similar other error messages:
++
+--
+* "`Unable to acquire JDBC Connection`"
+* "`Sorry, acquisition timeout!`"
+--
++
+This might happen during the startup and then the startup fails.
+It might also happen during a load test when Keycloak creates new database connections.
 
 Cause::
 The database is either not started, or the number of database connections is exhausted in the current setup.
 
 Remedy::
-* Ensure that the database is running
+* Ensure that the database is running.
+* Ensure that the database didn't restart, for example, due to an out-of-memory problem.
 * Ensure that the number of DB connections in total doesn't exceed the maximum number of connections of the database.
 See xref:customizing-deployment.adoc#KC_DB_POOL_INITIAL_SIZE[the Keycloak deployment configuration options `KC_DB_*`] for details.
+* Ensure that Keycloak doesn't try to use more connections than configured as maximum numbers of connections.
 
-
+Caution::
+* Under high load, the number of database connections is usually the constraint of the system.
+Having Keycloak running into a "`Sorry, acquisition timeout`" and returning an HTTP 5xx code to the caller is a sensible load shedding mechanism.
+See xref:load-behavior.adoc[] for details.
