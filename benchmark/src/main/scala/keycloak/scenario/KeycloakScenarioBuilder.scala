@@ -679,9 +679,9 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def getUserSessions(): KeycloakScenarioBuilder = {
+  def getUserSessionsForClient(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("user-sessions")
+      .exec(http("List user sessions for a client")
         .get(ADMIN_ENDPOINT + "/clients/${clientUUID}/user-sessions")
         .header("Authorization", "Bearer ${token}")
         .header("Accept-Encoding", "application/json")
@@ -690,9 +690,9 @@ class KeycloakScenarioBuilder {
     this
   }
 
-  def getSessions(): KeycloakScenarioBuilder = {
+  def getUserSessionsForUser(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .exec(http("sessions")
+      .exec(http("List user sessions for a user")
         .get(ADMIN_ENDPOINT + "/users/${userUUID}/sessions")
         .header("Authorization", "Bearer ${token}")
         .header("Accept-Encoding", "application/json")

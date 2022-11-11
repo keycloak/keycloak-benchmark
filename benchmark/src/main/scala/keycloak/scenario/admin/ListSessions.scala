@@ -7,10 +7,10 @@ class ListSessions extends CommonSimulation {
 
   setUp("List client and user sessions", new KeycloakScenarioBuilder()
     .adminCliToken()
-    .getClientUUID()
     .getClientSessionStats()
-    .getUserSessions()
+    .getClientUUID()
+    .getUserSessionsForClient()
     .getUserUUID()
-    .getSessions()
+    .getUserSessionsForUser()
   )
 }
