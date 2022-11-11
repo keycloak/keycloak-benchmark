@@ -554,6 +554,21 @@ class KeycloakScenarioBuilder {
     this
   }
 
+  def getClientUUID(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List Clients and get a Client UUID")
+        .get(ADMIN_ENDPOINT + "/clients?clientId=${clientId}")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("first",0)
+        .queryParam("max", 1)
+        .check(
+          status.is(200))
+        .check(jsonPath("$[0].id").notNull.saveAs("clientUUID"))
+      )
+      .exitHereIfFailed
+    this
+  }
+
   def viewPagesOfUsers(pageSize: Int, numberOfPages: Int): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .repeat(numberOfPages, "page") {
@@ -603,6 +618,21 @@ class KeycloakScenarioBuilder {
     this
   }
 
+  def getUserUUID(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List Users and get a User UUID")
+        .get(ADMIN_ENDPOINT + "/users?username=${username}&exact=true")
+        .header("Authorization", "Bearer ${token}")
+        .queryParam("first", 0)
+        .queryParam("max", 1)
+        .check(
+          status.is(200))
+        .check(jsonPath("$[0].id").notNull.saveAs("userUUID"))
+      )
+      .exitHereIfFailed
+    this
+  }
+
   def deleteUser(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("Delete User")
@@ -634,6 +664,39 @@ class KeycloakScenarioBuilder {
           .queryParam("max", "1")
           .check(status.is(200))
           .check(jsonPath("$[0].id").notNull.saveAs("group-id")))
+      .exitHereIfFailed
+    this
+  }
+
+  def getClientSessionStats(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("client-session-stats")
+        .get(ADMIN_ENDPOINT + "/client-session-stats")
+        .header("Authorization", "Bearer ${token}")
+        .header("Accept-Encoding", "application/json")
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def getUserSessionsForClient(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List user sessions for a client")
+        .get(ADMIN_ENDPOINT + "/clients/${clientUUID}/user-sessions")
+        .header("Authorization", "Bearer ${token}")
+        .header("Accept-Encoding", "application/json")
+        .check(status.is(200)))
+      .exitHereIfFailed
+    this
+  }
+
+  def getUserSessionsForUser(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("List user sessions for a user")
+        .get(ADMIN_ENDPOINT + "/users/${userUUID}/sessions")
+        .header("Authorization", "Bearer ${token}")
+        .header("Accept-Encoding", "application/json")
+        .check(status.is(200)))
       .exitHereIfFailed
     this
   }
