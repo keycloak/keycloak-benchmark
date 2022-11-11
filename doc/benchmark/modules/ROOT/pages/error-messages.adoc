@@ -1,0 +1,23 @@
+= Error messages and remedies for Benchmarks
+:navtitle: Error messages and remedies
+:description: This describes common error messages and their remedies when running the Gatling Keycloak Benchmark.
+
+{description}
+
+== Benchmark fails with a message `SSLHandshakeException`
+
+Context::
+This error message appeared when using a TLS reverse proxy in front of Keycloak (see issue https://github.com/keycloak/keycloak-benchmark/issues/191[keycloak/keycloak-benchmark#191]).
+
+Cause::
+In the specific setup, the reverse proxy was running on the hostname `localhost`.
+Java will only send a server name indicator (SNI) when the hostname contains a dot, see https://gamlor.info/posts-output/2019-09-05-java-client-sni/en/[Gamlor`'s blog post "`Missing SNI with Java's HTTPS client`"], and the reverse proxy depended on that SNI.
++
+Further analysis:
++
+* `+openssl s_client -connect localhost:443+` connected and then immediately dropped the connection as no SNI is sent.
+* `+openssl s_client -connect localhost:8443 -servername localhost+` connected as expected, as the SNI matches the hostname in the reverse proxy`'s command line.
+
+Remedy::
+* Instead of using `localhost`, use `localhost.localdomain` as the target for the load test and the configured host in the TLS reverse proxy.
+* Alternatively, or use a custom hostname in the `hosts` file that maps to the IP address `127.0.0.1`, and configure this for the lost test and the TLS reverse proxy.
