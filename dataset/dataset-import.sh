@@ -5,7 +5,7 @@ set -e
 ### DATASET PROVIDER - KEYCLOAK REST API SERVICE ###
 
 create_realms () {
-  if [[ $1 =~ "--" ]]
+  if [ $# -eq 0 ]
   then
     REALM_COUNT=1
   else
@@ -106,7 +106,9 @@ main () {
 
   case "$1" in
     -r|--create-realms)
-      create_realms $2 $3 $4 $5
+      shift 2
+      # shellcheck disable=SC2068
+      create_realms ${@:2}
       exit 0
       ;;
     -c|--create-clients)
