@@ -13,6 +13,7 @@ vars:
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
   KC_STORAGE: '{{default "" .KC_STORAGE}}'
   KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
+  KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
 
 dotenv: ['.env']
 
@@ -74,6 +75,7 @@ tasks:
       - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
       - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
       - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
+      - echo {{.KC_CONTAINER_IMAGE}} > .task/var-KC_CONTAINER_IMAGE
       - echo {{.KC_STORAGE}} > .task/var-KC_STORAGE
       - echo {{.KC_DATABASE}} > .task/var-KC_DATABASE
     run: once
@@ -297,6 +299,7 @@ tasks:
         --set db-pool-max-size={{.KC_DB_POOL_MAX_SIZE}}
         --set storage={{.KC_STORAGE}}
         --set database={{.KC_DATABASE}}
+        --set keycloakImage={{.KC_CONTAINER_IMAGE}}
         keycloak
       - >
         bash -c '
@@ -310,7 +313,9 @@ tasks:
       - bash -c 'sleep 1'
       - bash -c ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
+      - minikube ssh -- docker container prune -f
       - minikube ssh -- docker image prune -f
+      - minikube ssh -- docker volume prune -f
     sources:
       - keycloak/**/*.*
       - .task/subtask-{{.TASK}}.yaml

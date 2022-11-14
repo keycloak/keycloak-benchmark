@@ -1,0 +1,64 @@
+= Using a custom Keycloak image for deployment in Kubernetes
+:navtitle: Using a custom Keycloak image
+:description: Use a custom image an external registry or a locally built image and run this in Kubernetes.
+
+{description}
+A running version of xref:installation.adoc[Keycloak within Minikube] is a prerequisite.
+
+== Overview
+
+Depending on the operator being used, it will pull a default image from the Keycloak's Quay.io registry.
+When running the nightly operator of Keycloak, it uses the nightly build of Keycloak.
+A specific version of the operator like, for example, 20.0.0, will use the version 20.0.0 of Keycloak.
+
+== Use a custom image available in a remote registry
+
+To change this, edit the environment file `.env` to contain the following:
+
+.Example entry in the `.env` file
+----
+KC_CONTAINER_IMAGE=quay.io/keycloak/keycloak:20.0.1
+----
+
+== Building a custom Keycloak image and using it
+
+. Check out https://github.com/keycloak/keycloak[Keycloak's Git repository].
+. Build using `mvn clean install -DskipTests` to create a `keycloak-999-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
+. Configure the environment.
++
+.Example entry in the `.env` file
+----
+KC_CONTAINER_IMAGE=localhost/keycloak:local
+----
++
+To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
+. Build the container, either with podman or with docker.
++
+.When running podman
+[source,bash]
+----
+cd quarkus/container
+cp ../dist/target/keycloak-*.tar.gz .
+podman build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t keycloak:local
+podman image save keycloak:local | minikube image load --overwrite=true -
+----
++
+.When running docker
+[source,bash]
+----
+cd quarkus/container
+cp ../dist/target/keycloak-*.tar.gz .
+eval $(minikube docker-env)
+docker build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t localhost/keycloak:local
+----
++
+. Run `task` as usual to deploy the image.
++
+[source]
+----
+task
+----
+
+== Further reading
+
+Once the image has been deployed, it can be debugged. See xref:./debugging-keycloak.adoc[] for details.

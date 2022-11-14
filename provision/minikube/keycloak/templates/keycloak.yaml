@@ -86,6 +86,13 @@ spec:
               - -c
               - curl -f -L https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.15.0/opentelemetry-javaagent.jar -o /tmp/opentelemetry-javaagent.jar && /opt/keycloak/bin/kc.sh start --auto-build
 {{ end }}
+{{ if .Values.keycloakImage }}
+            # don't pass the image to the operator as it would assume it is an already augmented image and would not re-augmentate it again
+            image: {{ .Values.keycloakImage }}
+{{ end }}
+{{ if hasPrefix "localhost/" .Values.keycloakImage }}
+            imagePullPolicy: Never
+{{ end }}
             env:
 {{ if .Values.otel }}
               # https://github.com/open-telemetry/opentelemetry-java-instrumentation
