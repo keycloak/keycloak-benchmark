@@ -204,6 +204,13 @@ tasks:
     status:
       - test -f keycloak/providers/keycloak-benchmark-dataset-*.jar
 
+  dataset-import:
+    deps:
+      - gatlinguser
+    cmds:
+      - bash -c "../../dataset/dataset-import.sh {{.CLI_ARGS}}"
+    silent: true
+
   tlsdisableagent:
     deps:
       - split

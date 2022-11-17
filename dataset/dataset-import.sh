@@ -50,6 +50,12 @@ dataset_provider_status () {
   echo ""
 }
 
+dataset_provider_status_completed () {
+  echo "Dataset provider status of the last completed task"
+  curl -ks "${KEYCLOAK_URI}status-completed"
+  echo ""
+}
+
 check_dataset_status () {
   for i in {0..10}
   do
@@ -93,13 +99,14 @@ help () {
   echo "5) create offline sessions in specific realm: -o | --create-offline-sessions '100 realm-0'"
   echo "6) delete specific realm/s with prefix -d | --delete-realms realm"
   echo "7) dataset provider status -s | --status"
-  echo "8) dataset import script usage -h | --help"
+  echo "8) dataset provider status --status-completed"
+  echo "9) dataset import script usage -h | --help"
 }
 
 main () {
   KEYCLOAK_URI="https://keycloak.$(minikube ip).nip.io/realms/master/dataset/"
   SHORT_ARGS=r::,c:,u:,e:,o:,d:,s,h
-  LONG_ARGS=create-realms::,create-clients:,create-users:,create-events:,create-offline-sessions:,delete-realms:,help,status
+  LONG_ARGS=create-realms::,create-clients:,create-users:,create-events:,create-offline-sessions:,delete-realms:,help,status,status-completed
   ARGS=$(getopt -a -n dataset-import -o ${SHORT_ARGS} -l ${LONG_ARGS} -- "$@")
 
   eval set -- "$ARGS"
@@ -135,6 +142,10 @@ main () {
       dataset_provider_status
       exit 0
       ;;
+    --status-completed)
+    dataset_provider_status_completed
+    exit 0
+    ;;
     -h|--help)
       help
       exit 0
