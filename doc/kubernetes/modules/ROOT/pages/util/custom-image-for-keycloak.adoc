@@ -11,6 +11,10 @@ Depending on the operator being used, it will pull a default image from the Keyc
 When running the nightly operator of Keycloak, it uses the nightly build of Keycloak.
 A specific version of the operator like, for example, 20.0.0, will use the version 20.0.0 of Keycloak.
 
+This setup doesn't use the `image` property in the custom resource as that would ignore build time options and the re-augmentation of the image.
+Instead, it uses `image` property in the `podTemplate` to overwrite the image.
+This setup should make it simpler for developers to try out their locally built images.
+
 == Use a custom image available in a remote registry
 
 To change this, edit the environment file `.env` to contain the following:
