@@ -1,0 +1,97 @@
+= Automation using the tool _task_
+:description: Few details around the Automation related to provisioning and configuration of the Kubernetes deployment.
+
+{description}
+
+== Why _this_ Automation tool
+
+There are several dependencies that need to be built and executed in the right order, for this Kubernetes provisioning to work properly.
+To simplify upgrades and fast iterations during development, all steps and dependencies have been scripted using https://taskfile.dev/installation/#get-the-binary[_task_].
+Think of this tool as a modern version of _make_ that allows simple check-summing of input files and parallel execution of tasks.
+
+== How does the _task_ tool work
+
+All tasks are described in the `Taskfile.yaml` file.
+If one of the commands in a task fails, the whole task fails.
+If there are parallel tasks running and one of the tasks fails, _task_ kills the other tasks running in parallel.
+
+For environment-specific settings, add a `.env` file with the contents necessary for your environment.
+
+== Now some _task_ commands in action
+
+The following list shows some command line examples:
+
+`task`::
+Executes the `default` task, which updates the minikube installation with the latest changes.
+Run it after every local change to a file, or after pulling changes from upstream via git.
+
+`task -f`::
+Executes the `default` task, but execute all tasks event if no source file has been changed.
+Run it after minikube has been re-created.
+
+`task <taskname>`::
+Execute a specific task from the `Taskfile.yaml`.
+Most tasks are set up to run only when modified, so task might reply with `task: Task "<taskname>" is up to date`.
+To force execution of a task, add the `-f` flag.
+This executes both the task and its dependencies.
+
+`task <var>=<value>`::
+Set a variable with a specific value, then run the task.
+Use it for example to set the storage type in a one-off run: `task KC_STORAGE=jpa`.
+
+`task --dry`::
+Show which tasks would be executed.
+Run it to see what commands _task_ would execute on the next run.
+Can be combined with a task name and the `-f` flag.
+
+`task <taskname> \-- <cli_args>`::
+Execute a specific task from the `Taskfile.yaml` by passing through the command line args that would be needed by the task file. This allows the users to re-use their shell scripts or other programs without having to re-implement them in the specific task.
++
+An Example of such task would be to find out the last completed job of the Dataset provider,
++
+[source,subs="+quotes"]
+----
+task dataset-import -- --status-completed
+----
+
+`task -C 1`::
+Start in single-threaded mode, which might help analyzing problems, as the output won't be mixed.
+Use this option to debugging task descriptions.
+Can be combined with a task name.
++
+[WARNING]
+====
+There seems to be an open bug that can lead to deadlocks, see https://github.com/go-task/task/issues/715[go-task/task#715].
+
+Until this has been fixed, whenever running with the parameter `-C 1`, comment out all `run: once` and `run: when_changed` within the task file.
+Previous attempts to remove those statements temporarily lead to problems as those tasks were executed multiple times in parallel.
+====
+
+`task -h`::
+Start in single-threaded mode, which might help analyzing problems, as the output won't be mixed.
+Use this option to find out more about task.
+Can be combined with a task name.
+
+Find out more about this tool on its homepage that includes its manual: https://taskfile.dev/
+
+=== Analyzing a failed _task_ run
+
+To analyze a failed run, proceed as follows:
+
+. Identify the failed task by looking at the last line
+. Scroll upwards to find the last executed command of that task and the output of that command.
+
+Example output that failed when executing a `kubectl` command in the `keycloak` task:
+
+[source,subs="+quotes"]
+----
+task: **[keycloak]** kubectl create namespace keycloak || true
+**[keycloak]** The connection to the server localhost:8080 was refused - did you specify the right host or port?
+task: **[keycloak]** kubectl -n keycloak apply ...
+**[keycloak]** The connection to the server localhost:8080 was refused - did you specify the right host or port?
+[tlsdisableagent] [INFO] Scanning for projects...
+[tlsdisableagent] [INFO]
+[tlsdisableagent] [INFO] ------------...
+...
+task: Failed to run task "**keycloak**": exit status 1
+----

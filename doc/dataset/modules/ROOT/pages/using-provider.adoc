@@ -18,6 +18,9 @@ For the Wildfly distribution, the URL starts with `/auth/realms/master`.
 
 This script contains a subset of the operations described in the next sections around realms, users and clients.
 
+The script assumes that the dataset provider is installed as described in xref:kubernetes-guide::installation.adoc[] setup and that it is available at +
+`++https://keycloak.$(minikube ip).nip.io/realms/master/dataset/++`.
+
 Run the following command to receive a help description:
 
 ----
@@ -44,6 +47,20 @@ Example of creating 10 new realms:
 ----
 ./dataset_import.sh -r 10
 ----
+
+Alternatively, the user could also run the link:{github-files}/provision/minikube/Taskfile.yaml[Taskfile] from within the provision/minikube module to execute the `dataset-import` task, to seamlessly execute the automation for Kubernetes style deployments.
+
+The `dataset-import` task re-uses the command line arguments defined above to make it convenient for the user.
+Note the two dashes (`--`) that separate the task name from the command line options passed to the script.
+
+[source,bash]
+----
+task dataset-import -- -r 10
+----
+
+To learn more about the tool, see xref:kubernetes-guide::util/task.adoc[] for details.
+
+== Dataset Provider APIs
 
 === Create many realms
 
