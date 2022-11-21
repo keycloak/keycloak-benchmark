@@ -14,11 +14,11 @@ See xref:storage-configurations.adoc[] to see which storage options are availabl
 
 To change the default, create an `.env` in the `provision/minikube` folder.
 
-An example configuration as below enables CockroachDB and the map storage with JPA.
+An example configuration as below enables CockroachDB single node and the map storage with JPA.
 
 [source]
 ----
-KC_DATABASE=cockroach
+KC_DATABASE=cockroach-single
 KC_STORAGE=jpa
 ----
 
@@ -28,7 +28,7 @@ As an alternative way the parameters can be passed on the command line of the ta
 
 [source,bash]
 ----
-task KC_STORAGE="jpa" KC_DATABASE="cockroach"
+task KC_STORAGE="jpa" KC_DATABASE="cockroach-single"
 ----
 
 == Available Keycloak configuration options
@@ -48,9 +48,13 @@ Available options:
 +
 See xref:storage/postgres.adoc[] for more information.
 
-* `cockroach` -- deploy a single-node CockroachDB instance.
+* `cockroach-single` -- deploy a single-node CockroachDB instance.
 +
-See xref:storage/cockroach.adoc[] for more information.
+See xref:storage/cockroach-single.adoc[] for more information.
+
+* `cockroach-operator` -- deploy a multi-node CockroachDB instance using the CockroachDB operator.
++
+See xref:storage/cockroach-operator.adoc[] for more information.
 
 * `infinispan` -- deploy a single-node Infinispan instance.
 +
@@ -75,7 +79,7 @@ This requires `KC_DATABASE` to be set to `postgres`.
 * `jpa` -- deploys Keycloak with the new map store configured for JPA.
 This requires `KC_DATABASE` to be set to `postgres` or `cockroach`.
 +
-See xref:storage/postgres.adoc[] or xref:storage/cockroach.adoc[] for more information.
+See xref:storage/postgres.adoc[], xref:storage/cockroach-single.adoc[] or xref:storage/cockroach-operator.adoc[] for more information.
 
 * `hotrod` -- deploys Keycloak with the new map store configured for HotRod.
 This requires `KC_DATABASE` to be set to `infinispan`.

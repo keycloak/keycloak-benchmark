@@ -49,7 +49,9 @@ jobs:
         uses: manusa/actions-setup-minikube@v2.7.1
         with:
           minikube version: 'v1.27.0'
-          kubernetes version: 'v1.25.0'
+          # stay on v1.24.x and not upgrade to v1.25.x until https://github.com/cockroachdb/cockroach-operator/issues/928 is resolved
+          # the version of Kubernetes needs to be in-sync with `rebuild.sh`
+          kubernetes version: 'v1.24.7'
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
           start args: --memory 4096
@@ -59,9 +61,11 @@ jobs:
           PATH=$PATH:$GITHUB_WORKSPACE/bin
           ./rebuild.sh
           task # default configuration PostgreSQL and legacy store
-          task KC_DATABASE=cockroach KC_STORAGE=jpa
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa
           task KC_DATABASE=infinispan KC_STORAGE=hotrod
           task KC_DATABASE=none KC_STORAGE=chm
+          # minimal testing for storage cockroach-operator, as GitHub actions doesn't have enough resources for this
+          helm template --debug keycloak --set hostname=minikube.nip.io --set storage=cockroach-operator
           kubectl get pods -A
           kubectl get events -A
       - name: Show logs on failure
@@ -69,5 +73,6 @@ jobs:
         working-directory: provision/minikube
         run: |
           kubectl get pods -A
+          kubectl get pods -A -o yaml
           kubectl get events -A
 

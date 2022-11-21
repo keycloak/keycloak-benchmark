@@ -1,0 +1,17 @@
+{{ if eq .Values.database "cockroach-single" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: cockroach-nodeport
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: cockroach
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 26257
+      nodePort: 30010
+  selector:
+    app: cockroach
+{{ end }}

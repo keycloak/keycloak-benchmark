@@ -48,8 +48,14 @@ tasks:
       - split
     cmds:
       - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0"
+      - >
+        bash -c '
+        if [ "{{.KC_DATABASE}}" == "cockroach-single" ];
+        then kubectl delete deployment/cockroach -n keycloak || exit 0;
+        fi'
       - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
       - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
+      - ./init-database.sh {{.KC_DATABASE}} reset
       # discard status of keycloak to force redeployment
       - rm -f .task/checksum/keycloak
       # discard status of gatling user to force redeployment
@@ -303,7 +309,11 @@ tasks:
         keycloak
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" != "none" ];
+        if [ "{{.KC_DATABASE}}" == "cockroach-operator" ];
+        then kubectl -n keycloak -o yaml get crdbclusters.crdb.cockroachlabs.com/cockroach > .task/status-{{.TASK}}-db.json;
+        elif [ "{{.KC_DATABASE}}" == "cockroach-single" ];
+        then kubectl get deployment/cockroach -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        elif [ "{{.KC_DATABASE}}" != "none" ];
         then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
@@ -311,7 +321,8 @@ tasks:
       - bash -c 'kubectl get pods -A | grep -E "(BackOff|Error)" | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
       # wait a bit for the operator to pick up the changes
       - bash -c 'sleep 1'
-      - bash -c ./isup.sh
+      - ./init-database.sh {{.KC_DATABASE}}
+      - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
       - minikube ssh -- docker container prune -f
       - minikube ssh -- docker image prune -f

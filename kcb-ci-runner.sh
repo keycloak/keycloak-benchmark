@@ -16,7 +16,7 @@ if $RESET_KEYCLOAK; then
   elif [ "$KEYCLOAK_STORAGE" = "ConcurrentHashMap-Map" ]; then
     task reset-keycloak KC_STORAGE="chm"
   elif [ "$KEYCLOAK_STORAGE" = "JPA-Map-CockroachDB" ]; then
-    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach"
+    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach-single"
   elif [ "$KEYCLOAK_STORAGE" = "HotRod-Map" ]; then
     task reset-keycloak KC_STORAGE="hotrod" KC_DATABASE="infinispan"
   else

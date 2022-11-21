@@ -1,4 +1,4 @@
-{{ if eq .Values.database "cockroach" }}
+{{ if eq .Values.database "cockroach-single" }}
 {{ if .Values.monitoring }}
 apiVersion: v1
 kind: ConfigMap
@@ -6,6 +6,6 @@ metadata:
   name: cockroach
   namespace: {{ .Values.namespace }}
 data:
-{{ (.Files.Glob "config/cockroach-initdb.sql").AsConfig | indent 2 }}
+{{ (.Files.Glob "config/cockroach-initdb-insecure.sql").AsConfig | indent 2 }}
 {{ end }}
 {{ end }}

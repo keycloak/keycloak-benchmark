@@ -1,4 +1,4 @@
-{{ if eq .Values.database "cockroach" }}
+{{ if eq .Values.database "cockroach-single" }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -21,7 +21,7 @@ spec:
       labels:
         app: cockroach
       annotations:
-        checksum: {{ include (print $.Template.BasePath "/cockroach/cockroach-configmap.yaml") . | sha256sum }}
+        checksum: {{ include (print $.Template.BasePath "/cockroach-single/cockroach-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - image: cockroachdb/cockroach:latest-v22.1
