@@ -55,15 +55,73 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
           start args: --memory 4096
-      - name: Provision everything
+      - name: Provision Legacy store on PostgreSQL DB
         working-directory: provision/minikube
         run: |
           PATH=$PATH:$GITHUB_WORKSPACE/bin
           ./rebuild.sh
-          task # default configuration PostgreSQL and legacy store
+          task KC_DATABASE=postgres KC_STORAGE=
+          kubectl get pods -A
+          kubectl get events -A
+      - name: Create Dataset on Postgres Legacy Store
+        working-directory: provision/minikube
+        run: |
+          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- --clear-status-completed
+          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -r '1 5 5 1000'
+          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- --status-completed
+      - name: Provision JPA Map store on PostgreSQL DB
+        working-directory: provision/minikube
+        run: |
+          PATH=$PATH:$GITHUB_WORKSPACE/bin
+          task KC_DATABASE=postgres KC_STORAGE=jpa
+      - name: Create Dataset on Postgres JPA Map Store
+        working-directory: provision/minikube
+        run: |
+          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- --clear-status-completed
+          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- -r '1 5 5 1000'
+          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- --status-completed
+      - name: Provision JPA Map store on Cockroach DB Single Node
+        working-directory: provision/minikube
+        run: |
+          PATH=$PATH:$GITHUB_WORKSPACE/bin
           task KC_DATABASE=cockroach-single KC_STORAGE=jpa
+          kubectl get pods -A
+          kubectl get events -A
+      - name: Create Dataset on Cockroach JPA Map Store
+        working-directory: provision/minikube
+        run: |
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- --clear-status-completed
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -r '1 5 5 1000'
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- --status-completed
+      - name: Provision JPA Map store on Hotrod (In-Memory store)
+        working-directory: provision/minikube
+        run: |
+          PATH=$PATH:$GITHUB_WORKSPACE/bin
           task KC_DATABASE=infinispan KC_STORAGE=hotrod
+          kubectl get pods -A
+          kubectl get events -A
+      - name: Create Dataset on Infinispan Hotrod Store
+        working-directory: provision/minikube
+        run: |
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- --clear-status-completed
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -r '1 5 5 1000'
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- --status-completed
+      - name: Provision JPA Map store on CHM (File store)
+        working-directory: provision/minikube
+        run: |
+          PATH=$PATH:$GITHUB_WORKSPACE/bin
           task KC_DATABASE=none KC_STORAGE=chm
+          kubectl get pods -A
+          kubectl get events -A
+      - name: Create Dataset on CHM Store
+        working-directory: provision/minikube
+        run: |
+          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- --clear-status-completed
+          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -r '1 5 5 1000'
+          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- --status-completed
+      - name: Provision Cockroach Operator minimally
+        working-directory: provision/minikube
+        run: |
           # minimal testing for storage cockroach-operator, as GitHub actions doesn't have enough resources for this
           helm template --debug keycloak --set hostname=minikube.nip.io --set storage=cockroach-operator
           kubectl get pods -A
@@ -75,4 +133,3 @@ jobs:
           kubectl get pods -A
           kubectl get pods -A -o yaml
           kubectl get events -A
-
