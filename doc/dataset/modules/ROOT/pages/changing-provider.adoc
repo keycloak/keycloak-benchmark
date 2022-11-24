@@ -18,7 +18,18 @@ The recommended setup is to first complete the guide xref:installation/installat
 
 Developing the provider against Keycloak Wildfly, or with a locally running instance of Keycloak Quarkus is possible as well, still it is not part of this guide today.
 
-== Preparing changes to the provider
+== Preparing changes using the local setup
+
+After opening the Keycloak Benchmark project in an IDE, proceed as follows to implement new or changed requirements:
+
+. Change the source code in `/dataset/src` as needed.
+. Start the test class `DeploymentIT` from the IDE from the module's file path.
+It will package the provider and install into a Quarkus instance of Keycloak.
+. Open \http://localhost:8080 to interact with Quarkus, and use remote-debugging.
+. Remote debugging is available on port 8787, and test the xref:using-provider.adoc#dataset-provider-apis[provider's REST APIs].
+. Repeat from step 1 until the requirements are satisfied.
+
+== Preparing changes using the Minikube setup
 
 After opening the Keycloak Benchmark project in an IDE, proceed as follows to implement new or changed requirements:
 
