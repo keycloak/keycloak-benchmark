@@ -112,6 +112,7 @@ spec:
           ports:
             - containerPort: 3000
               protocol: TCP
+{{ if eq .Values.database "cockroach-operator" }}
           volumeMounts:
             - name: client-certs
               mountPath: /cockroach/cockroach-certs/
@@ -132,6 +133,7 @@ spec:
                     - key: tls.key
                       path: client.root.key
             defaultMode: 256
+{{ end }}
       restartPolicy: Always
 ---
 apiVersion: v1
