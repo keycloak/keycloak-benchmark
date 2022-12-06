@@ -1807,7 +1807,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1849,10 +1850,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(base_gc_time_total_seconds{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}[$__rate_interval])",
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}[$__rate_interval])",
           "format": "time_series",
           "instant": false,
-          "legendFormat": "{{pod}} : {{name}}",
+          "legendFormat": "{{pod}} - jvm gc seconds total",
           "range": true,
           "refId": "A"
         }
@@ -1903,7 +1904,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1945,10 +1947,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(base_gc_total{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}[$__rate_interval])",
+          "expr": "rate(jvm_gc_pause_seconds_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}[$__rate_interval])",
           "format": "time_series",
           "instant": false,
-          "legendFormat": "{{pod}} - {{name}}",
+          "legendFormat": "{{pod}} - jvm gc count total",
           "range": true,
           "refId": "A"
         }
@@ -1999,7 +2001,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2040,8 +2043,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "base_memory_usedHeap_bytes{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
-          "legendFormat": "{{pod}} : {{__name__}}",
+          "expr": "(sum(jvm_memory_used_bytes{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\",area=\"heap\"}) by (pod))",
+          "legendFormat": "{{pod}} - total heap used",
           "range": true,
           "refId": "A"
         },
@@ -2051,14 +2054,14 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "base_memory_committedHeap_bytes{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
+          "expr": "sum(jvm_memory_committed_bytes{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\",area=\"heap\"}) by (pod)",
           "hide": false,
-          "legendFormat": "{{pod}} : {{__name__}}",
+          "legendFormat": "{{pod}} - total heap committed",
           "range": true,
-          "refId": "C"
+          "refId": "B"
         }
       ],
-      "title": "Keycloak - JVM Heap",
+      "title": "Keycloak - JVM Memory",
       "type": "timeseries"
     },
     {
@@ -2104,7 +2107,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2145,7 +2149,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_agroal_available_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
+          "expr": "agroal_available_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
           "legendFormat": "{{pod}} - available connections",
           "range": true,
           "refId": "A"
@@ -2156,7 +2160,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_agroal_awaiting_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
+          "expr": "agroal_awaiting_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
           "hide": false,
           "legendFormat": "{{pod}} - awaiting connections",
           "range": true,
@@ -2168,7 +2172,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_agroal_active_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
+          "expr": "agroal_active_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
           "hide": false,
           "legendFormat": "{{pod}} - active connections",
           "range": true,
@@ -2221,7 +2225,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2262,8 +2267,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "base_thread_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
-          "legendFormat": "{{pod}} - base threads",
+          "expr": "jvm_threads_live_threads{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
+          "legendFormat": "{{pod}} - jvm threads",
           "range": true,
           "refId": "A"
         },
@@ -2273,9 +2278,9 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "base_thread_daemon_count{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
+          "expr": "jvm_threads_daemon_threads{job=\"keycloak/keycloak-metrics\",namespace=\"keycloak\"}",
           "hide": false,
-          "legendFormat": "{{pod}} - base thread daemons",
+          "legendFormat": "{{pod}} - jvm thread daemons",
           "range": true,
           "refId": "B"
         }
@@ -2340,7 +2345,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2475,7 +2481,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2568,7 +2575,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2661,7 +2669,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2754,7 +2763,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -2813,7 +2823,7 @@
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "keycloak",
           "value": "keycloak"
         },
