@@ -1,6 +1,9 @@
 name: Java CI with Maven
 
 on:
+  schedule:
+    # run weekly to ensure to catch build being broken against upstream
+    - cron: "0 7 * * 1"
   push:
     # dependabot will create both branches and pull request
     # only run on pull requests to avoid running twice and creating a release draft
@@ -21,7 +24,7 @@ on:
       - '!.github/workflows/build.yml'
 
 concurrency:
-  # Only run once for latest commit per ref and cancel other (previous) runs.
+  # Only run once for the latest commit per ref and cancel other (previous) runs.
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
@@ -48,4 +51,4 @@ jobs:
             ${{ runner.os }}-maven-wrapper-
       - name: Build with Maven
         run: |
-          ./mvnw -B clean install
+          ./mvnw -B clean verify
