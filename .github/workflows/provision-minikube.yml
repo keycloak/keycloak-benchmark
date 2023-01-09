@@ -69,9 +69,9 @@ jobs:
       - name: Create Dataset on Postgres Legacy Store
         working-directory: provision/minikube
         run: |
-          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- --clear-status-completed
-          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -r '1 5 5 1000'
-          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- --status-completed
+          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -a clear-status-completed
+          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -a status-completed
       - name: Provision JPA Map store on PostgreSQL DB
         working-directory: provision/minikube
         run: |
@@ -80,9 +80,9 @@ jobs:
       - name: Create Dataset on Postgres JPA Map Store
         working-directory: provision/minikube
         run: |
-          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- --clear-status-completed
-          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- -r '1 5 5 1000'
-          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- --status-completed
+          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- -a clear-status-completed
+          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=postgres KC_STORAGE=jpa dataset-import -- -a status-completed
       - name: Provision JPA Map store on Cockroach DB Single Node
         working-directory: provision/minikube
         run: |
@@ -93,9 +93,9 @@ jobs:
       - name: Create Dataset on Cockroach JPA Map Store
         working-directory: provision/minikube
         run: |
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- --clear-status-completed
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -r '1 5 5 1000'
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- --status-completed
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a clear-status-completed
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a status-completed
       - name: Provision JPA Map store on Hotrod (In-Memory store)
         working-directory: provision/minikube
         run: |
@@ -106,9 +106,9 @@ jobs:
       - name: Create Dataset on Infinispan Hotrod Store
         working-directory: provision/minikube
         run: |
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- --clear-status-completed
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -r '1 5 5 1000'
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- --status-completed
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a clear-status-completed
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a status-completed
       - name: Provision JPA Map store on CHM (File store)
         working-directory: provision/minikube
         run: |
@@ -119,9 +119,9 @@ jobs:
       - name: Create Dataset on CHM Store
         working-directory: provision/minikube
         run: |
-          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- --clear-status-completed
-          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -r '1 5 5 1000'
-          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- --status-completed
+          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -a clear-status-completed
+          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -a status-completed
       - name: Provision Cockroach Operator minimally
         working-directory: provision/minikube
         run: |
