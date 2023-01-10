@@ -1,6 +1,9 @@
 name: minikube CI
 
 on:
+  schedule:
+    # run weekly to ensure to catch build being broken against upstream
+    - cron: "0 7 * * 1"
   push:
     # dependabot will create both branches and pull request
     # only run on pull requests to avoid running twice and creating a release draft
