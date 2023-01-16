@@ -184,9 +184,22 @@ tasks:
       - promtail.yaml
       - .task/subtask-{{.TASK}}.yaml
 
+  mvnw:
+    dir: ../..
+    run: once
+    cmds:
+      # download maven wrapper to avoid concurrent downloads with can break the build
+      - ./mvnw -v
+    sources:
+      - ../../.mvn/wrapper/maven-wrapper.properties
+      - .task/subtask-{{.TASK}}.yaml
+    generates:
+      - ../../.mvn/wrapper/maven-wrapper.jar
+
   dataset:
     deps:
       - split
+      - mvnw
     dir: ../..
     cmds:
       - ./mvnw -B -am -pl dataset clean install -DskipTests
@@ -222,6 +235,7 @@ tasks:
   tlsdisableagent:
     deps:
       - split
+      - mvnw
     dir: ../tlsdisableagent
     cmds:
       - bash -c ./buildtlsagent.sh
