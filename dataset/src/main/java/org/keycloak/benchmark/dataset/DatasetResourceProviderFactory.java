@@ -41,9 +41,7 @@ public class DatasetResourceProviderFactory implements RealmResourceProviderFact
 
     @Override
     public RealmResourceProvider create(KeycloakSession session) {
-        DatasetResourceProvider provider = new DatasetResourceProvider(session);
-        ResteasyProviderFactory.getInstance().injectProperties(provider);
-        return provider;
+        return new DatasetResourceProvider(session);
     }
 
     @Override

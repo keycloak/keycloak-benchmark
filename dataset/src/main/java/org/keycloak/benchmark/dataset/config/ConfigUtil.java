@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.spi.HttpRequest;
+import org.keycloak.http.HttpRequest;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
