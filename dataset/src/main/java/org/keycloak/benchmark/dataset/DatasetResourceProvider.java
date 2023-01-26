@@ -46,13 +46,13 @@ import javax.ws.rs.core.UriInfo;
 
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.cache.NoCache;
-import org.jboss.resteasy.spi.HttpRequest;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
+import org.keycloak.http.HttpRequest;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
@@ -86,14 +86,14 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     // Ideally don't use this session to run any DB transactions
     private final KeycloakSession baseSession;
 
-    @Context
     private HttpRequest httpRequest;
 
-    @Context
     private UriInfo uriInfo;
 
     public DatasetResourceProvider(KeycloakSession session) {
         this.baseSession = session;
+        this.httpRequest = session.getContext().getHttpRequest();
+        this.uriInfo = session.getContext().getUri();
     }
 
     @Override

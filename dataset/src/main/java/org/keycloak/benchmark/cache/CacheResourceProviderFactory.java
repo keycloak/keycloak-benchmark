@@ -18,7 +18,6 @@
 
 package org.keycloak.benchmark.cache;
 
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.keycloak.Config;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
@@ -39,9 +38,7 @@ public class CacheResourceProviderFactory implements RealmResourceProviderFactor
 
     @Override
     public RealmResourceProvider create(KeycloakSession session) {
-        CacheResourceProvider provider = new CacheResourceProvider(session);
-        ResteasyProviderFactory.getInstance().injectProperties(provider);
-        return provider;
+        return new CacheResourceProvider(session);
     }
 
     @Override
