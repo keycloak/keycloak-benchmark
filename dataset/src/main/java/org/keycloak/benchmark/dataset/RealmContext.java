@@ -44,7 +44,9 @@ public class RealmContext {
     private RealmModel realm;
 
     private final AtomicLong clientsCount = new AtomicLong();
-    
+
+    private final AtomicLong resourcesCount = new AtomicLong();
+
     private List<RoleModel> realmRoles = new ArrayList<>();
 
     // All client roles of all clients
@@ -81,7 +83,7 @@ public class RealmContext {
     public long getClientCount() {
         return clientsCount.get();
     }
-    
+
     public void realmRoleCreated(RoleModel role) {
         realmRoles.add(role);
     }
@@ -124,5 +126,13 @@ public class RealmContext {
 
     public long getUserCount() {
         return this.usersCount.get();
+    }
+
+    public void incResourceCount() {
+        resourcesCount.incrementAndGet();
+    }
+
+    public long getResourceCount() {
+        return resourcesCount.get();
     }
 }

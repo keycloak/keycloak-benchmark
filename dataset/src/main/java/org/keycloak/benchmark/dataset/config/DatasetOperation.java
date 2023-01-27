@@ -24,6 +24,7 @@ package org.keycloak.benchmark.dataset.config;
 public enum DatasetOperation {
     CREATE_REALMS,
     CREATE_CLIENTS,
+    CREATE_AUTHZ_CLIENT,
     CREATE_USERS,
     CREATE_EVENTS,
     CREATE_OFFLINE_SESSIONS,

@@ -39,7 +39,6 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -84,11 +83,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     protected static final Logger logger = Logger.getLogger(DatasetResourceProvider.class);
 
     // Ideally don't use this session to run any DB transactions
-    private final KeycloakSession baseSession;
+    protected final KeycloakSession baseSession;
 
-    private HttpRequest httpRequest;
+    protected HttpRequest httpRequest;
 
-    private UriInfo uriInfo;
+    protected UriInfo uriInfo;
 
     public DatasetResourceProvider(KeycloakSession session) {
         this.baseSession = session;
@@ -224,7 +223,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         task.info(logger, "Created all %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
     }
 
-    private Response handleDatasetException(DatasetException de) {
+    protected Response handleDatasetException(DatasetException de) {
         if (de.getCause() != null) {
             logger.error(de.getMessage(), de.getCause());
         } else {
@@ -856,6 +855,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+    @Path("/authz")
+    public AuthorizationProvisioner authz() {
+        return new AuthorizationProvisioner(baseSession);
+    }
+
     @Override
     public void close() {
     }
@@ -1100,7 +1104,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
 
 
-    private String getStatusUrl() {
+    protected String getStatusUrl() {
         String providerClassPath = uriInfo.getAbsolutePath().getPath().substring(0, uriInfo.getAbsolutePath().getPath().lastIndexOf("/"));
         return uriInfo.getAbsolutePathBuilder()
                 .replacePath(providerClassPath)
@@ -1109,11 +1113,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 .toString();
     }
 
-    private void logException(Exception ex) {
+    protected void logException(Exception ex) {
         logger.error("unable to complete task", ex);
     }
 
-    private void cleanup(ExecutorHelper executor) {
+    protected void cleanup(ExecutorHelper executor) {
         executor.shutDown();
         KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session -> {
             try {
@@ -1124,7 +1128,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         });
     }
 
-    private void success() {
+    protected void success() {
         KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session
                 -> new TaskManager(session).removeExistingTask(true));
     }
