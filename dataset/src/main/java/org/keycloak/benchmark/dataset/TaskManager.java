@@ -80,8 +80,11 @@ public class TaskManager {
             singleUseObjectProvider.remove(KEY_RUNNING);
             Task task = Task.fromMap(existingTask);
             task.SetSuccess(successfullyFinished);
-            singleUseObjectProvider.remove(KEY_COMPLETED);
-            singleUseObjectProvider.put(KEY_COMPLETED, TimeUnit.DAYS.toSeconds(1), task.toMap());
+            try {
+                singleUseObjectProvider.put(KEY_COMPLETED, TimeUnit.DAYS.toSeconds(1), task.toMap());
+            } catch (Exception e) {
+                singleUseObjectProvider.replace(KEY_COMPLETED, task.toMap());
+            }
             if (successfullyFinished) {
                 logger.info("FINISHED TASK: " + task);
             }
