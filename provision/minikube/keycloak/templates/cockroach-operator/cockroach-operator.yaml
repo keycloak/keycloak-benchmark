@@ -32,7 +32,6 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: cockroach-operator-role
 rules:
 - apiGroups:
@@ -541,7 +540,7 @@ spec:
               fieldPath: metadata.namespace
         - name: WATCH_NAMESPACE
           value: {{ .Values.namespace }}
-        image: cockroachdb/cockroach-operator:v2.8.0
+        image: cockroachdb/cockroach-operator:v2.10.0
         imagePullPolicy: IfNotPresent
         name: cockroach-operator
         resources:
@@ -553,7 +552,6 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: cockroach-operator-mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -580,7 +578,6 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: cockroach-operator-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
