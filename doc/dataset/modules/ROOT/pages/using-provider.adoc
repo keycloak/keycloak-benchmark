@@ -24,28 +24,29 @@ The script assumes that the dataset provider is installed as described in xref:k
 Run the following command to receive a help description:
 
 ----
-./dataset_import.sh -h
+./dataset-import.sh -a help
 ----
 
 You will see these options:
 
 ----
-Dataset import to the local minikube Keycloak application.
-Usage:
-1) create realm/s with clients, users and password hash iterations - run it with or without arguments: -r | --create-realms '10 100 100 20000'
-2) create clients in specific realm: -c | --create-clients '100 realm-0'
-3) create users in specific realm: -u | --create-users '100 realm-0'
-4) create events in specific realm: -e | --create-events '100 realm-0'
-5) create offline sessions in specific realm: -o | --create-offline-sessions '100 realm-0'
-6) delete specific realm/s with prefix -d | --delete-realms realm
-7) dataset provider status -s | --status
-8) dataset import script usage -h | --help
+Dataset import to the local minikube Keycloak application - usage:
+1) create realm/s with clients, users and password hash iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -c 100 -u 100 -h 20000 -l 'https://keycloak.url.com'
+2) create clients in specific realm: -a create-clients -c 100 -n realm-0 -l 'https://keycloak.url.com'
+3) create users in specific realm: -a create-users -u 100 -n realm-0 -l 'https://keycloak.url.com'
+4) create events in specific realm: -a create-events -e 100 -n realm-0 -l 'https://keycloak.url.com'
+5) create offline sessions in specific realm: -a create-offline-sessions -o 100 -n realm-0 -l 'https://keycloak.url.com'
+6) delete specific realm/s with prefix -a delete-realms -p realm -l 'https://keycloak.url.com'
+7) dataset provider status -a status 'https://keycloak.url.com'
+8) dataset provider status check of last completed job -a status-completed -t 10 -l 'https://keycloak.url.com'
+9) dataset provider clear status of last completed job -a clear-status-completed -l 'https://keycloak.url.com'
+10) dataset import script usage -a help
 ----
 
 Example of creating 10 new realms:
 
 ----
-./dataset_import.sh -r 10
+./dataset-import.sh -a create-realms -r 10
 ----
 
 Alternatively, the user could also run the link:{github-files}/provision/minikube/Taskfile.yaml[Taskfile] from within the provision/minikube module to execute the `dataset-import` task, to seamlessly execute the automation for Kubernetes style deployments.
@@ -55,7 +56,7 @@ Note the two dashes (`--`) that separate the task name from the command line opt
 
 [source,bash]
 ----
-task dataset-import -- -r 10
+task dataset-import -- -a create-realms -r 10
 ----
 
 To learn more about the tool, see xref:kubernetes-guide::util/task.adoc[] for details.
