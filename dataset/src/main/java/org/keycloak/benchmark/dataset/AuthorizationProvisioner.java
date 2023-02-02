@@ -240,7 +240,7 @@ public class AuthorizationProvisioner extends DatasetResourceProvider{
     private Policy createUserPolicy(DatasetConfig config, ResourceServer resourceServer, PolicyStore policyStore,
             int currentResourceIndex) {
         UserPolicyRepresentation policy = new UserPolicyRepresentation();
-        String userName = config.getUserPrefix() + new Random().ints(0, 1000).findFirst().getAsInt();
+        String userName = config.getUserPrefix() + new Random().ints(0, config.getUsersPerRealm()).findFirst().getAsInt();
 
         policy.setName(userName + "-policy-" + currentResourceIndex);
 
