@@ -123,7 +123,7 @@ public class DatasetConfig {
     private String userPrefix;
 
     // Count of users to be created in every realm (In case of CREATE_REALMS)
-    @QueryParamIntFill(paramName = "users-per-realm", defaultValue = 200, operations = { CREATE_REALMS })
+    @QueryParamIntFill(paramName = "users-per-realm", defaultValue = 200, operations = { CREATE_REALMS, CREATE_AUTHZ_CLIENT })
     private Integer usersPerRealm;
 
     // Count of groups assigned to every user
