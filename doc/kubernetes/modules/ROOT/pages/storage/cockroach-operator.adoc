@@ -111,11 +111,6 @@ When the CockroachDB operator is not running, no CockroachDB custom resource can
 When this happens, have a look at the pod running in the namespace `keycloak` and ensure that it is running.
 If it is in BackOff or Error state, consider killing it and waiting for it to restart.
 
-=== Kubernetes 1.25+ not supported by CockroachDB operator
-
-The operator still uses the resource `PodDisruptionBudget` that has been deprecated in Kubernetes 1.21+ and is unavailable in 1.25+.
-Therefore, it can't be used in Kubernetes 1.25+ yet until issue https://github.com/cockroachdb/cockroach-operator/issues/928[cockroachdb/cockroach-operator#928] is resolved.
-
 === Status in the CockroachDB custom resource is not updated
 
 After the cluster has been initialized, the status in the resource is still `clusterStatus: Failed`, although the database is fully usable.
@@ -130,9 +125,3 @@ It seems that the memory, CPU or disk space constraints that exist on GitHub run
 Therefore, there is no provisioning test for this on GitHub actions.
 Any change to this setup needs to be tested manually.
 
-=== Operator can't connect to CockroachDB instances in other namespaces
-
-Issue https://github.com/cockroachdb/cockroach-operator/issues/906[cockroachdb/cockroach-operator#906] describes that the operator can't connect to CockroachDB instances in other namespaces.
-
-Due to that, the installation here has the CockroachDB operator installed in the same namespace as the CockroachDB, which is the namespace `keycloak`.
-It only listens to the current namespace as the environment variable `WATCH_NAMESPACE` is set.

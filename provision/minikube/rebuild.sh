@@ -13,9 +13,8 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
   fi
   minikube config set driver ${DRIVER}
   minikube config set container-runtime docker
-  # stay on v1.24.x and not upgrade to v1.25.x until https://github.com/cockroachdb/cockroach-operator/issues/928 is resolved
   # the version of Kubernetes needs to be in-sync with `provision-minikube.yml`
-  minikube start --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v1.24.7
+  minikube start --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v1.25.3
 fi
 minikube addons enable ingress
 rm -rf .task
