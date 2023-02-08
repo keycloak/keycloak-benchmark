@@ -94,6 +94,7 @@ tasks:
       - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
       - test "{{.KC_STORAGE}}" == "$(cat .task/var-KC_STORAGE)"
       - test "{{.KC_DATABASE}}" == "$(cat .task/var-KC_DATABASE)"
+      - test "{{.KC_CONTAINER_IMAGE}}" == "$(cat .task/var-KC_CONTAINER_IMAGE)"
 
   prometheus:
     deps:
@@ -319,6 +320,12 @@ tasks:
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml || (kubectl -n keycloak delete deployment/keycloak-operator && kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml)
       - >
+        bash -c '
+        if [ "{{.KC_CONTAINER_IMAGE}}" != "" ]; then
+          envsubst < keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
+          kubectl patch deployment keycloak-operator -n keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
+        fi'
+      - >
         helm upgrade --install keycloak
         --set hostname={{.IP}}.nip.io
         --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
@@ -339,7 +346,7 @@ tasks:
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
-      - bash -c 'kubectl get pods -A | grep -E "(BackOff|Error)" | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
+      - bash -c 'kubectl get pods -A | grep -E "(BackOff|Error|ErrImageNeverPull)" | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
       # wait a bit for the operator to pick up the changes
       - bash -c 'sleep 1'
       - ./init-database.sh {{.KC_DATABASE}}

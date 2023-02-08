@@ -80,7 +80,7 @@ spec:
     podTemplate:
       metadata:
         annotations:
-          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}
+          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}
       spec:
         containers:
           -
@@ -90,10 +90,6 @@ spec:
             args:
               - -c
               - curl -f -L https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.15.0/opentelemetry-javaagent.jar -o /tmp/opentelemetry-javaagent.jar && /opt/keycloak/bin/kc.sh start --auto-build
-{{ end }}
-{{ if .Values.keycloakImage }}
-            # don't pass the image to the operator as it would assume it is an already augmented image and would not re-augmentate it again
-            image: {{ .Values.keycloakImage }}
 {{ end }}
 {{ if hasPrefix "localhost/" .Values.keycloakImage }}
             imagePullPolicy: Never
@@ -116,21 +112,26 @@ spec:
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
+{{ if eq .Values.storage "jpa" }}
+              # avoid a warning when this is not set, see https://github.com/keycloak/keycloak/issues/16616
+              - name: KC_SPI_MAP_STORAGE_JPA_LOCK_TIMEOUT
+                value: "10000"
+{{ end }}
               - name: JAVA_OPTS_APPEND
                 # using non-blocking random, make DNS lookups expire after 10 seconds and not cache them forever
-                value: >
+                value: >-
                   -Djava.security.egd=file:/dev/urandom -Dnetworkaddress.cache.ttl=10 -XX:+ExitOnOutOfMemoryError
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
-{{ if .Values.otel }}
+{{- if .Values.otel }}
                   -javaagent:/tmp/opentelemetry-javaagent.jar
-{{ end }}
-{{ if .Values.cryostat }}
+{{- end -}}
+{{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
                   -XX:FlightRecorderOptions=stackdepth=512
-{{ end }}
-{{ if or .Values.otel .Values.cryostat }}
+{{- end -}}
+{{- if or .Values.otel .Values.cryostat }}
             ports:
-{{ end }}
+{{ end -}}
 {{ if .Values.otel }}
               - containerPort: 9464
                 protocol: TCP
