@@ -14,7 +14,7 @@ set_environment_variables () {
   EVENTS_COUNT="100"
   SESSIONS_COUNT="100"
   HASH_ITERATIONS="20000"
-  KEYCLOAK_URI="https://keycloak.$(minikube ip).nip.io/realms/master/dataset"
+  KEYCLOAK_URI="https://keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   REALM_PREFIX="realm"
   STATUS_TIMEOUT="120"
 
