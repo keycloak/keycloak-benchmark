@@ -1,0 +1,51 @@
+= Collecting metrics via Prometheus
+:description: Prometheus collects metrics from services.
+
+{description}
+
+== About Prometheus
+
+Prometheus collects metrics from services and the Kubernetes platform and provides them to Grafana.
+
+Visit the https://prometheus.io/[Prometheus website] for more information.
+
+== Opening Prometheus
+
+Prometheus is deployed by default.
+
+Assuming the command `minikube ip` returned `192.168.39.39`, the console is available on \http://prometheus.192.168.39.39.nip.io.
+
+include::partial$minikube-ip-change.adoc[]
+
+[.shadow]
+image::util/prometheus.png[]
+
+== Running custom queries
+
+Enter an expression in search field and press btn:[Execute] to run the query.
+Auto-completion is available.
+See the https://prometheus.io/docs/prometheus/latest/querying/basics/[PromQL docs] on how to run queries.
+
+.Show all metrics retrieved from Keycloak
+====
+{job='keycloak/keycloak-metrics'}
+====
+
+.Show used bytes for different JVM memory pools
+====
+jvm_memory_used_bytes{job='keycloak/keycloak-metrics'}
+====
+
+To show a minimal graph, switch to the **Graph** tab.
+
+[NOTE]
+====
+While this is good for ad hoc queries, use xref:util/grafana.adoc[Grafana] for advanced dashboards which can be persisted.
+====
+
+== Diagnostics
+
+Open the menu menu:Status[Configuration] to see the configuration which is auto-generated from the different custom resources created for Prometheus in Kubernetes.
+
+Open the menu menu:Status[Targets] to see if Prometheus can connect to all targets to collect the metrics.
+

@@ -8,6 +8,8 @@ vars:
   IP:
     sh: minikube ip
   KB_RETENTION: '{{default "168h" .KB_RETENTION}}'
+  KC_OTEL: '{{default "false" .KC_OTEL}}'
+  KC_OTEL_SAMPLING_PERCENTAGE: '{{default "0.001" .KC_OTEL_SAMPLING_PERCENTAGE}}'
   KC_DB_POOL_INITIAL_SIZE: '{{default "5" .KC_DB_POOL_INITIAL_SIZE}}'
   KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
@@ -88,6 +90,8 @@ tasks:
       # create marker files that can then be checked in other tasks
       - mkdir -p .task
       - echo {{.KB_RETENTION}} > .task/var-KB_RETENTION
+      - echo {{.KC_OTEL}} > .task/var-KC_OTEL
+      - echo {{.KC_OTEL_SAMPLING_PERCENTAGE}} > .task/var-KC_OTEL_SAMPLING_PERCENTAGE
       - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
       - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
       - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
@@ -109,6 +113,8 @@ tasks:
       - .task/subtask-{{.TASK}}.yaml
     status:
       - test "{{.KB_RETENTION}}" == "$(cat .task/var-KB_RETENTION)"
+      - test "{{.KC_OTEL}}" == "$(cat .task/var-KC_OTEL)"
+      - test "{{.KC_OTEL_SAMPLING_PERCENTAGE}}" == "$(cat .task/var-KC_OTEL_SAMPLING_PERCENTAGE)"
       - test "{{.KC_DB_POOL_INITIAL_SIZE}}" == "$(cat .task/var-KC_DB_POOL_INITIAL_SIZE)"
       - test "{{.KC_DB_POOL_MAX_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MAX_SIZE)"
       - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
@@ -285,13 +291,10 @@ tasks:
     cmds:
       - mkdir -p keycloak-cli
       - rm -f keycloak-cli/*.zip
-      # if the nightly release doesn't exist, download a specific release as a fallback
-      # revisit once https://github.com/keycloak-rel/keycloak-rel/issues/47 as been fixed
       - >
-        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip ||
-        curl -L -f https://github.com/keycloak/keycloak/releases/download/19.0.1/keycloak-19.0.1.zip -o keycloak-cli/keycloak.zip
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip
     status:
-      - test -f keycloak-cli/keycloak.zip
+      - find keycloak-cli/keycloak.zip -mtime +1 -exec false {} +
     sources:
       - .task/subtask-{{.TASK}}.yaml
 
@@ -302,7 +305,7 @@ tasks:
     dir: ..
     cmds:
       # remove temporary folders to be extra safe
-      - rm -rf keycloak-cli/keycloak-999.0.0-SNAPSHOT keycloak-cli/keycloak-19.0.1
+      - rm -rf keycloak-cli/keycloak-999.0.0-SNAPSHOT
       - rm -rf keycloak-cli/keycloak
       - unzip -o -q keycloak-cli/keycloak.zip -d keycloak-cli
       # the output folder depends on the version we're about to unpack
@@ -358,6 +361,8 @@ tasks:
       - >
         helm upgrade --install keycloak
         --set hostname={{.IP}}.nip.io
+        --set otel={{.KC_OTEL}}
+        --set otelSamplingPercentage={{.KC_OTEL_SAMPLING_PERCENTAGE}}
         --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
         --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
         --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
@@ -392,7 +397,7 @@ tasks:
       - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
       - minikube ssh -- docker container prune -f
-      - minikube ssh -- docker image prune -f
+      - minikube ssh -- docker image prune -a -f --filter="label!=name=ubi8-minimal"
       - minikube ssh -- docker volume prune -f
     sources:
       - keycloak/**/*.*
