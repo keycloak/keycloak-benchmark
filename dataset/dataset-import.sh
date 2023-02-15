@@ -100,14 +100,18 @@ dataset_provider_status () {
 dataset_provider_status_completed () {
   echo "Dataset provider status of the last completed task"
   t=0
-  RESPONSE=$(execute_command "status-completed")
+  RESPONSE=""
   until [[ $(echo $RESPONSE | grep '"success":"true"') ]]
   do
     if [[ $t -gt $1 ]]
      then
       echo "Status Polling timeout ${1}s exceeded ";
+      echo $RESPONSE
+      dataset_provider_status
+      exit 1
       break
     fi
+    RESPONSE=$(execute_command "status-completed")
     sleep 1 && ((t=t+1))
     echo "Polling...${t}s"
   done

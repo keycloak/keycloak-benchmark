@@ -170,7 +170,7 @@ public class AuthorizationProvisioner extends DatasetResourceProvider{
                     executor.waitForAllToFinish();
                     success();
                     task.info(logger, "Created all %d resources in client %s and realm %s", context.getResourceCount(), config.getClientId(), realm.getName());
-                } catch (Exception ex) {
+                } catch (Throwable ex) {
                     logException(ex);
                 } finally {
                     cleanup(executor);

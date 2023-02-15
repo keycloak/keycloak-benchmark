@@ -82,15 +82,25 @@ spec:
         annotations:
           checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}
       spec:
-        containers:
-          -
-{{ if .Values.otel }}
+        {{ if .Values.otel }}
+        initContainers:
+          - name: download-otel
+            image: registry.access.redhat.com/ubi8/ubi-minimal
             command:
               - /bin/bash
             args:
               - -c
-              - curl -f -L https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.15.0/opentelemetry-javaagent.jar -o /tmp/opentelemetry-javaagent.jar && /opt/keycloak/bin/kc.sh start --auto-build
-{{ end }}
+              # language=bash
+              - |
+                if [ ! -e /otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar ]; then
+                  curl -f -L https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/{{ .Values.otelVersion }}/opentelemetry-javaagent.jar -o /otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
+                fi
+            volumeMounts:
+              - name: otel
+                mountPath: /otel
+        {{ end }}
+        containers:
+          -
 {{ if hasPrefix "localhost/" .Values.keycloakImage }}
             imagePullPolicy: Never
 {{ end }}
@@ -108,7 +118,7 @@ spec:
               - name: OTEL_TRACES_SAMPLER
                 value: parentbased_traceidratio # always_on, parentbased_traceidratio, ...
               - name: OTEL_TRACES_SAMPLER_ARG
-                value: "0.001" # 1.0 to sample everything (warning, lots of memory used in Jaeger backend!)
+                value: {{ .Values.otelSamplingPercentage | quote }}
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
@@ -125,7 +135,7 @@ spec:
                   -Djava.security.egd=file:/dev/urandom -Dnetworkaddress.cache.ttl=10 -XX:+ExitOnOutOfMemoryError
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- if .Values.otel }}
-                  -javaagent:/tmp/opentelemetry-javaagent.jar
+                  -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
 {{- end -}}
 {{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
@@ -180,6 +190,11 @@ spec:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
                 readOnly: true
+{{ if .Values.otel }}
+              - name: otel
+                mountPath: /otel
+                readOnly: true
+{{ end }}
 {{ if eq .Values.database "cockroach-operator" }}
               - name: client-certs
                 mountPath: /cockroach/cockroach-certs
@@ -188,6 +203,11 @@ spec:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
+{{ if .Values.otel }}
+          - name: otel
+            persistentVolumeClaim:
+              claimName: otel
+{{ end }}
 {{ if eq .Values.database "cockroach-operator" }}
           - name: client-certs
             projected:
