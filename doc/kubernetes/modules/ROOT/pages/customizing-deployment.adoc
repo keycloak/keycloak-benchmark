@@ -168,6 +168,29 @@ Sets the maximum meta space size in MB per Keycloak JVM.
 +
 Default value: `256`.
 
+[[KC_OTEL,KC_OTEL]]
+KC_OTEL::
+If OpenTelemetry should be enabled for Keycloak to collect metrics and traces.
++
+Default value: `false`
++
+Available options:
++
+--
+* `true` -- enable OpenTelemetry. Download the OpenTelemetry Java agent and add it to Keycloak. See xref:util/otel.adoc[] for details.
+* `false` -- disable OpenTelemetry.
+--
+
+[[KC_OTEL_SAMPLING_PERCENTAGE,KC_OTEL_SAMPLING_PERCENTAGE]]
+KC_OTEL_SAMPLING_PERCENTAGE::
+How many traces should be sent to Jaeger to be reported.
+Only in effect if `<<KC_OTEL>>` is set to `true`.
++
+Default value: `0.001` (0.1 % of all traces are reported to Jaeger).
++
+While a value of `1.0` is useful to report all traces during local testing to Jaeger, it creates a lot of data which will overload the memory of the Jaeger instance, which will eventually restart.
+During a performance run, collect only a small percentage of all traces.
+
 == Available Benchmark options
 
 The following configuration options are available to configure the helper applications.

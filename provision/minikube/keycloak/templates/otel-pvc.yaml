@@ -1,0 +1,17 @@
+{{ if .Values.otel }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: cryostat
+  name: otel
+  namespace: keycloak
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Mi
+  storageClassName: standard
+  volumeMode: Filesystem
+{{end}}

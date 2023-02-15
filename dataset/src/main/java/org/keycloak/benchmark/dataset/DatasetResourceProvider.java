@@ -200,7 +200,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             executor.waitForAllToFinish();
             task.info(logger, "Created all realms from '%s' to '%s'", config.getRealmPrefix() + startIndex, config.getRealmPrefix() + (realmEndIndex - 1));
             success();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logException(ex);
         } finally {
             cleanup(executor);
@@ -316,7 +316,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             task.info(logger, "Created all %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
             success();
 
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logException(ex);
         } finally {
             cleanup(executor);
@@ -394,7 +394,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             task.info(logger, "Created all %d users in realm %s", context.getUserCount(), context.getRealm().getName());
             success();
 
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logException(ex);
         } finally {
             cleanup(executor);
@@ -519,7 +519,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             task.info(logger, "Created all %d events", config.getCount());
             success();
 
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logException(ex);
         } finally {
             cleanup(executor);
@@ -622,7 +622,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             task.info(logger, "Created all %d offline sessions", config.getCount());
             success();
 
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logException(ex);
         } finally {
             cleanup(executor);
@@ -728,7 +728,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             task.info(logger, "Deleted all %d realms", realmIds.size());
             success();
 
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             logException(ex);
         } finally {
             cleanup(executor);
@@ -1113,7 +1113,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 .toString();
     }
 
-    protected void logException(Exception ex) {
+    protected void logException(Throwable ex) {
         logger.error("unable to complete task", ex);
     }
 
@@ -1122,7 +1122,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session -> {
             try {
                 new TaskManager(session).removeExistingTask(false);
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 logException(ex);
             }
         });
