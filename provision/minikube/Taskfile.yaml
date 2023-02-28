@@ -258,7 +258,7 @@ tasks:
       # if the nightly release doesn't exist, download a specific release as a fallback
       # revisit once https://github.com/keycloak-rel/keycloak-rel/issues/47 as been fixed
       - >
-        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999-SNAPSHOT.zip -o keycloak-cli/keycloak.zip ||
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip ||
         curl -L -f https://github.com/keycloak/keycloak/releases/download/19.0.1/keycloak-19.0.1.zip -o keycloak-cli/keycloak.zip
     status:
       - test -f keycloak-cli/keycloak.zip
@@ -272,11 +272,11 @@ tasks:
     dir: ..
     cmds:
       # remove temporary folders to be extra safe
-      - rm -rf keycloak-cli/keycloak-999-SNAPSHOT keycloak-cli/keycloak-19.0.1
+      - rm -rf keycloak-cli/keycloak-999.0.0-SNAPSHOT keycloak-cli/keycloak-19.0.1
       - rm -rf keycloak-cli/keycloak
       - unzip -o -q keycloak-cli/keycloak.zip -d keycloak-cli
       # the output folder depends on the version we're about to unpack
-      - mv keycloak-cli/keycloak-999-SNAPSHOT keycloak-cli/keycloak || mv keycloak-cli/keycloak-19.0.1 keycloak-cli/keycloak
+      - mv keycloak-cli/keycloak-999.0.0-SNAPSHOT keycloak-cli/keycloak || mv keycloak-cli/keycloak-19.0.1 keycloak-cli/keycloak
     sources:
       - keycloak-cli/keycloak.zip
       - minikube/.task/subtask-{{.TASK}}.yaml
