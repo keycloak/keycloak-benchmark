@@ -15,6 +15,15 @@ vars:
   KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
   KC_OPERATOR_TAG: '{{default "nightly" .KC_OPERATOR_TAG}}'
   KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
+  KC_INSTANCES: '{{default "1" .KC_INSTANCES}}'
+  KC_CPU_REQUESTS: '{{default "0" .KC_CPU_REQUESTS}}'
+  KC_CPU_LIMITS: '{{default "1" .KC_CPU_LIMITS}}'
+  KC_MEMORY_REQUESTS_MB: '{{default "1024" .KC_MEMORY_REQUESTS_MB}}'
+  KC_MEMORY_LIMITS_MB: '{{default "1024" .KC_MEMORY_LIMITS_MB}}'
+  KC_HEAP_INIT_MB: '{{default "64" .KC_HEAP_INIT_MB}}'
+  KC_HEAP_MAX_MB: '{{default "512" .KC_HEAP_MAX_MB}}'
+  KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
+  KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
 
 dotenv: ['.env']
 
@@ -86,6 +95,15 @@ tasks:
       - echo {{.KC_DATABASE}} > .task/var-KC_DATABASE
       - echo {{.KC_OPERATOR_TAG}} > .task/var-KC_OPERATOR_TAG
       - echo {{.KC_CONTAINER_IMAGE}} > .task/var-KC_CONTAINER_IMAGE
+      - echo {{.KC_INSTANCES}} > .task/var-KC_INSTANCES
+      - echo {{.KC_CPU_REQUESTS}} > .task/var-KC_CPU_REQUESTS
+      - echo {{.KC_CPU_LIMITS}} > .task/var-KC_CPU_LIMITS
+      - echo {{.KC_MEMORY_REQUESTS_MB}} > .task/var-KC_MEMORY_REQUESTS_MB
+      - echo {{.KC_MEMORY_LIMITS_MB}} > .task/var-KC_MEMORY_LIMITS_MB
+      - echo {{.KC_HEAP_INIT_MB}} > .task/var-KC_HEAP_INIT_MB
+      - echo {{.KC_HEAP_MAX_MB}} > .task/var-KC_HEAP_MAX_MB
+      - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
+      - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -98,6 +116,15 @@ tasks:
       - test "{{.KC_DATABASE}}" == "$(cat .task/var-KC_DATABASE)"
       - test "{{.KC_OPERATOR_TAG}}" == "$(cat .task/var-KC_OPERATOR_TAG)"
       - test "{{.KC_CONTAINER_IMAGE}}" == "$(cat .task/var-KC_CONTAINER_IMAGE)"
+      - test "{{.KC_INSTANCES}}" == "$(cat .task/var-KC_INSTANCES)"
+      - test "{{.KC_CPU_REQUESTS}}" == "$(cat .task/var-KC_CPU_REQUESTS)"
+      - test "{{.KC_CPU_LIMITS}}" == "$(cat .task/var-KC_CPU_LIMITS)"
+      - test "{{.KC_MEMORY_REQUESTS_MB}}" == "$(cat .task/var-KC_MEMORY_REQUESTS_MB)"
+      - test "{{.KC_MEMORY_LIMITS_MB}}" == "$(cat .task/var-KC_MEMORY_LIMITS_MB)"
+      - test "{{.KC_HEAP_INIT_MB}}" == "$(cat .task/var-KC_HEAP_INIT_MB)"
+      - test "{{.KC_HEAP_MAX_MB}}" == "$(cat .task/var-KC_HEAP_MAX_MB)"
+      - test "{{.KC_METASPACE_INIT_MB}}" == "$(cat .task/var-KC_METASPACE_INIT_MB)"
+      - test "{{.KC_METASPACE_MAX_MB}}" == "$(cat .task/var-KC_METASPACE_MAX_MB)"
 
   prometheus:
     deps:
@@ -337,6 +364,15 @@ tasks:
         --set storage={{.KC_STORAGE}}
         --set database={{.KC_DATABASE}}
         --set keycloakImage={{.KC_CONTAINER_IMAGE}}
+        --set instances={{ .KC_INSTANCES }}
+        --set cpuRequests={{ .KC_CPU_REQUESTS }}
+        --set cpuLimits={{ .KC_CPU_LIMITS }}
+        --set memoryRequestsMB={{ .KC_MEMORY_REQUESTS_MB }}
+        --set memoryLimitsMB={{ .KC_MEMORY_LIMITS_MB }}
+        --set heapInitMB={{ .KC_HEAP_INIT_MB }}
+        --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
+        --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
+        --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
         keycloak
       - >
         bash -c '

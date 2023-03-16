@@ -75,7 +75,7 @@ spec:
         key: password
   http:
     tlsSecret: keycloak-tls-secret
-  instances: 1
+  instances: {{ .Values.instances }}
   unsupported:
     podTemplate:
       metadata:
@@ -119,7 +119,9 @@ spec:
 {{ end }}
               - name: JAVA_OPTS_APPEND
                 # using non-blocking random, make DNS lookups expire after 10 seconds and not cache them forever
-                value: >-
+                value: >
+                  -Xms{{ .Values.heapInitMB }}m -Xmx{{ .Values.heapMaxMB }}m
+                  -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
                   -Djava.security.egd=file:/dev/urandom -Dnetworkaddress.cache.ttl=10 -XX:+ExitOnOutOfMemoryError
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- if .Values.otel }}
@@ -145,10 +147,13 @@ spec:
               - containerPort: 8787
                 protocol: TCP
                 name: jvmdebug
-            resources: {}
-              # limits:
-              #  cpu: "2000m"
-              #  memory: "1500Mi"
+            resources: 
+              requests:
+                cpu: "{{ .Values.cpuRequests }}"
+                memory: "{{ .Values.memoryRequestsMB }}M"
+              limits:
+                cpu: "{{ .Values.cpuLimits }}"
+                memory: "{{ .Values.memoryLimitsMB }}M"
             startupProbe:
               httpGet:
                 path: /health/ready
