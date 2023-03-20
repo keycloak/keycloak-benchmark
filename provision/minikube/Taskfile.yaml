@@ -13,6 +13,7 @@ vars:
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
   KC_STORAGE: '{{default "" .KC_STORAGE}}'
   KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
+  KC_OPERATOR_TAG: '{{default "nightly" .KC_OPERATOR_TAG}}'
   KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
 
 dotenv: ['.env']
@@ -81,9 +82,10 @@ tasks:
       - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
       - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
       - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
-      - echo {{.KC_CONTAINER_IMAGE}} > .task/var-KC_CONTAINER_IMAGE
       - echo {{.KC_STORAGE}} > .task/var-KC_STORAGE
       - echo {{.KC_DATABASE}} > .task/var-KC_DATABASE
+      - echo {{.KC_OPERATOR_TAG}} > .task/var-KC_OPERATOR_TAG
+      - echo {{.KC_CONTAINER_IMAGE}} > .task/var-KC_CONTAINER_IMAGE
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -94,6 +96,7 @@ tasks:
       - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
       - test "{{.KC_STORAGE}}" == "$(cat .task/var-KC_STORAGE)"
       - test "{{.KC_DATABASE}}" == "$(cat .task/var-KC_DATABASE)"
+      - test "{{.KC_OPERATOR_TAG}}" == "$(cat .task/var-KC_OPERATOR_TAG)"
       - test "{{.KC_CONTAINER_IMAGE}}" == "$(cat .task/var-KC_CONTAINER_IMAGE)"
 
   prometheus:
@@ -316,9 +319,9 @@ tasks:
       - env
     cmds:
       - kubectl create namespace keycloak || true
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml || (kubectl -n keycloak delete deployment/keycloak-operator && kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml)
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n keycloak delete deployment/keycloak-operator && kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
       - >
         bash -c '
         if [ "{{.KC_CONTAINER_IMAGE}}" != "" ]; then
