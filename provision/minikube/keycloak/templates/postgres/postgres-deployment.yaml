@@ -1,4 +1,4 @@
-{{ if eq .Values.database "postgres" }}
+{{ if or (eq .Values.database "postgres") (eq .Values.database "mixed") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -30,6 +30,9 @@ spec:
             - name: POSTGRES_DB
               value: keycloak
           image: postgres:13.2
+          args:
+            - -c
+            - max_prepared_transactions=100
           imagePullPolicy: Always
           startupProbe:
             tcpSocket:
