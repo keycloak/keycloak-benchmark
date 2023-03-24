@@ -59,7 +59,14 @@ tasks:
     deps:
       - split
     cmds:
-      - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0"
+      - >
+        bash -c '
+        if [ "{{.KC_DATABASE}}" == "mixed" ];
+        then kubectl delete deployment/postgres -n keycloak || exit 0;
+             kubectl delete deployment/infinispan -n keycloak || exit 0;
+        else
+        kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0;
+        fi'
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" == "cockroach-single" ];
@@ -385,6 +392,9 @@ tasks:
         then kubectl -n keycloak -o yaml get crdbclusters.crdb.cockroachlabs.com/cockroach > .task/status-{{.TASK}}-db.json;
         elif [ "{{.KC_DATABASE}}" == "cockroach-single" ];
         then kubectl get deployment/cockroach -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        elif [ "{{.KC_DATABASE}}" == "mixed" ];
+        then kubectl get deployment/postgres -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+             kubectl get deployment/infinispan -n keycloak -o=jsonpath="{.spec}" >> .task/status-{{.TASK}}-db.json;
         elif [ "{{.KC_DATABASE}}" != "none" ];
         then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
