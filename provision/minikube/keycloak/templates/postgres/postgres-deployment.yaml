@@ -1,4 +1,4 @@
-{{ if or (eq .Values.database "postgres") (eq .Values.database "mixed") }}
+{{ if or (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,6 +31,8 @@ spec:
               value: keycloak
           image: postgres:13.2
           args:
+            # default of max_prepared_transactions is 0, and this setting should match the number of active connections
+            # so that running Quarkus with JTA and more than one data store can prepare transactions.
             - -c
             - max_prepared_transactions=100
           imagePullPolicy: Always

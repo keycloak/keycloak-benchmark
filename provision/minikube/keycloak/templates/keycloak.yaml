@@ -9,7 +9,7 @@ spec:
   hostname:
     hostname: keycloak.{{ .Values.hostname }}
   additionalOptions:
-{{ if eq .Values.database "postgres" }}
+{{ if or (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     - name: db
       value: postgres
     - name: db-url
@@ -24,21 +24,8 @@ spec:
       value: postgres
     - name: db-url
       value:  jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
-{{ else if eq .Values.database "infinispan" }}
-    - name: storage-hotrod-host
-      value: infinispan
-    - name: storage-hotrod-port
-      value: '11222'
-    - name: storage-hotrod-username
-      value: admin
-    - name: storage-hotrod-password
-      value: admin
-{{ else if eq .Values.database "mixed" }}
-    # in the mixed setup we need to set both hotrod and postgres config options
-    - name: db
-      value: postgres
-    - name: db-url
-      value: jdbc:postgresql://postgres:5432/keycloak
+{{ end }}
+{{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
     - name: storage-hotrod-port
@@ -64,7 +51,7 @@ spec:
     - name: spi-public-key-cache-infinispan-enabled
       value: 'false'
 {{ end }}
-{{ if eq .Values.storage "mixed" }}
+{{ if eq .Values.storage "jpa+hotrod" }}
     # in the mixed setup we set storage to jpa and override user sessions, auth sessions, single-use objects, and login failures to use hotrod
     - name: storage
       value: jpa
@@ -188,7 +175,7 @@ spec:
               - containerPort: 8787
                 protocol: TCP
                 name: jvmdebug
-            resources: 
+            resources:
               requests:
                 cpu: "{{ .Values.cpuRequests }}"
                 memory: "{{ .Values.memoryRequestsMB }}M"
