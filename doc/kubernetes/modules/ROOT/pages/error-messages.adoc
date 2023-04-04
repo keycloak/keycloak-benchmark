@@ -47,7 +47,11 @@ This error message can appear when running Keycloak with CockroachDB, both xref:
 This might happen during the load test while Keycloak processes requests.
 
 Cause::
-Some transactions are not fully serializable, therefore, the database rolls back the transaction and asks the caller to repeat the request.
+Some transactions are not fully serializable as data has been modified in parallel transactions.
+
+Effect::
+The database rolls back the transaction and asks the caller to repeat the request.
+Some users see error messages.
 
 Remedy::
 * Analyze the request/URL where this happens by looking at the log, and discuss this with engineers.
@@ -59,3 +63,41 @@ SELECT DISTINCT ti.descriptor_name as table_name, us.table_id
   FROM  crdb_internal.index_usage_statistics us, crdb_internal.table_indexes ti
   WHERE us.table_id = ti.descriptor_id ORDER BY us.table_id ASC;
 ----
+
+== Keycloak message `prepared transactions are disabled`
+
+Full message::
+org.postgresql.util.PSQLException: ERROR: prepared transactions are disabled.
+Hint: Set max_prepared_transactions to a nonzero value.
+
+Context::
+This happens when the transaction manager or Quarkus handles more than one transaction in a request, and one of the transactions is handled by a PostgreSQL database.
+
+Cause::
+Once the transaction manager of Quarkus bundles two transactions, it sends a `PREPARE TRANSACTION` command to the database before sending the commit after all transactions have been prepared.
+For this to work, the database needs to have the `max_prepared_transactions` parameter set.
+
+Effect::
+No transactions against the PostgreSQL database complete.
+
+Remedy::
+Pass the parameters `-c max_prepared_transactions=xxx` to the database.
+For the containerized database in the Kubernetes setup, this has been configured in `link:{github-files}/provision/minikube/keycloak/templates/postgres/postgres-deployment.yaml[postgres-deployment.yaml]`.
+
+== Keycloak message `ARJUNA012225: cannot access root of object store`
+
+Full message::
+ARJUNA012225: FileSystemStore::setupStore - cannot access root of object store: ObjectStore/ShadowNoFileLockStore/defaultStore/
+
+Context::
+This happens when the transaction manager or Quarkus handles more than one transaction in a request and attempts to locally persist the state of the transaction.
+
+Cause::
+The working directory of Keycloak is not writable in the Keycloak container, therefore writing the state fails.
+
+Effect::
+No transactions against any store participating in the JTA transaction complete, therefore Keycloak will not start.
+
+Remedy::
+Via the environment variable `QUARKUS_TRANSACTION_MANAGER_OBJECT_STORE_DIRECTORY` pass in a folder that is writable.
+For the containerized Keycloak setup in the Kubernetes setup, this has been configured in `link:{github-files}provision/minikube/keycloak/templates/keycloak.yaml[keycloak.yaml]`.

@@ -61,7 +61,7 @@ tasks:
     cmds:
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" == "mixed" ];
+        if [ "{{.KC_DATABASE}}" == "postgres+infinispan" ];
         then kubectl delete deployment/postgres -n keycloak || exit 0;
              kubectl delete deployment/infinispan -n keycloak || exit 0;
         else
@@ -392,7 +392,7 @@ tasks:
         then kubectl -n keycloak -o yaml get crdbclusters.crdb.cockroachlabs.com/cockroach > .task/status-{{.TASK}}-db.json;
         elif [ "{{.KC_DATABASE}}" == "cockroach-single" ];
         then kubectl get deployment/cockroach -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
-        elif [ "{{.KC_DATABASE}}" == "mixed" ];
+        elif [ "{{.KC_DATABASE}}" == "postgres+infinispan" ];
         then kubectl get deployment/postgres -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
              kubectl get deployment/infinispan -n keycloak -o=jsonpath="{.spec}" >> .task/status-{{.TASK}}-db.json;
         elif [ "{{.KC_DATABASE}}" != "none" ];
