@@ -1,0 +1,45 @@
+= Installing Java as a pre-requisite
+:navtitle: Installing Java
+:description: java is a pre-requisite for scripting the automation for Keycloak Benchmark..
+
+{description}
+It needs to be installed before the  xref:installation.adoc[] can begin.
+
+== Installing Java
+
+There are quite a few variants of Java which you can download for free and install it. To keep it simple, lets focus on the OpenJDK java installation.
+
+You can find detailed steps to install Java based on your OS in the https://openjdk.org/install/[installation docs].
+
+Assuming you have installed the OpenJDK in `/usr/lib/jvm`, lets create a `JAVA_HOME` variable pointing to the directory of the specific JDK version you wanted to use with the provisioning automation.
+
+[source, bash]
+----
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.18.0.10-2.el8_7.x86_64/
+----
+
+== Verifying the installation of Java
+The command to verify if JAVA_HOME is set properly:
+[source, bash]
+----
+echo $JAVA_HOME
+----
+
+Should print an output like:
+----
+/usr/lib/jvm/java-11-openjdk-11.0.18.0.10-2.el8_7.x86_64
+----
+
+
+The command to verify if Java is installed properly on your host:
+[source,bash]
+----
+java --version
+----
+
+Should print an output like:
+----
+openjdk 11.0.18 2023-01-17 LTS
+OpenJDK Runtime Environment (Red_Hat-11.0.18.0.10-2.el8_7) (build 11.0.18+10-LTS)
+OpenJDK 64-Bit Server VM (Red_Hat-11.0.18.0.10-2.el8_7) (build 11.0.18+10-LTS, mixed mode, sharing)
+----
