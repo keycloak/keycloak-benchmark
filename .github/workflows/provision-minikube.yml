@@ -95,27 +95,27 @@ jobs:
           task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a clear-status-completed
           task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
           task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a status-completed
-      - name: Provision JPA Map store on Hotrod (In-Memory store)
+      - name: Provision Hot Rod Map store on Infinispan (In-Memory store)
         working-directory: provision/minikube
         run: |
           PATH=$PATH:$GITHUB_WORKSPACE/bin
           task KC_DATABASE=infinispan KC_STORAGE=hotrod
           kubectl get pods -A
           kubectl get events -A
-      - name: Create Dataset on Infinispan Hotrod Store
+      - name: Create Dataset on Infinispan Hot Rod Store
         working-directory: provision/minikube
         run: |
           task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a clear-status-completed
           task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
           task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a status-completed
-      - name: Provision JPA Map store on Hotrod (In-Memory store)
+      - name: Provision JPA and Hot Rod store on PostgreSQL and Infinispan (In-Memory store)
         working-directory: provision/minikube
         run: |
           PATH=$PATH:$GITHUB_WORKSPACE/bin
           task KC_DATABASE=postgres+infinispan KC_STORAGE=jpa+hotrod
           kubectl get pods -A
           kubectl get events -A
-      - name: Create Dataset on Infinispan Hotrod Store
+      - name: Create Dataset on Infinispan Hot Rod and PostgreSQL JPA Store
         working-directory: provision/minikube
         run: |
           task KC_DATABASE=postgres+infinispan KC_STORAGE=jpa+hotrod dataset-import -- -a clear-status-completed
