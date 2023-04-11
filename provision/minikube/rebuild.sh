@@ -10,11 +10,14 @@ else
   exit 1
 fi
 
-if [ "$(getent group libvirt | grep -c $USER)" -ge 0 ]; then
-  echo "PRE-REQ CHECK PASSED: User is found in the libvirt group."
-else
-  echo >&2 "PRE-REQ CHECK FAILED: User is not found in the libvirt group. Please check the installation docs."
-  exit 1
+# this test is valid only on Linux, and would fail on Windows
+if [ "$(uname)" == "Linux" ]; then
+  if [ "$(getent group libvirt | grep -c $USER)" -ge 0 ]; then
+    echo "PRE-REQ CHECK PASSED: User is found in the libvirt group."
+  else
+    echo >&2 "PRE-REQ CHECK FAILED: User is not found in the libvirt group. Please check the installation docs."
+    exit 1
+  fi
 fi
 
 if [ "$GITHUB_ACTIONS" == "" ]; then
