@@ -233,12 +233,12 @@ tasks:
     run: once
     cmds:
       # download maven wrapper to avoid concurrent downloads with can break the build
-      - ./mvnw -v
+      - bash -c "./mvnw -v"
     preconditions:
       # Either JAVA_HOME is set and points to a valid JDK folder with 'bin/java' in it,
       # or javac is found on the path which indicates a Java SDK to be installed.
       # This logic is similar to the one present in 'mvnw'
-      - sh: "{ [ ! -z ${JAVA_HOME} ] && [ -x '${JAVA_HOME}/bin/java' ]; } || [ $(which javac) ]"
+      - sh: "{ [ ! -z ${JAVA_HOME} ] && [ -x '${JAVA_HOME}/bin/java' ]; } || [ $(which javac) ] || [ $(uname) != Linux ]"
         msg: "Please set the JAVA_HOME env variable to point to a Java SDK."
     sources:
       - ../../.mvn/wrapper/maven-wrapper.properties
@@ -252,7 +252,7 @@ tasks:
       - mvnw
     dir: ../..
     cmds:
-      - ./mvnw -B -am -pl dataset clean install -DskipTests
+      - bash -c "./mvnw -B -am -pl dataset clean install -DskipTests"
     sources:
       - ../../pom.xml
       - dataset/pom.xml
