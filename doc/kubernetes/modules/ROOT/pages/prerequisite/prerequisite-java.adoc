@@ -1,21 +1,23 @@
 = Installing Java as a pre-requisite
 :navtitle: Installing Java
-:description: java is a pre-requisite for scripting the automation for Keycloak Benchmark..
+:description: Java 11 or later is a pre-requisite for scripting the automation for Keycloak Benchmark.
 
 {description}
-It needs to be installed before the  xref:installation.adoc[] can begin.
+It needs to be installed before the xref:installation.adoc[] can begin.
 
 == Installing Java
 
-There are quite a few variants of Java which you can download for free and install it. To keep it simple, lets focus on the OpenJDK java installation.
+There are quite a few variants of Java which you can download for free and install it.
+This guide focuses on the OpenJDK java installation on Linux.
 
 You can find detailed steps to install Java based on your OS in the https://openjdk.org/install/[installation docs].
 
-Assuming you have installed the OpenJDK in `/usr/lib/jvm`, lets create a `JAVA_HOME` variable pointing to the directory of the specific JDK version you wanted to use with the provisioning automation.
+Assuming you have installed the OpenJDK on Linux in `/usr/lib/jvm`, create a `JAVA_HOME` variable pointing to the directory of the specific JDK version you wanted to use with the provisioning automation.
+If you do not set up this environment variable, the installation will try to find a JDK on the path.
 
 [source, bash]
 ----
-export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.18.0.10-2.el8_7.x86_64/
+export JAVA_HOME=/usr/lib/jvm/java-11
 ----
 
 == Verifying the installation of Java
@@ -27,14 +29,14 @@ echo $JAVA_HOME
 
 Should print an output like:
 ----
-/usr/lib/jvm/java-11-openjdk-11.0.18.0.10-2.el8_7.x86_64
+/usr/lib/jvm/java-11
 ----
 
 
 The command to verify if Java is installed properly on your host:
 [source,bash]
 ----
-java --version
+$JAVA_HOME/bin/java --version
 ----
 
 Should print an output like:
