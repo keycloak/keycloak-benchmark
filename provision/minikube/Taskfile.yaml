@@ -26,6 +26,7 @@ vars:
   KC_HEAP_MAX_MB: '{{default "512" .KC_HEAP_MAX_MB}}'
   KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
   KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
+  KC_CUSTOM_INFINISPAN_CONFIG: '{{default "false" .KC_CUSTOM_INFINISPAN_CONFIG}}'
 
 dotenv: ['.env']
 
@@ -115,6 +116,7 @@ tasks:
       - echo {{.KC_HEAP_MAX_MB}} > .task/var-KC_HEAP_MAX_MB
       - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
       - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
+      - echo {{.KC_CUSTOM_INFINISPAN_CONFIG}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -138,6 +140,7 @@ tasks:
       - test "{{.KC_HEAP_MAX_MB}}" == "$(cat .task/var-KC_HEAP_MAX_MB)"
       - test "{{.KC_METASPACE_INIT_MB}}" == "$(cat .task/var-KC_METASPACE_INIT_MB)"
       - test "{{.KC_METASPACE_MAX_MB}}" == "$(cat .task/var-KC_METASPACE_MAX_MB)"
+      - test "{{.KC_CUSTOM_INFINISPAN_CONFIG}}" == "$(cat .task/var-KC_CUSTOM_INFINISPAN_CONFIG)"
 
   prometheus:
     deps:
@@ -391,6 +394,7 @@ tasks:
         --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
         --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
+        --set customInfinispanConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
         keycloak
       - >
         bash -c '
