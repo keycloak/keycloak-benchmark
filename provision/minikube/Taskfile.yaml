@@ -412,7 +412,7 @@ tasks:
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
       - bash -c 'kubectl get pods -A | grep -E "(BackOff|Error|ErrImageNeverPull|InvalidImageName)" | tr -s " " | cut -d" " -f1-2 | xargs -r -L 1 kubectl delete pod -n'
       # wait a bit for the operator to pick up the changes
-      - bash -c 'sleep 1'
+      - bash -c 'sleep 2'
       - ./init-database.sh {{.KC_DATABASE}}
       - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
