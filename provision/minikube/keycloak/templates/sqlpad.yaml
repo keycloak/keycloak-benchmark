@@ -1,3 +1,4 @@
+{{ if .Values.sqlpad }}
 {{ if or (eq .Values.database "postgres") (eq .Values.database "cockroach-single") (eq .Values.database "cockroach-operator") (eq .Values.database "postgres+infinispan") }}
 ---
 apiVersion: apps/v1
@@ -178,4 +179,5 @@ spec:
             path: /
             pathType: ImplementationSpecific
 ---
+{{end}}
 {{end}}
