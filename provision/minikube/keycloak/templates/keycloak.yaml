@@ -99,7 +99,7 @@ spec:
     podTemplate:
       metadata:
         annotations:
-          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}
+          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}--{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}
       spec:
         {{ if .Values.otel }}
         initContainers:
