@@ -3,11 +3,14 @@
 set -e
 
 #prerequisite checks
-if [ "$(egrep -c 'vmx|svm' /proc/cpuinfo)" -ge 0 ]; then
-  echo "PRE-REQ CHECK PASSED: Virtualization is enabled on the host machine, its safe to proceed."
-else
-  echo >&2 "PRE-REQ CHECK FAILED: Virtualization is not enabled properly on the host machine. Please check the installation docs."
-  exit 1
+#this test is valid only on Linux, and would fail on Windows, MacOS
+if [ "$(uname)" == "Linux" ]; then
+ if [ "$(egrep -c 'vmx|svm' /proc/cpuinfo)" -ge 0 ]; then
+   echo "PRE-REQ CHECK PASSED: Virtualization is enabled on the host machine, its safe to proceed."
+ else
+   echo >&2 "PRE-REQ CHECK FAILED: Virtualization is not enabled properly on the host machine. Please check the installation docs."
+   exit 1
+ fi
 fi
 
 # this test is valid only on Linux, and would fail on Windows
