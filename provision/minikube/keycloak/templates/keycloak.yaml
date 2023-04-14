@@ -159,10 +159,8 @@ spec:
 {{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
                   -XX:FlightRecorderOptions=stackdepth=512
-{{- end -}}
-{{- if or .Values.otel .Values.cryostat }}
+{{- end }}
             ports:
-{{ end -}}
 {{ if .Values.otel }}
               - containerPort: 9464
                 protocol: TCP
