@@ -18,7 +18,34 @@ Add the following snippet to the file `~/.bashrc` to allow auto-completion of co
 source <(minikube completion bash)
 ----
 
-== Verifying the installation of minkube
+The choice of Virtual Machine manger the user would install is probably dependent on the developer host Operating System. Below are the VM drivers which are tested and proven to be working without issue for the respective host OS.
+
+=== Linux Host
+KVM or Kernel-based Virtual Machine is a full virtualization solution for Linux on x86 hardware containing virtualization extensions. To learn more about it and its relevance to minikube, you can read the https://minikube.sigs.k8s.io/docs/drivers/kvm2/[docs].
+
+Please take a note that the linux User needs to be added to the `libvirt` group using the below command.
+
+
+[source,bash]
+----
+sudo usermod -aG libvirt $USER
+----
+
+Optionally you can use the below command to verify if the libvirt group exists and is updated with the user
+
+The command:
+[source,bash]
+----
+getent group libvirt
+----
+
+Should print an output like:
+
+----
+libvirt:x:981:johndoe
+----
+
+== Verifying the installation of minikube
 
 The command:
 
