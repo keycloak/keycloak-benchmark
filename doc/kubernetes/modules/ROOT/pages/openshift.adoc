@@ -1,0 +1,57 @@
+= Deploying on OpenShift
+:description: Deploy Keycloak on OpenShift with a setup similar to the minikube environment.
+
+{description}
+
+While minikube is the primary target for this setup, this tracks the progress on how to use it with an OpenShift environment, see <<supported-functionality>>.
+
+WARNING: OpenShift must not be accessible from the Internet, as this setup opens node ports and URLs that are not properly secured by good passwords and transport encryption.
+
+== Prerequisites
+
+* OpenShift with admin rights for a user to be able to install custom resource definitions
+* xref:prerequisite/prerequisite-helm.adoc[Helm]
+* xref:prerequisite/prerequisite-kubectl.adoc[kubectl]
+* xref:prerequisite/prerequisite-task.adoc[task]
+* xref:prerequisite/prerequisite-yq.adoc[yq]
+// * xref:prerequisite/prerequisite-java.adoc[Java]
+
+Verify that the setup works using `kubectl get pods -A`.
+
+[[supported-functionality]]
+== Supported functionality
+
+At the moment, the following is known not to work on OpenShift:
+
+sqlpad:: Container requires a root user.
+cryostat:: OpenShift instance needs to have persistent storage enabled for this to work.
+dataset provider:: This is currently not automatically built and installed as part of running the `task` command.
+gatling client setup:: This is currently not automatically built and installed as part of running the `task` command.
+monitoring:: The OpenShift installation will eventually use the monitoring provided with OpenShift.
+
+== Installing Keycloak on OpenShift
+
+. Check out the Git repository from https://github.com/keycloak/keycloak-benchmark/.
+
+. Change to the folder `provision/openshift`.
+
+. Edit the configuration file `.env` with the following settings:
++
+[source]
+----
+KC_HOSTNAME_SUFFIX=apps.<<domain name>>
+----
++
+`KC_HOSTNAME_SUFFIX` should be the hostname that you also see in the web browser when opening the OpenShift console.
+
+. Run the `task` command to provision all containers on OpenShift.
+
+== Verifying the installation
+
+Run the following script to check if all services are running and receive a list of available URLs:
+
+[source,shell]
+----
+./isup.sh
+----
+

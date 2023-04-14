@@ -4,29 +4,12 @@ version: '3'
 
 output: prefixed
 
+includes:
+  common: ../common
+
 vars:
   IP:
     sh: minikube ip
-  KB_RETENTION: '{{default "168h" .KB_RETENTION}}'
-  KC_OTEL: '{{default "false" .KC_OTEL}}'
-  KC_OTEL_SAMPLING_PERCENTAGE: '{{default "0.001" .KC_OTEL_SAMPLING_PERCENTAGE}}'
-  KC_DB_POOL_INITIAL_SIZE: '{{default "5" .KC_DB_POOL_INITIAL_SIZE}}'
-  KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
-  KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
-  KC_STORAGE: '{{default "" .KC_STORAGE}}'
-  KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
-  KC_OPERATOR_TAG: '{{default "nightly" .KC_OPERATOR_TAG}}'
-  KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
-  KC_INSTANCES: '{{default "1" .KC_INSTANCES}}'
-  KC_CPU_REQUESTS: '{{default "0" .KC_CPU_REQUESTS}}'
-  KC_CPU_LIMITS: '{{default "4" .KC_CPU_LIMITS}}'
-  KC_MEMORY_REQUESTS_MB: '{{default "1024" .KC_MEMORY_REQUESTS_MB}}'
-  KC_MEMORY_LIMITS_MB: '{{default "1024" .KC_MEMORY_LIMITS_MB}}'
-  KC_HEAP_INIT_MB: '{{default "64" .KC_HEAP_INIT_MB}}'
-  KC_HEAP_MAX_MB: '{{default "512" .KC_HEAP_MAX_MB}}'
-  KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
-  KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
-  KC_CUSTOM_INFINISPAN_CONFIG: '{{default "false" .KC_CUSTOM_INFINISPAN_CONFIG}}'
 
 dotenv: ['.env']
 
@@ -41,7 +24,7 @@ tasks:
 
   ipchange:
     deps:
-      - split
+      - common:split
     cmds:
       - rm -f .task/checksum/keycloak
       - rm -f .task/checksum/prometheus
@@ -58,7 +41,7 @@ tasks:
 
   reset-keycloak:
     deps:
-      - split
+      - common:split
     cmds:
       - >
         bash -c '
@@ -82,71 +65,11 @@ tasks:
       - rm -f .task/checksum/gatlinguser
       - task: default
 
-  split:
-    desc: Split Taskfile to one-file-per-task for dirty checking
-    # avoid 'once' until https://github.com/go-task/task/issues/715 when running with parameter '-C 1'
-    run: once
-    cmds:
-      - bash -c ./split.sh
-    sources:
-      - Taskfile.yaml
-      - split.sh
-    silent: true
-
-  env:
-    cmds:
-      # create marker files that can then be checked in other tasks
-      - mkdir -p .task
-      - echo {{.KB_RETENTION}} > .task/var-KB_RETENTION
-      - echo {{.KC_OTEL}} > .task/var-KC_OTEL
-      - echo {{.KC_OTEL_SAMPLING_PERCENTAGE}} > .task/var-KC_OTEL_SAMPLING_PERCENTAGE
-      - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
-      - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
-      - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
-      - echo {{.KC_STORAGE}} > .task/var-KC_STORAGE
-      - echo {{.KC_DATABASE}} > .task/var-KC_DATABASE
-      - echo {{.KC_OPERATOR_TAG}} > .task/var-KC_OPERATOR_TAG
-      - echo {{.KC_CONTAINER_IMAGE}} > .task/var-KC_CONTAINER_IMAGE
-      - echo {{.KC_INSTANCES}} > .task/var-KC_INSTANCES
-      - echo {{.KC_CPU_REQUESTS}} > .task/var-KC_CPU_REQUESTS
-      - echo {{.KC_CPU_LIMITS}} > .task/var-KC_CPU_LIMITS
-      - echo {{.KC_MEMORY_REQUESTS_MB}} > .task/var-KC_MEMORY_REQUESTS_MB
-      - echo {{.KC_MEMORY_LIMITS_MB}} > .task/var-KC_MEMORY_LIMITS_MB
-      - echo {{.KC_HEAP_INIT_MB}} > .task/var-KC_HEAP_INIT_MB
-      - echo {{.KC_HEAP_MAX_MB}} > .task/var-KC_HEAP_MAX_MB
-      - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
-      - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
-      - echo {{.KC_CUSTOM_INFINISPAN_CONFIG}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG
-    run: once
-    sources:
-      - .task/subtask-{{.TASK}}.yaml
-    status:
-      - test "{{.KB_RETENTION}}" == "$(cat .task/var-KB_RETENTION)"
-      - test "{{.KC_OTEL}}" == "$(cat .task/var-KC_OTEL)"
-      - test "{{.KC_OTEL_SAMPLING_PERCENTAGE}}" == "$(cat .task/var-KC_OTEL_SAMPLING_PERCENTAGE)"
-      - test "{{.KC_DB_POOL_INITIAL_SIZE}}" == "$(cat .task/var-KC_DB_POOL_INITIAL_SIZE)"
-      - test "{{.KC_DB_POOL_MAX_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MAX_SIZE)"
-      - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
-      - test "{{.KC_STORAGE}}" == "$(cat .task/var-KC_STORAGE)"
-      - test "{{.KC_DATABASE}}" == "$(cat .task/var-KC_DATABASE)"
-      - test "{{.KC_OPERATOR_TAG}}" == "$(cat .task/var-KC_OPERATOR_TAG)"
-      - test "{{.KC_CONTAINER_IMAGE}}" == "$(cat .task/var-KC_CONTAINER_IMAGE)"
-      - test "{{.KC_INSTANCES}}" == "$(cat .task/var-KC_INSTANCES)"
-      - test "{{.KC_CPU_REQUESTS}}" == "$(cat .task/var-KC_CPU_REQUESTS)"
-      - test "{{.KC_CPU_LIMITS}}" == "$(cat .task/var-KC_CPU_LIMITS)"
-      - test "{{.KC_MEMORY_REQUESTS_MB}}" == "$(cat .task/var-KC_MEMORY_REQUESTS_MB)"
-      - test "{{.KC_MEMORY_LIMITS_MB}}" == "$(cat .task/var-KC_MEMORY_LIMITS_MB)"
-      - test "{{.KC_HEAP_INIT_MB}}" == "$(cat .task/var-KC_HEAP_INIT_MB)"
-      - test "{{.KC_HEAP_MAX_MB}}" == "$(cat .task/var-KC_HEAP_MAX_MB)"
-      - test "{{.KC_METASPACE_INIT_MB}}" == "$(cat .task/var-KC_METASPACE_INIT_MB)"
-      - test "{{.KC_METASPACE_MAX_MB}}" == "$(cat .task/var-KC_METASPACE_MAX_MB)"
-      - test "{{.KC_CUSTOM_INFINISPAN_CONFIG}}" == "$(cat .task/var-KC_CUSTOM_INFINISPAN_CONFIG)"
-
   prometheus:
     deps:
-      - split
+      - common:split
       - ipchange
-      - env
+      - common:env
     cmds:
       - kubectl create namespace monitoring || true
       - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -161,7 +84,7 @@ tasks:
   monitoring:
     deps:
       - prometheus
-      - split
+      - common:split
       - ipchange
     cmds:
       - helm upgrade --install monitoring --set hostname={{.IP}}.nip.io monitoring
@@ -171,9 +94,9 @@ tasks:
 
   jaeger:
     deps:
-      - split
+      - common:split
       - prometheus
-      - env
+      - common:env
     env:
       KB_RETENTION: '{{.KB_RETENTION}}'
     cmds:
@@ -190,7 +113,7 @@ tasks:
 
   tempo:
     deps:
-      - split
+      - common:split
       - prometheus
     cmds:
       # For now, Jaeger stores the traces, and Tempo is disabled.
@@ -204,8 +127,8 @@ tasks:
 
   loki:
     deps:
-      - split
-      - env
+      - common:split
+      - common:env
       - prometheus
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
@@ -221,7 +144,7 @@ tasks:
 
   promtail:
     deps:
-      - split
+      - common:split
       - prometheus
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
@@ -251,7 +174,7 @@ tasks:
 
   dataset:
     deps:
-      - split
+      - common:split
       - mvnw
     dir: ../..
     cmds:
@@ -267,7 +190,7 @@ tasks:
   datasetprovider:
     deps:
       - dataset
-      - split
+      - common:split
     cmds:
       - mkdir -p keycloak/providers
       - rm -f keycloak/providers/keycloak-benchmark-dataset-*.jar
@@ -287,7 +210,7 @@ tasks:
 
   tlsdisableagent:
     deps:
-      - split
+      - common:split
       - mvnw
     dir: ../tlsdisableagent
     cmds:
@@ -317,7 +240,7 @@ tasks:
   keycloak-cli-unzip:
     deps:
       - keycloak-cli-download
-      - split
+      - common:split
     dir: ..
     cmds:
       # remove temporary folders to be extra safe
@@ -335,7 +258,7 @@ tasks:
       - keycloak-cli-unzip
       - tlsdisableagent
       - keycloak
-      - split
+      - common:split
       - ipchange
     env:
       KC_OPTS: "-javaagent:../tlsdisableagent/tlscheckdisable-agent.jar"
@@ -356,13 +279,13 @@ tasks:
     deps:
       - monitoring
       - datasetprovider
-      - split
+      - common:split
       - ipchange
       - jaeger
       - loki
       - tempo
       - promtail
-      - env
+      - common:env
     cmds:
       - kubectl create namespace keycloak || true
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml

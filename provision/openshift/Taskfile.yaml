@@ -1,0 +1,105 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  KC_HOSTNAME_SUFFIX: '{{default "???" .KC_HOSTNAME_SUFFIX}}'
+
+output: prefixed
+
+dotenv: ['.env']
+
+includes:
+  common: ../common
+
+tasks:
+  default:
+    deps:
+      - keycloak
+    cmds:
+      - echo Keycloak is ready for load testing!
+      - bash -c ./isup.sh
+    silent: true
+
+  reset-keycloak:
+    deps:
+      - common:split
+    cmds:
+      - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0"
+      - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
+      - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
+      # discard status of keycloak to force redeployment
+      - rm -f .task/checksum/keycloak
+      - task: default
+
+  openshift-env:
+    deps:
+      - common:split
+    cmds:
+      # create marker files that can then be checked in other tasks
+      - mkdir -p .task
+      - echo {{.KC_HOSTNAME_SUFFIX}} > .task/var-KC_HOSTNAME_SUFFIX
+    run: once
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+    status:
+      - test "{{.KC_HOSTNAME_SUFFIX}}" == "$(cat .task/var-KC_HOSTNAME_SUFFIX)"
+
+  keycloak:
+    deps:
+      - common:split
+      - common:env
+      - openshift-env
+    cmds:
+      - kubectl create namespace keycloak || true
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n keycloak delete deployment/keycloak-operator && kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
+      - >
+        bash -c '
+        if [ "{{.KC_CONTAINER_IMAGE}}" != "" ]; then
+          envsubst < keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
+          kubectl patch deployment keycloak-operator -n keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
+        fi'
+      # TODO: cryostat is disabled as it requires persistent volumes on OpenShift in the current setup
+      # TODO: sqlpad is disabled as it runs as root in the container, see https://github.com/sqlpad/sqlpad/issues/1171
+      - >
+        helm upgrade --install keycloak
+        --set hostname={{.KC_HOSTNAME_SUFFIX}}
+        --set otel={{.KC_OTEL}}
+        --set otelSamplingPercentage={{.KC_OTEL_SAMPLING_PERCENTAGE}}
+        --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
+        --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
+        --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
+        --set storage={{.KC_STORAGE}}
+        --set database={{.KC_DATABASE}}
+        --set keycloakImage={{.KC_CONTAINER_IMAGE}}
+        --set instances={{ .KC_INSTANCES }}
+        --set cpuRequests={{ .KC_CPU_REQUESTS }}
+        --set cpuLimits={{ .KC_CPU_LIMITS }}
+        --set memoryRequestsMB={{ .KC_MEMORY_REQUESTS_MB }}
+        --set memoryLimitsMB={{ .KC_MEMORY_LIMITS_MB }}
+        --set heapInitMB={{ .KC_HEAP_INIT_MB }}
+        --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
+        --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
+        --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
+        --set cryostat=false
+        --set sqlpad=false
+        --set environment=openshift
+        ../minikube/keycloak
+      - >
+        bash -c '
+        if [ "{{.KC_DATABASE}}" != "none" ];
+        then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        else echo "none" > .task/status-{{.TASK}}-db.json;
+        fi'
+      # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
+      - bash -c 'kubectl get pods -n keycloak | grep -E "(BackOff|Error|ErrImageNeverPull|InvalidImageName)" | tr -s " " | cut -d" " -f1 | xargs -r -L 1 kubectl delete -n keycloak pod'
+      # wait a bit for the operator to pick up the changes
+      - bash -c 'sleep 2'
+      - ./isup.sh
+      # remove all no longer used images from minikube to preserve disk space
+    sources:
+      - keycloak/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KC_*
