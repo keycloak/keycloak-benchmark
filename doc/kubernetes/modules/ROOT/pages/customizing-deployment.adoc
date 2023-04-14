@@ -200,6 +200,19 @@ Default value: `0.001` (0.1 % of all traces are reported to Jaeger).
 While a value of `1.0` is useful to report all traces during local testing to Jaeger, it creates a lot of data which will overload the memory of the Jaeger instance, which will eventually restart.
 During a performance run, collect only a small percentage of all traces.
 
+[[KC_CUSTOM_INFINISPAN_CONFIG,KC_CUSTOM_INFINISPAN_CONFIG]]
+KC_CUSTOM_INFINISPAN_CONFIG::
+If a custom Infinispan configuration should be used. This option is valid only for the legacy store.
++
+Default value: `false`
++
+Available options:
++
+--
+* `true` -- Keycloak is configured to use custom configuration file that is mounted to each pod. The file can be found here: `link:{github-files}/provision/minikube/keycloak/config/kcb-infinispan-cache-config.xml[kcb-infinispan-cache-config.xml]`.
+* `false` -- use the default Infinispan configuration that is part of Keycloak distribution.
+--
+
 == Available Benchmark options
 
 The following configuration options are available to configure the helper applications.

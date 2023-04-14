@@ -25,6 +25,10 @@ spec:
     - name: db-url
       value:  jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
 {{ end }}
+{{ if .Values.customInfinispanConfig }}
+    - name: cache-config-file
+      value: kcb-infinispan-cache-config.xml
+{{ end }}
 {{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
@@ -205,6 +209,12 @@ spec:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
                 readOnly: true
+{{ if .Values.customInfinispanConfig }}
+              - name: kcb-infinispan-cache-config
+                mountPath: /opt/keycloak/conf/kcb-infinispan-cache-config.xml
+                subPath: kcb-infinispan-cache-config.xml
+                readOnly: true
+{{ end }}
 {{ if .Values.otel }}
               - name: otel
                 mountPath: /otel
@@ -218,6 +228,14 @@ spec:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
+{{ if .Values.customInfinispanConfig }}
+          - name: kcb-infinispan-cache-config
+            configMap:
+              name: kcb-infinispan-cache-config
+              items:
+                - key: kcb-infinispan-cache-config.xml
+                  path: kcb-infinispan-cache-config.xml
+{{ end }}
 {{ if .Values.otel }}
           - name: otel
             persistentVolumeClaim:
