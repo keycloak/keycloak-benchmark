@@ -85,8 +85,6 @@ jobs:
           task KC_DATABASE=postgres KC_STORAGE=jpa KC_OTEL=true dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
           task KC_DATABASE=postgres KC_STORAGE=jpa KC_OTEL=true dataset-import -- -a status-completed
       - name: Provision JPA Map store on Cockroach DB Single Node
-        # Disabled until https://github.com/keycloak/keycloak-benchmark/issues/312 is resolved
-        if: false
         working-directory: provision/minikube
         run: |
           PATH=$PATH:$GITHUB_WORKSPACE/bin
@@ -94,8 +92,6 @@ jobs:
           kubectl get pods -A
           kubectl get events -A
       - name: Create Dataset on Cockroach JPA Map Store
-        # Disabled until https://github.com/keycloak/keycloak-benchmark/issues/312 is resolved
-        if: false
         working-directory: provision/minikube
         run: |
           task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a clear-status-completed
