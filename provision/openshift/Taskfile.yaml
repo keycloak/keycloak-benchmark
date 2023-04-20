@@ -15,7 +15,7 @@ includes:
 tasks:
   default:
     deps:
-      - keycloak
+      - gatlinguser
     cmds:
       - echo Keycloak is ready for load testing!
       - bash -c ./isup.sh
@@ -30,6 +30,8 @@ tasks:
       - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
       # discard status of keycloak to force redeployment
       - rm -f .task/checksum/keycloak
+      # discard status of gatling user to force redeployment
+      - rm -f .task/checksum/gatlinguser
       - task: default
 
   openshift-env:
@@ -45,8 +47,42 @@ tasks:
     status:
       - test "{{.KC_HOSTNAME_SUFFIX}}" == "$(cat .task/var-KC_HOSTNAME_SUFFIX)"
 
+  dataset-import:
+    deps:
+      - gatlinguser
+    cmds:
+      - bash -c "../../dataset/dataset-import.sh -l https://keycloak.{{.KC_HOSTNAME_SUFFIX}}/realms/master/dataset {{.CLI_ARGS}}"
+    silent: true
+
+  gatlinguser:
+    deps:
+      - common:keycloak-cli-unzip
+      - common:tlsdisableagent
+      - keycloak
+      - common:split
+    env:
+      KC_OPTS: "-javaagent:../tlsdisableagent/tlscheckdisable-agent.jar"
+      KEYCLOAK_HOME: "../keycloak-cli/keycloak"
+    cmds:
+      - bash -c ./isup.sh
+      - >
+        bash -c '
+        if [ "{{.KC_HOSTNAME_SUFFIX}}" != "" ];
+          then ../keycloak-cli/keycloak/bin/kcadm.sh config credentials --server https://keycloak.{{.KC_HOSTNAME_SUFFIX}}/ --realm master --user admin --password admin;
+          else echo -e "KC_HOSTNAME_SUFFIX value is not set properly";
+        fi'
+      - bash -c "../../benchmark/src/main/content/bin/initialize-benchmark-entities.sh -r test-realm -d"
+    sources:
+      - ../../benchmark/src/main/content/bin/initialize-benchmark-entities.sh
+      - .task/subtask-{{.TASK}}.yaml
+      # if keycloak's database deployment changes, this restarts the DB and the Gatling user needs to be re-created
+      - .task/status-keycloak-db.json
+      - .task/var-KC_STORAGE
+      - .task/var-KC_DATABASE
+
   keycloak:
     deps:
+      - common:datasetprovider
       - common:split
       - common:env
       - openshift-env
