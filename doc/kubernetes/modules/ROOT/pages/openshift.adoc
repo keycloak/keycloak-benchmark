@@ -5,18 +5,20 @@
 
 While minikube is the primary target for this setup, this tracks the progress on how to use it with an OpenShift environment, see <<supported-functionality>>.
 
+Access to OpenShift with the `cluster-admin` role is required to be able to install custom resource definitions.
+
 WARNING: OpenShift must not be accessible from the Internet, as this setup opens node ports and URLs that are not properly secured by good passwords and transport encryption.
 
 == Prerequisites
 
-* OpenShift with admin rights for a user to be able to install custom resource definitions
+* xref:prerequisite/prerequisite-openshift.adoc[OpenShift]
 * xref:prerequisite/prerequisite-helm.adoc[Helm]
 * xref:prerequisite/prerequisite-kubectl.adoc[kubectl]
 * xref:prerequisite/prerequisite-task.adoc[task]
 * xref:prerequisite/prerequisite-yq.adoc[yq]
 * xref:prerequisite/prerequisite-java.adoc[Java]
 
-Verify that the setup works using `kubectl get pods -A`.
+Verify that the setup works using `oc cluster-info`.
 
 [[supported-functionality]]
 == Supported functionality
@@ -35,9 +37,9 @@ monitoring:: The OpenShift installation will eventually use the monitoring provi
 
 . Edit the configuration file `.env` with the following settings:
 +
-[source]
+[source,subs=+quotes]
 ----
-KC_HOSTNAME_SUFFIX=apps.<<domain name>>
+KC_HOSTNAME_SUFFIX=apps.**<domain name>**
 ----
 +
 `KC_HOSTNAME_SUFFIX` should be the hostname that you also see in the web browser when opening the OpenShift console.
