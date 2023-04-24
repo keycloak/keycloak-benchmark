@@ -43,21 +43,26 @@ tasks:
     deps:
       - common:split
     cmds:
+      - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
+      - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
+      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=keycloak
+      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" == "postgres+infinispan" ];
         then kubectl delete deployment/postgres -n keycloak || exit 0;
              kubectl delete deployment/infinispan -n keycloak || exit 0;
         else
-        kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0;
+             kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0;
         fi'
+      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
+      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=infinispan
+      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=cockroach
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" == "cockroach-single" ];
         then kubectl delete deployment/cockroach -n keycloak || exit 0;
         fi'
-      - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
-      - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
       - ./init-database.sh {{.KC_DATABASE}} reset
       # discard status of keycloak to force redeployment
       - rm -f .task/checksum/keycloak

@@ -72,4 +72,7 @@ spec:
             - containerPort: 5432
               protocol: TCP
       restartPolicy: Always
+      # The rhel9/postgresql-13 is known to take ~30 seconds to shut down
+      # As this is a deployment with ephemeral storage, there is no need to wait as the data will be gone anyway
+      terminationGracePeriodSeconds: 0
 {{ end }}
