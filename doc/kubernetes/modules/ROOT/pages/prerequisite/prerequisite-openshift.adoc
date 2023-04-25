@@ -45,7 +45,7 @@ The command:
 
 [source,bash]
 ----
-helm version
+oc version
 ----
 
 Should print an output like:
@@ -56,6 +56,8 @@ Kustomize Version: v4.5.7
 Server Version: 4.12.13
 Kubernetes Version: v1.25.8+27e744f
 ----
+
+The major and minor version for the client and the server should match (`4.12` in the example shown above).
 
 == Logging in on the command line
 
@@ -73,7 +75,7 @@ NOTE: The session will expire approximately one a day, and you'll need to re-log
 == Enable user workload monitoring
 
 By default, OpenShift doesn't monitor user workloads.
-Apply the following ConfigMap to OpenShift:
+Apply the following ConfigMap link:{github-files}/provision/openshift/cluster-monitoring-config.yaml[cluster-monitoring-config.yaml] which is located in the `/provision/openshift` folder to OpenShift:
 
 [source,bash]
 ----
@@ -107,9 +109,9 @@ To switch between different clusters, use the following commands:
 kubectl config get-contexts
 ----
 
-.List available contexts to switch between
+.Select/Input the Context to Switch to
 
 [source,bash,subs=+quotes]
 ----
-kubectl config **<context>**
+kubectl config use-context **<context>**
 ----
