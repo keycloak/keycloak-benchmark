@@ -15,7 +15,7 @@ kubectl get pods -A | grep -E "(BackOff|Error)" | tr -s " " | cut -d" " -f1-2 | 
 MAXRETRIES=600
 
 declare -A SERVICES=( \
- ["keycloak.${HOST}"]="realms/master/.well-known/openid-configuration" \
+ ["keycloak-keycloak.${HOST}"]="realms/master/.well-known/openid-configuration" \
  ["grafana.${HOST}"]="" \
  ["prometheus.${HOST}"]="" \
  ["jaeger.${HOST}"]="api/services" \

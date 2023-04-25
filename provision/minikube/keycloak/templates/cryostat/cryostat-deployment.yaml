@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: cryostat
     kind: cryostat
   name: cryostat
-  namespace: keycloak
+  namespace: {{ .Values.namespace }}
 spec:
   strategy:
     type: Recreate
@@ -21,7 +21,7 @@ spec:
         app: cryostat
         kind: cryostat
       name: cryostat
-      namespace: keycloak
+      namespace: {{ .Values.namespace }}
     spec:
       containers:
       - env:

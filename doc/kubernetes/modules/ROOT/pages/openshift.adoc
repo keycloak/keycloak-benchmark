@@ -53,3 +53,15 @@ Run the following script to check if all services are running and receive a list
 ./isup.sh
 ----
 
+[[sharing-cluster-with-multiple-users]]
+== Sharing one Openshift cluster with other users
+
+The following options are necessary for customizing Keycloak deployment in a way that it can be used concurrently by multiple users within one Openshift cluster.
+
+- `xref:customizing-deployment.adoc#KC_NAMESPACE_PREFIX[KC_NAMESPACE_PREFIX]` - allows to customize namespace name.
+The resulting namespace will be `++${KC_NAMESPACE_PREFIX}++keycloak`.
+By default, the namespace prefix is set to `$(whoami)-`, but it can be customized in `.env` file.
+- `xref:customizing-deployment.adoc#KC_PORT_OFFSET[KC_PORT_OFFSET]` - Keycloak deployment contains several services that are exposed via NodePort.
+By default, the port offset is set to `0`.
+When more users use Keycloak benchmark with the same port offset the task execution will fail with the following message: `Invalid value: 3XXXX: provided port is already allocated`, in that case choose different port offset value in the `.env` file.
+

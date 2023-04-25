@@ -11,6 +11,6 @@ spec:
     - name: grpc-http
       protocol: TCP
       port: 14250
-      nodePort: 30008
+      nodePort: {{ add 30008 (mul .Values.portOffset 100) }}
   selector:
     app.kubernetes.io/name: jaeger

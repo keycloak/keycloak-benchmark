@@ -34,7 +34,7 @@ fi
 echo "INFO: set environment variables with parametrized inputs or defaults"
 export MINIKUBE_IP=$(minikube ip)
 export GRAPHITE_TCP_ADDR=$MINIKUBE_IP
-export KC_SERVER_URL=${KC_SERVER_URL:-"https://keycloak.$MINIKUBE_IP.nip.io/"}
+export KC_SERVER_URL=${KC_SERVER_URL:-"https://keycloak-keycloak.$MINIKUBE_IP.nip.io/"}
 export SCENARIO=${SCENARIO}
 export CLIENT_SECRET=setup-for-benchmark
 export RAMPUP=${RAMPUP}

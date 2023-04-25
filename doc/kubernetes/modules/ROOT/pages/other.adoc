@@ -142,7 +142,7 @@ https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this 
 
 The dataprovider module is deployed by default.
 
-To test if the dataprovider module has been deployed, test the URL \https://keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status.
+To test if the dataprovider module has been deployed, test the URL \https://keycloak-keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status.
 Use the `./isup.sh` script to find out about the IP address of Keycloak.
 
 == Running `kcadm.sh` with invalid TLS certificates
@@ -201,7 +201,7 @@ Whenever the minikube instance on the remote host is re-created, it receives a d
 sudo ssh -L 443:192.168.39.19:443 user@remotehost
 ----
 
-Now point the browser to \https://keycloak.192.168.39.19.nip.io as usual to interact with the application.
+Now point the browser to \https://keycloak-keycloak.192.168.39.19.nip.io as usual to interact with the application.
 With the SSH tunnel in place, the response times are a bit slower, so users are not able to run a representative load test with gatling on their local machine and minikube running on the remote machine.
 
 To optimize the server side of the connection, consider updating the `MaxSessions` parameter in sshd, as otherwise the number sessions via one SSH session would be restricted to 10, and users might see a blocking browser.

@@ -9,6 +9,8 @@ A running version of xref:installation.adoc[Keycloak within Minikube] is a prere
 The deployment of Keycloak has debugging enabled by default and opens node port `30012` on minikube.
 Developers use their local IDE to connect to the Keycloak instance running in minikube using a JVM remote debugging session.
 
+include::partial$port-offset-note.adoc[]
+
 image::util/minikube-runtime-view-debug-keycloak.dio.svg[]
 
 == How to set it up
@@ -25,7 +27,10 @@ Setup of remote debugging:
 +
 . Set up remote debugging with the host name using the IP address retrieved in the previous step and port number `30012`.
 
-NOTE: The IP address changes when minikube is restarted.
+include::partial$minikube-ip-change.adoc[]
+
+include::partial$port-offset-note.adoc[]
+
 
 Assuming the command `minikube ip` returned `192.168.39.39`, see an example screenshot from IntelliJ below.
 
