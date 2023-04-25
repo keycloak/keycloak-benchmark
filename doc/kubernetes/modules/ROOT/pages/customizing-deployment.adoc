@@ -215,10 +215,28 @@ The file can be found here: `link:{github-files}/provision/minikube/keycloak/con
 --
 
 KC_HOSTNAME_SUFFIX::
-Hostname suffix used when deplying to an OpenShift environment.
+Hostname suffix used when deploying to an OpenShift environment.
 Use it with `++apps.<<domain name>>++` as shown in the URL when opening the OpenShift Console.
 +
 Default value: not set
+
+[[KC_NAMESPACE_PREFIX,KC_NAMESPACE_PREFIX]]
+KC_NAMESPACE_PREFIX::
+By default, the Keycloak instance is deployed to the `keycloak` namespace. The namespace name can be customized by adding a prefix to the namespace name. The resulting namespace will be `++${KC_NAMESPACE_PREFIX}++keycloak`.
++
+Default value: `$(whoami)-`
++
+NOTE: This option is implemented only for Openshift deployments.
+
+[[KC_PORT_OFFSET,KC_PORT_OFFSET]]
+KC_PORT_OFFSET::
+This parameter allows to change the port by some offset for each service created. This is useful when multiple Keycloak instances are deployed to the same cluster. See section xref:openshift.adoc#sharing-cluster-with-multiple-users[Sharing cluster with multiple users] for more information.
++
+Default value: 0
++
+Available options: 0-26
++
+NOTE: This option is implemented only for Openshift deployments.
 
 == Available Benchmark options
 

@@ -4,6 +4,8 @@ version: '3'
 
 vars:
   KC_HOSTNAME_SUFFIX: '{{default "???" .KC_HOSTNAME_SUFFIX}}'
+  KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
+  KC_PORT_OFFSET: '{{default "0" .KC_PORT_OFFSET}}'
 
 output: prefixed
 
@@ -25,9 +27,9 @@ tasks:
     deps:
       - common:split
     cmds:
-      - bash -c "kubectl delete keycloaks.k8s.keycloak.org/keycloak -n keycloak || exit 0"
-      - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
-      - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0"
+      - bash -c "kubectl delete keycloaks.k8s.keycloak.org/keycloak -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
+      - bash -c "kubectl delete deployment/keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
+      - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=keycloak
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
@@ -46,17 +48,21 @@ tasks:
       # create marker files that can then be checked in other tasks
       - mkdir -p .task
       - echo {{.KC_HOSTNAME_SUFFIX}} > .task/var-KC_HOSTNAME_SUFFIX
+      - echo {{.KC_NAMESPACE_PREFIX}} > .task/var-KC_NAMESPACE_PREFIX
+      - echo {{.KC_PORT_OFFSET}} > .task/var-KC_PORT_OFFSET
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
     status:
       - test "{{.KC_HOSTNAME_SUFFIX}}" == "$(cat .task/var-KC_HOSTNAME_SUFFIX)"
+      - test "{{.KC_NAMESPACE_PREFIX}}" == "$(cat .task/var-KC_NAMESPACE_PREFIX)"
+      - test "{{.KC_PORT_OFFSET}}" == "$(cat .task/var-KC_PORT_OFFSET)"
 
   dataset-import:
     deps:
       - gatlinguser
     cmds:
-      - bash -c "../../dataset/dataset-import.sh -l https://keycloak.{{.KC_HOSTNAME_SUFFIX}}/realms/master/dataset {{.CLI_ARGS}}"
+      - bash -c "../../dataset/dataset-import.sh -l https://keycloak-{{.KC_NAMESPACE_PREFIX}}keycloak.{{.KC_HOSTNAME_SUFFIX}}/realms/master/dataset {{.CLI_ARGS}}"
     silent: true
 
   gatlinguser:
@@ -73,7 +79,7 @@ tasks:
       - >
         bash -c '
         if [ "{{.KC_HOSTNAME_SUFFIX}}" != "" ];
-          then ../keycloak-cli/keycloak/bin/kcadm.sh config credentials --server https://keycloak.{{.KC_HOSTNAME_SUFFIX}}/ --realm master --user admin --password admin;
+          then ../keycloak-cli/keycloak/bin/kcadm.sh config credentials --server https://keycloak-{{.KC_NAMESPACE_PREFIX}}keycloak.{{.KC_HOSTNAME_SUFFIX}}/ --realm master --user admin --password admin;
           else echo -e "KC_HOSTNAME_SUFFIX value is not set properly";
         fi'
       - bash -c "../../benchmark/src/main/content/bin/initialize-benchmark-entities.sh -r test-realm -d"
@@ -92,15 +98,15 @@ tasks:
       - common:env
       - openshift-env
     cmds:
-      - kubectl create namespace keycloak || true
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
-      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n keycloak delete deployment/keycloak-operator && kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
+      - kubectl create namespace {{.KC_NAMESPACE_PREFIX}}keycloak || true
+      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete deployment/keycloak-operator && kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
       - >
         bash -c '
         if [ "{{.KC_CONTAINER_IMAGE}}" != "" ]; then
           envsubst < keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
-          kubectl patch deployment keycloak-operator -n keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
+          kubectl patch deployment keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
         fi'
       # TODO: cryostat is disabled as it requires persistent volumes on OpenShift in the current setup
       # TODO: sqlpad is disabled as it runs as root in the container, see https://github.com/sqlpad/sqlpad/issues/1171
@@ -127,17 +133,21 @@ tasks:
         --set cryostat=false
         --set sqlpad=false
         --set environment=openshift
+        --set namespace={{.KC_NAMESPACE_PREFIX}}keycloak
+        --set portOffset={{.KC_PORT_OFFSET}}
         ../minikube/keycloak
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" != "none" ];
-        then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        then kubectl get deployment/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
-      - bash -c 'kubectl get pods -n keycloak | grep -E "(BackOff|Error|ErrImageNeverPull|InvalidImageName)" | tr -s " " | cut -d" " -f1 | xargs -r -L 1 kubectl delete -n keycloak pod'
+      - bash -c 'kubectl get pods -n {{.KC_NAMESPACE_PREFIX}}keycloak | grep -E "(BackOff|Error|ErrImageNeverPull|InvalidImageName)" | tr -s " " | cut -d" " -f1 | xargs -r -L 1 kubectl delete -n {{.KC_NAMESPACE_PREFIX}}keycloak pod'
       # wait a bit for the operator to pick up the changes
       - bash -c 'sleep 2'
+      - export KC_NAMESPACE_PREFIX={{.KC_NAMESPACE_PREFIX}}
+      - export KC_HOSTNAME_SUFFIX={{.KC_HOSTNAME_SUFFIX}}
       - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
     sources:

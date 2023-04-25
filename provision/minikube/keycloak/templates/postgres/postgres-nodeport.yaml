@@ -11,7 +11,7 @@ spec:
   ports:
     - protocol: TCP
       port: 5432
-      nodePort: 30009
+      nodePort: {{ add 30009 (mul .Values.portOffset 100) }}
   selector:
     app: postgres
 {{ end }}
