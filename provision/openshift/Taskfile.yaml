@@ -25,7 +25,7 @@ tasks:
     deps:
       - common:split
     cmds:
-      - bash -c "kubectl delete keycloak/keycloak -n keycloak || exit 0"
+      - bash -c "kubectl delete keycloaks.k8s.keycloak.org/keycloak -n keycloak || exit 0"
       - bash -c "kubectl delete deployment/keycloak-operator -n keycloak || exit 0"
       - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0"
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=keycloak
