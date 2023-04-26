@@ -40,10 +40,21 @@ datasources:
         isDefault: true
         editable: false
         jsonData:
-          httpHeaderName1: Authorization
+          httpHeaderName1: Authorization 
           tlsSkipVerify: true
           httpMethod: "POST"
         secureJsonData:
-          httpHeaderValue1: "Bearer ..."
+          httpHeaderValue1: Bearer $__file{/run/secrets/kubernetes.io/grafanaserviceaccount/token}
+extraSecretMounts:
+- name: grafana-sa-token
+  mountPath: /run/secrets/kubernetes.io/grafanaserviceaccount
+  readOnly: true
+  projected:
+    defaultMode: 420
+    sources:
+      - serviceAccountToken:
+          expirationSeconds: 86400
+          path: token
 serviceAccount:
   create: false
+  name: grafana

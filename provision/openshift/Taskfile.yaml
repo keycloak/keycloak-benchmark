@@ -102,14 +102,10 @@ tasks:
       # this creates the service account outside the Helm chart to be able to create the token which is later an input of the Helm change
       - oc create sa grafana -n monitoring || exit 0
       - oc adm policy add-cluster-role-to-user cluster-monitoring-view -z grafana -n monitoring
-      - bash -c 'test -e .task/grafana-sa-token || (oc create token  --duration 84600s grafana -n monitoring > .task/grafana-sa-token)'
       - kubectl get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids
     sources:
       - .task/subtask-{{.TASK}}.yaml
-    status:
-      - test -f .task/grafana-sa-token
     generates:
-      - .task/grafana-sa-token
       - .task/monitoring-uids
 
   grafana:
@@ -124,13 +120,11 @@ tasks:
       - >
         helm -n monitoring upgrade --install grafana grafana/grafana --version 6.55.0 -f grafana.yaml
         --set ingress.hosts[0]=grafana.{{.KC_HOSTNAME_SUFFIX}}
-        --set datasources."datasources\.yaml".datasources[0].secureJsonData.httpHeaderValue1="Bearer $(cat .task/grafana-sa-token)"
         --set securityContext.runAsUser=$(cat .task/monitoring-uids)
         --set securityContext.runAsGroup=$(cat .task/monitoring-uids)
         --set securityContext.fsGroup=$(cat .task/monitoring-uids)
     sources:
       - .task/subtask-{{.TASK}}.yaml
-      - .task/grafana-sa-token
       - .task/monitoring-uids
       - .task/var-KC_HOSTNAME_SUFFIX
       - grafana.yaml
