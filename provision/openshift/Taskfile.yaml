@@ -102,7 +102,7 @@ tasks:
       # this creates the service account outside the Helm chart to be able to create the token which is later an input of the Helm change
       - oc create sa grafana -n monitoring || exit 0
       - oc adm policy add-cluster-role-to-user cluster-monitoring-view -z grafana -n monitoring
-      - bash -c 'test -e .task/grafana-sa-token || (oc create token grafana -n monitoring > .task/grafana-sa-token)'
+      - bash -c 'test -e .task/grafana-sa-token || (oc create token  --duration 84600s grafana -n monitoring > .task/grafana-sa-token)'
       - kubectl get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -120,6 +120,7 @@ tasks:
       - grafana-sa
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
+      - helm repo update
       - >
         helm -n monitoring upgrade --install grafana grafana/grafana --version 6.55.0 -f grafana.yaml
         --set ingress.hosts[0]=grafana.{{.KC_HOSTNAME_SUFFIX}}
