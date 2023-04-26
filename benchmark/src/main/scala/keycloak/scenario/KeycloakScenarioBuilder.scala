@@ -347,6 +347,19 @@ class KeycloakScenarioBuilder {
       })
   }
 
+  def openHomePage(pauseAfter: Boolean): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Open Home Page ${keycloakServer}")
+        .get("${keycloakServer}/")
+        .headers(UI_HEADERS)
+        .check(status.is(200)))
+      .exitHereIfFailed
+    if (pauseAfter) {
+      userThinkPause()
+    }
+    this
+  }
+
   //Roles
   def listRoles(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
