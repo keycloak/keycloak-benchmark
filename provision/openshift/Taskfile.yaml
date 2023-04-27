@@ -196,8 +196,6 @@ tasks:
       - bash -c 'kubectl get pods -n {{.KC_NAMESPACE_PREFIX}}keycloak | grep -E "(BackOff|Error|ErrImageNeverPull|InvalidImageName)" | tr -s " " | cut -d" " -f1 | xargs -r -L 1 kubectl delete -n {{.KC_NAMESPACE_PREFIX}}keycloak pod'
       # wait a bit for the operator to pick up the changes
       - bash -c 'sleep 2'
-      - export KC_NAMESPACE_PREFIX={{.KC_NAMESPACE_PREFIX}}
-      - export KC_HOSTNAME_SUFFIX={{.KC_HOSTNAME_SUFFIX}}
       - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
     sources:
