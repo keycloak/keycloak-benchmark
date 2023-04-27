@@ -91,6 +91,56 @@ tasks:
       - .task/var-KC_STORAGE
       - .task/var-KC_DATABASE
 
+  grafana-sa:
+    # this setup was inspired by https://zhimin-wen.medium.com/custom-grafana-dashboard-for-user-workload-in-openshift-6dc2d4cad274
+    deps:
+      - common:split
+      - common:env
+      - openshift-env
+    cmds:
+      - kubectl create namespace monitoring || true
+      # this creates the service account outside the Helm chart to be able to create the token which is later an input of the Helm change
+      - oc create sa grafana -n monitoring || exit 0
+      - oc adm policy add-cluster-role-to-user cluster-monitoring-view -z grafana -n monitoring
+      - kubectl get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+    generates:
+      - .task/monitoring-uids
+
+  grafana:
+    deps:
+      - common:split
+      - common:env
+      - openshift-env
+      - grafana-sa
+    cmds:
+      - helm repo add grafana https://grafana.github.io/helm-charts
+      - helm repo update
+      - >
+        helm -n monitoring upgrade --install grafana grafana/grafana --version 6.55.0 -f grafana.yaml
+        --set ingress.hosts[0]=grafana.{{.KC_HOSTNAME_SUFFIX}}
+        --set securityContext.runAsUser=$(cat .task/monitoring-uids)
+        --set securityContext.runAsGroup=$(cat .task/monitoring-uids)
+        --set securityContext.fsGroup=$(cat .task/monitoring-uids)
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+      - .task/monitoring-uids
+      - .task/var-KC_HOSTNAME_SUFFIX
+      - grafana.yaml
+
+  monitoring:
+    deps:
+      - common:split
+      - common:env
+      - openshift-env
+      - grafana
+    cmds:
+      - helm upgrade --install monitoring monitoring
+    sources:
+      - monitoring/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
+
   keycloak:
     deps:
       - common:datasetprovider

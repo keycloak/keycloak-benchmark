@@ -1,0 +1,60 @@
+# https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
+grafana.ini:
+  auth.anonymous:
+    enabled: true
+    org_role: Admin
+    org_name: Main Org.
+  snapshots:
+    external_enabled: false
+sidecar:
+  datasources:
+    enabled: false
+    defaultDatasourceEnabled: false
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    provider:
+      allowUiUpdates: false
+
+adminPassword: keycloak
+ingress:
+  enabled: true
+  hosts:
+    # set this via the CLI
+    - grafana.apps.hostname
+securityContext:
+  runAsNonRoot: true
+  runAsUser: ...
+  runAsGroup: ...
+  fsGroup: ...
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: PBFA97CFB590B2093
+        type: prometheus
+        url: https://thanos-querier.openshift-monitoring.svc:9091
+        access: proxy
+        isDefault: true
+        editable: false
+        jsonData:
+          httpHeaderName1: Authorization 
+          tlsSkipVerify: true
+          httpMethod: "POST"
+        secureJsonData:
+          httpHeaderValue1: Bearer $__file{/run/secrets/kubernetes.io/grafanaserviceaccount/token}
+extraSecretMounts:
+- name: grafana-sa-token
+  mountPath: /run/secrets/kubernetes.io/grafanaserviceaccount
+  readOnly: true
+  projected:
+    defaultMode: 420
+    sources:
+      - serviceAccountToken:
+          expirationSeconds: 86400
+          path: token
+serviceAccount:
+  create: false
+  name: grafana

@@ -255,14 +255,14 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "instance:node_cpu:ratio",
+          "expr": "instance:node_cpu_utilisation:rate1m",
           "hide": false,
           "legendFormat": "VM : {{instance}} - ",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Node CPU Usage by VM",
+      "title": "Node CPU Usage by Node",
       "type": "timeseries"
     },
     {
@@ -444,14 +444,14 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min(node_filesystem_avail_bytes{job=\"node-exporter\",device=\"/dev/vda1\"}) by (device)",
+          "expr": "min(node_filesystem_avail_bytes{job=\"node-exporter\",device!=\"tmpfs\"}) by (device,instance)",
           "hide": false,
-          "legendFormat": "VM Drive : {{device}} - ",
+          "legendFormat": "VM Drive : {{instance}} {{device}} - ",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Disk space left on VM",
+      "title": "Disk space left on Node",
       "type": "timeseries"
     },
     {
@@ -539,14 +539,14 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min(node_filesystem_files_free{device=\"/dev/vda1\"}/node_filesystem_files{device=\"/dev/vda1\"}) without (mountpoint)",
+          "expr": "min(node_filesystem_files_free{device!=\"tmpfs\"}/node_filesystem_files{device!=\"tmpfs\"}) without (mountpoint)",
           "hide": false,
-          "legendFormat": "{{device}}",
+          "legendFormat": "{{instance}} {{device}}",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "inodes % available on VM",
+      "title": "inodes % available on Node",
       "type": "timeseries"
     },
     {
@@ -940,9 +940,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(container_cpu_usage_seconds_total{job=\"cadvisor/cadvisor\", container_label_io_kubernetes_pod_namespace=\"$namespace\",container_label_io_kubernetes_container_name!=\"POD\"}\r\n[$__rate_interval])) without (cpu)",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{job=\"kubelet\", namespace=\"$namespace\",container!=\"\"}\r\n[$__rate_interval])) without (cpu)",
           "hide": false,
-          "legendFormat": "{{container_label_io_kubernetes_pod_name}}",
+          "legendFormat": "{{pod}}",
           "range": true,
           "refId": "B"
         }
@@ -1040,9 +1040,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "container_memory_working_set_bytes{job=\"cadvisor/cadvisor\", container_label_io_kubernetes_pod_namespace=\"$namespace\",container_label_io_kubernetes_container_name!=\"POD\"}",
+          "expr": "container_memory_working_set_bytes{job=\"kubelet\", namespace=\"$namespace\",container!=\"\"}",
           "hide": false,
-          "legendFormat": "{{container_label_io_kubernetes_pod_name}}",
+          "legendFormat": "{{pod}}",
           "range": true,
           "refId": "B"
         }
@@ -1140,9 +1140,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(container_network_receive_bytes_total{job=\"cadvisor/cadvisor\",container_label_io_kubernetes_pod_namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
+          "expr": "sum(rate(container_network_receive_bytes_total{job=\"kubelet\",namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
           "hide": false,
-          "legendFormat": "{{container_label_io_kubernetes_pod_name}} receive",
+          "legendFormat": "{{pod}} receive",
           "range": true,
           "refId": "B"
         },
@@ -1152,9 +1152,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "- sum(rate(container_network_transmit_bytes_total{job=\"cadvisor/cadvisor\",container_label_io_kubernetes_pod_namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
+          "expr": "- sum(rate(container_network_transmit_bytes_total{job=\"kubelet\",namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
           "hide": false,
-          "legendFormat": "{{container_label_io_kubernetes_pod_name}} transmit",
+          "legendFormat": "{{pod}} transmit",
           "range": true,
           "refId": "A"
         }

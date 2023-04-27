@@ -1,0 +1,117 @@
+= Connecting to OpenShift as a pre-requisite
+:navtitle: Connecting to OpenShift
+:description: OpenShift is a pre-requisite if the setup is about to be tested on OpenShift.
+
+{description}
+It needs to be completed before xref:openshift.adoc[] can begin.
+
+== Prerequisites
+
+URL to the console of OpenShift::
+Usually a URL in the form of:
++
+[subs=+quotes]
+----
+https://console-openshift-console.apps.**<domain name>**/
+----
+
+URL to the API of OpenShift::
+Usually a URL in the form of:
++
+[subs=+quotes]
+----
+https://api.**<domain name>**:6443/
+----
+
+User credentials::
+OpenShift user login name and password with `cluster-admin` role to be able to install custom resource definitions.
+
+== Connecting to OpenShift
+
+. Log in to the OpenShift console.
+. Navigate to the question mark icon `(?)` in the upper right corner and choose *Command line tools*
+. Download the `oc` binary for your operating system.
+. On Linux, extract it to the folder `~/.bin`
+. Add the following snippet to the file `~/.bashrc` to allow auto-completion of commands:
++
+[source,bash]
+----
+source <(oc completion bash)
+----
+
+== Verifying the installation
+
+The command:
+
+[source,bash]
+----
+oc version
+----
+
+Should print an output like:
+
+----
+Client Version: 4.12.0-...
+Kustomize Version: v4.5.7
+Server Version: 4.12.13
+Kubernetes Version: v1.25.8+27e744f
+----
+
+The major and minor version for the client and the server should match (`4.12` in the example shown above).
+
+== Logging in on the command line
+
+Use the following command to log in on the command line and have it prompt for the password.
+Once you log in, the context switches automatically to that cluster.
+To switch back for example to the minikube cluster, see <<switching-between-different-kubernetes-clusters>> below.
+
+[source,bash,subs=+quotes]
+----
+oc login https://api.**<domain name>**:6443 -u **<username>**
+----
+
+NOTE: The session will expire approximately one a day, and you'll need to re-login.
+
+== Enable user workload monitoring
+
+By default, OpenShift doesn't monitor user workloads.
+Apply the following ConfigMap link:{github-files}/provision/openshift/cluster-monitoring-config.yaml[cluster-monitoring-config.yaml] which is located in the `/provision/openshift` folder to OpenShift:
+
+[source,bash]
+----
+kubectl apply -n openshift-monitoring -f cluster-monitoring-config.yaml
+----
+
+After this has been deployed, several new pods spin up in the *openshift-user-workload-monitoring* namespace:
+
+[source,bash]
+----
+kubectl get pods -n openshift-user-workload-monitoring
+----
+
+The metrics and targets are then available in the menu entry *Observe* in the OpenShift console.
+
+Additional steps are necessary to enable persistent volumes for the recorded metrics.
+
+Further reading:
+
+* https://docs.openshift.com/container-platform/4.12/monitoring/configuring-the-monitoring-stack.html[Configure OpenShift monitoring stack]
+* https://docs.openshift.com/container-platform/4.12/monitoring/enabling-monitoring-for-user-defined-projects.html[Enabling monitoring for user-defined projects]
+
+[#switching-between-different-kubernetes-clusters]
+== Switching between different Kubernetes clusters
+
+To switch between different clusters, use the following commands:
+
+.List available contexts to switch between
+[source,bash]
+----
+kubectl config get-contexts
+----
+
+.Select/Input the Context to Switch to
+
+[source,bash,subs=+quotes]
+----
+kubectl config use-context **<context>**
+----
