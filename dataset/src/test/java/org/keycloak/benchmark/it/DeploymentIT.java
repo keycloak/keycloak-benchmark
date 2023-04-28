@@ -187,7 +187,7 @@ public class DeploymentIT {
             Assert.assertTrue(executable.toFile().exists());
             cli.add(executable.toString());
         }
-        cli.addAll(Arrays.asList("start-dev", "--http-port", Integer.toString(port)));
+        cli.addAll(Arrays.asList("--verbose", "start-dev", "--http-port", Integer.toString(port)));
         cli.addAll(Arrays.asList(args));
         ProcessBuilder processBuilder = new ProcessBuilder(cli);
         processBuilder.environment().put("KEYCLOAK_ADMIN", "admin");
