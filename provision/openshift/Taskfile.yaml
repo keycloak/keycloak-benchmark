@@ -155,7 +155,7 @@ tasks:
       - >
         bash -c '
         if [ "{{.KC_CONTAINER_IMAGE}}" != "" ]; then
-          envsubst < keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
+          envsubst < ../minikube/keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
           kubectl patch deployment keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
         fi'
       # TODO: cryostat is disabled as it requires persistent volumes on OpenShift in the current setup
