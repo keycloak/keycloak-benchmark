@@ -1,9 +1,5 @@
 # https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
 grafana.ini:
-  auth.anonymous:
-    enabled: true
-    org_role: Admin
-    org_name: Main Org.
   snapshots:
     external_enabled: false
 sidecar:
@@ -17,7 +13,7 @@ sidecar:
     provider:
       allowUiUpdates: false
 
-adminPassword: keycloak
+adminPassword: admin # is changed via the CLI based on KC_ADMIN_PASSOWORD value
 ingress:
   enabled: true
   hosts:
@@ -40,7 +36,7 @@ datasources:
         isDefault: true
         editable: false
         jsonData:
-          httpHeaderName1: Authorization 
+          httpHeaderName1: Authorization
           tlsSkipVerify: true
           httpMethod: "POST"
         secureJsonData:
@@ -55,6 +51,7 @@ extraSecretMounts:
       - serviceAccountToken:
           expirationSeconds: 86400
           path: token
+
 serviceAccount:
   create: false
   name: grafana
