@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
+source ./.env
+
 if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; exit 1; fi
 
 if [ -z "$ADMIN_PASSWORD" ]; then ADMIN_PASSWORD_PARAM=""; else ADMIN_PASSWORD_PARAM="--password $ADMIN_PASSWORD"; fi
