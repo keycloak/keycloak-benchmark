@@ -1,0 +1,124 @@
+= Manual JFR recording
+:description: This describes how to create a JFR recording for Keycloak in a containerized environment when no additional tools like Cryostat are available.
+
+{description}
+
+== Overview
+
+Java Flight Recorder records events of the Java Virtual Machine including thread dumps which can then be assembled to flame graphs and which can be used to analyze the performance.
+In a fully-fledged setup, xref:util/cryostat.adoc[] offers an automated way, and no custom Keycloak image is required.
+If such a setup is not available, follow these instructions to capture a JFR.
+
+include::partial$note-not-async-profiling.adoc[]
+
+Read more on https://www.oracle.com/java/technologies/jdk-mission-control.html[JDK Mission Control at Oracle], and on https://www.baeldung.com/java-flight-recorder-monitoring[Monitoring Java Applications with Flight Recorder on Baeldung].
+
+== Preparing the Keycloak image
+
+The following procedure requires `jcmd` to be present in the container to start the Java Flight Recording, and `tar` to be able to use `kubectl cp` to retrieve the recording from the container.
+
+While older versions of Keycloak contain these tools, newer Keycloak image versions don't contain them to make the images smaller and more secure.
+Therefore, the first step is to create a custom Keycloak image with these tools.
+There are two ways to do this: Creating a Keycloak image from scratch, or updating a Keycloak image with the necessary packages.
+
+=== Building Keycloak from scratch
+
+If you're building a custom distribution of Keycloak from Keycloak's main repository, change the file `quarkus/container/Dockerfile` and exchange line
+
+----
+RUN bash /tmp/ubi-null.sh java-17-openjdk-headless glibc-langpack-en
+----
+
+with
+
+----
+RUN bash /tmp/ubi-null.sh java-17-openjdk-devel tar glibc-langpack-en
+----
+
+Then proceed as described in xref:util/custom-image-for-keycloak.adoc[] to build the image.
+
+=== Adding additional RPM packages to an image
+
+The https://www.keycloak.org/server/containers[Keycloak docs on containers] contain a section on how to add packages.
+To add the two packages `java-17-openjdk-devel tar`, proceed with a Dockerfile like the following:
+
+[source,subs=+quotes]
+----
+FROM registry.access.redhat.com/ubi9 AS ubi-micro-build
+RUN mkdir -p /mnt/rootfs
+RUN dnf install --installroot /mnt/rootfs **java-17-openjdk-devel tar** --releasever 9 --setopt install_weak_deps=false --nodocs -y; dnf --installroot /mnt/rootfs clean all
+
+FROM quay.io/keycloak/keycloak
+COPY --from=ubi-micro-build /mnt/rootfs /
+----
+
+Then proceed as described in xref:util/custom-image-for-keycloak.adoc[] to use the image.
+
+== Updating JVM options
+
+Keycloak uses very deep stack traces for its invocations.
+To be able to use the flame graphs, increase the number of stack frames by adding the following JVM option.
+
+----
+-XX:FlightRecorderOptions=stackdepth=512
+----
+
+When using the Keycloak operator, this can be passed to the Keycloak image via Keycloak's CustomResource as follows:
+
+[source,yaml]
+----
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+spec:
+  unsupported:
+    podTemplate:
+      spec:
+        containers:
+          - env:
+              - name: JAVA_OPTS_APPEND
+                value: >
+                  -XX:FlightRecorderOptions=stackdepth=512
+----
+
+If you're running a StatefulSet or Deployment that is managed by an Operator, consider stopping the Operator and updating the StatefulSet or Deployment manually to add or extend the Java options.
+
+== Starting the recording
+
+To start the recording, issue a command in the container:
+
+[source,bash,subs=+quotes]
+----
+kubectl exec -n _namespace_ _pod_ -- jcmd 1 JFR.start duration=60s filename=/tmp/recording.jfr settings=/usr/lib/jvm/java/lib/jfr/profile.jfc
+----
+
+The value `1` is the process ID of the Java process which is the default for all Quarkus based Keycloak containers.
+For Wildfly based distributions, this might be a different process ID.
+Use `jcmd` without parameters to list all Java process IDs to find the one you're looking for.
+
+Add the CLI option `-c _container_` if there is more than one container running in the Pod.
+
+The `profile.jfc` contains instructions on what to capture.
+`profile.jfc` is one of the standard profiles shipped by the JVM and stands for "`Profiling`": It collects a lot of information and is supposed to collect information for some minutes.
+A one-minute recording will collect already about 5 megabytes of data, so seek the time spans short.
+Adjust it as needed to collect the information you need.
+
+== Retrieving the recording
+
+To retrieve the recording, issue the following command:
+
+[source,bash,subs=+quotes]
+----
+kubectl cp -n _namespace_ keycloak __pod__:/tmp/recording.jfr recording.jfr --retries 999
+----
+
+Add the CLI option `-c _container_` if there is more than one container running in the Pod.
+
+The CLI option `--retries 999` helps to resume downloads for large files https://github.com/kubernetes/kubernetes/issues/60140[which might fail otherwise].
+
+== Analyzing the recording
+
+See xref:util/cryostat.adoc#analyzing-a-java-flight-recorder-recording[Analyzing a Java Flight Recorder recording] for details.
+
+
+
+
