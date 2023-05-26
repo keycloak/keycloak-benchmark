@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # set -x
 
+# Default values for variables from Taskfile.yml are not part of .env file, therefore we need to load them manually
 KC_NAMESPACE_PREFIX=$(cat .task/var-KC_NAMESPACE_PREFIX)
+KC_HOSTNAME_SUFFIX=$(cat .task/var-KC_HOSTNAME_SUFFIX)
+
 source .env
 
 # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
