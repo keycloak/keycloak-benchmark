@@ -3,11 +3,11 @@
 
 {description}
 
+If you have installed the keycloak using xref:kubernetes-guide::installation-minikube.adoc[minikube], the setup is performed automatically as part of the installation.
+
 == Prerequisites
 
 . A running Keycloak installation.
-+
-To set up a new instance for testing, consider xref:kubernetes-guide::installation.adoc[] as it includes several observability tools.
 
 == Configuration
 
@@ -61,40 +61,29 @@ Some scenarios require a service account with the clientId `gatling`:
 
 Instead of following the above manual steps, you can use this link:{github-files}/benchmark/src/main/content/bin/initialize-benchmark-entities.sh[initialize-benchmark-entities.sh] script to do the setup for you.
 
-Specify the path to Keycloak distribution directory as KEYCLOAK_HOME.
+. Extract the downloaded xref:downloading-benchmark.adoc[Keycloak Benchmark module].
+The script `initialize-benchmark-entities.sh` is located in the `bin` folder of this module.
 
-[NOTE]
-====
-If you have installed the keycloak using xref:kubernetes-guide::installation.adoc[minikube],
-. KEYCLOAK_HOME could be set using the folllowing command
-[source,shell]
-----
-export KEYCLOAK_HOME=provision/keycloak-cli/keycloak
-----
-. The keycloak server url is expected to look something like 'https://keycloak-keycloak.192.168.12.345'.
-====
+. Specify the path to Keycloak distribution directory as the environment variable `KEYCLOAK_HOME`.
 
-Login to the Keycloak server using the kcadm cli script, which comes with any Keycloak distribution.
-
+. Login to the Keycloak server using the `kcadm.sh` CLI script, which comes with any Keycloak distribution.
++
 [source,shell]
 ----
 $KEYCLOAK_HOME/bin/kcadm.sh config credentials --server https://keycloak-keycloak.192.168.12.345.nip.io --realm master --user admin --password admin
 ----
 
-and then run this, for creating the needed realm, client and user
-
-WARNING: If you want to use the scripted configuration, extract the downloaded xref:downloading-benchmark.adoc[Keycloak Benchmark module]. initialize-benchmark-entities.sh is located in the bin folder of this module.
-
+. Run the following command for creating the needed realm, client and user.
++
 [source,shell]
 ----
 ./initialize-benchmark-entities.sh -r test-realm -c gatling -u user-0
 ----
-
-or use a `-d` flag, to recreate the entities from scratch for any reason
-
++
+Use a `-d` flag, to recreate the entities from scratch for any reason.
++
 [source,shell]
 ----
 ./initialize-benchmark-entities.sh -r test-realm -c gatling -u user-0 -d
-
 ----
 
