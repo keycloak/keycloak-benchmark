@@ -1,0 +1,25 @@
+name: ROSA Cluster - Delete
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  delete:
+    name: Delete ROSA cluster
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+      - name: Delete ROSA Cluster
+        run: ./rosa_delete_cluster.sh
+        working-directory: provision/aws
+        env:
+          CLUSTER_NAME: shared

@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-source ./.env
+if [ -f ./.env ]; then
+  source ./.env
+fi
 
 CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; exit 1; fi
@@ -28,14 +30,12 @@ echo "REGION: $REGION"
 echo "Recreating the admin user."
 rosa delete admin --cluster "${CLUSTER_NAME}" --yes || true
 OC_LOGIN_CMD=$(rosa create admin --cluster "${CLUSTER_NAME}" --password "$ADMIN_PASSWORD" | grep -o -m 1 "oc login.*")
+OC_LOGIN_CMD="$OC_LOGIN_CMD --insecure-skip-tls-verify"
 
 echo "New admin user created."
 echo
 echo "     $OC_LOGIN_CMD"
 echo
 
-echo "Waiting a bit before attempting 'oc login'"
-sleep 1m
-
 echo "Waiting for 'oc login' to succeed."
-while ! $OC_LOGIN_CMD; do date -uIs; sleep 10s; done
+for i in {1..30}; do $OC_LOGIN_CMD && break || date -uIs && sleep 10; done

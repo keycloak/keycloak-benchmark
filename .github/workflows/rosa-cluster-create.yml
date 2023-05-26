@@ -1,0 +1,49 @@
+name: ROSA Cluster - Create
+
+on:
+  workflow_dispatch:
+    inputs:
+      computeMachineType:
+        description: 'Instance type for the compute nodes'
+        required: true
+        default: m5.xlarge
+        type: text
+      multiAz:
+        description: 'Deploy to multiple data centers'
+        required: true
+        default: false
+        type: boolean
+      replicas:
+        description: 'Number of worker nodes to provision'
+        required: true
+        default: 2
+        type: text
+
+env:
+  OPENSHIFT_VERSION: 4.12.17
+
+jobs:
+
+  checkout:
+    name: Create ROSA cluster
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+      - name: Create ROSA Cluster
+        run: ./rosa_create_cluster.sh
+        working-directory: provision/aws
+        env:
+          VERSION: ${{ env.OPENSHIFT_VERSION }}
+          CLUSTER_NAME: shared
+          REGION: ${{ vars.AWS_DEFAULT_REGION }}
+          COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
+          MULTI_AZ: ${{ inputs.multiAz }}
+          REPLICAS: ${{ inputs.replicas }}

@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
 
-source ./.env
+if [ -f ./.env ]; then
+  source ./.env
+fi
 
 AWS_ACCOUNT=${AWS_ACCOUNT:-$(aws sts get-caller-identity --query "Account" --output text)}
 if [ -z "$AWS_ACCOUNT" ]; then echo "Variable AWS_ACCOUNT needs to be set."; exit 1; fi
