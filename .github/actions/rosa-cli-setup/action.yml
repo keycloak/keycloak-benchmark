@@ -1,0 +1,41 @@
+name: Setup ROSA and AWS CLI
+description: Installs and logs in to ROSA and AWS CLI tools
+
+inputs:
+  aws-key-id:
+    description: AWS Access Key ID
+    required: true
+  aws-secret-access-key:
+    description: AWS Access Key Secret
+    required: true
+  aws-default-region:
+    description: Default AWS Region
+    required: true
+  rosa-token:
+    description: ROSA Token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: aws-configure
+      name: Configure AWS CLI
+      shell: bash
+      run: |
+        aws configure set aws_access_key_id ${{ inputs.aws-key-id }}
+        aws configure set aws_secret_access_key ${{ inputs.aws-secret-access-key }}
+        aws configure set region ${{ inputs.aws-default-region }}
+
+    - id: rosa-cli-install
+      name: Install ROSA CLI
+      shell: bash
+      run: |
+        cd /usr/local/bin/
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/rosa-linux.tar.gz | tar xz
+
+    - id: rosa-cli-login
+      name: Login ROSA CLI
+      shell: bash
+      run: rosa login
+      env:
+        ROSA_TOKEN: ${{ inputs.rosa-token }}
