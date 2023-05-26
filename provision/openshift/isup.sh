@@ -5,7 +5,9 @@
 KC_NAMESPACE_PREFIX=$(cat .task/var-KC_NAMESPACE_PREFIX)
 KC_HOSTNAME_SUFFIX=$(cat .task/var-KC_HOSTNAME_SUFFIX)
 
-source .env
+if [ -f .env ]; then
+  source .env
+fi
 
 # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
 kubectl get pods -n "${KC_NAMESPACE_PREFIX}keycloak" | grep -E "(BackOff|Error)" | tr -s " " | cut -d" " -f1 | xargs -r -L 1 kubectl delete pod -n keycloak

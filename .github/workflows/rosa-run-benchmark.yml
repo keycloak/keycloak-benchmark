@@ -1,0 +1,90 @@
+name: ROSA Cluster - Run Benchmark
+
+on:
+  workflow_dispatch:
+
+concurrency: shared_cluster
+
+jobs:
+
+  delete:
+    name: Run Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven'
+
+      - name: Cache Maven Wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            .mvn/wrapper/maven-wrapper.jar
+          key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-wrapper-
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Login to OpenShift cluster
+        run: ./rosa_oc_login.sh
+        working-directory: provision/aws
+
+      - name: Build with Maven
+        run: |
+          ./mvnw -B clean install -DskipTests
+          tar xfvz benchmark/target/keycloak-benchmark-0.10-SNAPSHOT.tar.gz
+
+      - name: Install Keycloak
+        run: task KC_NAMESPACE_PREFIX=""
+        working-directory: provision/openshift
+
+      - name: Install Grafana monitoring
+        run: task monitoring
+        working-directory: provision/openshift
+
+      - name: Get URLs
+        run: |
+          KEYCLOAK_URL=https://$(oc get routes -n keycloak | grep keycloak-service | awk '{ print $2 }')
+          echo "KEYCLOAK_URL=$KEYCLOAK_URL" >> "$GITHUB_ENV"
+
+      - name: Create dataset
+        run: |
+          ./dataset-import.sh -a create-realms -r 1 -c 1 -u 100 -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
+          STATUS_CMD="./dataset-import.sh -a status -l https://keycloak-keycloak.apps.shared.hesr.p1.openshiftapps.com/realms/master/dataset"
+          echo -n 'Waiting for dataset to be created: '
+          for i in {1..30}; do $STATUS_CMD | grep 'No task in progress' &>/dev/null && break || echo -n '.' && sleep 10; done
+          echo ' done'
+        working-directory: dataset
+
+      - name: Run Authorization Code scenario
+        run: bin/kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=${{ env.KEYCLOAK_URL }} --realm-name=realm-0
+        working-directory: keycloak-benchmark-0.10-SNAPSHOT
+
+      - name: Archive Gatling reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: gatling-results
+          path: keycloak-benchmark-0.10-SNAPSHOT/results
+          retention-days: 5
+
+      - name: Delete Gatling project
+        run: oc delete project monitoring
+
+      - name: Delete Keycloak project
+        run: oc delete project keycloak

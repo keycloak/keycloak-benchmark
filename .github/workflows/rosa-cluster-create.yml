@@ -30,6 +30,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
         with:
@@ -37,6 +38,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
+
       - name: Create ROSA Cluster
         run: ./rosa_create_cluster.sh
         working-directory: provision/aws
