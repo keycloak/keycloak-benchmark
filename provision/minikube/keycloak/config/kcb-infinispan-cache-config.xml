@@ -24,14 +24,14 @@
     <!-- the statistics="true" attribute is not part of the original KC config and was added by Keycloak Benchmark -->
     <cache-container name="keycloak" statistics="true">
         <transport lock-timeout="60000"/>
-        <local-cache name="realms" statistics="true">
+        <local-cache name="realms" simple-cache="true" statistics="true">
             <encoding>
                 <key media-type="application/x-java-object"/>
                 <value media-type="application/x-java-object"/>
             </encoding>
             <memory max-count="10000"/>
         </local-cache>
-        <local-cache name="users" statistics="true">
+        <local-cache name="users" simple-cache="true" statistics="true">
             <encoding>
                 <key media-type="application/x-java-object"/>
                 <value media-type="application/x-java-object"/>
@@ -56,7 +56,7 @@
         <distributed-cache name="loginFailures" owners="2" statistics="true">
             <expiration lifespan="-1"/>
         </distributed-cache>
-        <local-cache name="authorization" statistics="true">
+        <local-cache name="authorization" simple-cache="true" statistics="true">
             <encoding>
                 <key media-type="application/x-java-object"/>
                 <value media-type="application/x-java-object"/>
@@ -66,7 +66,7 @@
         <replicated-cache name="work" statistics="true">
             <expiration lifespan="-1"/>
         </replicated-cache>
-        <local-cache name="keys" statistics="true">
+        <local-cache name="keys" simple-cache="true" statistics="true">
             <encoding>
                 <key media-type="application/x-java-object"/>
                 <value media-type="application/x-java-object"/>
