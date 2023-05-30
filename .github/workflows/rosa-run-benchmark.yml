@@ -45,17 +45,11 @@ jobs:
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
 
-      - name: Determine cluster name
-        run: |
-          CLUSTER_NAME_USER_INPUT=${{ inputs.clusterName }}
-          ACTUAL_CLUSTER_NAME=${CLUSTER_NAME_USER_INPUT:-"gh-${{ github.triggering_actor }}"}
-          echo "CLUSTER_NAME=${ACTUAL_CLUSTER_NAME}" >> $GITHUB_ENV
-
       - name: Login to OpenShift cluster
         run: ./rosa_oc_login.sh
         working-directory: provision/aws
         env:
-          CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
+          CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
       - name: Build with Maven
         run: |

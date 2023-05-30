@@ -23,14 +23,8 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
-      - name: Determine cluster name
-        run: |
-          CLUSTER_NAME_USER_INPUT=${{ inputs.clusterName }}
-          ACTUAL_CLUSTER_NAME=${CLUSTER_NAME_USER_INPUT:-"gh-${{ github.triggering_actor }}"}
-          echo "CLUSTER_NAME=${ACTUAL_CLUSTER_NAME}" >> $GITHUB_ENV
-
       - name: Delete ROSA Cluster
         run: ./rosa_delete_cluster.sh
         working-directory: provision/aws
         env:
-          CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
+          CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}

@@ -10,10 +10,10 @@
 
 ## Create cluster
 
-1. Go to repository Actions -> On left side choose `ROSA Cluster - Create`
+1. Go to repository Actions -> On the left side choose `ROSA Cluster - Create`
 2. Click on Run workflow button
 3. Fill in the form and click on Run workflow button
-   1. Name of the cluster - the name of the cluster that will be later used for other workflows. Default value is `gh-${{ github.triggering_actor }}`, this results in `gh-your-username`.
+   1. Name of the cluster - the name of the cluster that will be later used for other workflows. Default value is `gh-${{ github.repository_owner }}`, this results in `gh-<owner of fork>`.
    2. Instance type for compute nodes - see [AWS EC2 instance types](https://aws.amazon.com/ec2/instance-types/). Default value is `m5.xlarge`.
    3. Deploy to multiple availability zones in the region - if checked, the cluster will be deployed to multiple availability zones in the region. Default value is `false`.
    4. Number of worker nodes to provision - number of compute nodes in the cluster. Default value is `2`.
@@ -21,18 +21,18 @@
 
 ## Destroy cluster
 
-1. Go to repository Actions -> On left side choose `ROSA Cluster - Destroy`
+1. Go to repository Actions -> On the left side choose `ROSA Cluster - Destroy`
 2. Click on Run workflow button
 3. Fill in the form and click on Run workflow button
-   1. Name of the cluster - the name of the cluster to destroy. Default value is `gh-${{ github.triggering_actor }}`, this results in `gh-your-username`.
+   1. Name of the cluster - the name of the cluster to destroy. Default value is `gh-${{ github.repository_owner }}`, this results in `gh-<owner of fork>`.
 4. Wait for the workflow to finish.
 
 ## Run benchmark
 
-1. Go to repository Actions -> On left side choose `ROSA Cluster - Run Benchmark`
+1. Go to repository Actions -> On the left side choose `ROSA Cluster - Run Benchmark`
 2. Click on Run workflow button
 3. Fill in the form and click on Run workflow button
-   1. Name of the cluster - the name of the cluster that will be used for running benchmark. Default value is `gh-${{ github.triggering_actor }}`, this results in `gh-your-username`.
+   1. Name of the cluster - the name of the cluster that will be used for running benchmark. Default value is `gh-${{ github.repository_owner }}`, this results in `gh-<owner of fork>`.
 4. The workflow will perform the following steps
    1. Connect to the cluster
    2. Provision new Keycloak instance including monitoring stack.
