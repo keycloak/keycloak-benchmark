@@ -7,7 +7,7 @@ on:
         description: 'Name of the cluster'
         type: text
 
-concurrency: shared_cluster
+concurrency: cluster_${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
 jobs:
 
