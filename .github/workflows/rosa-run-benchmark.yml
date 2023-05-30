@@ -55,10 +55,6 @@ jobs:
         run: task KC_NAMESPACE_PREFIX=""
         working-directory: provision/openshift
 
-      - name: Install Grafana monitoring
-        run: task monitoring
-        working-directory: provision/openshift
-
       - name: Get URLs
         run: |
           KEYCLOAK_URL=https://$(oc get routes -n keycloak | grep keycloak-service | awk '{ print $2 }')
@@ -83,9 +79,6 @@ jobs:
           name: gatling-results
           path: keycloak-benchmark/results
           retention-days: 5
-
-      - name: Delete Gatling project
-        run: oc delete project monitoring
 
       - name: Delete Keycloak project
         run: oc delete project keycloak
