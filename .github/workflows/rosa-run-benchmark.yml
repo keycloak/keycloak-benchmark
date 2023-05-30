@@ -49,6 +49,7 @@ jobs:
         run: |
           ./mvnw -B clean install -DskipTests
           tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
+          mv keycloak-benchmark-* keycloak-benchmark
 
       - name: Install Keycloak
         run: task KC_NAMESPACE_PREFIX=""
@@ -74,13 +75,13 @@ jobs:
 
       - name: Run Authorization Code scenario
         run: bin/kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=${{ env.KEYCLOAK_URL }} --realm-name=realm-0
-        working-directory: keycloak-benchmark-0.10-SNAPSHOT
+        working-directory: keycloak-benchmark
 
       - name: Archive Gatling reports
         uses: actions/upload-artifact@v3
         with:
           name: gatling-results
-          path: keycloak-benchmark-0.10-SNAPSHOT/results
+          path: keycloak-benchmark/results
           retention-days: 5
 
       - name: Delete Gatling project
