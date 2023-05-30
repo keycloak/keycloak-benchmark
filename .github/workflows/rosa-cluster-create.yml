@@ -3,13 +3,16 @@ name: ROSA Cluster - Create
 on:
   workflow_dispatch:
     inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: text
       computeMachineType:
         description: 'Instance type for the compute nodes'
         required: true
         default: m5.xlarge
         type: text
       multiAz:
-        description: 'Deploy to multiple data centers'
+        description: 'Deploy to multiple availability zones in the region'
         required: true
         default: false
         type: boolean
@@ -44,7 +47,7 @@ jobs:
         working-directory: provision/aws
         env:
           VERSION: ${{ env.OPENSHIFT_VERSION }}
-          CLUSTER_NAME: shared
+          CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           REGION: ${{ vars.AWS_DEFAULT_REGION }}
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
           MULTI_AZ: ${{ inputs.multiAz }}

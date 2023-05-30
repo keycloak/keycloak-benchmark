@@ -2,8 +2,12 @@ name: ROSA Cluster - Run Benchmark
 
 on:
   workflow_dispatch:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: text
 
-concurrency: shared_cluster
+concurrency: cluster_${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
 jobs:
 
@@ -44,6 +48,8 @@ jobs:
       - name: Login to OpenShift cluster
         run: ./rosa_oc_login.sh
         working-directory: provision/aws
+        env:
+          CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
       - name: Build with Maven
         run: |

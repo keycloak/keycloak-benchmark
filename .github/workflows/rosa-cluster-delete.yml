@@ -2,7 +2,10 @@ name: ROSA Cluster - Delete
 
 on:
   workflow_dispatch:
-
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: text
 jobs:
 
   delete:
@@ -24,4 +27,4 @@ jobs:
         run: ./rosa_delete_cluster.sh
         working-directory: provision/aws
         env:
-          CLUSTER_NAME: shared
+          CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
