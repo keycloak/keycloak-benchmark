@@ -59,7 +59,7 @@ if [[ "$SCENARIO" == *"Realm"* ]]; then
 elif [[ "$SCENARIO" == *"authentication"* ]]; then
   export WORKLOAD_PARAM="$WORKLOAD_PARAM --realm-name=test-realm"
 else
-  export WORKLOAD_PARAM="$WORKLOAD_PARAM --client-secret=$CLIENT_SECRET"
+  export WORKLOAD_PARAM="$WORKLOAD_PARAM --client-secret=$CLIENT_SECRET --realm-name=test-realm"
 fi
 
 if [[ -n "$LOGOUT_PERCENTAGE" ]]; then
