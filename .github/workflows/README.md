@@ -27,6 +27,13 @@
    1. Name of the cluster - the name of the cluster to destroy. Default value is `gh-${{ github.repository_owner }}`, this results in `gh-<owner of fork>`.
 4. Wait for the workflow to finish.
 
+## Periodic Jobs
+1. We are managing the creation of shared ROSA clusters' creation and deletion using below workflows.
+   2. `.github/workflows/rosa-cluster-auto-delete-on-schedule.yml`
+   3. `.github/workflows/rosa-cluster-auto-provision-on-schedule.yml`
+4. Optionally you can run the `task keepalive` from provision/openshift directory against your Openshift cluster to keep it alive, from the `rosa-cluster-auto-delete-on-schedule` workflow's delete activity on the defined schedule time.
+
+
 ## Run benchmark
 
 1. Go to repository Actions -> On the left side choose `ROSA Cluster - Run Benchmark`

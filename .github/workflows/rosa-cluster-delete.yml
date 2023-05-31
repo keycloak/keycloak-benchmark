@@ -6,6 +6,11 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: text
+      deleteAll:
+        description: 'Delete all clusters'
+        required: true
+        default: 'no'
+        type: text
 jobs:
 
   delete:
@@ -23,8 +28,14 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
-      - name: Delete ROSA Cluster
+      - name: Delete a ROSA Cluster
+        if: ${{ inputs.deleteAll == 'no' }}
         run: ./rosa_delete_cluster.sh
         working-directory: provision/aws
         env:
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+      - name: Delete all ROSA Clusters
+        if: ${{ inputs.deleteAll == 'yes' }}
+        run: ./rosa_cluster_reaper.sh
+        working-directory: provision/aws

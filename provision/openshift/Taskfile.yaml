@@ -145,6 +145,14 @@ tasks:
       - monitoring/**/*.*
       - .task/subtask-{{.TASK}}.yaml
 
+  keepalive:
+    deps:
+      - openshift-env
+    cmds:
+      - kubectl create namespace keepalive
+    sources:
+      - .task/subtask-{{.TASK}}.yaml
+
   keycloak:
     deps:
       - common:datasetprovider
