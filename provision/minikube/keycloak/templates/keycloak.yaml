@@ -8,6 +8,13 @@ metadata:
 spec:
   hostname:
     hostname: keycloak-{{ .Values.namespace }}.{{ .Values.hostname }}
+{{ if .Values.disableIngressStickySession }}
+  ingress:
+    enabled: true
+    annotations:
+      haproxy.router.openshift.io/balance: roundrobin
+      haproxy.router.openshift.io/disable_cookies: 'true'
+{{end}}
   additionalOptions:
 {{ if or (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     - name: db

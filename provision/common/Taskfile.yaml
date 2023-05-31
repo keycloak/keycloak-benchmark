@@ -21,6 +21,7 @@ vars:
   KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
   KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
   KC_CUSTOM_INFINISPAN_CONFIG: '{{default "true" .KC_CUSTOM_INFINISPAN_CONFIG}}'
+  KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
 
 tasks:
 
@@ -62,6 +63,7 @@ tasks:
       - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
       - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
       - echo {{.KC_CUSTOM_INFINISPAN_CONFIG}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG
+      - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
