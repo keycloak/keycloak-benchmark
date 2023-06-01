@@ -6,6 +6,10 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: text
+      replicas:
+        description: 'Number of keycloak pods'
+        required: true
+        default: '3'
 
 concurrency: cluster_${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
@@ -58,8 +62,11 @@ jobs:
           mv keycloak-benchmark-* keycloak-benchmark
 
       - name: Install Keycloak
-        run: task KC_NAMESPACE_PREFIX=""
+        run: task
         working-directory: provision/openshift
+        env:
+          KC_NAMESPACE_PREFIX: ''
+          KC_INSTANCES: ${{ inputs.replicas }}
 
       - name: Get URLs
         run: |
