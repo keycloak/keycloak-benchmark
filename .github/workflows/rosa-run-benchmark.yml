@@ -5,13 +5,40 @@ on:
     inputs:
       clusterName:
         description: 'Name of the cluster'
-        type: text
+        type: string
       replicas:
         description: 'Number of keycloak pods'
         required: true
         default: '3'
+      disableStickySessions:
+        description: 'Disable sticky session in Openshift Route'
+        type: boolean
+        default: false
+        required: true
+      image:
+        description: 'Keycloak Image'
+        type: string
+      podMemoryRequests:
+        description: 'Keycloak pod memory requests (in MB)'
+        type: string
+      podMemoryLimit:
+        description: 'Keycloak pod memory limit (in MB)'
+        type: string
+      podCpuRequests:
+        description: 'Keycloak pod CPU requests'
+        type: string
+      podCpuLimit:
+        description: 'Keycloak pod CPU limit'
+        type: string
+      heapMaxSizeMB:
+        description: 'Keycloak server maximum Java heap size (in MB)'
+        type: string
 
 concurrency: cluster_${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+env:
+  PROJECT_PREFIX: runner- # same as default
+  PROJECT: runner-keycloak
 
 jobs:
 
@@ -65,12 +92,19 @@ jobs:
         run: task
         working-directory: provision/openshift
         env:
-          KC_NAMESPACE_PREFIX: ''
+          KC_NAMESPACE_PREFIX: ${{ env.PROJECT_PREFIX }}
           KC_INSTANCES: ${{ inputs.replicas }}
+          KC_DISABLE_STICKY_SESSION: ${{ inputs.disableStickySessions }}
+          KC_CONTAINER_IMAGE: ${{ inputs.image }}
+          KC_MEMORY_REQUESTS_MB: ${{ inputs.podMemoryRequests }}
+          KC_MEMORY_LIMITS_MB: ${{ inputs.podMemoryLimit }}
+          KC_CPU_REQUESTS: ${{ inputs.podCpuRequests }}
+          KC_CPU_LIMITS: ${{ inputs.podCpuLimit }}
+          KC_HEAP_MAX_MB: ${{ inputs.heapMaxSizeMB }}
 
       - name: Get URLs
         run: |
-          KEYCLOAK_URL=https://$(oc get routes -n keycloak | grep keycloak-service | awk '{ print $2 }')
+          KEYCLOAK_URL=https://$(oc get routes -n "${{ env.PROJECT }}" | grep keycloak-service | awk '{ print $2 }')
           echo "KEYCLOAK_URL=$KEYCLOAK_URL" >> "$GITHUB_ENV"
 
       - name: Create dataset
@@ -94,4 +128,4 @@ jobs:
           retention-days: 5
 
       - name: Delete Keycloak project
-        run: oc delete project keycloak
+        run: oc delete project "${{ env.PROJECT }}"
