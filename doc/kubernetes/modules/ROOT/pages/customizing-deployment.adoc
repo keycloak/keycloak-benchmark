@@ -246,6 +246,23 @@ If `aws` command fails or is not available on the machine, string `admin` is use
 +
 NOTE: This option is implemented only for Openshift deployments.
 
+[[KC_DISABLE_STICKY_SESSION,KC_DISABLE_STICKY_SESSION]]
+KC_DISABLE_STICKY_SESSION::
+Running the Keycloak benchmark from a single machine makes the Openshift Route to redirect the traffic to the same Keycloak pod.
+The first connection reaches a random Keycloak pod but future connections from the same source IP will be redirected to the pod (sticky session).
+This option disables this behaviour and configure the Openshift Route to use round-robin between all the available Keycloak pods.
++
+Default value: `false`
++
+Available options:
++
+--
+* `true` -- Forces the Openshift Route to use round-robin for all connection (no sticky sessions).
+* `false` -- Uses the default Openshift Route load-balancer rules.
+--
+
+NOTE: This option is implemented only for Openshift deployments.
+
 == Available Benchmark options
 
 The following configuration options are available to configure the helper applications.
