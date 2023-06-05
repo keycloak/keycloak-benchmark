@@ -1,0 +1,30 @@
+- file: path="{{ local_workspace }}" state=directory
+
+- when: kcb_zip is not defined
+  block:
+  - when: kcb_zip_url is not defined
+    name: Set default `kcb_zip_url` based on provided `kcb_version`
+    set_fact: kcb_zip_url="https://github.com/keycloak/keycloak-benchmark/releases/download/{{ kcb_version }}/keycloak-benchmark-{{ kcb_version }}.zip"
+  - name: Download keycloak-benchmark {{ kcb_version }}
+    get_url: 
+      url: "{{ kcb_zip_url }}"
+      dest: "{{ local_workspace }}"
+      force: yes
+    register: get_url_result
+  - set_fact: kcb_zip="{{ get_url_result.dest }}" 
+  - debug: var=kcb_zip
+
+- name: Check if kcb_zip exists
+  stat: path="{{ kcb_zip }}"
+  register: kcb_zip_stat
+  failed_when: not kcb_zip_stat.stat.exists
+
+- name: Get kcb_version from kcb_zip filename
+  set_fact: kcb_version="{{ kcb_zip | regex_search('.*keycloak-benchmark-(\S+).zip', '\\1') | join('') }}"
+- debug: var=kcb_version
+
+- name: Install keycloak-benchmark {{ kcb_version }} locally
+  unarchive:
+    src: "{{ kcb_zip }}"
+    dest: "{{ local_workspace }}"
+  register: unzip_result

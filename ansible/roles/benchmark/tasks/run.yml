@@ -1,0 +1,94 @@
+- name: Initialization
+  run_once: yes
+  block:
+  - debug: var=ansible_date_time.iso8601
+  - debug: var=kcb_params
+  - debug: msg="Variable `kcb_params` must be set."
+    failed_when: kcb_params == ""
+
+  - debug: msg="Parameter `--scenario=` needs to be set."
+    failed_when: '"--scenario=" not in kcb_params'
+  - set_fact: scenario_name="{{ kcb_params | regex_search('--scenario=(\S+)') | join('') | regex_search('\w*$') | lower }}"
+  - set_fact: local_results_dir="{{ local_kcb_home }}/results/{{ scenario_name }}-{{ '%Y%m%d%H%M%S' | strftime }}"
+  - debug: var=local_results_dir
+
+  - set_fact: node_count="{{ groups['benchmark'] | length }}"
+  
+  - set_fact: kcb_params_workload_per_node="{{ kcb_params }}"
+  - when: '"--concurrent-users=" in kcb_params'
+    block:
+    - set_fact: concurrent_users="{{ kcb_params | regex_search('--concurrent-users=(\S+)', '\\1') | join('') | int }}"
+    - debug: msg="The `--concurrent-users={{ concurrent_users }}` parameter needs to be divisible by {{ node_count }} (the number of benchmark nodes)."
+      failed_when: concurrent_users|int is not divisibleby(node_count|int)
+    - set_fact: concurrent_users_per_node="{{ ((kcb_params | regex_search('--concurrent-users=(\S+)', '\\1') | join('') | int) / (node_count|int)) | int }}"
+    - debug: var=concurrent_users_per_node
+    - set_fact: kcb_params_workload_per_node="{{ kcb_params | regex_replace('--concurrent-users=(\S+)', '--concurrent-users='+concurrent_users_per_node) }}"
+
+  - when: '"--users-per-sec=" in kcb_params'
+    block:
+    - set_fact: users_per_sec_per_node="{{ (kcb_params | regex_search('--users-per-sec=(\S+)', '\\1') | join('') | int) / (node_count|int) }}"
+    - debug: var=users_per_sec_per_node
+    - set_fact: kcb_params_workload_per_node="{{ kcb_params | regex_replace('--users-per-sec=(\S+)', '--users-per-sec='+users_per_sec_per_node) }}"
+    
+  - debug: var=kcb_params_workload_per_node
+
+
+- name: Clean up the results directory on the remote hosts
+  when: kcb_clean_results
+  file: 
+    path: "{{ kcb_home }}/results"
+    state: absent
+
+- name: Run keycloak-benchmark on the remote hosts
+  shell: |
+    export CONFIG_ARGS=-Xmx{{ kcb_heap_size }}
+    cd {{ kcb_home }}/bin
+    ./kcb.sh {{ kcb_params_workload_per_node }} > gatling.log
+  ignore_errors: yes
+  register: gatling_result
+- debug: var=gatling_result
+  
+- name: Create local results dir
+  delegate_to: localhost
+  file: path="{{ local_results_dir }}" state=directory
+  
+- name: Fetch the Gatling run return codes
+  block:
+  - template: 
+      src: gatling.j2.rc
+      dest: "{{ kcb_home }}/bin/gatling.rc"
+  - name: Get Gatling return code
+    fetch:
+      src: "{{ kcb_home }}/bin/gatling.rc"
+      dest: "{{ local_results_dir }}/gatling/{{ inventory_hostname }}.rc"
+      flat: yes
+      
+- name: Fetch the latest Gatling results
+  block: 
+  - name: Find Gatling result directories
+    find:
+      file_type: directory
+      paths: "{{ kcb_home }}/results"
+    register: results
+  - name: Find the latest Gatling result directory
+    set_fact:
+      latest_results: "{{ results.files | sort(attribute='mtime') | last }}"
+  - debug: var=latest_results.path
+  - name: Fetch Gatling results
+    fetch:
+      src: "{{ latest_results.path }}/simulation.log"
+      dest: "{{ local_results_dir }}/simulation/{{ inventory_hostname }}.log"
+      flat: yes
+
+- name: Fetch the Gatling logs
+  fetch:
+    src: "{{ kcb_home }}/bin/gatling.log"
+    dest: "{{ local_results_dir }}/gatling/{{ inventory_hostname }}.log"
+    flat: yes
+
+- name: Create the aggregate report locally
+  delegate_to: localhost
+  shell: |
+    RESULTS_DIR=$(realpath "{{ local_results_dir }}")
+    cd "{{ local_kcb_home }}"
+    java -cp "lib/*" io.gatling.app.Gatling -ro $RESULTS_DIR
