@@ -1,0 +1,11 @@
+- import_tasks: install-locally.yml
+  delegate_to: localhost
+  when: not skip_install
+  run_once: yes
+
+- include_tasks: install.yml
+  vars:
+    ansible_become: yes
+  when: not skip_install
+
+- include_tasks: run.yml

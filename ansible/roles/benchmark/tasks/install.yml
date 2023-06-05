@@ -1,0 +1,21 @@
+- name: Update system packages on the remote hosts
+  when: update_system_packages
+  package: name=* state=latest
+
+- name: Install Java {{ java_version }} packages on the remote hosts
+  when: install_java
+  package:
+    name: ["java-{{ java_version }}-openjdk", "java-{{ java_version }}-openjdk-devel"]
+    state: present
+
+- name: Install unzip on the remote hosts
+  package: name=unzip state=present
+
+- name: Install jq
+  package: name=jq state=present
+
+- name: Install keycloak-benchmark {{ kcb_version }} on the remote hosts
+  unarchive:
+    src: "{{ kcb_zip }}"
+    dest: "{{ workspace }}"
+    owner: ec2-user
