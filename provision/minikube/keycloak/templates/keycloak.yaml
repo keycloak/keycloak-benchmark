@@ -158,7 +158,6 @@ spec:
                 value: >
                   -Xms{{ .Values.heapInitMB }}m -Xmx{{ .Values.heapMaxMB }}m
                   -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
-                  -Djava.security.egd=file:/dev/urandom -Dnetworkaddress.cache.ttl=10 -XX:+ExitOnOutOfMemoryError
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- if .Values.otel }}
                   -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
