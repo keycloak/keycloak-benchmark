@@ -1,0 +1,47 @@
+name: Get Keycloak urls
+description: Get Keycloak urls from running Openshift project
+
+inputs:
+  projectPrefix:
+    description: 'Prefix of the project'
+    required: true
+  replicas:
+    description: 'Number of keycloak pods'
+    required: true
+    default: '3'
+  disableStickySessions:
+    description: 'Disable sticky session in Openshift Route'
+    default: 'false'
+  image:
+    description: 'Keycloak Image'
+  podMemoryRequests:
+    description: 'Keycloak pod memory requests (in MB)'
+  podMemoryLimit:
+    description: 'Keycloak pod memory limit (in MB)'
+  podCpuRequests:
+    description: 'Keycloak pod CPU requests'
+  podCpuLimit:
+    description: 'Keycloak pod CPU limit'
+  heapMaxSizeMB:
+    description: 'Keycloak server maximum Java heap size (in MB)'
+
+runs:
+  using: "composite"
+  steps:
+    - id: setup_go_task
+      uses: ./.github/actions/task-setup
+
+    - id: install_keycloak
+      shell: bash
+      run: task
+      working-directory: provision/openshift
+      env:
+        KC_NAMESPACE_PREFIX: ${{ inputs.projectPrefix }}
+        KC_INSTANCES: ${{ inputs.replicas }}
+        KC_DISABLE_STICKY_SESSION: ${{ inputs.disableStickySessions }}
+        KC_CONTAINER_IMAGE: ${{ inputs.image }}
+        KC_MEMORY_REQUESTS_MB: ${{ inputs.podMemoryRequests }}
+        KC_MEMORY_LIMITS_MB: ${{ inputs.podMemoryLimit }}
+        KC_CPU_REQUESTS: ${{ inputs.podCpuRequests }}
+        KC_CPU_LIMITS: ${{ inputs.podCpuLimit }}
+        KC_HEAP_MAX_MB: ${{ inputs.heapMaxSizeMB }}

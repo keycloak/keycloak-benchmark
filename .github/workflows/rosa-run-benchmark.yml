@@ -6,33 +6,18 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: string
-      replicas:
-        description: 'Number of keycloak pods'
-        required: true
-        default: '3'
-      disableStickySessions:
-        description: 'Disable sticky session in Openshift Route'
+      skipCreateDeployment:
+        description: 'Skip creating Keycloak deployment'
         type: boolean
         default: false
-        required: true
-      image:
-        description: 'Keycloak Image'
-        type: string
-      podMemoryRequests:
-        description: 'Keycloak pod memory requests (in MB)'
-        type: string
-      podMemoryLimit:
-        description: 'Keycloak pod memory limit (in MB)'
-        type: string
-      podCpuRequests:
-        description: 'Keycloak pod CPU requests'
-        type: string
-      podCpuLimit:
-        description: 'Keycloak pod CPU limit'
-        type: string
-      heapMaxSizeMB:
-        description: 'Keycloak server maximum Java heap size (in MB)'
-        type: string
+      skipCreateDataset:
+        description: 'Skip creating dataset'
+        type: boolean
+        default: false
+      skipDeleteProject:
+        description: 'Skip deleting project'
+        type: boolean
+        default: false
 
 concurrency: cluster_${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
@@ -41,13 +26,25 @@ env:
   PROJECT: runner-keycloak
 
 jobs:
-
-  delete:
+  run:
     name: Run Benchmark
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -65,56 +62,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-wrapper-
 
-      - name: Setup ROSA CLI
-        uses: ./.github/actions/rosa-cli-setup
-        with:
-          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
-          rosa-token: ${{ secrets.ROSA_TOKEN }}
-
-      - name: Setup Go Task
-        uses: ./.github/actions/task-setup
-
-      - name: Login to OpenShift cluster
-        run: ./rosa_oc_login.sh
-        working-directory: provision/aws
-        env:
-          CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
-
       - name: Build with Maven
         run: |
           ./mvnw -B clean install -DskipTests
           tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
           mv keycloak-benchmark-* keycloak-benchmark
 
-      - name: Install Keycloak
-        run: task
-        working-directory: provision/openshift
-        env:
-          KC_NAMESPACE_PREFIX: ${{ env.PROJECT_PREFIX }}
-          KC_INSTANCES: ${{ inputs.replicas }}
-          KC_DISABLE_STICKY_SESSION: ${{ inputs.disableStickySessions }}
-          KC_CONTAINER_IMAGE: ${{ inputs.image }}
-          KC_MEMORY_REQUESTS_MB: ${{ inputs.podMemoryRequests }}
-          KC_MEMORY_LIMITS_MB: ${{ inputs.podMemoryLimit }}
-          KC_CPU_REQUESTS: ${{ inputs.podCpuRequests }}
-          KC_CPU_LIMITS: ${{ inputs.podCpuLimit }}
-          KC_HEAP_MAX_MB: ${{ inputs.heapMaxSizeMB }}
+      - name: Create Keycloak deployment
+        if: ${{ !inputs.skipCreateDeployment }}
+        uses: ./.github/actions/keycloak-create-deployment
+        with:
+          projectPrefix: ${{ env.PROJECT_PREFIX }}
+
+
+      - name: Create Keycloak dataset
+        if: ${{ !inputs.skipCreateDataset }}
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
 
       - name: Get URLs
-        run: |
-          KEYCLOAK_URL=https://$(oc get routes -n "${{ env.PROJECT }}" | grep keycloak-service | awk '{ print $2 }')
-          echo "KEYCLOAK_URL=$KEYCLOAK_URL" >> "$GITHUB_ENV"
-
-      - name: Create dataset
-        run: |
-          ./dataset-import.sh -a create-realms -r 1 -c 1 -u 100 -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
-          STATUS_CMD="./dataset-import.sh -a status -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset"
-          echo -n 'Waiting for dataset to be created: '
-          for i in {1..30}; do $STATUS_CMD | grep 'No task in progress' &>/dev/null && break || echo -n '.' && sleep 10; done
-          echo ' done'
-        working-directory: dataset
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ env.PROJECT }}
 
       - name: Run Authorization Code scenario
         run: bin/kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=${{ env.KEYCLOAK_URL }} --realm-name=realm-0
@@ -127,5 +97,8 @@ jobs:
           path: keycloak-benchmark/results
           retention-days: 5
 
-      - name: Delete Keycloak project
-        run: oc delete project "${{ env.PROJECT }}"
+      - name: Delete Keycloak deployment
+        if: ${{ !inputs.skipDeleteProject }}
+        uses: ./.github/actions/keycloak-delete-deployment
+        with:
+          project: ${{ env.PROJECT }}

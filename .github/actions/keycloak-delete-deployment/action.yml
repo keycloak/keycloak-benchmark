@@ -1,0 +1,14 @@
+name: Get Keycloak urls
+description: Get Keycloak urls from running Openshift project
+
+inputs:
+  project:
+    description: 'Name of the project'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: delete_keycloak_project
+      shell: bash
+      run: oc delete project "${{ inputs.project }}"

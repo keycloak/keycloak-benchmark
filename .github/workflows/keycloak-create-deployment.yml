@@ -1,0 +1,71 @@
+name: Keycloak - Create deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+      replicas:
+        description: 'Number of keycloak pods'
+      disableStickySessions:
+        description: 'Disable sticky session in Openshift Route'
+        type: boolean
+        default: false
+        required: true
+      image:
+        description: 'Keycloak Image'
+        type: string
+      podMemoryRequests:
+        description: 'Keycloak pod memory requests (in MB)'
+        type: string
+      podMemoryLimit:
+        description: 'Keycloak pod memory limit (in MB)'
+        type: string
+      podCpuRequests:
+        description: 'Keycloak pod CPU requests'
+        type: string
+      podCpuLimit:
+        description: 'Keycloak pod CPU limit'
+        type: string
+      heapMaxSizeMB:
+        description: 'Keycloak server maximum Java heap size (in MB)'
+        type: string
+
+env:
+  PROJECT_PREFIX: runner- # same as default
+  PROJECT: runner-keycloak
+
+jobs:
+  prepare:
+    name: Create Keycloak deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+      - name: Create Keycloak deployment
+        uses: ./.github/actions/keycloak-create-deployment
+        with:
+          projectPrefix: ${{ env.PROJECT_PREFIX }}
+          replicas: ${{ inputs.replicas }}
+          disableStickySessions: ${{ inputs.disableStickySessions }}
+          image: ${{ inputs.image }}
+          podMemoryRequests: ${{ inputs.podMemoryRequests }}
+          podMemoryLimit: ${{ inputs.podMemoryLimit }}
+          podCpuRequests: ${{ inputs.podCpuRequests }}
+          podCpuLimit: ${{ inputs.podCpuLimit }}
+          heapMaxSizeMB: ${{ inputs.heapMaxSizeMB }}

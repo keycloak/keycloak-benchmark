@@ -1,0 +1,17 @@
+name: OC Keycloak login
+description: Login to oc client for given cluster name
+
+inputs:
+  clusterName:
+    description: Openshift project where Keycloak is running
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: oc-login-to-cluster
+      shell: bash
+      run: ./rosa_oc_login.sh
+      working-directory: provision/aws
+      env:
+        CLUSTER_NAME: ${{ inputs.clusterName }}
