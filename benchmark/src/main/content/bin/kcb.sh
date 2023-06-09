@@ -68,8 +68,8 @@ do
           WORKLOAD_UNIT=users-per-sec
           CURRENT_WORKLOAD=(${1#*=})
           ;;
-      --ramp-up=*)
-          RAMP_UP=${1#*=}
+      --warm-up=*)
+          WARM_UP=${1#*=}
           ;;
       --measurement=*)
           MEASUREMENT=${1#*=}
@@ -130,17 +130,17 @@ if [ "$MODE" = "incremental" ]; then
       exit
   }
 
-
   RESULT_ROOT_DIR="$DIRNAME/../results/$MODE-$(date '+%Y%m%d%H%M%S')"
   mkdir -p $RESULT_ROOT_DIR
 
-  if [ -n $RAMP_UP ]; then
-    echo "INFO: Running ramp-up phase."
+  if [[ -n $WARM_UP ]]; then
+    echo "INFO: Running warm-up phase."
     CONFIG_ARGS+=("-Dramp-up=1")
 
-    run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$RAMP_UP" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-RAMP-UP"
+    #This run is expected to warm up the system for the subsequent Incremental runs, you can ignore this run's result.
+    run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
 
-    echo "INFO: Finished ramp-up phase."
+    echo "INFO: Finished Warm-Up phase, for incremental run."
   fi
 
   while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
@@ -159,7 +159,7 @@ if [ "$MODE" = "incremental" ]; then
     if [ ${RESULT_CACHE[$CURRENT_WORKLOAD]} -ne 0 ]; then
       echo "INFO: Keycloak benchmark failed for $WORKLOAD_UNIT=$CURRENT_WORKLOAD"
       LAST_SUCCESSFUL_WORKLOAD=$((CURRENT_WORKLOAD - INCREMENT))
-      if [ $RESULT_CACHE[$LAST_SUCCESSFUL_WORKLOAD] -ne 0 ]; then
+      if [ $((RESULT_CACHE[$LAST_SUCCESSFUL_WORKLOAD])) -ne 0 ]; then
         echo "ERROR: Invalid state. Last successful workload $LAST_SUCCESSFUL_WORKLOAD was not successful."
         exit 1
       fi
@@ -183,9 +183,9 @@ if [ "$MODE" = "incremental" ]; then
   fi
 else
   echo "INFO: Running benchmark in single-run mode."
-  if [ -n $RAMP_UP ]; then
-    echo "INFO: Running benchmark with ramp-up."
-    CONFIG_ARGS+=("-Dramp-up=${$RAMP_UP}")
+  if [[ -n $WARM_UP ]]; then
+    echo "INFO: Running benchmark with warm-up."
+    CONFIG_ARGS+=("-Dwarm-up=${$WARM_UP}")
   fi
 
   run_benchmark_with_workload $WORKLOAD_UNIT $CURRENT_WORKLOAD $MEASUREMENT

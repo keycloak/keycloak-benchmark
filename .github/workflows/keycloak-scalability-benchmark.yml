@@ -1,4 +1,4 @@
-name: Keycloak - Incremental client credentials benchmark
+name: Keycloak - Scalability benchmark
 
 on:
   workflow_dispatch:
@@ -6,12 +6,18 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: string
-      numberOfClientsInRealm:
-        description: 'Number of clients'
+      scenarioName:
+        description: 'Name of the benchmark scenario to run'
+        type: choice
+        options:
+          - 'authentication.ClientSecret'
+          - 'authentication.AuthorizationCode'
+      numberOfEntitiesInRealm:
+        description: 'Number of entities, such as Clients, Users.'
         type: number
         default: 10000
-      numberOfClientsUsedInTest:
-        description: 'Number of clients used in test'
+      numberOfEntitiesUsedInTest:
+        description: 'Number of entities, such as Clients, Users., used in test'
         type: number
       initialUsersPerSecond:
         description: 'Initial users per second'
@@ -85,29 +91,35 @@ jobs:
         with:
           projectPrefix: ${{ env.PROJECT_PREFIX }}
 
-
-      - name: Create Keycloak dataset
-        if: ${{ !inputs.skipCreateDataset }}
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients.
+        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.ClientSecret'
         uses: ./.github/actions/keycloak-create-dataset
         with:
           project: ${{ env.PROJECT }}
-          clients: ${{ inputs.numberOfClientsInRealm }}
+          clients: ${{ inputs.numberOfEntitiesInRealm }}
+
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users.
+        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.AuthorizationCode'
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          users: ${{ inputs.numberOfEntitiesInRealm }}
 
       - name: Get URLs
         uses: ./.github/actions/get-keycloak-url
         with:
           project: ${{ env.PROJECT }}
 
-      - name: Run Client Credentials scenario
+      - name: Run "${{ inputs.scenarioName }}" scalability scenario
         run: |
-          bin/kcb.sh --scenario=keycloak.scenario.authentication.ClientSecret \
+          bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
             --server-url=${{ env.KEYCLOAK_URL }} \
             --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
             --increment=32 \
             --measurement=60 \
             --ramp-up=60 \
             --realm-name=realm-0 \
-            --clients-per-realm=${{ inputs.numberOfClientsUsedInTest || inputs.numberOfClientsInRealm }}
+            --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
         working-directory: keycloak-benchmark
 
       - name: Archive Gatling reports
