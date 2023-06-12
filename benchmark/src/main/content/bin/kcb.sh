@@ -62,11 +62,11 @@ do
           ;;
       --concurrent-users=*)
           WORKLOAD_UNIT=concurrent-users
-          CURRENT_WORKLOAD=(${1#*=})
+          CURRENT_WORKLOAD=${1#*=}
           ;;
       --users-per-sec=*)
           WORKLOAD_UNIT=users-per-sec
-          CURRENT_WORKLOAD=(${1#*=})
+          CURRENT_WORKLOAD=${1#*=}
           ;;
       --warm-up=*)
           WARM_UP=${1#*=}
@@ -113,9 +113,9 @@ run_benchmark_with_workload() {
       return "${RESULT_CACHE[$2]}"
   fi
   local OUTPUT_DIR="${4:-"$DIRNAME/../results/"}"
-  echo "INFO: Running benchmark with $1=$2, result output will be available in: $OUTPUT_DIR."
+  echo "INFO: Running benchmark with $1=$2, result output will be available in: $OUTPUT_DIR"
   mkdir -p "$OUTPUT_DIR"
-  java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO > "$OUTPUT_DIR/gatling.log" 2>&1
+  java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO 2>&1 | tee "$OUTPUT_DIR/gatling.log"
 }
 
 if [ "$MODE" = "incremental" ]; then
@@ -135,7 +135,7 @@ if [ "$MODE" = "incremental" ]; then
 
   if [[ -n $WARM_UP ]]; then
     echo "INFO: Running warm-up phase."
-    CONFIG_ARGS+=("-Dramp-up=1")
+    CONFIG_ARGS+=("-Dwarm-up=${WARM_UP}")
 
     #This run is expected to warm up the system for the subsequent Incremental runs, you can ignore this run's result.
     run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
@@ -185,7 +185,7 @@ else
   echo "INFO: Running benchmark in single-run mode."
   if [[ -n $WARM_UP ]]; then
     echo "INFO: Running benchmark with warm-up."
-    CONFIG_ARGS+=("-Dwarm-up=${$WARM_UP}")
+    CONFIG_ARGS+=("-Dwarm-up=${WARM_UP}")
   fi
 
   run_benchmark_with_workload $WORKLOAD_UNIT $CURRENT_WORKLOAD $MEASUREMENT

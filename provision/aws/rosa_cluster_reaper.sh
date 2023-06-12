@@ -16,7 +16,7 @@ if [ -z "$CLUSTERS" ]; then echo "Didn't find any ready state clusters"; exit 1;
 for CLUSTER_NAME in $CLUSTERS; do
   echo "Checking Cluster: $CLUSTER_NAME"
   export CLUSTER_NAME=$CLUSTER_NAME
-  #Login to the Openshift Cluster
+  #Login to the OpenShift Cluster
   ./rosa_oc_login.sh
   #Check if the 'keepalive' namespace exists in the specific cluster
   if oc get projects | grep -q "keepalive"; then

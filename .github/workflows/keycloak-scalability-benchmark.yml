@@ -6,6 +6,7 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: string
+        default: 'gh-keycloak'
       scenarioName:
         description: 'Name of the benchmark scenario to run'
         type: choice
@@ -13,16 +14,16 @@ on:
           - 'authentication.ClientSecret'
           - 'authentication.AuthorizationCode'
       numberOfEntitiesInRealm:
-        description: 'Number of entities, such as Clients, Users.'
-        type: number
-        default: 10000
+        description: 'Number of entities for the scenario'
+        type: string
+        default: '10000'
       numberOfEntitiesUsedInTest:
-        description: 'Number of entities, such as Clients, Users., used in test'
-        type: number
+        description: 'Number of entities used in test (default: all entities)'
+        type: string
       initialUsersPerSecond:
         description: 'Initial users per second'
-        type: number
-        default: 1
+        type: string
+        default: '1'
       skipCreateDeployment:
         description: 'Skip creating Keycloak deployment'
         type: boolean
@@ -91,14 +92,14 @@ jobs:
         with:
           projectPrefix: ${{ env.PROJECT_PREFIX }}
 
-      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients.
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients
         if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.ClientSecret'
         uses: ./.github/actions/keycloak-create-dataset
         with:
           project: ${{ env.PROJECT }}
           clients: ${{ inputs.numberOfEntitiesInRealm }}
 
-      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users.
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
         if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.AuthorizationCode'
         uses: ./.github/actions/keycloak-create-dataset
         with:
@@ -110,6 +111,7 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
 
+      # FIXME: The AuthorizationCode scenario should probably run with '--users-per-realm' / consider duplicating this as above with the create-dataset?
       - name: Run "${{ inputs.scenarioName }}" scalability scenario
         run: |
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \

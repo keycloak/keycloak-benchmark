@@ -226,7 +226,7 @@ By default, the Keycloak instance is deployed to the `keycloak` namespace. The n
 +
 Default value: `$(whoami)-`
 +
-NOTE: This option is implemented only for Openshift deployments.
+NOTE: This option is implemented only for OpenShift deployments.
 
 [[KC_PORT_OFFSET,KC_PORT_OFFSET]]
 KC_PORT_OFFSET::
@@ -236,7 +236,7 @@ Default value: 0
 +
 Available options: 0-26
 +
-NOTE: This option is implemented only for Openshift deployments.
+NOTE: This option is implemented only for OpenShift deployments.
 
 KC_ADMIN_PASSWORD::
 The password for the Keycloak admin user and Grafana admin user.
@@ -244,24 +244,24 @@ The password for the Keycloak admin user and Grafana admin user.
 The default value is obtained from a secret from AWS Secret Manager named `keycloak-master-password` from region `eu-central-1`.
 If `aws` command fails or is not available on the machine, string `admin` is used.
 +
-NOTE: This option is implemented only for Openshift deployments.
+NOTE: This option is implemented only for OpenShift deployments.
 
 [[KC_DISABLE_STICKY_SESSION,KC_DISABLE_STICKY_SESSION]]
 KC_DISABLE_STICKY_SESSION::
-Running the Keycloak benchmark from a single machine makes the Openshift Route to redirect the traffic to the same Keycloak pod.
+Running the Keycloak benchmark from a single machine makes the OpenShift Route to redirect the traffic to the same Keycloak pod.
 The first connection reaches a random Keycloak pod but future connections from the same source IP will be redirected to the pod (sticky session).
-This option disables this behaviour and configure the Openshift Route to use round-robin between all the available Keycloak pods.
+This option disables this behaviour and configure the OpenShift Route to use round-robin between all the available Keycloak pods.
 +
 Default value: `false`
 +
 Available options:
 +
 --
-* `true` -- Forces the Openshift Route to use round-robin for all connection (no sticky sessions).
-* `false` -- Uses the default Openshift Route load-balancer rules.
+* `true` -- Forces the OpenShift Route to use round-robin for all connection (no sticky sessions).
+* `false` -- Uses the default OpenShift Route load-balancer rules.
 --
 
-NOTE: This option is implemented only for Openshift deployments.
+NOTE: This option is implemented only for OpenShift deployments.
 
 == Available Benchmark options
 

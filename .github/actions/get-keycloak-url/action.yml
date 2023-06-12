@@ -1,9 +1,9 @@
-name: Get Keycloak urls
-description: Get Keycloak urls from running Openshift project
+name: Get Keycloak URL
+description: Get Keycloak URL from running OpenShift project
 
 inputs:
   project:
-    description: Openshift project where Keycloak is running
+    description: OpenShift project where Keycloak is running
     required: true
 
 runs:
@@ -12,5 +12,5 @@ runs:
     - id: get-keycloak-url
       shell: bash
       run: |
-        KEYCLOAK_URL=https://$(oc get routes -n "${{ inputs.project }}" | grep keycloak-service | awk '{ print $2 }')
+        KEYCLOAK_URL=https://$(oc get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
         echo "KEYCLOAK_URL=$KEYCLOAK_URL" >> "$GITHUB_ENV"

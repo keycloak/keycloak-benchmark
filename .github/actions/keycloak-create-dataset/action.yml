@@ -1,5 +1,5 @@
-name: Get Keycloak urls
-description: Get Keycloak urls from running Openshift project
+name: Create dataset
+description: Create dataset for running Keycloak instance
 
 inputs:
   project:
@@ -27,8 +27,5 @@ runs:
       shell: bash
       run: |
         ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
-        STATUS_CMD="./dataset-import.sh -a status -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset"
-        echo -n 'Waiting for dataset to be created: '
-        for i in {1..30}; do $STATUS_CMD | grep 'No task in progress' &>/dev/null && break || echo -n '.' && sleep 10; done
-        echo ' done'
+        ./dataset-import.sh -a status-completed 300
       working-directory: dataset
