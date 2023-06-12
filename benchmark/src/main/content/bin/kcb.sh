@@ -112,7 +112,11 @@ run_benchmark_with_workload() {
   local OUTPUT_DIR="${4:-"$DIRNAME/../results/"}"
   echo "INFO: Running benchmark with $1=$2, result output will be available in: $OUTPUT_DIR"
   mkdir -p "$OUTPUT_DIR"
-  java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO 2>&1 | tee "$OUTPUT_DIR/gatling.log"
+  if [ "$MODE" = "incremental" ]; then
+    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO > "$OUTPUT_DIR/gatling.log" 2>&1
+  else
+    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO 2>&1 | tee "$OUTPUT_DIR/gatling.log"
+  fi
 }
 
 if [ "$MODE" = "incremental" ]; then
@@ -132,7 +136,7 @@ if [ "$MODE" = "incremental" ]; then
 
   #Incremental run is expected to do a warm up run to setup the system for the subsequent Incremental runs, you can ignore this run's result.
   echo "INFO: Running warm-up phase."
-  run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
+  run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$MEASUREMENT" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
   echo "INFO: Finished Warm-Up phase, for incremental run."
 
   while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
