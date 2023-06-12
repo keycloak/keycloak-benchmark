@@ -68,9 +68,6 @@ do
           WORKLOAD_UNIT=users-per-sec
           CURRENT_WORKLOAD=${1#*=}
           ;;
-      --warm-up=*)
-          WARM_UP=${1#*=}
-          ;;
       --measurement=*)
           MEASUREMENT=${1#*=}
           ;;
@@ -133,15 +130,10 @@ if [ "$MODE" = "incremental" ]; then
   RESULT_ROOT_DIR="$DIRNAME/../results/$MODE-$(date '+%Y%m%d%H%M%S')"
   mkdir -p $RESULT_ROOT_DIR
 
-  if [[ -n $WARM_UP ]]; then
-    echo "INFO: Running warm-up phase."
-    CONFIG_ARGS+=("-Dwarm-up=${WARM_UP}")
-
-    #This run is expected to warm up the system for the subsequent Incremental runs, you can ignore this run's result.
-    run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
-
-    echo "INFO: Finished Warm-Up phase, for incremental run."
-  fi
+  #Incremental run is expected to do a warm up run to setup the system for the subsequent Incremental runs, you can ignore this run's result.
+  echo "INFO: Running warm-up phase."
+  run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
+  echo "INFO: Finished Warm-Up phase, for incremental run."
 
   while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
     # Check for invalid workload
@@ -181,13 +173,9 @@ if [ "$MODE" = "incremental" ]; then
   if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
     echo "INFO: Reached maximum attempts and all attempts succeeded."
   fi
+
 else
   echo "INFO: Running benchmark in single-run mode."
-  if [[ -n $WARM_UP ]]; then
-    echo "INFO: Running benchmark with warm-up."
-    CONFIG_ARGS+=("-Dwarm-up=${WARM_UP}")
-  fi
-
   run_benchmark_with_workload $WORKLOAD_UNIT $CURRENT_WORKLOAD $MEASUREMENT
   exit
 fi

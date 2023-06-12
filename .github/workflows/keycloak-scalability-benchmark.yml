@@ -111,17 +111,28 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
 
-      # FIXME: The AuthorizationCode scenario should probably run with '--users-per-realm' / consider duplicating this as above with the create-dataset?
       - name: Run "${{ inputs.scenarioName }}" scalability scenario
+        if: inputs.scenarioName == 'authentication.ClientSecret'
         run: |
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
             --server-url=${{ env.KEYCLOAK_URL }} \
             --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
             --increment=32 \
             --measurement=60 \
-            --ramp-up=60 \
             --realm-name=realm-0 \
             --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
+        working-directory: keycloak-benchmark
+
+      - name: Run "${{ inputs.scenarioName }}" scalability scenario
+        if: inputs.scenarioName == 'authentication.AuthorizationCode'
+        run: |
+          bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
+            --server-url=${{ env.KEYCLOAK_URL }} \
+            --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
+            --increment=32 \
+            --measurement=60 \
+            --realm-name=realm-0 \
+            --users-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
         working-directory: keycloak-benchmark
 
       - name: Archive Gatling reports
