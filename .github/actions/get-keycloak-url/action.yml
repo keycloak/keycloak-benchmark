@@ -12,5 +12,5 @@ runs:
     - id: get-keycloak-url
       shell: bash
       run: |
-        KEYCLOAK_URL=https://$(oc get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+        KEYCLOAK_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
         echo "KEYCLOAK_URL=$KEYCLOAK_URL" >> "$GITHUB_ENV"
