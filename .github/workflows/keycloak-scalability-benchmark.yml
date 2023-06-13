@@ -91,6 +91,7 @@ jobs:
         uses: ./.github/actions/keycloak-create-deployment
         with:
           projectPrefix: ${{ env.PROJECT_PREFIX }}
+          disableStickySessions: true
 
       - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients
         if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.ClientSecret'
@@ -111,7 +112,7 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
 
-      - name: Run "${{ inputs.scenarioName }}" scalability scenario
+      - name: Run "authentication.ClientSecret" scalability scenario
         if: inputs.scenarioName == 'authentication.ClientSecret'
         run: |
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
@@ -123,7 +124,7 @@ jobs:
             --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
         working-directory: keycloak-benchmark
 
-      - name: Run "${{ inputs.scenarioName }}" scalability scenario
+      - name: Run "authentication.AuthorizationCode" scalability scenario
         if: inputs.scenarioName == 'authentication.AuthorizationCode'
         run: |
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
