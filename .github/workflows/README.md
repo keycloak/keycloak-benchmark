@@ -31,7 +31,7 @@
 1. We are managing the creation of shared ROSA clusters' creation and deletion using below workflows.
    1. `.github/workflows/rosa-cluster-auto-delete-on-schedule.yml`
    2. `.github/workflows/rosa-cluster-auto-provision-on-schedule.yml`
-2. Optionally you can run the `task keepalive` from provision/openshift directory against your Openshift cluster to keep it alive, from the `rosa-cluster-auto-delete-on-schedule` workflow's delete activity on the defined schedule time.
+2. Optionally you can run the `task keepalive` from provision/openshift directory against your OpenShift cluster to keep it alive, from the `rosa-cluster-auto-delete-on-schedule` workflow's delete activity on the defined schedule time.
 
 
 ## Run benchmark

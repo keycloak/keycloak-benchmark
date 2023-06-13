@@ -1,0 +1,31 @@
+name: Create dataset
+description: Create dataset for running Keycloak instance
+
+inputs:
+  project:
+    description: 'Name of the project'
+    required: true
+  realms:
+    description: 'Number of realms to create'
+    default: '1'
+  users:
+    description: 'Number of users to create'
+    default: '100'
+  clients:
+    description: 'Number of clients to create'
+    default: '1'
+
+runs:
+  using: "composite"
+  steps:
+    - id: get_urls
+      uses: ./.github/actions/get-keycloak-url
+      with:
+        project: ${{ inputs.PROJECT }}
+
+    - id: create_dataset
+      shell: bash
+      run: |
+        ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
+        ./dataset-import.sh -a status-completed 300
+      working-directory: dataset

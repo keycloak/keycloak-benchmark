@@ -1,4 +1,4 @@
-name: ROSA Cluster - Run Benchmark
+name: Keycloak - Scalability benchmark
 
 on:
   workflow_dispatch:
@@ -6,6 +6,24 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: string
+        default: 'gh-keycloak'
+      scenarioName:
+        description: 'Name of the benchmark scenario to run'
+        type: choice
+        options:
+          - 'authentication.ClientSecret'
+          - 'authentication.AuthorizationCode'
+      numberOfEntitiesInRealm:
+        description: 'Number of entities for the scenario'
+        type: string
+        default: '10000'
+      numberOfEntitiesUsedInTest:
+        description: 'Number of entities used in test (default: all entities)'
+        type: string
+      initialUsersPerSecond:
+        description: 'Initial users per second'
+        type: string
+        default: '1'
       skipCreateDeployment:
         description: 'Skip creating Keycloak deployment'
         type: boolean
@@ -74,20 +92,47 @@ jobs:
         with:
           projectPrefix: ${{ env.PROJECT_PREFIX }}
 
-
-      - name: Create Keycloak dataset
-        if: ${{ !inputs.skipCreateDataset }}
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients
+        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.ClientSecret'
         uses: ./.github/actions/keycloak-create-dataset
         with:
           project: ${{ env.PROJECT }}
+          clients: ${{ inputs.numberOfEntitiesInRealm }}
+
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
+        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.AuthorizationCode'
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          users: ${{ inputs.numberOfEntitiesInRealm }}
 
       - name: Get URLs
         uses: ./.github/actions/get-keycloak-url
         with:
           project: ${{ env.PROJECT }}
 
-      - name: Run Authorization Code scenario
-        run: bin/kcb.sh --scenario=keycloak.scenario.authentication.AuthorizationCode --server-url=${{ env.KEYCLOAK_URL }} --realm-name=realm-0
+      - name: Run "${{ inputs.scenarioName }}" scalability scenario
+        if: inputs.scenarioName == 'authentication.ClientSecret'
+        run: |
+          bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
+            --server-url=${{ env.KEYCLOAK_URL }} \
+            --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
+            --increment=32 \
+            --measurement=60 \
+            --realm-name=realm-0 \
+            --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
+        working-directory: keycloak-benchmark
+
+      - name: Run "${{ inputs.scenarioName }}" scalability scenario
+        if: inputs.scenarioName == 'authentication.AuthorizationCode'
+        run: |
+          bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
+            --server-url=${{ env.KEYCLOAK_URL }} \
+            --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
+            --increment=32 \
+            --measurement=60 \
+            --realm-name=realm-0 \
+            --users-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
         working-directory: keycloak-benchmark
 
       - name: Archive Gatling reports

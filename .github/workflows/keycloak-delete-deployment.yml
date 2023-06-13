@@ -1,0 +1,37 @@
+name: Keycloak - Delete deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+
+env:
+  PROJECT: runner-keycloak
+
+jobs:
+  delete:
+    name: Delete Keycloak deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+      - name: Delete Keycloak deployment
+        uses: ./.github/actions/keycloak-delete-deployment
+        with:
+          project: ${{ env.PROJECT }}

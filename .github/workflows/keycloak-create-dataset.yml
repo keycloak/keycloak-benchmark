@@ -1,0 +1,52 @@
+name: Keycloak - Create dataset
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+      realms:
+        description: 'Number of realms to create'
+        type: string
+        default: '1'
+      users:
+        description: 'Number of users to create'
+        type: string
+        default: '100'
+      clients:
+        description: 'Number of clients to create'
+        type: string
+        default: '1'
+
+env:
+  PROJECT: runner-keycloak
+
+jobs:
+  prepare:
+    name: Create Keycloak dataset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+      - name: Create Keycloak dataset
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          realms: ${{ inputs.realms }}
+          users: ${{ inputs.users }}
+          clients: ${{ inputs.clients }}

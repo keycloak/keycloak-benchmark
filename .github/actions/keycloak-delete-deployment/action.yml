@@ -1,0 +1,14 @@
+name: Delete Keycloak deployment
+description: Delete Keycloak deployment from running OpenShift project
+
+inputs:
+  project:
+    description: 'Name of the project'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: delete_keycloak_project
+      shell: bash
+      run: oc delete project "${{ inputs.project }}"

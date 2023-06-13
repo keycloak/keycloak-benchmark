@@ -23,6 +23,7 @@ fi
 GREP="grep"
 DIRNAME=$(dirname "$RESOLVED_NAME")
 
+# Default values
 JAVA_OPTS="-server"
 JAVA_OPTS="${JAVA_OPTS} -Xmx1G -XX:+HeapDumpOnOutOfMemoryError"
 
@@ -33,6 +34,14 @@ CONFIG_ARGS=()
 SERVER_OPTS=()
 
 SCENARIO="keycloak.scenario.authentication.ClientSecret"
+
+INCREMENT=32
+MODE="single-run"
+
+WORKLOAD_UNIT="users-per-sec"
+CURRENT_WORKLOAD=1
+
+MEASUREMENT=30
 
 while [ "$#" -gt 0 ]
 do
@@ -50,6 +59,21 @@ do
           ;;
       --scenario=*)
           SCENARIO=${1#*=}
+          ;;
+      --concurrent-users=*)
+          WORKLOAD_UNIT=concurrent-users
+          CURRENT_WORKLOAD=${1#*=}
+          ;;
+      --users-per-sec=*)
+          WORKLOAD_UNIT=users-per-sec
+          CURRENT_WORKLOAD=${1#*=}
+          ;;
+      --measurement=*)
+          MEASUREMENT=${1#*=}
+          ;;
+      --increment=*)
+          MODE=incremental
+          INCREMENT=${1#*=}
           ;;
       --)
           shift
@@ -72,10 +96,90 @@ if [ "$DEBUG_MODE" = "true" ]; then
     if [ "x$DEBUG_OPT" = "x" ]; then
         JAVA_OPTS="$JAVA_OPTS -agentlib:jdwp=transport=dt_socket,address=$DEBUG_PORT,server=y,suspend=y"
     else
-        echo "Debug already enabled in JAVA_OPTS, ignoring --debug argument"
+        echo "DEBUG: Debug already enabled in JAVA_OPTS, ignoring --debug argument."
     fi
 fi
 
 CLASSPATH_OPTS="$DIRNAME/../lib/*"
 
-exec java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$DIRNAME/../results" -s $SCENARIO
+declare -A RESULT_CACHE
+
+run_benchmark_with_workload() {
+  if [[ -v RESULT_CACHE[$2] ]]; then
+      echo "INFO: Keycloak benchmark was already running for $1=$2 with result ${RESULT_CACHE[$2]}."
+      return "${RESULT_CACHE[$2]}"
+  fi
+  local OUTPUT_DIR="${4:-"$DIRNAME/../results/"}"
+  echo "INFO: Running benchmark with $1=$2, result output will be available in: $OUTPUT_DIR"
+  mkdir -p "$OUTPUT_DIR"
+  if [ "$MODE" = "incremental" ]; then
+    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO > "$OUTPUT_DIR/gatling.log" 2>&1
+  else
+    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO 2>&1 | tee "$OUTPUT_DIR/gatling.log"
+  fi
+}
+
+if [ "$MODE" = "incremental" ]; then
+  echo "INFO: Running benchmark in incremental mode."
+  MAX_ATTEMPTS=100
+  ATTEMPT=0
+
+  trap printout SIGINT
+  printout() {
+      echo ""
+      echo "INFO: Finished with $WORKLOAD_UNIT=$CURRENT_WORKLOAD."
+      exit
+  }
+
+  RESULT_ROOT_DIR="$DIRNAME/../results/$MODE-$(date '+%Y%m%d%H%M%S')"
+  mkdir -p $RESULT_ROOT_DIR
+
+  #Incremental run is expected to do a warm up run to setup the system for the subsequent Incremental runs, you can ignore this run's result.
+  echo "INFO: Running warm-up phase."
+  run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$MEASUREMENT" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD-WARM-UP"
+  echo "INFO: Finished Warm-Up phase, for incremental run."
+
+  while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    # Check for invalid workload
+    if [ $CURRENT_WORKLOAD -lt 1 ]; then
+      echo "ERROR: Invalid state for $SCENARIO with $WORKLOAD_UNIT=$LAST_SUCCESSFUL_WORKLOAD."
+      exit 1
+    fi
+
+    ((ATTEMPT++))
+
+    run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$MEASUREMENT" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD"
+
+    RESULT_CACHE[$CURRENT_WORKLOAD]=$?
+
+    if [ ${RESULT_CACHE[$CURRENT_WORKLOAD]} -ne 0 ]; then
+      echo "INFO: Keycloak benchmark failed for $WORKLOAD_UNIT=$CURRENT_WORKLOAD"
+      LAST_SUCCESSFUL_WORKLOAD=$((CURRENT_WORKLOAD - INCREMENT))
+      if [ $((RESULT_CACHE[$LAST_SUCCESSFUL_WORKLOAD])) -ne 0 ]; then
+        echo "ERROR: Invalid state. Last successful workload $LAST_SUCCESSFUL_WORKLOAD was not successful."
+        exit 1
+      fi
+
+      echo "INFO: Last Successful workload for scenario $SCENARIO is $WORKLOAD_UNIT=$LAST_SUCCESSFUL_WORKLOAD."
+      if [ $INCREMENT -eq 1 ]; then
+        echo "INFO: Reached the limit for scenario $SCENARIO with $WORKLOAD_UNIT=$LAST_SUCCESSFUL_WORKLOAD."
+        exit
+      fi
+
+      # Reset workload to last successful value and decrease increment
+      CURRENT_WORKLOAD=$((CURRENT_WORKLOAD - INCREMENT))
+      INCREMENT=$((INCREMENT / 2))
+    fi
+
+    CURRENT_WORKLOAD=$((CURRENT_WORKLOAD + INCREMENT))
+  done
+
+  if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+    echo "INFO: Reached maximum attempts and all attempts succeeded."
+  fi
+
+else
+  echo "INFO: Running benchmark in single-run mode."
+  run_benchmark_with_workload $WORKLOAD_UNIT $CURRENT_WORKLOAD $MEASUREMENT
+  exit
+fi

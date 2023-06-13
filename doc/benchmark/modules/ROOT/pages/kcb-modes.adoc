@@ -1,0 +1,9 @@
+= Modes in kcb.sh script
+
+This is part of the `kcb.sh` script which was referenced in xref:run/running-benchmark-cli.adoc[].
+
+In the `--incremental` mode, the code sets up a benchmark to go through a warm-up phase using the `run_benchmark_with_workfload` function and then moves onto the `incremental` phase where benchmark is executed for incrementing the workload each time. If a benchmark fails, the script tries to perform a binary lookup to reduce the increment value by half of the last successful workload, and in the end if it reaches a value of 1(by the means of integer math), it will assume it reached the maximum possible successful workload and prints the same information to the user.
+
+In the `--single-run` mode, which is the default mode when the `--incremental` flag is not set on the CLI command, the script directly runs the benchmark with the provided workload and exits without any further processing.
+
+Overall the `kcb.sh` script executes the benchmark in either incremental or single-run mode, handles errors and provides informative output messages during the process.
