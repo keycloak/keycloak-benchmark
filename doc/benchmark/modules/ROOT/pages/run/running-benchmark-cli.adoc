@@ -41,6 +41,14 @@ See xref:scenario-overview.adoc[] for an overview over all available scenarios a
 
 See xref:configuration.adoc[] for setting different parameters.
 
+[#incremental-run-mode]
+==== Single vs. incremental run mode
+
+In the single run mode, which is the default, the script performs one run and prints the result on the console.
+
+In the incremental mode, which is triggered by the CLI option `xref:configuration.adoc#increment[--increment]`, the script runs the benchmark once as a warm-up, and then again, and if successful repeatedly with an ever-increasing workload as given in the parameter.
+Once the benchmark fails after one of the increments, the script performs additional runs with smaller increments to find the maximum possible successful workload and prints this information on the console.
+
 === Report
 
 For the default gatling generated reports, check reports at the `result` directory.
