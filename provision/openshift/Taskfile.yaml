@@ -5,7 +5,6 @@ version: '3'
 vars:
   KC_HOSTNAME_SUFFIX: '{{default "$(kubectl get route/console -n openshift-console -o jsonpath=\u0027{.spec.host}\u0027 | cut -d . -f 2-)" .KC_HOSTNAME_SUFFIX}}'
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
-  KC_PORT_OFFSET: '{{default "0" .KC_PORT_OFFSET}}'
   KC_ADMIN_PASSWORD: '{{default "$(aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin)" .KC_ADMIN_PASSWORD}}'
 
 output: prefixed
@@ -50,7 +49,6 @@ tasks:
       - mkdir -p .task
       - echo {{.KC_HOSTNAME_SUFFIX}} > .task/var-KC_HOSTNAME_SUFFIX
       - echo {{.KC_NAMESPACE_PREFIX}} > .task/var-KC_NAMESPACE_PREFIX
-      - echo {{.KC_PORT_OFFSET}} > .task/var-KC_PORT_OFFSET
       - echo {{.KC_ADMIN_PASSWORD}} > .task/var-KC_ADMIN_PASSWORD
     run: once
     sources:
@@ -58,7 +56,6 @@ tasks:
     status:
       - test "{{.KC_HOSTNAME_SUFFIX}}" == "$(cat .task/var-KC_HOSTNAME_SUFFIX)"
       - test "{{.KC_NAMESPACE_PREFIX}}" == "$(cat .task/var-KC_NAMESPACE_PREFIX)"
-      - test "{{.KC_PORT_OFFSET}}" == "$(cat .task/var-KC_PORT_OFFSET)"
       - test "{{.KC_ADMIN_PASSWORD}}" == '$(cat .task/var-KC_ADMIN_PASSWORD)'
 
   dataset-import:
@@ -197,9 +194,9 @@ tasks:
         --set sqlpad=false
         --set environment=openshift
         --set namespace={{.KC_NAMESPACE_PREFIX}}keycloak
-        --set portOffset={{.KC_PORT_OFFSET}}
         --set keycloakAdminPassword="{{.KC_ADMIN_PASSWORD}}"
         --set disableIngressStickySession={{ .KC_DISABLE_STICKY_SESSION }}
+        --set nodePortsEnabled=false
         ../minikube/keycloak
       - >
         bash -c '

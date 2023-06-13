@@ -1,4 +1,4 @@
-{{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
+{{ if and (or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan")) (.Values.nodePortsEnabled) }}
 apiVersion: v1
 kind: Service
 metadata:

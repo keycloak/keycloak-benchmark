@@ -1,4 +1,4 @@
-{{ if eq .Values.database "cockroach-operator" }}
+{{ if and (eq .Values.database "cockroach-operator") (.Values.nodePortsEnabled) }}
 apiVersion: v1
 kind: Service
 metadata:
