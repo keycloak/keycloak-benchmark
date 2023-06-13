@@ -1,0 +1,34 @@
+name: ROSA/AWS - Cost Reporting
+
+on:
+  schedule:
+    - cron: '0 12 * * Sun' # Runs At 12:00 PM UTC on Every Sunday
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: Report on ROSA and AWS Costs for the current YTD, MTD and WTD
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Report on the Week-to-Date costs
+        run: aws ce get-cost-and-usage --time-period Start=$(date -d "7 days ago" +"%Y-%m-%d"),End=$(date +%Y-%m-%d) --granularity=MONTHLY --metrics BlendedCost --output yaml
+
+      - name: Report on the Week-to-Date costs with daily cost split
+        run: aws ce get-cost-and-usage --time-period Start=$(date -d "7 days ago" +"%Y-%m-%d"),End=$(date +%Y-%m-%d) --granularity=DAILY --metrics BlendedCost --output yaml
+
+      - name: Report on the Month-to-Date costs
+        run: aws ce get-cost-and-usage --time-period Start=$(date +%Y-%m-01),End=$(date  +%Y-%m-%d) --granularity=MONTHLY --metrics BlendedCost --output yaml
+
+      - name: Report on the Year-to-Date costs
+        run: aws ce get-cost-and-usage --time-period Start=$(date +%Y-01-01),End=$(date  +%Y-%m-%d) --granularity=MONTHLY --metrics BlendedCost --output yaml
