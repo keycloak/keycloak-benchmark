@@ -10,7 +10,7 @@ echo "Starting the ROSA cluster reaper at $(date -uIs)"
 # Get a list of running ROSA clusters
 CLUSTERS=$(rosa list clusters --output json | jq -r '.[] | select((.state == "ready") or (.state == "pending") or (.state == "waiting") or (.state == "error")) | .name')
 
-if [ -z "$CLUSTERS" ]; then echo "Didn't find any ready state clusters"; exit 1; fi
+if [ -z "$CLUSTERS" ]; then echo "Didn't find any ready state clusters, to purge"; exit; fi
 
 # Loop through each cluster
 for CLUSTER_NAME in $CLUSTERS; do
