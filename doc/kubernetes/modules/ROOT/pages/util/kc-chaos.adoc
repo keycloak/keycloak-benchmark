@@ -1,0 +1,37 @@
+= Simulate failures of Keycloak in Kubernetes
+:description: How to automate the simulation of failures Keycloak Pods in a Kubernetes environment to test the recovery of Keycloak after a failure.
+
+{description}
+
+== Why failure testing
+
+There is an excellent writeup about why we need chaos testing tools in general https://redhat-chaos.github.io/krkn/#introduction[in the introduction to the chaos testing tool krkn].
+
+== Running the failure test from the CLI
+
+=== Preparations
+
+* Extract the `+keycloak-benchmark-${version}.[zip|tar.gz]+` file
+* xref:benchmark-guide::preparing-keycloak.adoc[]
+* Make sure you can access the Kubernetes cluster from where you are planning to run the failure tests and run commands such as `kubectl get pods -n keycloak-keycloak`
+
+=== Simulating load
+
+Use the xref:benchmark-guide::run/running-benchmark-cli.adoc[] guide to simulate load against a specific Kubernetes environment.
+
+=== Running the failure tests
+
+Once there is enough load going against the Keycloak application hosted on an existing Kubernetes/OpenShift cluster, execute below command to:
+
+[source,bash]
+----
+./kc-chaos.sh
+----
+
+Set the environment variables below to configure on how and where this script gets executed.
+
+`INITIAL_DELAY_SECS`:: Time in seconds the script waits before it triggers the first failure.
+
+`CHAOS_DELAY_SECS`:: Time in seconds the script waits between simulating failures.
+
+`PROJECT`:: Namespace of the Keycloak pods.
