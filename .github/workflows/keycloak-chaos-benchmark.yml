@@ -1,0 +1,152 @@
+name: Keycloak - Failure benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+        default: 'gh-keycloak'
+      scenarioName:
+        description: 'Name of the benchmark scenario to run'
+        type: choice
+        options:
+          - 'authentication.ClientSecret'
+          - 'authentication.AuthorizationCode'
+      numberOfEntitiesInRealm:
+        description: 'Number of entities for the scenario'
+        type: string
+        default: '10000'
+      numberOfEntitiesUsedInTest:
+        description: 'Number of entities used in test (default: all entities)'
+        type: string
+      initialUsersPerSecond:
+        description: 'Initial users per second'
+        type: string
+        default: '1'
+      skipCreateDeployment:
+        description: 'Skip creating Keycloak deployment'
+        type: boolean
+        default: false
+      skipCreateDataset:
+        description: 'Skip creating dataset'
+        type: boolean
+        default: false
+      skipDeleteProject:
+        description: 'Skip deleting project'
+        type: boolean
+        default: false
+
+concurrency: cluster_${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+env:
+  PROJECT_PREFIX: runner- # same as default
+  PROJECT: runner-keycloak
+
+jobs:
+  run:
+    name: Run Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven'
+
+      - name: Cache Maven Wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            .mvn/wrapper/maven-wrapper.jar
+          key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-wrapper-
+
+      - name: Build with Maven
+        run: |
+          ./mvnw -B clean install -DskipTests
+          tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
+          mv keycloak-benchmark-* keycloak-benchmark
+
+      - name: Create Keycloak deployment
+        if: ${{ !inputs.skipCreateDeployment }}
+        uses: ./.github/actions/keycloak-create-deployment
+        with:
+          projectPrefix: ${{ env.PROJECT_PREFIX }}
+          disableStickySessions: true
+
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients
+        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.ClientSecret'
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          clients: ${{ inputs.numberOfEntitiesInRealm }}
+
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
+        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.AuthorizationCode'
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          users: ${{ inputs.numberOfEntitiesInRealm }}
+
+      - name: Get URLs
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ env.PROJECT }}
+
+      - name: Run "authentication.ClientSecret" failure scenario
+        if: inputs.scenarioName == 'authentication.ClientSecret'
+        run: |
+          bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
+            --server-url=${{ env.KEYCLOAK_URL }} \
+            --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
+            --measurement=180 \
+            --realm-name=realm-0 \
+            --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }} &
+          timeout 150 bin/kc-chaos.sh &
+          wait
+        working-directory: keycloak-benchmark
+
+      - name: Run "authentication.AuthorizationCode" failure scenario
+        if: inputs.scenarioName == 'authentication.AuthorizationCode'
+        run: |
+          bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
+            --server-url=${{ env.KEYCLOAK_URL }} \
+            --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
+            --measurement=180 \
+            --realm-name=realm-0 \
+            --users-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }} &
+          timeout 150 bin/kc-chaos.sh &
+          wait
+        working-directory: keycloak-benchmark
+
+      - name: Archive Gatling reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: gatling-results
+          path: keycloak-benchmark/results
+          retention-days: 5
+
+      - name: Delete Keycloak deployment
+        if: ${{ !inputs.skipDeleteProject }}
+        uses: ./.github/actions/keycloak-delete-deployment
+        with:
+          project: ${{ env.PROJECT }}
