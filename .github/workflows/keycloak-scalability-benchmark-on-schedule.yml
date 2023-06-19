@@ -1,0 +1,27 @@
+name: ROSA Scheduled Create
+
+on:
+  schedule:
+    - cron: '0 7 * * 1-5' # Runs At 07:00 UTC on every day-of-week from Monday through Friday.
+
+jobs:
+
+  checkout:
+    name: ROSA Scheduled Create cluster
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ClientSecret scalability benchmark
+        run: |
+          gh workflow run -R keycloak/keycloak-benchmark keycloak-scalability-benchmark.yml \
+            -f "scenarioName=authentication.ClientSecret"
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run AuthorizationCode scalability scenario
+        run: |
+          gh workflow run -R keycloak/keycloak-benchmark keycloak-scalability-benchmark.yml \
+            -f "scenarioName=authentication.AuthorizationCode" \
+            -f "numberOfEntitiesInRealm=100000"
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
