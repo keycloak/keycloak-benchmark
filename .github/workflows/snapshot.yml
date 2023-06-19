@@ -21,6 +21,8 @@ jobs:
   build:
     name: Publish binaries
     runs-on: ubuntu-latest
+    # publishing can only happen on the main repository, not in forks
+    if: github.repository == 'keycloak/keycloak-benchmark'
 
     steps:
       - uses: actions/checkout@v3

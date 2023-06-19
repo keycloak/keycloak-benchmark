@@ -1,0 +1,17 @@
+{
+  "name": "dashbuilder-webapp",
+  "version": "0.0.0",
+  "description": "Dashbuilder WebApp",
+  "scripts": {
+    "bootstrap": "npm install",
+    "clean": "rm -rf dist/",
+    "copy:dashbuilder": "cp -r node_modules/@kie-tools/dashbuilder-client/dist/* dist",
+    "copy:sources": "cp -r static/* dist",
+    "build": "npm run clean && mkdir dist/ && npm run copy:dashbuilder && npm run copy:sources",
+    "server": "npm run build && cd dist && http-server -p 8000"
+  },
+  "devDependencies": {
+    "@kie-tools/dashbuilder-client": "^0.29.0",
+    "http-server": "^14.1.1"
+  }
+}

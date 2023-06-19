@@ -1,5 +1,4 @@
 #!/bin/bash
-
 case "$(uname)" in
     CYGWIN*)
         CFILE=$(cygpath "$0")
@@ -112,11 +111,50 @@ run_benchmark_with_workload() {
   local OUTPUT_DIR="${4:-"$DIRNAME/../results/"}"
   echo "INFO: Running benchmark with $1=$2, result output will be available in: $OUTPUT_DIR"
   mkdir -p "$OUTPUT_DIR"
+  DATE_START_UNIX=$(date +%s)
+  DATE_START_ISO=$(date --iso-8601=seconds)
+  DATE_START_ISO_COMPRESSED=$(date '+%Y%m%d-%H%M%S')
   if [ "$MODE" = "incremental" ]; then
     java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO > "$OUTPUT_DIR/gatling.log" 2>&1
   else
     java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO 2>&1 | tee "$OUTPUT_DIR/gatling.log"
   fi
+  EXIT_RESULT=$?
+  # don't include URLs or password information into the configuration recorded
+  CONFIG_ARGS_CLEAN=()
+  for index in "${!CONFIG_ARGS[@]}" ; do [[ "${CONFIG_ARGS[$index]}" =~ .*(url|pass).* ]] || CONFIG_ARGS_CLEAN+=(${CONFIG_ARGS[$index]}) ; done
+  OUTPUT_FOLDER=$OUTPUT_DIR/$(ls $OUTPUT_DIR -Art | grep -- -20 | tail -1)
+  DATE_END_UNIX=$(date +%s)
+  DATE_END_ISO=$(date --iso-8601=seconds)
+  jq '{ "grafana_output": { "stats": . } }' $OUTPUT_FOLDER/js/stats.json > $OUTPUT_FOLDER/result_grafana_stats.json
+  UUID=$(uuidgen)
+  jq '.'  > $OUTPUT_FOLDER/result_grafana_inputs.json <<EOF
+  {
+    "uuid": "${UUID}",
+    "name": "Scenario '${SCENARIO}' with $2 $1",
+    "grafana_input": {
+      "start": {
+        "epoch_seconds": ${DATE_START_UNIX},
+        "iso": "${DATE_START_ISO}"
+      },
+      "end": {
+        "epoch_seconds": ${DATE_END_UNIX},
+        "iso": "${DATE_END_ISO}"
+      },
+      "input": {
+        "scenario": "${SCENARIO}",
+        "unit": "$1",
+        "value": $2,
+        "config": "${CONFIG_ARGS_CLEAN[@]}"
+      }
+    }
+  }
+EOF
+  if [[ "${SUT_DESCRIBE}" != "" ]]; then
+    ${SUT_DESCRIBE} | jq '{ "system_under_test": . }' > ${OUTPUT_FOLDER}/result_sut.json
+  fi
+  jq -s add ${OUTPUT_FOLDER}/result_*.json > ${OUTPUT_FOLDER}/result-${DATE_START_ISO_COMPRESSED}-${UUID}.json
+  return ${EXIT_RESULT}
 }
 
 if [ "$MODE" = "incremental" ]; then
@@ -133,6 +171,7 @@ if [ "$MODE" = "incremental" ]; then
 
   RESULT_ROOT_DIR="$DIRNAME/../results/$MODE-$(date '+%Y%m%d%H%M%S')"
   mkdir -p $RESULT_ROOT_DIR
+  RESULT_ROOT_DIR=$(realpath ${RESULT_ROOT_DIR})
 
   #Incremental run is expected to do a warm up run to setup the system for the subsequent Incremental runs, you can ignore this run's result.
   echo "INFO: Running warm-up phase."
@@ -162,6 +201,11 @@ if [ "$MODE" = "incremental" ]; then
 
       echo "INFO: Last Successful workload for scenario $SCENARIO is $WORKLOAD_UNIT=$LAST_SUCCESSFUL_WORKLOAD."
       if [ $INCREMENT -eq 1 ]; then
+        ln -s $RESULT_ROOT_DIR/$WORKLOAD_UNIT-$LAST_SUCCESSFUL_WORKLOAD $RESULT_ROOT_DIR/last-successful
+        if [[ "${GITHUB_OUTPUT}" != "" ]]; then
+          OUTPUT_FOLDER=$RESULT_ROOT_DIR/last-successful/$(ls $RESULT_ROOT_DIR/last-successful -Art | grep -- -20 | tail -1)
+          echo "kcb_result=$OUTPUT_FOLDER/result-*.json" >> "${GITHUB_OUTPUT}"
+        fi
         echo "INFO: Reached the limit for scenario $SCENARIO with $WORKLOAD_UNIT=$LAST_SUCCESSFUL_WORKLOAD."
         exit
       fi
@@ -181,5 +225,10 @@ if [ "$MODE" = "incremental" ]; then
 else
   echo "INFO: Running benchmark in single-run mode."
   run_benchmark_with_workload $WORKLOAD_UNIT $CURRENT_WORKLOAD $MEASUREMENT
+  if [[ "${GITHUB_OUTPUT}" != "" ]]; then
+    OUTPUT_FOLDER=$DIRNAME/../results/$(ls $DIRNAME/../results -Art | grep -- -20 | tail -1)
+    OUTPUT_FOLDER=$(realpath ${OUTPUT_FOLDER})
+    echo "kcb_result=$OUTPUT_FOLDER/result-*.json" >> "${GITHUB_OUTPUT}"
+  fi
   exit
 fi

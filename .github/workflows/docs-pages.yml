@@ -1,12 +1,19 @@
 name: Publishing Documentation Site
 
 on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Aggregate Benchmark results"
+    types:
+      - completed
   push:
     branches:
       - main
     paths:
       - '.github/workflows/docs-pages.yml'
       - 'antora/**'
+      - 'dashbuilder/**'
       - 'doc/**'
 
 concurrency:
@@ -19,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Node.js
+      - name: Set up Node.js for Antora
         uses: actions/setup-node@v3
         with:
           node-version: '16.x'
@@ -28,6 +35,23 @@ jobs:
       - name: Build docs
         working-directory: antora
         run: ./build.sh
+      - name: Add benchmark data to website
+        run: |
+          mkdir -p antora/_site/keycloak-benchmark/results
+          gh release download aggregated-benchmarks -D antora/_site/keycloak-benchmark/results --repo keycloak/keycloak-benchmark
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Set up Node.js for DashBuilder
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          cache: 'yarn'
+          cache-dependency-path: 'dashbuilder/yarn.lock'
+      - name: Prepare dashbuilder
+        working-directory: dashbuilder
+        run: |
+          ./build.sh
+          mv dist ../antora/_site/keycloak-benchmark/dashbuilder
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:

@@ -1,0 +1,56 @@
+= Results summary
+:description: There shell script creates a summary JSON which can be used to compare different runs.
+
+{description}
+
+== JSON created for each run
+
+For every run, `kcb.sh` creates a file `results.json` which contains the input parameters
+to Gatling and also an output of the results.
+
+Each result summarizes a run, and can be processed further in a pipeline.
+Each run has a descriptive name and a UUID which identifies the run.
+The file name contains a timestamp and the UUID, so it is simple to put multiple result files in a single folder for further processing.
+
+A user of the `kcb.sh` script might want to capture information about the system under test (SUT) as part of the result file to record the information for later use.
+To do this, the user has to provide a script which collects the information and prints them on the console.
+For a ROSA environment, there is link:{github-files}/provision/aws/rosa_describe.sh[rosa_describe.sh] which would collect the information about the cluster.
+When the environment variable `SUT_DESCRIBE` is set, `kcb.sh` calls the executable and CLI arguments given in the environment variable `SUT_DESCRIBE` to retrieve the JSON description for the system under test.
+It then adds it to the file with the key `system_under_test`.
+See link:{github-files}/.github/actions/oc-keycloak-login/action.yml[oc-keycloak-login/action.yml] how the environment variable is set for a GitHub workflow.
+
+When running this from a GitHub Workflow, the file name is recorded in the GitHub Action output `kcb_result` so it can be picked up in later steps in the GitHub Workflow.
+
+.Example excerpt from a results JSON file.
+[source,json]
+----
+{
+  "uuid": ...,
+  "name": ...,
+  "grafana_input": {
+    "start": ...,
+    "end": ...,
+    "input": ...
+  },
+  "grafana_output": ...,
+  "system_under_test": ...
+}
+----
+
+== Summarizing report for the scalability test
+
+For the scalability test, there is link:/keycloak-benchmark/dashbuilder[a report visualizing the latest runs here].
+
+The process that leads to this diagram is as follows:
+
+. The link:{github-files}/.github/workflows/keycloak-scalability-benchmark.yml[Keycloak - Scalability benchmark GitHub workflow] commits a result file to the `link:{github-files}/../result-data/[result-data]` branch of the repository on each successful run.
+
+. For https://www.dashbuilder.org/[Dashbuilder], the data needs to be available as a single JSON file.
+This is generated using the link:{github-files}/../result-data/.github/workflows/aggregate-results.yaml[Aggregate Benchmark results GitHub workflow] in the `result-data` branch of the repository.
+
+. The data is then published to GitHub pages in the link:{github-files}/.github/workflows/docs-pages.yml[Publishing Documentation Site GitHub workflow], as the file created for the releases can't be fetched by Dashbuilder, as the initial response is an HTTP redirect.
+
+. The dashboard is built using https://www.dashbuilder.org[Dashbuilder] using this  `link:{github-files}/dashbuilder/static/dashboard.yaml[dashboard.yaml]` file.
+There is an https://start.kubesmarts.org/[interactive dashboard builder] to interactively change the diagram.
+See the https://www.dashbuilder.org/docs/[Dashbuilder docs] on how to update the YAML file.
+
