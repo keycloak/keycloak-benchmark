@@ -15,3 +15,8 @@ runs:
       working-directory: provision/aws
       env:
         CLUSTER_NAME: ${{ inputs.clusterName }}
+
+    - id: enable-self-describe
+      shell: bash
+      working-directory: provision/aws
+      run: echo "SUT_DESCRIBE=$(pwd)/rosa_describe.sh ${{ inputs.clusterName }}" >> "$GITHUB_ENV"
