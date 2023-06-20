@@ -1,0 +1,39 @@
+name: Aggregate Benchmark results
+
+on:
+  push:
+    branches:
+      - result-data
+
+concurrency: aggregate-results-${{ github.ref }}
+
+jobs:
+  run:
+    permissions:
+      contents: write
+    name: Aggregate results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Aggregate data
+        run: |
+          jq -cs '.' `find benchmark -name result-*.json` > benchmark-results.json
+          jq -cs '.' `find scalability -name result-*.json` > scaletest-results.json
+
+      - name: Archive data
+        uses: actions/upload-artifact@v3
+        with:
+          name: results
+          path: '*-results.json'
+          retention-days: 5
+
+      - name: Publish data
+        if: github.repository == 'keycloak/keycloak-benchmark'
+        run: |
+          gh release edit aggregated-benchmarks --target result-data --draft=false || gh release create --target result-data aggregated-benchmarks --draft=false
+          gh release upload --clobber aggregated-benchmarks *-results.json
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
