@@ -17,12 +17,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Publish aggregated data
+      - name: Aggregate data
         run: |
           jq -cs '.' `find benchmark -name result-*.json` > result.json
+
+      - name: Publish data
+        if: github.repository == 'keycloak/keycloak'
+        run: |
           gh release edit result-data --draft=false
           gh release upload result-data result.json
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
 
