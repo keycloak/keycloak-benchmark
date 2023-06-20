@@ -1,0 +1,28 @@
+name: Aggregate results
+
+on:
+  push:
+    branches:
+      - result-data
+
+concurrency: aggregate-results-${{ github.ref }}
+
+jobs:
+  run:
+    permissions:
+      contents: write
+    name: Aggregate results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Publish aggregated data
+        run: |
+          jq -cs '.' `find benchmark -name result-*.json` > result.json
+          gh release edit result-data --draft=false
+          gh release upload result-data result.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+
