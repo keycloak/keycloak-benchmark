@@ -31,8 +31,7 @@ jobs:
       - name: Publish data
         if: github.repository == 'keycloak/keycloak-benchmark'
         run: |
-          gh release edit result-data --draft=false || gh release create result-data --draft=false
-          gh release upload result-data '*-results.json'
+          gh release edit aggregated-benchmarks --target result-data --draft=false *-results.json || gh release create --target result-data aggregated-benchmarks --draft=false *-results.json
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
