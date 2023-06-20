@@ -252,9 +252,10 @@ tasks:
       - ./init-database.sh {{.KC_DATABASE}}
       - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
-      - minikube ssh -- docker container prune -f
-      - minikube ssh -- docker image prune -f
-      - minikube ssh -- docker volume prune -f
+      # "minikube ssh" stopped to work on Fedora / lead to a timeout, while direct ssh still works
+      - bash -c 'ssh docker@$(minikube ip) -i $(minikube ssh-key) -o StrictHostKeyChecking=no docker container prune -f'
+      - bash -c 'ssh docker@$(minikube ip) -i $(minikube ssh-key) -o StrictHostKeyChecking=no docker image prune -f'
+      - bash -c 'ssh docker@$(minikube ip) -i $(minikube ssh-key) -o StrictHostKeyChecking=no docker volume prune -f'
     sources:
       - keycloak/**/*.*
       - .task/subtask-{{.TASK}}.yaml
