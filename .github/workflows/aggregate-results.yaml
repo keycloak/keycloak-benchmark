@@ -19,13 +19,20 @@ jobs:
 
       - name: Aggregate data
         run: |
-          jq -cs '.' `find benchmark -name result-*.json` > result.json
+          jq -cs '.' `find benchmark -name result-*.json` > benchmark-results.json
+
+      - name: Archive data
+        uses: actions/upload-artifact@v3
+        with:
+          name: gatling-results
+          path: '*-results.json'
+          retention-days: 5
 
       - name: Publish data
         if: github.repository == 'keycloak/keycloak'
         run: |
           gh release edit result-data --draft=false
-          gh release upload result-data result.json
+          gh release upload result-data benchmark-results
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
