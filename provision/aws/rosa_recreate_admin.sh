@@ -38,4 +38,4 @@ echo "     $OC_LOGIN_CMD"
 echo
 
 echo "Waiting for 'oc login' to succeed."
-for i in {1..30}; do $OC_LOGIN_CMD && break || date -uIs && sleep 10; done
+for i in {1..60}; do $OC_LOGIN_CMD && break || date -uIs && sleep 10; done

@@ -35,8 +35,8 @@ else
 
   ROSA_CMD="rosa create cluster \
   --sts \
-  --cluster-name "${CLUSTER_NAME}" \
-  --version "${VERSION}" \
+  --cluster-name ${CLUSTER_NAME} \
+  --version ${VERSION} \
   --role-arn arn:aws:iam::${AWS_ACCOUNT}:role/ManagedOpenShift-Installer-Role \
   --support-role-arn arn:aws:iam::${AWS_ACCOUNT}:role/ManagedOpenShift-Support-Role \
   --controlplane-iam-role arn:aws:iam::${AWS_ACCOUNT}:role/ManagedOpenShift-ControlPlane-Role \
@@ -69,3 +69,5 @@ echo "Cluster installation complete."
 echo
 
 ./rosa_recreate_admin.sh
+
+./rosa_efs_create.sh

@@ -8,6 +8,9 @@ fi
 CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; exit 1; fi
 
+# Cleanup might fail eif EFS hasn't been configured for the cluster. Ignore any failures and continue
+./rosa_efs_delete.sh || true
+
 CLUSTER_ID=$(rosa describe cluster --cluster "$CLUSTER_NAME" | grep -oPm1 "^ID:\s*\K\w+")
 echo "CLUSTER_ID: $CLUSTER_ID"
 
