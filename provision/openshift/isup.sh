@@ -24,22 +24,8 @@ for SERVICE in "${!SERVICES[@]}"; do
 
   if [ "${SERVICE}" == "keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}" ]
   then
-    until [ "$(kubectl get keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" == "true" ]
-    do
-      RETRIES=$(($RETRIES - 1))
-      if [ $RETRIES -eq 0 ]
-      then
-          kubectl get keycloak/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak" -o jsonpath='{.status}'
-          echo
-          echo "Failed waiting for keycloak operator status to become ready"
-          exit 1
-      fi
-      # wait a bit
-      if [ "$GITHUB_ACTIONS" == "" ]; then
-        echo -n "."
-      fi
-      sleep 5
-    done
+    kubectl wait --for=condition=Available --timeout=300s deployments.apps/keycloak-operator -n "${KC_NAMESPACE_PREFIX}keycloak"
+    kubectl wait --for=condition=Ready --timeout=300s keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak"
   fi
 
   until kubectl get ingress -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
