@@ -39,3 +39,11 @@ jobs:
         if: ${{ inputs.deleteAll == 'yes' }}
         run: ./rosa_cluster_reaper.sh
         working-directory: provision/aws
+
+      - name: Archive ROSA logs
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: rosa-logs
+          path: provision/aws/logs
+          retention-days: 5
