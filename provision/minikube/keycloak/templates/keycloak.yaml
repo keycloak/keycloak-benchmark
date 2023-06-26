@@ -136,7 +136,6 @@ spec:
               # https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md
               - name: OTEL_RESOURCE_ATTRIBUTES
                 value: service.name=keycloak
-              {{ if ne .Values.environment "openshift" }}
               - name: OTEL_TRACES_EXPORTER
                 # with otel+tempo 1.4.1 forwarding of traces works, but searching is not returning all values for now, for example delete users was missing
                 value: jaeger
@@ -146,7 +145,6 @@ spec:
                 value: parentbased_traceidratio # always_on, parentbased_traceidratio, ...
               - name: OTEL_TRACES_SAMPLER_ARG
                 value: {{ .Values.otelSamplingPercentage | quote }}
-              {{ end }}
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}

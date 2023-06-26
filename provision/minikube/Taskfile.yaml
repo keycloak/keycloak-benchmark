@@ -109,7 +109,6 @@ tasks:
       - helm repo update
       - helm upgrade --install jaeger jaegertracing/jaeger --version 0.58.0 -n monitoring -f jaeger/values.yaml
       - envsubst < jaeger/deployment-patch.yaml > .task/subtask-{{.TASK}}-patchfile.yaml
-      - echo $KB_RETENTION
       - kubectl patch deployment jaeger -n monitoring --patch-file .task/subtask-{{.TASK}}-patchfile.yaml
     sources:
       - jaeger/**/*.*

@@ -91,6 +91,25 @@ tasks:
       - .task/var-KC_STORAGE
       - .task/var-KC_DATABASE
 
+  jaeger:
+    deps:
+      - common:split
+      - common:env
+      - openshift-env
+      - grafana-sa
+    env:
+      KB_RETENTION: '{{.KB_RETENTION}}'
+    cmds:
+      - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+      - helm repo update
+      - helm upgrade --install jaeger jaegertracing/jaeger --version 0.58.0 -n monitoring -f ../minikube/jaeger/values.yaml
+      - envsubst < ../minikube/jaeger/deployment-patch.yaml > .task/subtask-{{.TASK}}-patchfile.yaml
+      - kubectl patch deployment jaeger -n monitoring --patch-file .task/subtask-{{.TASK}}-patchfile.yaml
+    sources:
+      - jaeger/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KB_RETENTION
+
   grafana-sa:
     # this setup was inspired by https://zhimin-wen.medium.com/custom-grafana-dashboard-for-user-workload-in-openshift-6dc2d4cad274
     deps:
@@ -136,6 +155,7 @@ tasks:
       - common:env
       - openshift-env
       - grafana
+      - jaeger
     cmds:
       - helm upgrade --install monitoring monitoring
     sources:
@@ -211,6 +231,6 @@ tasks:
       - ./isup.sh
       # remove all no longer used images from minikube to preserve disk space
     sources:
-      - keycloak/**/*.*
+      - ../minikube/keycloak/**/*.*
       - .task/subtask-{{.TASK}}.yaml
       - .task/var-KC_*
