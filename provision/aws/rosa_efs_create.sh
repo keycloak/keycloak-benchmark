@@ -19,7 +19,9 @@ cd efs
 
 oc create -f aws-efs-csi-driver-operator.yaml
 
-CCO_POD_NAME=$(oc get po -n openshift-cloud-credential-operator -l app=cloud-credential-operator -o jsonpath='{.items[*].metadata.name}')
+# We've seen that the 'oc get...' has returned two entries in the past. Let's make sure that everything settled before we retrieve the one pod which is ready
+kubectl wait --for=condition=Available --timeout=300s -n openshift-cloud-credential-operator deployment/cloud-credential-operator
+CCO_POD_NAME=$(oc get po -n openshift-cloud-credential-operator -l app=cloud-credential-operator -o jsonpath='{range .items[*]}{.status.containerStatuses[*].ready.true}{.metadata.name}{ "\n"}{end}')
 
 oc cp -c cloud-credential-operator openshift-cloud-credential-operator/${CCO_POD_NAME}:/usr/bin/ccoctl ./ccoctl --retries=999
 
