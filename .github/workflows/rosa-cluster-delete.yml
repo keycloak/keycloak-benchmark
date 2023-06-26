@@ -5,12 +5,12 @@ on:
     inputs:
       clusterName:
         description: 'Name of the cluster'
-        type: text
+        type: string
       deleteAll:
         description: 'Delete all clusters'
         required: true
         default: 'no'
-        type: text
+        type: string
 jobs:
 
   delete:
@@ -28,12 +28,18 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
       - name: Delete a ROSA Cluster
         if: ${{ inputs.deleteAll == 'no' }}
         run: ./rosa_delete_cluster.sh
         working-directory: provision/aws
         env:
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+          REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
       - name: Delete all ROSA Clusters
         if: ${{ inputs.deleteAll == 'yes' }}
