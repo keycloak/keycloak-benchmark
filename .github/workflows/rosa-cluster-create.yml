@@ -52,3 +52,11 @@ jobs:
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
           MULTI_AZ: ${{ inputs.multiAz }}
           REPLICAS: ${{ inputs.replicas }}
+
+      - name: Archive ROSA logs
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: rosa-logs
+          path: provision/aws/logs
+          retention-days: 5
