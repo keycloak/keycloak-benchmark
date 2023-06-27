@@ -56,14 +56,18 @@ fi
 
 mkdir -p "logs/${CLUSTER_NAME}"
 
+function custom_date() {
+    echo "$(date '+%Y%m%d-%H%M%S')"
+}
+
 echo "Creating operator roles."
-rosa create operator-roles --cluster "${CLUSTER_NAME}" --mode auto --yes > "logs/${CLUSTER_NAME}/$(date -uIs)_create-operator-roles.log"
+rosa create operator-roles --cluster "${CLUSTER_NAME}" --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_create-operator-roles.log"
 
 echo "Creating OIDC provider."
-rosa create oidc-provider --cluster "${CLUSTER_NAME}" --mode auto --yes > "logs/${CLUSTER_NAME}/$(date -uIs)_create-oidc-provider.log"
+rosa create oidc-provider --cluster "${CLUSTER_NAME}" --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_create-oidc-provider.log"
 
 echo "Waiting for cluster installation to finish."
-rosa logs install --cluster "${CLUSTER_NAME}" --watch --tail=1000000  > "logs/${CLUSTER_NAME}/$(date -uIs)_create-cluster.log"
+rosa logs install --cluster "${CLUSTER_NAME}" --watch --tail=1000000  > "logs/${CLUSTER_NAME}/$(custom_date)_create-cluster.log"
 
 echo "Cluster installation complete."
 echo

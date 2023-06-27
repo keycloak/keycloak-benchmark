@@ -10,6 +10,8 @@ echo -e "\033[0;31mINFO:$(date '+%F-%T-%Z') Entering Chaos mode, with an initial
 sleep $INITIAL_DELAY_SECS
 echo -e "INFO:$(date '+%F-%T-%Z') Running Chaos scenario - Delete random Keycloak pod"
 while true; do
+
+
   RANDOM_KC_POD=$(kubectl \
     -n "${PROJECT}" \
     -o 'jsonpath={.items[*].metadata.name}' \

@@ -11,6 +11,10 @@ if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; e
 # Cleanup might fail eif EFS hasn't been configured for the cluster. Ignore any failures and continue
 ./rosa_efs_delete.sh || true
 
+function custom_date() {
+    echo "$(date '+%Y%m%d-%H%M%S')"
+}
+
 CLUSTER_ID=$(rosa describe cluster --cluster "$CLUSTER_NAME" | grep -oPm1 "^ID:\s*\K\w+")
 echo "CLUSTER_ID: $CLUSTER_ID"
 
@@ -21,9 +25,9 @@ rosa delete cluster --cluster $CLUSTER_ID --yes
 mkdir -p "logs/${CLUSTER_NAME}"
 
 echo "Waiting for cluster uninstallation to finish."
-rosa logs uninstall --cluster $CLUSTER_ID --watch --tail=1000000 > "logs/${CLUSTER_NAME}/$(date -uIs)_delete-cluster.log"
+rosa logs uninstall --cluster $CLUSTER_ID --watch --tail=1000000 > "logs/${CLUSTER_NAME}/$(custom_date)_delete-cluster.log"
 
 echo "Cluster uninstalled."
 
-rosa delete operator-roles --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(date -uIs)_delete-operator-roles.log" || true
-rosa delete oidc-provider --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(date -uIs)_delete-oidc-provider.log"
+rosa delete operator-roles --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_delete-operator-roles.log" || true
+rosa delete oidc-provider --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_delete-oidc-provider.log"
