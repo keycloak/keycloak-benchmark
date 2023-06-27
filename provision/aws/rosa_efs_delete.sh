@@ -1,6 +1,10 @@
 #!/bin/bash
 # don't use 'set -e' here, as we want to cleanup also half-installed EFS setups
 
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
+
 if [ -f ./.env ]; then
   source ./.env
 fi
@@ -9,26 +13,37 @@ export AWS_REGION=${REGION}
 
 EFS=$(oc get sc/efs-sc -o jsonpath='{.parameters.fileSystemId}')
 
-for MOUNT_TARGET in $(aws efs describe-mount-targets \
-  --region=$AWS_REGION \
-  --file-system-id=$EFS \
-  --output json \
-  | jq -r '.MountTargets[].MountTargetId'); do
-  aws efs delete-mount-target --mount-target-id $MOUNT_TARGET --region $AWS_REGION
-done
+if [[ "$EFS" != "" ]]; then
 
-while true; do
-    LIFECYCLE_STATE="$(aws efs describe-mount-targets \
-                       --region=$AWS_REGION \
-                       --file-system-id=$EFS \
-                       --output json \
-                       | jq -r '.MountTargets[].MountTargetId')"
-    if [[ "${LIFECYCLE_STATE}" == "" ]]; then break; fi
-    sleep 1
-    echo -n '.'
-done
+  for MOUNT_TARGET in $(aws efs describe-mount-targets \
+    --region=$AWS_REGION \
+    --file-system-id=$EFS \
+    --output json \
+    | jq -r '.MountTargets[].MountTargetId'); do
+    aws efs delete-mount-target --mount-target-id $MOUNT_TARGET --region $AWS_REGION
+  done
 
-aws efs delete-file-system --file-system-id $EFS --region $AWS_REGION
+  while true; do
+      LIFECYCLE_STATE="$(aws efs describe-mount-targets \
+                         --region=$AWS_REGION \
+                         --file-system-id=$EFS \
+                         --output json \
+                         | jq -r '.MountTargets[].MountTargetId')"
+      if [[ "${LIFECYCLE_STATE}" == "" ]]; then break; fi
+      sleep 1
+      echo -n '.'
+  done
+
+  aws efs delete-file-system --file-system-id $EFS --region $AWS_REGION
+
+  while true; do
+      LIFECYCLE_STATE="$(aws efs describe-file-systems --file-system-id $EFS --region $AWS_REGION --output json | jq -r '.FileSystems[0].LifeCycleState')"
+      if [[ "${LIFECYCLE_STATE}" == "" ]]; then break; fi
+      sleep 1
+      echo -n '.'
+  done
+
+fi
 
 NODE=$(oc get nodes --selector=node-role.kubernetes.io/worker \
   -o jsonpath='{.items[0].metadata.name}')
