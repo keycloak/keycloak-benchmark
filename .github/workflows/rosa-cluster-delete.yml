@@ -45,6 +45,8 @@ jobs:
         if: ${{ inputs.deleteAll == 'yes' }}
         run: ./rosa_cluster_reaper.sh
         working-directory: provision/aws
+        env:
+          REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
       - name: Archive ROSA logs
         uses: actions/upload-artifact@v3
