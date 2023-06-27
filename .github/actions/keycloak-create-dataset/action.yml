@@ -14,6 +14,9 @@ inputs:
   clients:
     description: 'Number of clients to create'
     default: '1'
+  maxwait:
+    description: 'Maximum number of seconds to wait for creation of entities'
+    default: '300'
 
 runs:
   using: "composite"
@@ -27,5 +30,5 @@ runs:
       shell: bash
       run: |
         ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
-        ./dataset-import.sh -a status-completed -t 300 -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
+        ./dataset-import.sh -a status-completed -t ${{ inputs.maxwait }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
       working-directory: dataset

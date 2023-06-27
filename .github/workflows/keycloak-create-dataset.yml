@@ -18,6 +18,10 @@ on:
         description: 'Number of clients to create'
         type: string
         default: '1'
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: string
+        default: '300'
 
 env:
   PROJECT: runner-keycloak
@@ -50,3 +54,4 @@ jobs:
           realms: ${{ inputs.realms }}
           users: ${{ inputs.users }}
           clients: ${{ inputs.clients }}
+          maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
