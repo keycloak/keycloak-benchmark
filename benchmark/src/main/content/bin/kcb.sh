@@ -1,4 +1,9 @@
 #!/bin/bash
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
+
 case "$(uname)" in
     CYGWIN*)
         CFILE=$(cygpath "$0")

@@ -17,6 +17,10 @@ on:
         description: 'Number of entities for the scenario'
         type: string
         default: '10000'
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: string
+        default: '900'
       numberOfEntitiesUsedInTest:
         description: 'Number of entities used in test (default: all entities)'
         type: string
@@ -99,6 +103,7 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
           clients: ${{ inputs.numberOfEntitiesInRealm }}
+          maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
       - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
         if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.AuthorizationCode'

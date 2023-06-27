@@ -17,6 +17,10 @@ on:
         description: 'Number of entities for the scenario'
         type: string
         default: '10000'
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: string
+        default: '900'
       numberOfEntitiesUsedInTest:
         description: 'Number of entities used in test (default: all entities)'
         type: string
@@ -99,6 +103,7 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
           clients: ${{ inputs.numberOfEntitiesInRealm }}
+          maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
       - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
         if: "!inputs.skipCreateDataset && inputs.scenarioName == 'authentication.AuthorizationCode'"
@@ -114,6 +119,7 @@ jobs:
 
       - name: Run "authentication.ClientSecret" scalability scenario
         if: inputs.scenarioName == 'authentication.ClientSecret'
+        id: kcb-client-secret
         run: |
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
             --server-url=${{ env.KEYCLOAK_URL }} \
@@ -126,7 +132,7 @@ jobs:
 
       - name: Run "authentication.AuthorizationCode" scalability scenario
         if: inputs.scenarioName == 'authentication.AuthorizationCode'
-        id: kcb
+        id: kcb-authorization-code
         run: |
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
             --server-url=${{ env.KEYCLOAK_URL }} \
@@ -138,6 +144,7 @@ jobs:
         working-directory: keycloak-benchmark
 
       - name: Archive Gatling reports
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: gatling-results
@@ -146,13 +153,22 @@ jobs:
 
       - name: Archive Summary
         uses: actions/upload-artifact@v3
+        if: inputs.scenarioName == 'authentication.ClientSecret'
         with:
           name: summary
-          path: ${{ steps.kcb.outputs.kcb_result }}
+          path: ${{ steps.kcb-client-secret.outputs.kcb_result }}
+          retention-days: 5
+
+      - name: Archive Summary
+        uses: actions/upload-artifact@v3
+        if: inputs.scenarioName == 'authentication.AuthorizationCode'
+        with:
+          name: summary
+          path: ${{ steps.kcb-authorization-code.outputs.kcb_result }}
           retention-days: 5
 
       - name: Delete Keycloak deployment
-        if: ${{ !inputs.skipDeleteProject }}
+        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
         uses: ./.github/actions/keycloak-delete-deployment
         with:
           project: ${{ env.PROJECT }}
