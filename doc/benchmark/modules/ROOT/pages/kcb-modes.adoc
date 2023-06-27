@@ -6,4 +6,6 @@ In the `--incremental` mode, the code sets up a benchmark to go through a warm-u
 
 In the `--single-run` mode, which is the default mode when the `--incremental` flag is not set on the CLI command, the script directly runs the benchmark with the provided workload and exits without any further processing.
 
+In the `--chaos` mode, the code sets up a single-run mode benchmark in parallel with a failure simulating `kc-chaos.sh` script to kill a random pod after a certain time interval. It can take an input `CHAOS_TIMEOUT` to stop the simulated failures after a given timeout.
+
 Overall the `kcb.sh` script executes the benchmark in either incremental or single-run mode, handles errors and provides informative output messages during the process.

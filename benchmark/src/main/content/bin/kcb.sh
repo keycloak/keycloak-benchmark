@@ -34,6 +34,8 @@ JAVA_OPTS="${JAVA_OPTS} -Xmx1G -XX:+HeapDumpOnOutOfMemoryError"
 DEBUG_MODE="${DEBUG:-false}"
 DEBUG_PORT="${DEBUG_PORT:-8787}"
 
+CHAOS_MODE="${CHAOS_MODE:-false}"
+
 CONFIG_ARGS=()
 SERVER_OPTS=()
 
@@ -78,6 +80,10 @@ do
       --increment=*)
           MODE=incremental
           INCREMENT=${1#*=}
+          ;;
+      --chaos=*)
+          CHAOS_MODE=true
+          CHAOS_TIMEOUT=${1#*=}
           ;;
       --)
           shift
@@ -162,6 +168,14 @@ EOF
   return ${EXIT_RESULT}
 }
 
+if [ "$CHAOS_MODE" = "true" ]; then
+    echo "INFO: Running benchmark with chaos mode, logs output will be available in: $LOGS_DIR"
+    LOGS_DIR="$DIRNAME/../results/logs/"
+
+    mkdir -p "$LOGS_DIR"
+    timeout "${CHAOS_TIMEOUT}" bash bin/kc-chaos.sh "${LOGS_DIR}" 2>&1 | tee "${LOGS_DIR}/kc-chaos.log" &
+fi
+
 if [ "$MODE" = "incremental" ]; then
   echo "INFO: Running benchmark in incremental mode."
   MAX_ATTEMPTS=100
@@ -190,7 +204,7 @@ if [ "$MODE" = "incremental" ]; then
       exit 1
     fi
 
-    ((ATTEMPT++))
+    ATTEMPT=$[ATTEMPT + 1]
 
     run_benchmark_with_workload "$WORKLOAD_UNIT" "$CURRENT_WORKLOAD" "$MEASUREMENT" "$RESULT_ROOT_DIR/$WORKLOAD_UNIT-$CURRENT_WORKLOAD"
 
@@ -236,4 +250,16 @@ else
     echo "kcb_result=$OUTPUT_FOLDER/result-*.json" >> "${GITHUB_OUTPUT}"
   fi
   exit
+fi
+
+if [ "$CHAOS_MODE" = "true" ]; then
+    : ${PROJECT:="runner-keycloak"}
+    echo "INFO: Collecting logs at the end of the Chaos benchmark run"
+    PODS=$(kubectl -n "${PROJECT}" -o 'jsonpath={.items[*].metadata.name}' get pods -l app=keycloak | tr " " "\n")
+    for POD in $PODS; do
+      kubectl logs -n "${PROJECT}" "${POD}" > "$LOGS_DIR/End-of-run-${POD}.log" 2>&1
+      kubectl describe -n "${PROJECT}" pod "${POD}" > "$LOGS_DIR/End-of-run-${POD}-complete-resource.log" 2>&1
+    done
+    kubectl top -n "${PROJECT}" pod -l app=keycloak --sum=true > "$LOGS_DIR/End-of-run-top.log" 2>&1
+    kubectl get pods -n "${PROJECT}" -l app=keycloak -o wide
 fi

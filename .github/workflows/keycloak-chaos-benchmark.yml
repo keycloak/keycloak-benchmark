@@ -28,16 +28,20 @@ on:
         description: 'Initial users per second'
         type: string
         default: '1'
+      benchmarkRunDuration:
+        description: 'Benchmark run duration'
+        type: string
+        default: '180'
+      chaosTimeout:
+        description: 'Benchmark run duration'
+        type: string
+        default: '120'
       skipCreateDeployment:
         description: 'Skip creating Keycloak deployment'
         type: boolean
         default: false
       skipCreateDataset:
         description: 'Skip creating dataset'
-        type: boolean
-        default: false
-      skipDeleteProject:
-        description: 'Skip deleting project'
         type: boolean
         default: false
 
@@ -98,7 +102,7 @@ jobs:
           disableStickySessions: true
 
       - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients
-        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.ClientSecret'
+        if: "!inputs.skipCreateDataset && inputs.scenarioName == 'authentication.ClientSecret'"
         uses: ./.github/actions/keycloak-create-dataset
         with:
           project: ${{ env.PROJECT }}
@@ -106,11 +110,12 @@ jobs:
           maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
       - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
-        if: ${{ !inputs.skipCreateDataset }} && inputs.scenarioName == 'authentication.AuthorizationCode'
+        if: "!inputs.skipCreateDataset && inputs.scenarioName == 'authentication.AuthorizationCode'"
         uses: ./.github/actions/keycloak-create-dataset
         with:
           project: ${{ env.PROJECT }}
           users: ${{ inputs.numberOfEntitiesInRealm }}
+          maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
       - name: Get URLs
         uses: ./.github/actions/get-keycloak-url
@@ -123,11 +128,10 @@ jobs:
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
             --server-url=${{ env.KEYCLOAK_URL }} \
             --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
-            --measurement=180 \
+            --measurement=${{ inputs.benchmarkRunDuration }} \
             --realm-name=realm-0 \
-            --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }} &
-          timeout 150 bin/kc-chaos.sh &
-          wait
+            --chaos=${{ inputs.chaosTimeout }} \
+            --clients-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
         working-directory: keycloak-benchmark
 
       - name: Run "authentication.AuthorizationCode" failure scenario
@@ -136,22 +140,15 @@ jobs:
           bin/kcb.sh --scenario=keycloak.scenario."${{ inputs.scenarioName }}" \
             --server-url=${{ env.KEYCLOAK_URL }} \
             --users-per-sec=${{ inputs.initialUsersPerSecond }}  \
-            --measurement=180 \
+            --measurement=${{ inputs.benchmarkRunDuration }} \
             --realm-name=realm-0 \
-            --users-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }} &
-          timeout 150 bin/kc-chaos.sh &
-          wait
+            --chaos=${{ inputs.chaosTimeout }} \
+            --users-per-realm=${{ inputs.numberOfEntitiesUsedInTest || inputs.numberOfEntitiesInRealm }}
         working-directory: keycloak-benchmark
 
-      - name: Archive Gatling reports
+      - name: Archive failure benchmark reports and logs
         uses: actions/upload-artifact@v3
         with:
           name: gatling-results
           path: keycloak-benchmark/results
-          retention-days: 5
-
-      - name: Delete Keycloak deployment
-        if: ${{ !inputs.skipDeleteProject }}
-        uses: ./.github/actions/keycloak-delete-deployment
-        with:
-          project: ${{ env.PROJECT }}
+          retention-days: 14
