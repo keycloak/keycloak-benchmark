@@ -4,7 +4,11 @@
 # * https://mobb.ninja/docs/rosa/aws-efs/
 # * https://docs.openshift.com/rosa/storage/container_storage_interface/osd-persistent-storage-aws-efs-csi.html
 
-set -xeo pipefail
+set -eo pipefail
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 if [ -f ./.env ]; then
   source ./.env
