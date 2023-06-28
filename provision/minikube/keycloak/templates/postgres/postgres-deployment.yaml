@@ -51,6 +51,11 @@ spec:
             - -c
             - max_prepared_transactions=100
 {{ end }}
+          resources:
+            requests:
+              cpu: "{{ .Values.cpuRequests }}"
+            limits:
+              cpu: "{{ .Values.cpuLimits }}"
           startupProbe:
             tcpSocket:
               port: 5432

@@ -27,7 +27,8 @@ on:
       initialUsersPerSecond:
         description: 'Initial users per second'
         type: string
-        default: '1'
+        # the number of the first iteration should be large enough to warm up all the nodes
+        default: '20'
       skipCreateDeployment:
         description: 'Skip creating Keycloak deployment'
         type: boolean
@@ -90,12 +91,18 @@ jobs:
           tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
           mv keycloak-benchmark-* keycloak-benchmark
 
+      - name: Allow cluster to scale
+        if: ${{ !inputs.skipCreateDeployment }}
+        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 3 --max-replicas 10 scaling
+
       - name: Create Keycloak deployment
         if: ${{ !inputs.skipCreateDeployment }}
         uses: ./.github/actions/keycloak-create-deployment
         with:
           projectPrefix: ${{ env.PROJECT_PREFIX }}
           disableStickySessions: true
+          podCpuRequests: 4
+          podCpuLimit: 4
 
       - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" clients
         if: "!inputs.skipCreateDataset && inputs.scenarioName == 'authentication.ClientSecret'"
@@ -173,6 +180,10 @@ jobs:
         uses: ./.github/actions/keycloak-delete-deployment
         with:
           project: ${{ env.PROJECT }}
+
+      - name: Scale down the cluster
+        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
+        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 --max-replicas 0 scaling
 
   archive:
     name: Commit results to Git repository

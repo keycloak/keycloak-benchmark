@@ -190,7 +190,7 @@ tasks:
       # TODO: cryostat is disabled as it requires persistent volumes on OpenShift in the current setup
       # TODO: sqlpad is disabled as it runs as root in the container, see https://github.com/sqlpad/sqlpad/issues/1171
       - >
-        helm upgrade --install keycloak
+        helm upgrade --install keycloak --namespace {{.KC_NAMESPACE_PREFIX}}keycloak
         --set hostname={{.KC_HOSTNAME_SUFFIX}}
         --set otel={{.KC_OTEL}}
         --set otelSamplingPercentage={{.KC_OTEL_SAMPLING_PERCENTAGE}}
