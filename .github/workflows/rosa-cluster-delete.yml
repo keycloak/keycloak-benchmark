@@ -11,6 +11,9 @@ on:
         required: true
         default: 'no'
         type: string
+
+concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
 jobs:
 
   delete:
@@ -39,14 +42,11 @@ jobs:
         working-directory: provision/aws
         env:
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
-          REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
       - name: Delete all ROSA Clusters
         if: ${{ inputs.deleteAll == 'yes' }}
         run: ./rosa_cluster_reaper.sh
         working-directory: provision/aws
-        env:
-          REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
       - name: Archive ROSA logs
         uses: actions/upload-artifact@v3

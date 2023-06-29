@@ -9,7 +9,7 @@ if [ -f ./.env ]; then
   source ./.env
 fi
 
-export AWS_REGION=${REGION}
+AWS_REGION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json | jq -r '.region.id')
 
 EFS=$(oc get sc/efs-sc -o jsonpath='{.parameters.fileSystemId}')
 
@@ -23,22 +23,32 @@ if [[ "$EFS" != "" ]]; then
     aws efs delete-mount-target --mount-target-id $MOUNT_TARGET --region $AWS_REGION
   done
 
-  while true; do
+  TIMEOUT=$(($(date +%s) + 600))
+  while true ; do
       LIFECYCLE_STATE="$(aws efs describe-mount-targets \
                          --region=$AWS_REGION \
                          --file-system-id=$EFS \
                          --output json \
                          | jq -r '.MountTargets[].MountTargetId')"
       if [[ "${LIFECYCLE_STATE}" == "" ]]; then break; fi
+      if (( TIMEOUT < $(date +%s))); then
+        echo "Timeout exceeded"
+        exit 1
+      fi
       sleep 1
       echo -n '.'
   done
 
   aws efs delete-file-system --file-system-id $EFS --region $AWS_REGION
 
-  while true; do
+  TIMEOUT=$(($(date +%s) + 600))
+  while true ; do
       LIFECYCLE_STATE="$(aws efs describe-file-systems --file-system-id $EFS --region $AWS_REGION --output json | jq -r '.FileSystems[0].LifeCycleState')"
       if [[ "${LIFECYCLE_STATE}" == "" ]]; then break; fi
+      if (( TIMEOUT < $(date +%s))); then
+        echo "Timeout exceeded"
+        exit 1
+      fi
       sleep 1
       echo -n '.'
   done

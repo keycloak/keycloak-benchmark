@@ -103,9 +103,14 @@ parameters:
   basePath: "/dynamic_provisioning"
 EOF
 
+TIMEOUT=$(($(date +%s) + 600))
 while true; do
     LIFECYCLE_STATE="$(aws efs describe-file-systems --file-system-id $EFS --region $AWS_REGION --output json | jq -r '.FileSystems[0].LifeCycleState')"
     if [[ "${LIFECYCLE_STATE}" == "available" ]]; then break; fi
+    if (( TIMEOUT < $(date +%s))); then
+      echo "Timeout exceeded"
+      exit 1
+    fi
     sleep 1
     echo -n '.'
 done

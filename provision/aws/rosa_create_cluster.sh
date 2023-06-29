@@ -19,9 +19,9 @@ if [ -z "$REPLICAS" ]; then echo "Variable REPLICAS needs to be set."; exit 1; f
 
 echo "Checking if cluster ${CLUSTER_NAME} already exists."
 if rosa describe cluster --cluster="${CLUSTER_NAME}"; then
-  echo "Cluster ${CLUSTER_NAME} already exists. Exitting."
+  echo "Cluster ${CLUSTER_NAME} already exists."
 else
-  echo "Verifying ROSA prerequisities."
+  echo "Verifying ROSA prerequisites."
   echo "Check if AWS CLI is installed."; aws --version
   echo "Check if ROSA CLI is installed."; rosa version
   echo "Check if ELB service role is enabled."
@@ -57,7 +57,7 @@ fi
 mkdir -p "logs/${CLUSTER_NAME}"
 
 function custom_date() {
-    echo "$(date '+%Y%m%d-%H%M%S')"
+    date '+%Y%m%d-%H%M%S'
 }
 
 echo "Creating operator roles."
@@ -67,7 +67,20 @@ echo "Creating OIDC provider."
 rosa create oidc-provider --cluster "${CLUSTER_NAME}" --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_create-oidc-provider.log"
 
 echo "Waiting for cluster installation to finish."
-rosa logs install --cluster "${CLUSTER_NAME}" --watch --tail=1000000  > "logs/${CLUSTER_NAME}/$(custom_date)_create-cluster.log"
+# There have been failures with 'ERR: Failed to watch logs for cluster ... connection reset by peer' probably because services in the cluster were restarting during the cluster initialization.
+# Those errors don't show an installation problem, and installation will continue asynchronously. Therefore, retry.
+TIMEOUT=$(($(date +%s) + 3600))
+while true ; do
+  if (rosa logs install --cluster "${CLUSTER_NAME}" --watch --tail=1000000 >> "logs/${CLUSTER_NAME}/$(custom_date)_create-cluster.log"); then
+    break
+  fi
+  if (( TIMEOUT < $(date +%s))); then
+    echo "Timeout exceeded"
+    exit 1
+  fi
+  echo "retrying watching logs after failure"
+  sleep 1
+done
 
 echo "Cluster installation complete."
 echo

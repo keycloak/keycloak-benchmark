@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
+
 if [ -f ./.env ]; then
   source ./.env
 fi
@@ -18,19 +22,23 @@ if [ -z "$ADMIN_PASSWORD" ]; then
   ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
 fi
 
-CLUSTER_DESCRIPTION=$(rosa describe cluster --cluster "$CLUSTER_NAME")
+CLUSTER_DESCRIPTION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json)
 
-CLUSTER_ID=$(echo "$CLUSTER_DESCRIPTION" | grep -oPm1 "^ID:\s*\K\w+")
-REGION=$(echo "$CLUSTER_DESCRIPTION" | grep -oPm1 "^Region:\s*\K[^\s]+")
+echo $CLUSTER_DESCRIPTION
+
+CLUSTER_ID=$(echo "$CLUSTER_DESCRIPTION" | jq -r '.id')
+REGION=$(echo "$CLUSTER_DESCRIPTION" | jq -r '.region.id')
+API_URL=$(echo "$CLUSTER_DESCRIPTION" | jq -r '.api.url')
 
 echo "CLUSTER_NAME: $CLUSTER_NAME"
 echo "CLUSTER_ID: $CLUSTER_ID"
 echo "REGION: $REGION"
+echo "API_URL: $API_URL"
 
 echo "Recreating the admin user."
 rosa delete admin --cluster "${CLUSTER_NAME}" --yes || true
-OC_LOGIN_CMD=$(rosa create admin --cluster "${CLUSTER_NAME}" --password "$ADMIN_PASSWORD" | grep -o -m 1 "oc login.*")
-OC_LOGIN_CMD="$OC_LOGIN_CMD --insecure-skip-tls-verify"
+rosa create admin --cluster "${CLUSTER_NAME}" --password "${ADMIN_PASSWORD}"
+OC_LOGIN_CMD="oc login ${API_URL} --username cluster-admin --password ${ADMIN_PASSWORD} --insecure-skip-tls-verify"
 
 echo "New admin user created."
 echo
@@ -38,4 +46,16 @@ echo "     $OC_LOGIN_CMD"
 echo
 
 echo "Waiting for 'oc login' to succeed."
-for i in {1..60}; do $OC_LOGIN_CMD && break || date -uIs && sleep 10; done
+
+TIMEOUT=$(($(date +%s) + 3600))
+while true ; do
+  if (${OC_LOGIN_CMD}); then
+    break
+  fi
+  if (( TIMEOUT < $(date +%s))); then
+    echo "Timeout exceeded"
+    exit 1
+  fi
+  date -uIs
+  sleep 10
+done
