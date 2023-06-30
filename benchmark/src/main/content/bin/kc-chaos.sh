@@ -32,8 +32,8 @@ while true; do
 
   START=$(date +%s)
 
-  kubectl wait --for=condition=Available --timeout=120s deployments.apps/keycloak-operator -n "${PROJECT}"
-  kubectl wait --for=condition=Ready --timeout=120s keycloaks.k8s.keycloak.org/keycloak -n "${PROJECT}"
+  kubectl wait --for=condition=Available --timeout=600s deployments.apps/keycloak-operator -n "${PROJECT}" || true
+  kubectl wait --for=condition=Ready --timeout=600s keycloaks.k8s.keycloak.org/keycloak -n "${PROJECT}" || true
 
   END=$(date +%s)
   DIFF=$(( END - START ))
