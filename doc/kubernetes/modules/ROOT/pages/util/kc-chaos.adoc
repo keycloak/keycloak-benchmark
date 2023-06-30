@@ -25,7 +25,7 @@ Once there is enough load going against the Keycloak application hosted on an ex
 
 [source,bash]
 ----
-./kc-chaos.sh
+./kc-chaos.sh <RESULT_DIR_PATH>
 ----
 
 Set the environment variables below to configure on how and where this script gets executed.
@@ -35,3 +35,8 @@ Set the environment variables below to configure on how and where this script ge
 `CHAOS_DELAY_SECS`:: Time in seconds the script waits between simulating failures.
 
 `PROJECT`:: Namespace of the Keycloak pods.
+
+
+=== Collecting the results
+
+The chaos script also collects information about the Keycloak failures, Keycloak pod utilization, Keycloak pod restarts, Keycloak logs before killing the keycloak pod and at the end of the run and store them under the `results/logs` directory.
