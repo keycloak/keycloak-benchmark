@@ -14,8 +14,15 @@
 - name: Install jq
   package: name=jq state=present
 
-- name: Install keycloak-benchmark {{ kcb_version }} on the remote hosts
-  unarchive:
+- name: Copy keycloak-benchmark {{ kcb_version }} on the remote hosts
+  copy:
     src: "{{ kcb_zip }}"
+    dest: "/tmp/kcb.zip"
+    owner: ec2-user
+
+- name: Install keycloak-benchmark on the remote hosts
+  unarchive:
+    remote_src: true
+    src: "/tmp/kcb.zip"
     dest: "{{ workspace }}"
     owner: ec2-user
