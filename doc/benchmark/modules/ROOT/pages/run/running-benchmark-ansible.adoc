@@ -1,0 +1,188 @@
+= Running benchmarks via Ansible and EC2
+:navtitle: Running via Ansible and EC2
+:description: This extends the generic CLI of the kcb.sh script with an automated setup using Ansible for Amazon Web Services EC2 instances to run the load tests.
+
+{description}
+
+include::partial$run/when-to-run-ansible-and-ec2.adoc[]
+
+== Prerequisites
+
+. Keycloak URL from xref:preparing-keycloak.adoc[]
+. xref:kubernetes-guide::prerequisite/prerequisite-awscli.adoc[]
+. Install Ansible CLI (on Fedora, use `dnf install ansible`)
+
+== EC2 instances for load generation
+
+=== Folder layout
+
+In the folder `link:{github-files}/ansible[ansible]`, there are the following files and folders:
+
+`roles/aws_ec2`:: Ansible role.
+`roles/aws_ec2/defaults/main.yml`:: Ansible role's defaults, can be overwritten in `env.yml` which is picked up by the wrapper script.
+`aws_ec2.sh`:: Wrapper script.
+
+=== Configuration
+
+Create a configuration file `env.yml` to configure your environment.
+Use the file `link:{github-files}/ansible/env_example.yml[env_example.yaml]` as an example.
+
+.Example contents to configure EC2 environment via `env.yml`
+[source,yaml]
+----
+cluster_size: 5
+instance_type: t3.small
+instance_volume_size: 30
+----
+
+The most important parameters to customize in `env.yml` are:
+
+`cluster_size`:: Number of instances to be created.
+As default, Gatling will create new HTTP connections for each new user.
+As the network stack of the load driver can be congested with a lot of connections in the `TIME_WAIT` state, consider using one EC2 instance per 300 users per seconds.
+
+`instance_type`:: Size of instances to be created, see https://aws.amazon.com/ec2/instance-types/[AWS instance types].
+
+=== Creating EC2 instances
+
+. Install the required Ansible AWS collections.
++
+----
+./aws_ec2.sh requirements
+----
+
+. Create EC2 instances and related infrastructure.
+It takes about 5 minutes for this to complete.
++
+----
+./aws_ec2.sh create <REGION>
+----
++
+This will create an Ansible host inventory file and a matching SSH private key to access the hosts:
++
+--
+- `+benchmark_<USERNAME>_<REGION>_inventory.yml+`
+- `+benchmark_<USERNAME>_<REGION>.pem+`
+--
+
+=== Stop / Start EC2 instances
+
+After the creation, the EC2 instances are running.
+To safe costs, consider stopping them and starting them later when needed.
+This is a little bit less time-consuming than creating the instances again.
+
+----
+./aws_ec2.sh stop <REGION>
+./aws_ec2.sh start <REGION>
+----
+
+The `start` action will recreate the host inventory file with the restarted hosts`' new IP addresses.
+
+=== Debugging EC2 instances
+
+To analyze a problem on an EC2 instance, use `ssh` to open a shell on the instance using the key created in the installation step.
+See the inventory file for the IP addresses of the EC2 instances.
+
+[source,bash,subs=+quotes]
+----
+ssh ec2-user@**<ip>** -i benchmark_**<user>**_**<region>**.pem
+----
+
+=== Delete EC2 instances and related resources
+
+When no longer needed, delete all EC2 load generator nodes in a region:
+
+----
+./aws_ec2.sh delete <REGION>
+----
+
+This will delete the instances and related resources, and the local inventory file and private key.
+
+== Benchmark
+
+=== Folder layout
+
+`roles/benchmark`:: Ansible role.
+`roles/benchmark/defaults/main.yml`:: Ansible role's defaults.
+Can be overwritten in `env.yml` which is picked up by the wrapper script.
+`benchmark.sh`:: Wrapper script.
+
+=== Configuration
+
+Update the configuration file `env.yml` to configure your environment.
+Use the file `link:{github-files}/ansible/env_example.yml[env_example.yaml]` as an example.
+
+.Example contents to configure the benchmark execution via `env.yml`
+[source,yaml]
+----
+kcb_zip: ../benchmark/target/keycloak-benchmark-0.10-SNAPSHOT.zip
+kcb_heap_size: 1G
+----
+
+=== Install and run the benchmark
+
+Provide the region as the first parameter, and then the parameters as they would apply to the `kcb.sh` script.
+See xref:run/running-benchmark-cli.adoc[] for details.
+
+The playbooks parse some parameters to generate the output structure and to distribute the load, therefore the parameter `scenario` is required.
+If the parameter `concurrent-users` is provided, it needs to be a multiple of EC2 nodes the load is distributed.
+
+Use the parameter `concurrent-users` or `users-per-sec` to specify the total load run against the Keycloak instances.
+The playbook reads the `concurrent-users` or `users-per-sec` provided on the command line, and divide those numbers by number of EC2 instances before passing the value to each `kcb.sh` script running on the EC2 instances.
+
+[source,bash]
+----
+./benchmark.sh <REGION> <P1> <P2> ... <Pn>
+----
+
+A possible command would look like the following:
+
+[source,bash]
+----
+./benchmark.sh eu-west-1 --scenario=keycloak.scenario.authentication.ClientSecret \
+    --server-url=https://keycloak-runner-keycloak.apps.....openshiftapps.com \
+    --users-per-sec=1000 \
+    --measurement=600 \
+    --realm-name=realm-0 \
+    --clients-per-realm=10000
+----
+
+This will install Keycloak Benchmark on hosts listed in the `benchmark_<USERNAME>_<REGION>_inventory.yml`
+and run the benchmark passing the parameters P1, P2, … Pn, to the `kcb.sh` script.
+
+Other parameters can be customized via `env.yml` file.
+
+Version of benchmark to install can be specified via `kcb_version` parameter.
+
+It is also possible to directly provide `kcb_zip` parameter if the file is already available locally, or the `kcb_zip_url` from which the benchmark will be downloaded.
+The `kcb_version` will then be extracted from the filename.
+
+Parameter `skip_install` can be used to skip the installation step.
+In that case variable `kcb_version` must be provided based on what has been previously installed.
+
+=== Benchmark results
+
+The aggregate report from the distributed simulation will be stored locally in the folder files relative to the execution directory.
+
+----
+📒 files/
+└─📂  benchmark/
+   └─📂 keycloak-benchmark-{{ kcb_version }}/
+     └─📂 results/
+       └─📂 {{ scenario }}-{{ timestamp }}/
+         ├─📂 simulation/ <1>
+         │ ├─📄 {{ host_1 }}.log
+         │ ├─📄 {{ host_2 }}.log
+         │ └─📄 ...
+         ├─📂 gatling/ <2>
+         │ ├─📄 {{ host_1 }}.log
+         │ ├─📄 {{ host_2 }}.log
+         │ ├─📄 ...
+         │ ├─📄 {{ host_1 }}.rc
+         │ ├─📄 {{ host_2 }}.rc
+         │ └─📄 ...
+         └─📄 index.html
+----
+
+<1> The `simulation/` directory contains simulation data from the individual nodes.
+<2> The `gatling/` directory contains gatling logs and return codes from the individual nodes.

@@ -1,0 +1,57 @@
+= Installing AWS CLI
+:description: Installing the Amazon Web Services (AWS) command line interface (CLI) to interact with Amazon's cloud services.
+
+{description}
+
+== Installing AWS CLI
+
+. Run the commands to install the AWS command line tool:
++
+[source,bash]
+----
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+----
+. Enable https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-completion.html[shell auto-completion] for bash by adding the following to your `~/.bashrc`:
++
+----
+complete -C '/usr/local/bin/aws_completer' aws
+----
+. Create Access keys in https://us-east-1.console.aws.amazon.com/iamv2/home?region=us-east-1#/users[AWS Identity and Access Management ]
+.. Click on your user account
+.. Click on *Security credentials*
+.. Click on *Create access key* under *Access keys*
+.. Select *Command Line Interface (CLI)*
+.. Check the box for *I understand the above recommendation and want to proceed to create an access key*
+.. Click *Next*
+.. Enter `AWS CLI` as the description tag value and click on *Create access key*
+.. Leave the tab open for the next step
+. Run
++
+----
+aws configure
+----
+
+.. AWS Access Key ID: *<copy/paste from above>*
+.. AWS Secret Access Key: *<copy/paste from above>*
+.. Default region name: *us-east-1*
+.. Default output format: <Leave blank>
+
+== Testing the AWS CLI setup
+
+Running the following command:
+
+[source,bash]
+----
+aws sts get-caller-identity
+----
+
+Should provide an output like:
+
+[source,bash]
+----
+Account: ...
+Arn: arn:aws:iam::...
+UserId: ...
+----
