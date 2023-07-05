@@ -68,12 +68,22 @@ NOTE: This is a shared resource for all users using the OpenShift cluster.
 While the next section describes how to install multiple Keycloaks in different namespaces, this doesn't apply to the Grafana instance.
 
 == OpenShift Logging
-Openshift logging is enabled by default. All application and infrastructure pod logs are stored in a non-replicated
-ElasticSearch instance in the `openshift-logging` namespace. Logs can be queried in the Kibana UI, which can be accessed
-via the "Application Launcher" -> "Logging" link in the Openshift UI.
 
-On initial login to Kibana it's first necessary for an "app*" index to be created in order to be able to query logs. See the
-https://docs.openshift.com/container-platform/4.13/logging/cluster-logging-visualizer.html[Openshift docs] for more details.
+OpenShift logging is enabled by default.
+All application and infrastructure pod logs are stored in a non-replicated ElasticSearch instance in the `openshift-logging` namespace.
+
+Logs can be queried in the Kibana UI, which can be accessed via the *Application Launcher*
+image:installation-openshift/application-launcher.png[]
+ -> *Logging* in the Openshift UI:
+
+image::installation-openshift/application-launcher-logs.png[]
+
+In addition, when looking at the logs of a pod, use the *Show in Kibana* link to search the logs for this specific pod:
+
+image::installation-openshift/show-in-kibana.png[]
+
+On initial login to Kibana create an index pattern `*` with the timestamp field `@timestamp` to be able to query logs.
+See the https://docs.openshift.com/container-platform/4.13/logging/cluster-logging-visualizer.html[OpenShift docs] for more details.
 
 [[sharing-cluster-with-multiple-users]]
 == Sharing one OpenShift cluster with other users

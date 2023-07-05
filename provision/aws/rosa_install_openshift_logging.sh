@@ -101,3 +101,6 @@ spec:
       replicas: 1
     type: kibana
 EOF
+
+# install the console plugin
+oc patch console.operator cluster -n openshift-storage --type json -p '[{"op": "add", "path": "/spec/plugins", "value": ["logging-view-plugin"]}]'
