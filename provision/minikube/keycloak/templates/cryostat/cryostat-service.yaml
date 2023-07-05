@@ -1,4 +1,4 @@
-{{ if .Values.cryostat }}
+{{ if and (.Values.cryostat) (not (eq .Values.environment "openshift")) }}
 apiVersion: v1
 kind: Service
 metadata:

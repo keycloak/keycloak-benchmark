@@ -1,4 +1,4 @@
-{{ if .Values.cryostat }}
+{{ if and (.Values.cryostat) (not (eq .Values.environment "openshift")) }}
 apiVersion: v1
 data:
   GF_SECURITY_ADMIN_PASSWORD: Y3J5b3N0YXQ= # cryostat

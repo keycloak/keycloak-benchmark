@@ -187,7 +187,6 @@ tasks:
           envsubst < ../minikube/keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
           kubectl patch deployment keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
         fi'
-      # TODO: cryostat is disabled as it requires persistent volumes on OpenShift in the current setup
       # TODO: sqlpad is disabled as it runs as root in the container, see https://github.com/sqlpad/sqlpad/issues/1171
       - >
         helm upgrade --install keycloak --namespace {{.KC_NAMESPACE_PREFIX}}keycloak
@@ -210,7 +209,7 @@ tasks:
         --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
         --set customInfinispanConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
-        --set cryostat=false
+        --set cryostat={{ .KC_CRYOSTAT }}
         --set sqlpad=false
         --set environment=openshift
         --set namespace={{.KC_NAMESPACE_PREFIX}}keycloak

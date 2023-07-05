@@ -1,0 +1,12 @@
+{{ if and (.Values.cryostat) (eq .Values.environment "openshift") }}
+apiVersion: operator.cryostat.io/v1beta1
+kind: Cryostat
+metadata:
+  name: cryostat
+  namespace: {{ .Values.namespace }}
+spec:
+  enableCertManager: true
+  minimal: false
+  reportOptions:
+    resources: {}
+{{end}}

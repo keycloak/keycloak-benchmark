@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# set -x
-
 set -e
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 # Default values for variables from Taskfile.yml are not part of .env file, therefore we need to load them manually
 KC_NAMESPACE_PREFIX=$(cat .task/var-KC_NAMESPACE_PREFIX)
@@ -18,6 +20,7 @@ MAXRETRIES=1200
 
 declare -A SERVICES=( \
  ["keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="realms/master/.well-known/openid-configuration" \
+ ["cryostat-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="/" \
 )
 
 for SERVICE in "${!SERVICES[@]}"; do
@@ -30,7 +33,7 @@ for SERVICE in "${!SERVICES[@]}"; do
     kubectl wait --for=condition=Ready --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak"
   fi
 
-  until kubectl get ingress -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
+  until kubectl get route -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
     RETRIES=$(($RETRIES - 1))
     if [ $RETRIES -eq 0 ]

@@ -15,9 +15,20 @@ include::partial$note-not-async-profiling.adoc[]
 
 Cryostat is deployed by default.
 
+The URL is shown when running the `isup.sh` shell script.
+
+=== Minikube
+
 Assuming the command `minikube ip` returned `192.168.39.39`, the console is available on \http://cryostat.192.168.39.39.nip.io.
 
-The URL is also shown when running the `isup.sh` shell script.
+=== OpenShift
+
+Navigate to the routes of the project where Keycloak is installed.
+Open the URL listed for `cryostat`.
+
+----
+https://cryostat-aschwart-keycloak.apps.....openshiftapps.com
+----
 
 == Creating a Java Flight Recorder recording
 
@@ -36,6 +47,11 @@ Once the recording is complete, download it directly or archive it to the persis
 
 [.shadow]
 image::util/cryostat-download.png[]
+
+== Accessing Grafana
+
+When running minikube, there are no extra credentials necessary to access Grafana.
+When running on OpenShift, the https://cryostat.io/guides/#view-a-recording-in-grafana[Cryostat docs contain the details on how to retrieve the password].
 
 [#analyzing-a-java-flight-recorder-recording]
 == Analyzing a Java Flight Recorder recording
