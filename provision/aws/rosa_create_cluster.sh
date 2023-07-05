@@ -91,3 +91,7 @@ rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-re
 
 ./rosa_efs_create.sh
 ../infinispan/install_operator.sh
+
+# cryostat operator depends on certmanager operator
+./rosa_install_certmanager_operator.sh
+./rosa_install_cryotstat_operator.sh

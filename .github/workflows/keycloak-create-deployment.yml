@@ -57,6 +57,13 @@ jobs:
         with:
           clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
       - name: Create Keycloak deployment
         uses: ./.github/actions/keycloak-create-deployment
         with:

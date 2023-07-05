@@ -1,4 +1,4 @@
-{{ if .Values.cryostat }}
+{{ if and (.Values.cryostat) (not (eq .Values.environment "openshift")) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -7,6 +7,8 @@ metadata:
     app: cryostat
   name: cryostat-ingress
   namespace: {{ .Values.namespace }}
+  annotations:
+    route.openshift.io/termination: edge
 spec:
   defaultBackend:
     service:
