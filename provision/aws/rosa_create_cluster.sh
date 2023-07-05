@@ -95,3 +95,5 @@ rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-re
 # cryostat operator depends on certmanager operator
 ./rosa_install_certmanager_operator.sh
 ./rosa_install_cryotstat_operator.sh
+
+./rosa_install_openshift_logging.sh
