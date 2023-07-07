@@ -149,7 +149,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_cache_manager_keycloak_cache_realms_statistics_hits{namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) / (rate(vendor_cache_manager_keycloak_cache_realms_statistics_hits{namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) + rate(vendor_cache_manager_keycloak_cache_realms_statistics_misses{namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]))",
+          "expr": "rate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) / (rate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) + rate(vendor_statistics_misses{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]))",
           "hide": false,
           "legendFormat": "Realms cache hit ratio",
           "range": true,
@@ -161,7 +161,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_cache_manager_keycloak_cache_users_statistics_hits{namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) / (rate(vendor_cache_manager_keycloak_cache_users_statistics_hits{namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) + rate(vendor_cache_manager_keycloak_cache_users_statistics_misses{namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]))",
+          "expr": "rate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) / (rate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]) + rate(vendor_statistics_misses{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\", job=\"${namespace}/keycloak-otel\"}[2m]))",
           "hide": false,
           "legendFormat": "Users cache hit ratio",
           "range": true,

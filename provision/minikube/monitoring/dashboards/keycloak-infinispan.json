@@ -126,7 +126,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_container_health_number_of_nodes{namespace=\"$namespace\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_container_health_number_of_nodes{namespace=\"$namespace\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -222,7 +222,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_cache_manager_keycloak_cache_container_stats_hits{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (rate(vendor_cache_manager_keycloak_cache_container_stats_hits{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + rate(vendor_cache_manager_keycloak_cache_container_stats_misses{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
+          "expr": "rate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (rate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + rate(vendor_cache_container_stats_misses{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -331,7 +331,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${distributed_cache}_statistics_approximate_entries_unique{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -426,7 +426,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${distributed_cache}_statistics_approximate_entries_in_memory{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries_in_memory{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -486,7 +486,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${distributed_cache}_statistics_average_read_time_nanos{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_read_time_nanos{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -546,7 +546,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${distributed_cache}_statistics_average_write_time_nanos{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_write_time_nanos{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -656,7 +656,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${local_cache}_statistics_approximate_entries_in_memory{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries_in_memory{cache=\"${local_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -752,7 +752,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_cache_manager_keycloak_cache_${local_cache}_statistics_hits{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (rate(vendor_cache_manager_keycloak_cache_${local_cache}_statistics_hits{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + rate(vendor_cache_manager_keycloak_cache_${local_cache}_statistics_misses{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
+          "expr": "rate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (rate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + rate(vendor_statistics_misses{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -812,7 +812,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${local_cache}_statistics_average_read_time_nanos{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_read_time_nanos{cache=\"${local_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -872,7 +872,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_manager_keycloak_cache_${local_cache}_statistics_average_write_time_nanos{namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_write_time_nanos{cache=\"${local_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
