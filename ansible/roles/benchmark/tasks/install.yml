@@ -18,11 +18,11 @@
   copy:
     src: "{{ kcb_zip }}"
     dest: "/tmp/kcb.zip"
-    owner: ec2-user
+    owner: "{{ ansible_ssh_user }}"
 
 - name: Install keycloak-benchmark on the remote hosts
   unarchive:
     remote_src: true
     src: "/tmp/kcb.zip"
     dest: "{{ workspace }}"
-    owner: ec2-user
+    owner: "{{ ansible_ssh_user }}"
