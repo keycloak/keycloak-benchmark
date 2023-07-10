@@ -10,6 +10,7 @@ if [ -f ./.env ]; then
 fi
 
 AWS_REGION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json | jq -r '.region.id')
+echo "AWS_REGION: ${AWS_REGION}"
 
 EFS=$(oc get sc/efs-sc -o jsonpath='{.parameters.fileSystemId}')
 
@@ -37,6 +38,14 @@ if [[ "$EFS" != "" ]]; then
       fi
       sleep 1
       echo -n '.'
+  done
+
+  for ACCESS_POINT in $(aws efs describe-access-points \
+    --region=$AWS_REGION \
+    --file-system-id=$EFS \
+    --output json \
+    | jq -r '.AccessPoints[].AccessPointId'); do
+    aws efs delete-access-point --access-point-id $ACCESS_POINT --region $AWS_REGION
   done
 
   aws efs delete-file-system --file-system-id $EFS --region $AWS_REGION

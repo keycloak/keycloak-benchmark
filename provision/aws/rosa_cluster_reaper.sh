@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 if [ -f ./.env ]; then
@@ -20,9 +20,9 @@ for CLUSTER_NAME in $CLUSTERS; do
   ./rosa_oc_login.sh
   #Check if the 'keepalive' namespace exists in the specific cluster
   if oc get projects | grep -q "keepalive"; then
-    echo "keepalive namespace exists in the cluster $CLUSTER_NAME., skipping deleting it."
+    echo "keepalive namespace exists in the cluster $CLUSTER_NAME, skipping deleting it."
   else
-    echo "keepalive namespace doesn't exist in the cluster $CLUSTER_NAME., deleting it."
+    echo "keepalive namespace doesn't exist in the cluster $CLUSTER_NAME, deleting it."
     #Delete the Individual Cluster
     ./rosa_delete_cluster.sh
   fi
