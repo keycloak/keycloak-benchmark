@@ -94,11 +94,11 @@ Use the following query to filter for metrics reported by OpenTelemetry:
 
 There are some additional metrics recorded via OpenTelemetry which are not available from the regular Keycloak metrics endpoint:
 
-`http_server_duration_bucket`:: For each URL, HTTP method and return code, it records buckets by duration.
-Use this information identify latency percentiles for URLs, and find URLs which return error codes.
+`http_server_duration_seconds_bucket`:: For each URL, HTTP method and return code, it records buckets by duration.
+Use this information to identify latency percentiles for URLs, and find URLs which return error codes.
 +
 ====
-http_server_duration_bucket{container="keycloak", endpoint="otel-prometheus", http_flavor="1.1", http_method="GET", http_route="/admin/realms/++{realm}++/client-scopes", http_scheme="https", http_status_code="200", instance="172.17.0.8:9464", job="keycloak/keycloak-otel", le="10.0", namespace="keycloak", net_host_name="keycloak.192.168.39.120.nip.io", otel_scope_name="io.opentelemetry.netty-4.1", otel_scope_version="1.24.0-alpha", pod="keycloak-0"}
+http_server_duration_seconds_bucket{otel_scope_name="io.opentelemetry.netty-4.1",otel_scope_version="1.27.0-alpha",http_request_method="GET",http_response_status_code="200",http_route="/health/live",network_protocol_name="http",network_protocol_version="1.1",server_address="10.130.4.106",server_port="8443",url_scheme="https",le="0.01"} 2.0
 ====
 
 `worker_pool_queue_delay_bucket`:: Delay for executions in the worker pool, bucketed by the delay so tail latencies are available.
