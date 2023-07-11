@@ -106,7 +106,7 @@ spec:
     podTemplate:
       metadata:
         annotations:
-          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}--{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}
+          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}-{{ .Values.otelVersion }}
       spec:
         {{ if .Values.otel }}
         initContainers:
@@ -131,11 +131,12 @@ spec:
             imagePullPolicy: Never
 {{ end }}
             env:
-              # arjuna needs access to a writable directory to write temporary files
-              # Will be fixed upstream in https://github.com/keycloak/keycloak/issues/21456
-              - name: QUARKUS_TRANSACTION_MANAGER_OBJECT_STORE_DIRECTORY
-                value: /tmp
 {{ if .Values.otel }}
+              # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
+              # As a workaround, force downgrade to HTTP/1.1
+              # https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/8927
+              - name: QUARKUS_HTTP_HTTP2
+                value: 'false'
               # https://github.com/open-telemetry/opentelemetry-java-instrumentation
               # https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md
               - name: OTEL_RESOURCE_ATTRIBUTES
