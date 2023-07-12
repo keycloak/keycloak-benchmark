@@ -27,6 +27,11 @@ inputs:
   otel:
     description: 'Enable OpenTelemetry'
     default: 'false'
+  database:
+    description: 'The Database type to be utilised by Keycloak'
+    default: 'postgres'
+  databaseUrl:
+    description: 'The external URL of the database'
 
 runs:
   using: "composite"
@@ -49,3 +54,5 @@ runs:
         KC_CPU_LIMITS: ${{ inputs.podCpuLimit }}
         KC_HEAP_MAX_MB: ${{ inputs.heapMaxSizeMB }}
         KC_OTEL: ${{ inputs.otel }}
+        KC_DATABASE: ${{ inputs.database }}
+        KC_DATABASE_URL: ${{ inputs.databaseUrl }}

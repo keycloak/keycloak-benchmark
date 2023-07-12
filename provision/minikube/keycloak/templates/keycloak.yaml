@@ -16,7 +16,7 @@ spec:
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
   additionalOptions:
-{{ if or (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
+{{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     - name: db
       value: postgres
     - name: db-url

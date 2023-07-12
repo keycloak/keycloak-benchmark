@@ -1,0 +1,21 @@
+name: Delete Aurora Deployment
+description: Delete AWS Aurora DB Deployment
+
+inputs:
+  name:
+    description: 'The name of the Aurora DB cluster to delete'
+    required: true
+  region:
+    description: 'The AWS region used to host the Aurora DB'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: provision_aurora
+      shell: bash
+      run: ./aurora_delete.sh
+      working-directory: provision/aws/rds
+      env:
+        AURORA_CLUSTER: ${{ inputs.name }}
+        AWS_REGION: ${{ inputs.region }}

@@ -1,0 +1,18 @@
+name: Aurora Scheduled Delete
+
+on:
+  schedule:
+    # Runs every day at 7:10 PM UTC. This should be scheduled slightly after the ROSA auto-delete to ensure that no
+    # Peering Connections remain between the ROSA and Aurora VPCs.
+    - cron: '10 19 * * *'
+
+jobs:
+
+  checkout:
+    name: Aurora Scheduled Delete cluster(s)
+    runs-on: ubuntu-latest
+    steps:
+      - if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: ./provision/aws/rds/aurora_cluster_reaper.sh
+        env:
+          AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}

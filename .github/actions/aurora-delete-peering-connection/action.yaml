@@ -1,0 +1,25 @@
+name: Delete Aurora Peering Connection
+description: Delete AWS Peering Connection between Aurora DB and a ROSA cluster
+
+inputs:
+  clusterName:
+    description: 'The name of the ROSA cluster'
+    required: true
+  auroraCluster:
+    description: 'The name of the Aurora DB cluster'
+    required: true
+  auroraRegion:
+    description: 'The AWS region used to host the Aurora DB'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: delete_peering_connection
+      shell: bash
+      run: ./aurora_delete_peering_connection.sh
+      working-directory: provision/aws/rds
+      env:
+        AURORA_CLUSTER: ${{ inputs.auroraCluster }}
+        AURORA_REGION: ${{ inputs.auroraRegion }}
+        CLUSTER_NAME: ${{ inputs.clusterName }}

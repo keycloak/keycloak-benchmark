@@ -188,6 +188,9 @@ tasks:
       - .task/var-KC_DATABASE
 
   keycloak:
+    preconditions:
+      - sh: '[ "{{.KC_DATABASE}}" != "aurora-postgres" ]'
+        msg: "KC_DATABASE='{{.KC_DATABASE}}' not supported on minikube"
     deps:
       - monitoring
       - common:datasetprovider
@@ -199,6 +202,7 @@ tasks:
       - promtail
       - common:env
     cmds:
+      - >
       - kubectl create namespace keycloak || true
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
