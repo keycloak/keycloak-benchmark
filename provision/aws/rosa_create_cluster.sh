@@ -87,7 +87,7 @@ echo
 
 ./rosa_recreate_admin.sh
 
-rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-replicas 0 --min-replicas 0 --name scaling --use-spot-instances --enable-autoscaling
+rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-replicas 0 --min-replicas 0 --name scaling --enable-autoscaling
 
 ./rosa_efs_create.sh
 ../infinispan/install_operator.sh
