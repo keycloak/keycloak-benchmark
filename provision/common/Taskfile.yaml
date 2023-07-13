@@ -22,6 +22,10 @@ vars:
   KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
   KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
   KC_CUSTOM_INFINISPAN_CONFIG: '{{default "true" .KC_CUSTOM_INFINISPAN_CONFIG}}'
+  KC_CUSTOM_INFINISPAN_CONFIG_FILE: '{{default "config/kcb-infinispan-cache-config.xml" .KC_CUSTOM_INFINISPAN_CONFIG_FILE}}'
+  KC_REMOTE_STORE: '{{default "false" .KC_REMOTE_STORE}}'
+  KC_REMOTE_STORE_HOST: '{{default "localhost" .KC_REMOTE_STORE_HOST}}'
+  KC_REMOTE_STORE_PORT: '{{default "11222" .KC_REMOTE_STORE_PORT}}'
   KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
 
 tasks:
@@ -64,6 +68,10 @@ tasks:
       - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
       - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
       - echo {{.KC_CUSTOM_INFINISPAN_CONFIG}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG
+      - echo {{.KC_CUSTOM_INFINISPAN_CONFIG_FILE}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG_FILE
+      - echo {{.KC_REMOTE_STORE}} > .task/var-KC_REMOTE_STORE
+      - echo {{.KC_REMOTE_STORE_HOST}} > .task/var-KC_REMOTE_STORE_HOST
+      - echo {{.KC_REMOTE_STORE_PORT}} > .task/var-KC_REMOTE_STORE_PORT
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
     run: once
     sources:
@@ -89,6 +97,10 @@ tasks:
       - test "{{.KC_METASPACE_INIT_MB}}" == "$(cat .task/var-KC_METASPACE_INIT_MB)"
       - test "{{.KC_METASPACE_MAX_MB}}" == "$(cat .task/var-KC_METASPACE_MAX_MB)"
       - test "{{.KC_CUSTOM_INFINISPAN_CONFIG}}" == "$(cat .task/var-KC_CUSTOM_INFINISPAN_CONFIG)"
+      - test "{{.KC_CUSTOM_INFINISPAN_CONFIG_FILE}}" == "$(cat .task/var-KC_CUSTOM_INFINISPAN_CONFIG_FILE)"
+      - test "{{.KC_REMOTE_STORE}}" == "$(cat .task/var-KC_REMOTE_STORE)"
+      - test "{{.KC_REMOTE_STORE_HOST}}" == "$(cat .task/var-KC_REMOTE_STORE_HOST)"
+      - test "{{.KC_REMOTE_STORE_PORT}}" == "$(cat .task/var-KC_REMOTE_STORE_PORT)"
       - test "{{.KC_DISABLE_STICKY_SESSION}}" == "$(cat .task/var-KC_DISABLE_STICKY_SESSION)"
 
   mvnw:

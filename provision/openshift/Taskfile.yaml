@@ -6,6 +6,7 @@ vars:
   KC_HOSTNAME_SUFFIX: '{{default "$(kubectl get route/console -n openshift-console -o jsonpath=\u0027{.spec.host}\u0027 | cut -d . -f 2-)" .KC_HOSTNAME_SUFFIX}}'
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
   KC_ADMIN_PASSWORD: '{{default "$(aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin)" .KC_ADMIN_PASSWORD}}'
+  KC_ISPN_PORT: '{{ default "11222" .KC_ISPN_PORT}}'
 
 output: prefixed
 
@@ -50,6 +51,9 @@ tasks:
       - echo {{.KC_HOSTNAME_SUFFIX}} > .task/var-KC_HOSTNAME_SUFFIX
       - echo {{.KC_NAMESPACE_PREFIX}} > .task/var-KC_NAMESPACE_PREFIX
       - echo {{.KC_ADMIN_PASSWORD}} > .task/var-KC_ADMIN_PASSWORD
+      - echo {{.KC_ISPN_PORT}} > .task/var-KC_ISPN_PORT
+      - echo {{.KC_ISPN_CLUSTER}} > .task/var-KC_ISPN_CLUSTER
+      - echo {{.KC_ISPN_NAMESPACE}} > .task/var-KC_ISPN_NAMESPACE
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -57,6 +61,9 @@ tasks:
       - test "{{.KC_HOSTNAME_SUFFIX}}" == "$(cat .task/var-KC_HOSTNAME_SUFFIX)"
       - test "{{.KC_NAMESPACE_PREFIX}}" == "$(cat .task/var-KC_NAMESPACE_PREFIX)"
       - test "{{.KC_ADMIN_PASSWORD}}" == '$(cat .task/var-KC_ADMIN_PASSWORD)'
+      - test "{{.KC_ISPN_PORT}}" == '$(cat .task/var-KC_ISPN_PORT)'
+      - test "{{.KC_ISPN_CLUSTER}}" == '$(cat .task/var-KC_ISPN_CLUSTER)'
+      - test "{{.KC_ISPN_NAMESPACE}}" == '$(cat .task/var-KC_ISPN_NAMESPACE)'
 
   dataset-import:
     deps:
@@ -170,12 +177,41 @@ tasks:
     sources:
       - .task/subtask-{{.TASK}}.yaml
 
+  infinispan-remote:
+    internal: true
+    silent: true
+    deps:
+      - openshift-env
+    cmds:
+      - |
+        if [ "{{.KC_ISPN_CLUSTER}}" != "" ] && [ "{{.KC_ISPN_NAMESPACE}}" != "" ]; then
+        echo "true" > .task/remote-store-enabled
+        echo "{{.KC_ISPN_CLUSTER}}.{{.KC_ISPN_NAMESPACE}}.svc" > .task/remote-store-host
+        oc -n {{.KC_ISPN_NAMESPACE}} get secrets {{.KC_ISPN_CLUSTER}}-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].username > .task/remote-store-username
+        oc -n {{.KC_ISPN_NAMESPACE}} get secrets {{.KC_ISPN_CLUSTER}}-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].password > .task/remote-store-password
+        exit 0
+        fi
+        echo "false" > .task/remote-store-enabled
+        echo "" > .task/remote-store-host
+        echo "" > .task/remote-store-username
+        echo "" > .task/remote-store-password
+        exit 0
+    generates:
+      - .task/remote-store-enabled
+      - .task/remote-store-host
+      - .task/remote-store-username
+      - .task/remote-store-password
+    sources:
+      - .task/var-KC_ISPN_CLUSTER
+      - .task/var-KC_ISPN_NAMESPACE
+
   keycloak:
     deps:
       - common:datasetprovider
       - common:split
       - common:env
       - openshift-env
+      - infinispan-remote
     cmds:
       - kubectl create namespace {{.KC_NAMESPACE_PREFIX}}keycloak || true
       - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
@@ -208,7 +244,13 @@ tasks:
         --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
         --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
-        --set customInfinispanConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
+        --set infinispan.customConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
+        --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
+        --set infinispan.remoteStore.enabled=$(cat .task/remote-store-enabled)
+        --set infinispan.remoteStore.host=$(cat .task/remote-store-host)
+        --set infinispan.remoteStore.port={{ .KC_ISPN_PORT }}
+        --set infinispan.remoteStore.username=$(cat .task/remote-store-username)
+        --set infinispan.remoteStore.password=$(cat .task/remote-store-password)
         --set cryostat={{ .KC_CRYOSTAT }}
         --set sqlpad=false
         --set environment=openshift
@@ -233,3 +275,7 @@ tasks:
       - ../minikube/keycloak/**/*.*
       - .task/subtask-{{.TASK}}.yaml
       - .task/var-KC_*
+      - .task/remote-store-enabled
+      - .task/remote-store-host
+      - .task/remote-store-username
+      - .task/remote-store-password

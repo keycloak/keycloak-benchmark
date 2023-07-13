@@ -19,8 +19,3 @@ spec:
   source: ${OPERATOR_SOURCE}
   sourceNamespace: ${OPERATOR_SOURCE_NS}
 EOF
-
-# Create Service Account and add "view" role
-# Remote clusters will use this service account to check the cross-site configuration for Infinispan
-oc create sa xsite-sa
-oc policy add-role-to-user view -z xsite-sa
