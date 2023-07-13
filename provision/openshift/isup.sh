@@ -33,6 +33,8 @@ for SERVICE in "${!SERVICES[@]}"; do
     kubectl wait --for=condition=Ready --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak"
   fi
 
+  if [[ ${SERVICE} = cryostat* ]] && ! ${KC_CRYOSTAT}; then continue; fi
+
   until kubectl get route -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
     RETRIES=$(($RETRIES - 1))
