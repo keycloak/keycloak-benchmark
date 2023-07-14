@@ -11,4 +11,8 @@ runs:
   steps:
     - id: delete_keycloak_project
       shell: bash
-      run: oc delete project "${{ inputs.project }}"
+      # Workaround: delete Cryostat (if installed) first to not block namespace deletion
+      # https://github.com/cryostatio/cryostat/issues/1588
+      run: |
+        oc delete cryostat/cryostat -n "${{ inputs.project }}" || exit 0
+        oc delete project "${{ inputs.project }}"
