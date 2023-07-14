@@ -13,7 +13,7 @@ set_environment_variables () {
   USERS_COUNT="100"
   EVENTS_COUNT="100"
   SESSIONS_COUNT="100"
-  HASH_ITERATIONS="20000"
+  HASH_ITERATIONS="27500"
   if ( minikube version &>/dev/null ); then
     KEYCLOAK_URI="https://keycloak-keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   fi
