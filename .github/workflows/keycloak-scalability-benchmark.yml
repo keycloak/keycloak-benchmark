@@ -218,4 +218,9 @@ jobs:
           git commit -m "generated"
           git push
 
+      - name: Trigger data aggregation
+        if: github.repository == 'keycloak/keycloak-benchmark'
+        # manually trigger the run, as a push with a standard GitHub action token doesn't trigger any workflow run on GitHub
+        run: gh workflow run -R keycloak/keycloak-benchmark aggregate-results.yaml --ref result-data
+
 
