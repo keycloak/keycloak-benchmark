@@ -157,7 +157,7 @@ public class DatasetConfig {
     private Integer usersPerTransaction;
 
     // Count of worker threads concurrently creating entities
-    @QueryParamIntFill(paramName = "threads-count", defaultValue = 5, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
+    @QueryParamIntFill(paramName = "threads-count", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
             CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT })
     private Integer threadsCount;
 
@@ -295,6 +295,9 @@ public class DatasetConfig {
     }
 
     public Integer getThreadsCount() {
+        if (threadsCount == -1) {
+            return Runtime.getRuntime().availableProcessors();
+        }
         return threadsCount;
     }
 
