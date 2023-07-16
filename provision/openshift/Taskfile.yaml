@@ -124,6 +124,7 @@ tasks:
       - kubectl get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids
     sources:
       - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KC_HOSTNAME_SUFFIX
     generates:
       - .task/monitoring-uids
 
@@ -161,6 +162,7 @@ tasks:
     sources:
       - monitoring/**/*.*
       - .task/subtask-{{.TASK}}.yaml
+      - .task/var-KC_HOSTNAME_SUFFIX
 
   keepalive:
     deps:
