@@ -189,11 +189,11 @@ spec:
                 name: jvmdebug
             resources:
               requests:
-                cpu: "{{ .Values.cpuRequests }}"
-                memory: "{{ .Values.memoryRequestsMB }}M"
+                {{ if .Values.cpuRequests }}cpu: "{{ .Values.cpuRequests }}"{{end}}
+                {{ if .Values.memoryRequestsMB }}memory: "{{ .Values.memoryRequestsMB }}M"{{end}}
               limits:
-                cpu: "{{ .Values.cpuLimits }}"
-                memory: "{{ .Values.memoryLimitsMB }}M"
+                {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
+                {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
             startupProbe:
               httpGet:
                 path: /health/ready

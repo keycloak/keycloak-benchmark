@@ -14,7 +14,7 @@ vars:
   KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
   KC_INSTANCES: '{{default "1" .KC_INSTANCES}}'
   KC_CPU_REQUESTS: '{{default "0" .KC_CPU_REQUESTS}}'
-  KC_CPU_LIMITS: '{{default "4" .KC_CPU_LIMITS}}'
+  KC_CPU_LIMITS: '{{default "" .KC_CPU_LIMITS}}'
   KC_MEMORY_REQUESTS_MB: '{{default "1024" .KC_MEMORY_REQUESTS_MB}}'
   KC_MEMORY_LIMITS_MB: '{{default "1024" .KC_MEMORY_LIMITS_MB}}'
   KC_HEAP_INIT_MB: '{{default "64" .KC_HEAP_INIT_MB}}'
@@ -136,18 +136,19 @@ tasks:
     sources:
       - ../../dataset/target/keycloak-benchmark-dataset-*.jar
       - .task/subtask-{{.TASK}}.yaml
-    status:
-      - test -f keycloak/providers/keycloak-benchmark-dataset-*.jar
 
   keycloak-cli-download:
     dir: ..
     cmds:
       - mkdir -p keycloak-cli
-      - rm -f keycloak-cli/*.zip
-      - >
-        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip
+      - curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip --etag-save keycloak-cli/keycloak-cli-download-etag --etag-compare keycloak-cli/keycloak-cli-download-etag
+      # ensure that file looks up-to-date
+      - touch keycloak-cli/keycloak.zip
+    generates:
+      - keycloak-cli/keycloak.zip
+      - keycloak-cli/keycloak-cli-download-etag
     status:
-      - find keycloak-cli/keycloak.zip -mtime +1 -exec false {} +
+      - find keycloak-cli/keycloak.zip -mmin +60 -exec false {} +
     sources:
       - .task/subtask-{{.TASK}}.yaml
 
@@ -162,7 +163,7 @@ tasks:
       - rm -rf keycloak-cli/keycloak
       - unzip -o -q keycloak-cli/keycloak.zip -d keycloak-cli
       # the output folder depends on the version we're about to unpack
-      - mv keycloak-cli/keycloak-999.0.0-SNAPSHOT keycloak-cli/keycloak || mv keycloak-cli/keycloak-19.0.1 keycloak-cli/keycloak
+      - mv keycloak-cli/keycloak-999.0.0-SNAPSHOT keycloak-cli/keycloak
     sources:
       - keycloak-cli/keycloak.zip
       - minikube/.task/subtask-{{.TASK}}.yaml
