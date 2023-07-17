@@ -232,11 +232,543 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 5,
+        "x": 10,
+        "y": 1
+      },
+      "id": 279,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_tcp_get_thread_pool_size{job=\"$namespace/keycloak-metrics\"}",
+          "legendFormat": "{{pod}} - pool size",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_tcp_get_thread_pool_size_active{job=\"$namespace/keycloak-metrics\"}",
+          "hide": false,
+          "legendFormat": "{{pod}} active threads",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_tcp_get_largest_size{job=\"$namespace/keycloak-metrics\"}",
+          "hide": true,
+          "legendFormat": "{{pod}} - largest thread pool",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "JGroups thread pool stats",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 5,
+        "x": 15,
+        "y": 1
+      },
+      "id": 281,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_ufc_get_average_time_blocked{job=\"$namespace/keycloak-metrics\"}",
+          "legendFormat": "{{pod}} UFC average time blocked",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_mfc_get_average_time_blocked{job=\"$namespace/keycloak-metrics\"}",
+          "hide": false,
+          "legendFormat": "{{pod}} MFC average time blocked",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "JGroups average time blocked",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "description": "RED (Random Early Drop) If the bundler queue starts to grows (i.e the socker.write() is unable to keep up with the number of messages to be sent) and gets closer to max size, this protocol will drop messages.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 5,
+        "x": 0,
+        "y": 11
+      },
+      "id": 283,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_tcp_get_num_rejected_msgs{job=\"$namespace/keycloak-metrics\"}",
+          "legendFormat": "{{pod}} - rejected msg by thread pool",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "vendor_jgroups_ISPN_red_get_dropped_messages{job=\"$namespace/keycloak-metrics\"}",
+          "hide": false,
+          "legendFormat": "{{pod}} - RED dropped messages",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Number of dropped JGroups messages",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMax": 1,
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 5,
+        "x": 5,
+        "y": 11
+      },
+      "id": 285,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "min",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(vendor_jgroups_ISPN_red_get_dropped_messages{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / rate(vendor_jgroups_ISPN_red_get_total_messages{namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m])",
+          "legendFormat": "{{pod}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Percentage of dropped JGroups messages",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 5,
+        "x": 10,
+        "y": 11
+      },
+      "id": 287,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(vendor_jgroups_ISPN_red_get_total_messages{job=\"$namespace/keycloak-metrics\"}[2m])",
+          "legendFormat": "{{pod}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Number of processed JGroups messages in last 2 minutes",
+      "type": "timeseries"
+    },
+    {
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 20
       },
       "id": 88,
       "panels": [],
@@ -306,9 +838,9 @@
         "h": 10,
         "w": 5,
         "x": 0,
-        "y": 12
+        "y": 21
       },
-      "id": 112,
+      "id": 176,
       "options": {
         "legend": {
           "calcs": [
@@ -331,13 +863,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
+          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries_in_memory{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "# of primary owned entries",
+      "title": "# of entries in memory",
       "type": "timeseries"
     },
     {
@@ -401,13 +933,14 @@
         "h": 10,
         "w": 5,
         "x": 5,
-        "y": 12
+        "y": 21
       },
-      "id": 176,
+      "id": 289,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "max"
           ],
           "displayMode": "table",
           "placement": "bottom",
@@ -418,7 +951,6 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "9.0.5",
       "targets": [
         {
           "datasource": {
@@ -426,13 +958,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries_in_memory{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
+          "expr": "vendor_state_transfer_manager_inflight_segment_transfer_count{cache=\"$distributed_cache\", job=\"$namespace/keycloak-metrics\"}",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "# of entries in memory",
+      "title": "Number of requested segments",
       "type": "timeseries"
     },
     {
@@ -463,7 +995,7 @@
         "h": 10,
         "w": 3,
         "x": 10,
-        "y": 12
+        "y": 21
       },
       "id": 142,
       "options": {
@@ -523,7 +1055,7 @@
         "h": 10,
         "w": 3,
         "x": 13,
-        "y": 12
+        "y": 21
       },
       "id": 141,
       "options": {
@@ -561,7 +1093,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 99
+        "y": 164
       },
       "id": 8,
       "panels": [],
@@ -615,8 +1147,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -631,7 +1162,7 @@
         "h": 10,
         "w": 5,
         "x": 0,
-        "y": 100
+        "y": 165
       },
       "id": 10,
       "options": {
@@ -714,8 +1245,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -727,7 +1257,7 @@
         "h": 10,
         "w": 5,
         "x": 5,
-        "y": 100
+        "y": 165
       },
       "id": 25,
       "options": {
@@ -776,8 +1306,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -789,7 +1318,7 @@
         "h": 10,
         "w": 3,
         "x": 10,
-        "y": 100
+        "y": 165
       },
       "id": 51,
       "options": {
@@ -836,8 +1365,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -849,7 +1377,7 @@
         "h": 10,
         "w": 3,
         "x": 13,
-        "y": 100
+        "y": 165
       },
       "id": 36,
       "options": {
@@ -892,8 +1420,8 @@
       {
         "current": {
           "selected": false,
-          "text": "keycloak",
-          "value": "keycloak"
+          "text": "runner-keycloak",
+          "value": "runner-keycloak"
         },
         "datasource": {
           "type": "prometheus",
@@ -917,7 +1445,7 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
@@ -963,7 +1491,7 @@
       },
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": [
             "All"
           ],
