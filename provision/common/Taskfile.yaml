@@ -141,14 +141,11 @@ tasks:
     dir: ..
     cmds:
       - mkdir -p keycloak-cli
-      - curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip --etag-save keycloak-cli/keycloak-cli-download-etag --etag-compare keycloak-cli/keycloak-cli-download-etag || (rm -rf keycloak-cli; exit 1)
-      # ensure that file looks up-to-date
-      - touch keycloak-cli/keycloak.zip
-    generates:
-      - keycloak-cli/keycloak.zip
-      - keycloak-cli/keycloak-cli-download-etag
+      - rm -f keycloak-cli/*.zip
+      - >
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip
     status:
-      - find keycloak-cli/keycloak.zip -mmin +60 -exec false {} +
+      - find keycloak-cli/keycloak.zip -mtime +1 -exec false {} +
     sources:
       - .task/subtask-{{.TASK}}.yaml
 
