@@ -6,6 +6,7 @@
     filters:
       "tag:Name": '{{ cluster_name }}*'
       instance-state-name: ['running', 'stopped', 'stopping']
+  no_log: "{{ no_log_sensitive }}"
 
 - when: operation == "start"
   block:
@@ -18,6 +19,7 @@
         "tag:Name": '{{ cluster_name }}*'
         instance-state-name: ['running']
     register: instances
+    no_log: "{{ no_log_sensitive }}"
   - name: Recreate Inventory File
     template:
       src: inventory.yml.j2
