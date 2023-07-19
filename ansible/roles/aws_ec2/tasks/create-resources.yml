@@ -1,6 +1,7 @@
 - name: Get Ansible Control Host's public IP
   shell: curl -ks ifconfig.me
   register: control_host_ip
+  no_log: "{{ no_log_sensitive }}"
 
 - name: Create Security Group
   amazon.aws.ec2_group:
@@ -14,6 +15,7 @@
         to_port: 22
         cidr_ip: '{{ control_host_ip.stdout }}/32'
   register: group
+  no_log: "{{ no_log_sensitive }}"
 
 - name: Create Key
   amazon.aws.ec2_key:
@@ -21,6 +23,7 @@
     region: '{{ region }}'
     name: '{{ cluster_name }}'
   register: key
+  no_log: "{{ no_log_sensitive }}"
 
 - name: Save Private Key on Ansible Control Machine
   when: key.changed
@@ -28,6 +31,7 @@
     content: '{{ key.key.private_key }}'
     dest: '{{ cluster_name }}_{{ region }}.pem'
     mode: 0600
+  no_log: "{{ no_log_sensitive }}"
 
 - name: Look up AMI '{{ ami_name }}'
   amazon.aws.ec2_ami_info:
@@ -54,6 +58,7 @@
           volume_size: '{{ instance_volume_size }}'
           delete_on_termination: true
   register: instances
+  no_log: "{{ no_log_sensitive }}"
 
 - name: Create Inventory File
   template:
