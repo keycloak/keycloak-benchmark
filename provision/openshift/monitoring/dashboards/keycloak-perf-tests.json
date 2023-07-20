@@ -25,7 +25,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 4,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -980,6 +980,109 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Keycloak CPU Throttling rate",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 6,
+        "x": 6,
+        "y": 18
+      },
+      "id": 52,
+      "interval": "120",
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max",
+            "lastNotNull",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "irate(container_cpu_cfs_throttled_seconds_total{namespace=\"$namespace\",container=\"keycloak\"}[1m])",
+          "hide": false,
+          "legendFormat": "{{pod}}",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Keycloak CPU Throttling rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -1037,7 +1140,7 @@
       "gridPos": {
         "h": 13,
         "w": 6,
-        "x": 6,
+        "x": 12,
         "y": 18
       },
       "id": 3,
@@ -1075,7 +1178,7 @@
           "refId": "B"
         }
       ],
-      "title": "Memory Util % by Pod",
+      "title": "Memory usage totals by Pod",
       "type": "timeseries"
     },
     {
@@ -1139,8 +1242,8 @@
       },
       "gridPos": {
         "h": 13,
-        "w": 12,
-        "x": 12,
+        "w": 6,
+        "x": 18,
         "y": 18
       },
       "id": 4,
@@ -2188,7 +2291,7 @@
           "refId": "A"
         }
       ],
-      "title": "JVM GC Pause seconds total",
+      "title": "JVM GC Pause seconds Max",
       "type": "timeseries"
     },
     {
@@ -3522,9 +3625,9 @@
     "list": [
       {
         "current": {
-          "selected": false,
-          "text": "keycloak",
-          "value": "keycloak"
+          "selected": true,
+          "text": "runner-keycloak",
+          "value": "runner-keycloak"
         },
         "datasource": {
           "type": "prometheus",
@@ -3549,13 +3652,13 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "keycloak-perf-tests",
   "uid": "basic-keycloak-dashboard-by-namespace",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }
