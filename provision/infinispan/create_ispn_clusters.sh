@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -e
-set -x
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 WD=$(dirname $0)
 
@@ -269,7 +272,7 @@ function create_cross_site_single_cluster() {
 
   # Deploy an Infinispan cluster in each of the namespaces.
   deploy_infinispan_cr_same_cluster "${KUBECONFIG_1}" "${NS_1}" "${site1}" "${NS_2}" "${site2}"
-  deploy_infinispan_cr_same_cluster "${KUBECONFIG_1}" "${NS_2}" "${site2}" "${NS_1}" "${site2}"
+  deploy_infinispan_cr_same_cluster "${KUBECONFIG_1}" "${NS_2}" "${site2}" "${NS_1}" "${site1}"
 
   # Creates caches on site A
   deploy_all_caches "${KUBECONFIG_1}" "${NS_1}" "${site2}"

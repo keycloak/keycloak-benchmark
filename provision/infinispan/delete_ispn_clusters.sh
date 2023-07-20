@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -e
-set -x
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 WD=$(dirname $0)
 
