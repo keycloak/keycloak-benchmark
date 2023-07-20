@@ -1,0 +1,89 @@
+= Infinispan Installer
+
+Deploy an Infinispan cluster (with or without cross-site) and configures the necessary caches for Keycloak.
+
+== Required variables
+
+* `CLUSTER_1`: The ROSA cluster name of site 1.
+* `CLUSTER_2`: The ROSA cluster name of site 2.
+* `NS_1`: The namespace to install Infinispan in site 1.
+* `NS_2`: The namespace to install Infinispan in site 2.
+
+== Optional variables:
+* `KUBECONFIG_1`: Path to `KUBECONFIG` to use for CLUSTER_1.
+* `KUBECONFIG_2`: Path to `KUBECONFIG` to use for CLUSTER_2.
+
+If file does not exist, rosa_oc_login will be invoked and the configuration stored in this path.
+
+== Infinispan cluster customization:
+
+* `XSITE_MODE`: The cross-site strategy, default to SYNC.
+* `ISPN_REPLICAS`: The number of Infinispan pods.
+
+== Operation Modes
+
+* CLUSTER_1 == CLUSTER_2 and NS_1 == NS_2 -> Single Infinispan cluster without cross-site.
+
+Example:
+[source, bash]
+----
+CLUSTER_1="gh-pruivo" CLUSTER_2="gh-pruivo" NS_1="ispn-server" NS_2="ispn-server" ./create_ispn_clusters.sh
+----
+
+* CLUSTER_1 == CLUSTER_2 and NS_1 != NS_2 -> Infinispan clusters with cross-site enabled in a single OCP cluster.
+Each namespace gets an Infinispan cluster, and they are linked together with cross-site.
+
+Example:
+[source, bash]
+----
+CLUSTER_1="gh-pruivo" CLUSTER_2="gh-pruivo" NS_1="server-site-1" NS_2="server-site-2" ./create_ispn_clusters.sh
+----
+
+* CLUSTER_1 != CLUSTER_2 -> Infinispan clusters with cross-site enabled in 2 different OCP clusters.
+The namespaces must be set and they can be the same or different namespaces.
+
+Example:
+[source, bash]
+----
+CLUSTER_1="gh-pruivo" CLUSTER_2="gh-keycloak" NS_1="ispn-server" NS_2="ispn-server" ./create_ispn_clusters.sh
+----
+
+[source, bash]
+----
+CLUSTER_1="gh-pruivo" CLUSTER_2="gh-keycloak" NS_1="server-site-1" NS_2="server-site-2" ./create_ispn_clusters.sh
+----
+
+== Provision Keycloak
+
+The Taskfile in `provistion/openshift` introduced 4 more variables:
+
+
+|===
+|Variable |Default |Details
+
+|`KC_CUSTOM_INFINISPAN_CONFIG_FILE`
+|`config/kcb-infinispan-cache-config.xml`
+|The path to the Infinispan configuration file to be used by Keycloak
+
+|`KC_ISPN_PORT`
+|`11222`
+|The Infinispan port. Should never be set if Infinispan is installed by this script.
+
+|`KC_ISPN_CLUSTER`
+|-
+|The Infinispan cluster name. If installed by this script, its value is infinispan
+
+|`KC_ISPN_NAMESPACE`
+|-
+|The namespace where the Infinispan cluster is installed.
+|===
+
+As an example, using a single Infinispan cluster, Infinispan and keycloak can be deployed using the
+following commands from this directory (assuming `.env` is properly configured to access the OCP cluster):
+
+[source, bash]
+----
+CLUSTER_1="gh-pruivo" CLUSTER_2="gh-pruivo" NS_1="ispn-server" NS_2="ispn-server" ./create_ispn_clusters.sh
+cd ../provistion/openshift
+go-task KC_CUSTOM_INFINISPAN_CONFIG_FILE=config/kcb-infinispan-cache-remote-store-config.xml KC_ISPN_CLUSTER=infinispan KC_ISPN_NAMESPACE=ispn-server
+----

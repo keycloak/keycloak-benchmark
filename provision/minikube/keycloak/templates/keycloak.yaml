@@ -32,10 +32,10 @@ spec:
     - name: db-url
       value:  jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
 {{ end }}
-{{ if .Values.customInfinispanConfig }}
+{{- if .Values.infinispan.customConfig }}
     - name: cache-config-file
-      value: kcb-infinispan-cache-config.xml
-{{ end }}
+      value: {{ base .Values.infinispan.configFile }}
+{{- end }}
 {{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
@@ -99,6 +99,20 @@ spec:
       secret:
         name: keycloak-db-secret
         key: password
+{{- if .Values.infinispan.remoteStore.enabled }}
+    - name: remote-store-host
+      value: {{ quote .Values.infinispan.remoteStore.host }}
+    - name: remote-store-port
+      value: {{ quote .Values.infinispan.remoteStore.port }}
+    - name: remote-store-username
+      secret:
+        name: remote-store-secret
+        key: username
+    - name: remote-store-password
+      secret:
+        name: remote-store-secret
+        key: password
+{{- end }}
   http:
     tlsSecret: keycloak-tls-secret
   instances: {{ .Values.instances }}
@@ -220,10 +234,10 @@ spec:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
                 readOnly: true
-{{ if .Values.customInfinispanConfig }}
+{{ if .Values.infinispan.customConfig }}
               - name: kcb-infinispan-cache-config
-                mountPath: /opt/keycloak/conf/kcb-infinispan-cache-config.xml
-                subPath: kcb-infinispan-cache-config.xml
+                mountPath: /opt/keycloak/conf/{{ base .Values.infinispan.configFile }}
+                subPath: {{ base .Values.infinispan.configFile }}
                 readOnly: true
 {{ end }}
 {{ if .Values.otel }}
@@ -239,13 +253,13 @@ spec:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
-{{ if .Values.customInfinispanConfig }}
+{{ if .Values.infinispan.customConfig }}
           - name: kcb-infinispan-cache-config
             configMap:
               name: kcb-infinispan-cache-config
               items:
-                - key: kcb-infinispan-cache-config.xml
-                  path: kcb-infinispan-cache-config.xml
+                - key: {{base .Values.infinispan.configFile}}
+                  path: {{base .Values.infinispan.configFile}}
 {{ end }}
 {{ if .Values.otel }}
           - name: otel

@@ -1,9 +1,9 @@
-{{ if .Values.customInfinispanConfig }}
+{{ if .Values.infinispan.customConfig }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kcb-infinispan-cache-config
   namespace: {{ .Values.namespace }}
 data:
-{{ (.Files.Glob "config/kcb-infinispan-cache-config.xml").AsConfig | indent 2 }}
+{{ (.Files.Glob .Values.infinispan.configFile ).AsConfig | indent 2 }}
 {{ end }}
