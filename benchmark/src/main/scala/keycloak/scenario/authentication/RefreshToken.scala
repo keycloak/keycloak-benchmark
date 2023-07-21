@@ -8,7 +8,8 @@ class RefreshToken extends CommonSimulation {
     .openLoginPage(true)
     .loginUsernamePassword()
     .exchangeCode()
-    .refreshToken()
-    .logout(true))
+    .repeatRefresh()
+    .logout(true)
+  )
 
 }

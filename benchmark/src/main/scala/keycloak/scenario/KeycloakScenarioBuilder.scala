@@ -250,38 +250,15 @@ class KeycloakScenarioBuilder {
           jsonPath("$..expires_in").find.saveAs("expiresIn"),
         )
       )
+      //TODO remove
       // we must re-write these without the 'Secure' attribute, because otherwise it won't be submitted in future requests  (TODO -- or do we? this was a guess at the problem)
-      .exec(getCookieValue(CookieKey("AUTH_SESSION_ID").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
-        .exec(addCookie(Cookie("AUTH_SESSION_ID", session => session("AUTH_SESSION_ID").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
-      .exec(getCookieValue(CookieKey("KEYCLOAK_SESSION").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
-        .exec(addCookie(Cookie("KEYCLOAK_SESSION", session => session("KEYCLOAK_SESSION").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
-      .exec(getCookieValue(CookieKey("KEYCLOAK_IDENTITY").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
-        .exec(addCookie(Cookie("KEYCLOAK_IDENTITY", session => session("KEYCLOAK_IDENTITY").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
+      //.exec(getCookieValue(CookieKey("AUTH_SESSION_ID").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
+        //.exec(addCookie(Cookie("AUTH_SESSION_ID", session => session("AUTH_SESSION_ID").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
+      //.exec(getCookieValue(CookieKey("KEYCLOAK_SESSION").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
+        //.exec(addCookie(Cookie("KEYCLOAK_SESSION", session => session("KEYCLOAK_SESSION").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
+      //.exec(getCookieValue(CookieKey("KEYCLOAK_IDENTITY").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
+        //.exec(addCookie(Cookie("KEYCLOAK_IDENTITY", session => session("KEYCLOAK_IDENTITY").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
       .exec(session => (session.removeAll("code")))
-      .exitHereIfFailed
-    this
-  }
-
-  def refreshToken(): KeycloakScenarioBuilder = {
-    chainBuilder = chainBuilder
-      .exec(http("RefreshToken")
-        .post(TOKEN_ENDPOINT)
-        .headers(UI_HEADERS)
-        .formParam("grant_type", "refresh_token")
-        .formParam("refresh_token", "${refreshToken}")
-        .formParam("client_id", "${clientId}")
-        //.formParam("client_secret", "${clientSecret}")
-        //.formParam("redirect_uri", "${redirectUri}")
-        .check(
-          status.is(200),
-          // other elements like the access token not captured as we don't need them in the current scenarios and want to save memory
-          jsonPath("$..id_token").find.saveAs("idToken"),
-          jsonPath("$..access_token").find.saveAs("accessToken"),
-          jsonPath("$..refresh_token").find.saveAs("refreshToken"),
-          jsonPath("$..expires_in").find.saveAs("expiresIn"),
-        )
-      )
-      //.exec(session => (session.removeAll("code")))
       .exitHereIfFailed
     this
   }
@@ -753,6 +730,35 @@ class KeycloakScenarioBuilder {
 
     // 5 seconds before expiry is time to refresh
     lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis()
+  }
+
+  private def refreshToken(): ChainBuilder = {
+      exec(http("RefreshToken")
+        .post(TOKEN_ENDPOINT)
+        .headers(UI_HEADERS)
+        .formParam("grant_type", "refresh_token")
+        .formParam("refresh_token", "${refreshToken}")
+        .formParam("client_id", "${clientId}")
+        //.formParam("client_secret", "${clientSecret}")
+        //.formParam("redirect_uri", "${redirectUri}")
+        .check(
+          status.is(200),
+          // other elements like the access token not captured as we don't need them in the current scenarios and want to save memory
+          jsonPath("$..id_token").find.saveAs("idToken"),
+          jsonPath("$..access_token").find.saveAs("accessToken"),
+          jsonPath("$..refresh_token").find.saveAs("refreshToken"),
+          jsonPath("$..expires_in").find.saveAs("expiresIn"),
+        )
+      )
+      .exitHereIfFailed
+  }
+
+  def repeatRefresh(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .repeat(10, "refresh_i") {  // TODO how to parameterize the count, or end condition and pause time between refreshes .. and how to spread out the users for whatever target load the user wants
+        refreshToken().pause(10)
+      }
+    this
   }
 }
 
