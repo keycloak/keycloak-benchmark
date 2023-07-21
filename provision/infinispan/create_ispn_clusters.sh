@@ -181,7 +181,7 @@ spec:
 EOF
 }
 
-function deploy_cache_cr() {
+function deploy_distributed_cache_cr() {
   local kubecfg="${1}"
   local namespace="${2}"
   local cache_name="${3}"
@@ -202,6 +202,38 @@ spec:
     distributedCache:
       mode: "SYNC"
       owners: "2"
+      statistics: "true"
+      stateTransfer:
+        chunkSize: 16
+      backups:
+        ${remote_site}:
+          backup:
+            strategy: ${xsite_mode}
+            stateTransfer:
+              chunkSize: 16
+EOF
+}
+
+function deploy_replicated_cache_cr() {
+  local kubecfg="${1}"
+  local namespace="${2}"
+  local cache_name="${3}"
+  local remote_site="${4}"
+  local xsite_mode="${5}"
+  local cr_name=$(echo "${cache_name}" | awk '{print tolower($0)}')
+
+  KUBECONFIG="${kubecfg}" oc apply -f - << EOF
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: ${cr_name}
+  namespace: ${namespace}
+spec:
+  clusterName: infinispan
+  name: ${cache_name}
+  template: |-
+    replicatedCache:
+      mode: "SYNC"
       statistics: "true"
       stateTransfer:
         chunkSize: 16
@@ -243,14 +275,14 @@ function deploy_all_caches() {
   local kubecfg="${1}"
   local namespace="${2}"
   local remote_site="${3}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "sessions" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "actionTokens" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "authenticationSessions" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "offlineSessions" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "clientSessions" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "offlineClientSessions" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "loginFailures" "${remote_site}" "${XSITE_MODE}"
-  deploy_cache_cr "${kubecfg}" "${namespace}" "work" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "sessions" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "actionTokens" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "authenticationSessions" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "offlineSessions" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "clientSessions" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "offlineClientSessions" "${remote_site}" "${XSITE_MODE}"
+  deploy_distributed_cache_cr "${kubecfg}" "${namespace}" "loginFailures" "${remote_site}" "${XSITE_MODE}"
+  deploy_replicated_cache_cr "${kubecfg}" "${namespace}" "work" "${remote_site}" "${XSITE_MODE}"
 }
 
 function get_api_url() {
