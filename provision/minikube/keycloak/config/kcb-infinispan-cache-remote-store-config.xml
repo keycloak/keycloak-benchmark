@@ -22,6 +22,21 @@
             urn:infinispan:config:store:remote:14.0 https://www.infinispan.org/schemas/infinispan-cachestore-remote-config-14.0.xsd"
         xmlns="urn:infinispan:config:14.0">
 
+    <!-- Workaround for https://github.com/keycloak/keycloak/issues/21092 -->
+    <jgroups>
+        <stack name="kubernetes-with-fdsock" extends="kubernetes">
+            <!-- When using an embedded stack, replacement is done by Infinispan which requires environment variables to be
+            prefixed with ".env", while JGroups falls back to environment variables without the prefix.
+            The Keycloak Operator passes this information in an enviornment variable `jgroups.dns.query`.
+            See https://github.com/keycloak/keycloak/issues/21830 for a discussion.
+            -->
+            <dns.DNS_PING dns_query="${env.jgroups.dns.query}" />
+            <!-- Workaround for problems with FD_SOCK2, which might fail when the other nodes are not ready yet.
+            See https://github.com/keycloak/keycloak/issues/21092 -->
+            <FD_SOCK stack.combine="REPLACE" stack.position="FD_SOCK2"/>
+        </stack>
+    </jgroups>
+
     <!-- the statistics="true" attribute is not part of the original KC config and was added by Keycloak Benchmark -->
     <cache-container name="keycloak" statistics="true">
         <transport lock-timeout="60000" site="ISPN"/>

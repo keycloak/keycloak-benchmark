@@ -16,6 +16,9 @@ spec:
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
   additionalOptions:
+     # Workaround for https://github.com/keycloak/keycloak/issues/21092
+    - name: 'cache-stack'
+      value: kubernetes-with-fdsock
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     - name: db
       value: postgres
