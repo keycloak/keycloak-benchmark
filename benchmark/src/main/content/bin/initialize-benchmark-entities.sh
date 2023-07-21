@@ -66,7 +66,7 @@ function create_oidc_client {
     "*"
   ],
   "serviceAccountsEnabled": true,
-  "publicClient": true,
+  "publicClient": false,
   "protocol": "openid-connect",
   "attributes": {
     "post.logout.redirect.uris": "+"
