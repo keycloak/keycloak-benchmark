@@ -148,6 +148,7 @@ spec:
       locations:
         - name: ${remote_site}
           url: ${api_url}
+          namespace: ${remote_namespace}
           secretName: ${XSITE_TOKEN_SECRET}
 EOF
 }
@@ -350,7 +351,7 @@ function create_cross_site_multiple_clusters() {
    deploy_all_caches "${KUBECONFIG_1}" "${NS_1}" "${site2}"
 
    # Create caches on site B
-   deploy_all_caches "${KUBECONFIG_1}" "${NS_2}" "${site1}"
+   deploy_all_caches "${KUBECONFIG_2}" "${NS_2}" "${site1}"
 }
 
 function create_cluster_without_cross_site() {
