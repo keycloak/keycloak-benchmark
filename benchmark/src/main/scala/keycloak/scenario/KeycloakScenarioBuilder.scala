@@ -250,14 +250,6 @@ class KeycloakScenarioBuilder {
           jsonPath("$..expires_in").find.saveAs("expiresIn"),
         )
       )
-      //TODO remove
-      // we must re-write these without the 'Secure' attribute, because otherwise it won't be submitted in future requests  (TODO -- or do we? this was a guess at the problem)
-      //.exec(getCookieValue(CookieKey("AUTH_SESSION_ID").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
-        //.exec(addCookie(Cookie("AUTH_SESSION_ID", session => session("AUTH_SESSION_ID").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
-      //.exec(getCookieValue(CookieKey("KEYCLOAK_SESSION").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
-        //.exec(addCookie(Cookie("KEYCLOAK_SESSION", session => session("KEYCLOAK_SESSION").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
-      //.exec(getCookieValue(CookieKey("KEYCLOAK_IDENTITY").withDomain("192.168.49.2").withPath("/auth/realms/test-realm/").withSecure(true)))
-        //.exec(addCookie(Cookie("KEYCLOAK_IDENTITY", session => session("KEYCLOAK_IDENTITY").as[String]).withDomain("192.168.49.2").withPath("/auth/realms/test-realm/")))
       .exec(session => (session.removeAll("code")))
       .exitHereIfFailed
     this
