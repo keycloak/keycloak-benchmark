@@ -8,7 +8,8 @@ fi
 CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; exit 1; fi
 
-# Cleanup might fail eif EFS hasn't been configured for the cluster. Ignore any failures and continue
+# Cleanup might fail if Aurora/EFS hasn't been configured for the cluster. Ignore any failures and continue
+./rds/aurora_delete_peering_connection.sh || true
 ./rosa_efs_delete.sh || true
 
 function custom_date() {

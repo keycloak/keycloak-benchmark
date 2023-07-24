@@ -1,0 +1,101 @@
+= Using Amazon Aurora PostgreSQL storage
+:description: An Amazon Aurora PostgreSQL instance can be used as the underlying database for Keycloak in either single,
+or multi-site configurations. Currently this is only supported with Keycloak deployments on ROSA.
+
+== Deploying an Aurora Cluster
+
+Aurora clusters can be deployed to your AWS region of choice by executing `./provision/aws/rds/aurora_create.sh` with the
+following env:
+
+[source]
+----
+AURORA_CLUSTER= # The name of the Aurora cluster
+AURORA_REGION= # The AWS region hosting the Aurora cluster
+----
+
+This creates the necessary VPCs, subnets and routes required by an Aurora cluster as well as a single Aurora instance
+for said cluster. The script waits until both the cluster and instance are available. If the cluster already exists,
+a message indiciating this is displayed and the script will fail with exit code 1.
+
+[NOTE]
+====
+The specified `AURORA_CLUSTER` must be unique per the AWS region and follow the conventions outlined for the
+https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.CreateInstance.html#Aurora.CreateInstance.Settings["DB cluster identifier"].
+====
+
+== Connecting ROSA cluster to Aurora Cluster
+
+In order to follow security best practices, the Aurora cluster is not exposed publicly over the internet. Instead, it's
+necessary for us to establish a https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html[Peering Connection]
+between a ROSA cluster VPC and the Aurora Cluster VPC.
+
+To configure such a connection execute `./provision/aws/rds/aurora_create_peering_connection.sh` with the following env:
+
+[source]
+----
+AURORA_CLUSTER= # The name of the Aurora cluster
+AURORA_REGION= # The AWS region hosting the Aurora cluster
+CLUSTER_NAME= # The name of the ROSA cluster to establish the peering connectin with
+AWS_REGION= # The AWS region hosting the ROSA cluster
+----
+
+
+== Enabling Aurora PostgreSQL storage
+
+Use the following settings to configure the Aurora store:
+
+[source]
+----
+KC_DATABASE=aurora-postgres
+KC_DATABASE_URL=aws.example.route.com
+----
+
+The `KC_DATABASE_URL` should be the exposed endpoint of the Aurora writer instances. This can be obtained by executing
+the `./provision/aws/rds/aurora_endpoint.sh` script with the following env:
+
+[source]
+----
+AURORA_CLUSTER= # The name of the Aurora cluster instance
+AURORA_REGION= # The AWS region hosting the Aurora cluster
+----
+
+See xref:customizing-deployment.adoc[] for a list of all configuration options.
+
+== Debugging Aurora PostgreSQL
+
+The Aurora DB cluster is only accessible to ROSA clusters with an established Peering Connection, therefore all debugging
+connections must also originate from said clusters. A simple way to connect `psql` to the cluster is to execute the following:
+
+[source,bash]
+----
+kubectl run -i --tty --rm debug --image=postgres:13 --restart=Never -n {{.KC_NAMESPACE_PREFIX}}keycloak -- psql -h postgres -d keycloak -U keycloak
+----
+
+This will create a pod in the Keycloak deployment namespace and establish a connection with the Aurora cluster. A password
+prompt will appear on initial connection and you should utilise the password defined in the Secret `keycloak-db-secret`.
+Upon exiting the pod shell, the pod will be deleted.
+
+== Disconnecting ROSA cluster from Aurora Cluster
+
+To remove a Peering Connection between the ROSA and Aurora VPCS, execute `./provision/aws/rds/aurora_delete_peering_connection.sh`
+wit the the following env:
+
+[source]
+----
+AURORA_CLUSTER= # The name of the Aurora cluster instance
+AURORA_REGION= # The AWS region hosting the Aurora cluster
+CLUSTER_NAME= # The name of the ROSA cluster to establish the peering connectin with
+AWS_REGION= # The AWS region hosting the ROSA cluster
+----
+
+== Deleting an Aurora Cluster
+Before deleting an Aurora cluster it's first necessary for all Peering Connections established with ROSA cluster(s) to
+be removed.
+
+To remove an Aurora cluster, execute `./provision/aws/rds/aurora_delete.sh` with the following env:
+
+[source]
+----
+AURORA_CLUSTER= # The name of the Aurora cluster instance
+AURORA_REGION= # The AWS region hosting the Aurora cluster
+----

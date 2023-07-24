@@ -1,0 +1,35 @@
+name: Aurora Delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'The name of the Aurora DB cluster'
+        type: string
+        required: true
+      region:
+        description: 'The AWS region used to host the Aurora DB'
+        type: string
+        required: true
+
+jobs:
+  prepare:
+    name: Delete Aurora DB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Delete Aurora
+        uses: ./.github/actions/aurora-delete-database
+        with:
+          name: ${{ inputs.name }}
+          region: ${{ inputs.region }}

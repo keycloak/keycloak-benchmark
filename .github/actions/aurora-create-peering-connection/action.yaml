@@ -1,0 +1,25 @@
+name: Create Aurora Peering Connection
+description: Create AWS Peering Connection between Aurora DB and a ROSA cluster
+
+inputs:
+  name:
+    description: 'The name of the Aurora DB cluster'
+    required: true
+  region:
+    description: 'The AWS region used to host the Aurora DB'
+    required: true
+  clusterName:
+    description: 'The name of the ROSA cluster'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: create_peering_connection
+      shell: bash
+      run: ./aurora_create_peering_connection.sh
+      working-directory: provision/aws/rds
+      env:
+        AURORA_CLUSTER: ${{ inputs.name }}
+        AURORA_REGION: ${{ inputs.region }}
+        CLUSTER_NAME: ${{ inputs.clusterName }}

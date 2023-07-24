@@ -36,10 +36,20 @@ tasks:
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=infinispan
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=cockroach
+      - >
+        bash -c '
+        if [ "{{.KC_DATABASE}}" == "aurora-postgres" ]; then
+          kubectl apply -f reset_aurora_postgres.yaml -n {{.KC_NAMESPACE_PREFIX}}keycloak
+          kubectl wait --timeout=30s --for=condition=complete job/reset-aurora-postgres -n {{.KC_NAMESPACE_PREFIX}}keycloak
+          kubectl delete -f reset_aurora_postgres.yaml -n {{.KC_NAMESPACE_PREFIX}}keycloak
+        fi
+        '
       # discard status of keycloak to force redeployment
       - rm -f .task/checksum/keycloak
       # discard status of gatling user to force redeployment
       - rm -f .task/checksum/gatlinguser
+
+
       - task: default
 
   openshift-env:
@@ -234,6 +244,7 @@ tasks:
         --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
         --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
         --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
+        --set dbUrl={{ .KC_DATABASE_URL }}
         --set storage={{.KC_STORAGE}}
         --set database={{.KC_DATABASE}}
         --set keycloakImage={{.KC_CONTAINER_IMAGE}}
@@ -263,7 +274,7 @@ tasks:
         ../minikube/keycloak
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" != "none" ];
+        if [[ "{{.KC_DATABASE}}" != "none" && "{{.KC_DATABASE}}" != "aurora-postgres" ]];
         then kubectl get deployment/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'

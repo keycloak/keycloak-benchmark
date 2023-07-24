@@ -31,6 +31,12 @@ on:
       heapMaxSizeMB:
         description: 'Keycloak server maximum Java heap size (in MB)'
         type: string
+      # Hack to workaround the max limit of 10 inputes
+      additional_args:
+        description: JSON of additional options
+        type: string
+        default: '{}'
+        required: false
 
 env:
   PROJECT_PREFIX: runner- # same as default
@@ -40,6 +46,10 @@ jobs:
   prepare:
     name: Create Keycloak deployment
     runs-on: ubuntu-latest
+    env:
+      AURORA_CLUSTER: ${{ fromJson(inputs.additional_args).auroraDb }}
+      AURORA_REGION: ${{ fromJson(inputs.additional_args).auroraRegion }}
+      CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -55,7 +65,7 @@ jobs:
       - name: Login to OpenShift cluster
         uses: ./.github/actions/oc-keycloak-login
         with:
-          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+          clusterName: ${{ env.CLUSTER_NAME }}
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -63,6 +73,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
+
+      - if: ${{ env.AURORA_CLUSTER != '' }}
+        name: Aurora Peering Connection
+        uses: ./.github/actions/aurora-create-peering-connection
+        with:
+          name: ${{ env.AURORA_CLUSTER }}
+          region: ${{ env.AURORA_REGION }}
+          clusterName: ${{ env.CLUSTER_NAME }}
+
+      - if: ${{ env.AURORA_CLUSTER != '' }}
+        name: Aurora URL
+        run: |
+          echo "AURORA_URL=$(./provision/aws/rds/aurora_endpoint.sh)" >> $GITHUB_ENV
+          echo "DATABASE=aurora-postgres" >> $GITHUB_ENV
 
       - name: Create Keycloak deployment
         uses: ./.github/actions/keycloak-create-deployment
@@ -76,3 +100,5 @@ jobs:
           podCpuRequests: ${{ inputs.podCpuRequests }}
           podCpuLimit: ${{ inputs.podCpuLimit }}
           heapMaxSizeMB: ${{ inputs.heapMaxSizeMB }}
+          database: ${{ env.DATABASE }}
+          databaseUrl: ${{ env.AURORA_URL }}

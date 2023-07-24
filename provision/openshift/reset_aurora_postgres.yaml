@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reset-aurora-postgres
+data:
+  drop.sql: |
+    -- Drop all tables in the database
+    DO $$ DECLARE
+        r RECORD;
+    BEGIN
+        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+            EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+        END LOOP;
+    END $$;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reset-aurora-postgres
+spec:
+  template:
+    spec:
+      containers:
+      - name: psql
+        image: postgres:13
+        command: ["/bin/sh", "-c"]
+        args: ["psql -h postgres -d keycloak -f /etc/sql/drop.sql"]
+        env:
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-secret
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-secret
+              key: password
+        volumeMounts:
+        - name: sql-volume
+          mountPath: /etc/sql
+      volumes:
+      - name: sql-volume
+        configMap:
+          name: reset-aurora-postgres
+      restartPolicy: Never
+  backoffLimit: 1
