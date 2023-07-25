@@ -12,6 +12,9 @@ jobs:
     name: Aurora Scheduled Delete cluster(s)
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
         run: ./provision/aws/rds/aurora_cluster_reaper.sh
         env:
