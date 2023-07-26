@@ -15,6 +15,7 @@ include::partial$configure-db-connection-pool-best-practices.adoc[]
 
 See xref:customizing-deployment.adoc#KC_DB_POOL_INITIAL_SIZE[the Keycloak deployment configuration options `KC_DB_*`]
 
+[#threads]
 == Threads
 
 Starting with Keycloak 20.0.0 and running Quarkus, all Keycloak requests are dispatched to the executor pool of Quarkus (see https://github.com/keycloak/keycloak/pull/15193[keycloak#15193]).
@@ -32,9 +33,17 @@ When the load and the number of threads increases, the bottleneck will usually b
 Once a request can't acquire a database connection, it will fail with a message in the log like `Unable to acquire JDBC Connection` or similar as described in xref:error-messages.adoc#keycloak-message-error-failed-to-obtain-jdbc-connection[the known error messages].
 The caller will receive a response with a 5xx HTTP status code indicating a server side error.
 +
-With the number of threads in the executor pool being an order of magnitude larger than the number of database connections and with requests failing when no database connection is available within the https://quarkus.io/guides/all-config#quarkus-agroal_quarkus.datasource.jdbc.acquisition-timeout[`quarkus.datasource.jdbc.acquisition-timeout`] (5 seconds default), this is an effective https://en.wikipedia.org/wiki/Demand_response#Load_shedding[load-shedding behavior] where it returns an error response instead of queueing requests for an indefinite amount of time.
+With the number of threads in the executor pool being an order of magnitude larger than the number of database connections and with requests failing when no database connection is available within the https://quarkus.io/guides/all-config#quarkus-agroal_quarkus.datasource.jdbc.acquisition-timeout[`quarkus.datasource.jdbc.acquisition-timeout`] (5 seconds default), this is somwhat of a https://en.wikipedia.org/wiki/Demand_response#Load_shedding[load-shedding behavior] where it returns an error response instead of queueing requests for an indefinite amount of time.
 +
-There should be no need to configure a specific value for these configuration options.
+The combined number of executor threads in all Keycloak nodes in the cluster shouldn't exceed the number of threads available in JGroups thread pool to avoid the error described in
+xref:kubernetes-guide::error-messages.adoc#jgroups-thread-pool-is-full['org.jgroups.util.ThreadPool: thread pool is full'].
++
+--
+include::partial$executor-jgroups-thread-calculation.adoc[]
+--
++
+Configure `quarkus.thread-pool.queue-size` to specify a maximum queue length to allow for effective load shedding once this queue size is exceeded: Keycloak will return HTTP Status code 503 (server unavailable) in this situation (available in Keycloak 23, see https://github.com/keycloak/keycloak/issues/21962[#21962] for details).
+Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
 
 * All health and liveness probes are handled in the Vert.x worker pool.
 This is configured in https://quarkus.io/guides/all-config#quarkus-vertx_quarkus.vertx.worker-pool-size[`quarkus.vertx.worker-pool-size`] and has a default of 20 threads.
