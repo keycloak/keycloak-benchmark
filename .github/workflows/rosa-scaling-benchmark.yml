@@ -1,4 +1,4 @@
-name: Rosa Cluster - Scaling Benchmark
+name: ROSA Cluster - Scaling Benchmark
 
 on:
   workflow_dispatch:
@@ -153,7 +153,8 @@ jobs:
           --logout-percentage=0 \
           --measurement=${{ inputs.measurement }} \
           --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
-          --log-http-on-failure
+          --log-http-on-failure \
+          --sla-error-percentage=0.001
         working-directory: ansible
 
       - name: Testing CPU usage for user logins
@@ -168,7 +169,8 @@ jobs:
           --logout-percentage=100 \
           --measurement=${{ inputs.measurement }} \
           --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
-          --log-http-on-failure
+          --log-http-on-failure \
+          --sla-error-percentage=0.001
         working-directory: ansible
 
       - name: Testing CPU usage for client credential grants
@@ -182,7 +184,8 @@ jobs:
           --ramp-up=20 \
           --measurement=${{ inputs.measurement }} \
           --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
-          --log-http-on-failure
+          --log-http-on-failure \
+          --sla-error-percentage=0.001
         working-directory: ansible
 
       - name: Archive Gatling reports
