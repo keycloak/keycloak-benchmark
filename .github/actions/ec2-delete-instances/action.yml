@@ -1,0 +1,20 @@
+name: Delete EC2 instances
+description: Deletes EC2 instances
+
+inputs:
+  region:
+    description: 'The AWS region used to delete the EC2 instances.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: stop-ec2-instances
+      shell: bash
+      run: ./aws_ec2.sh stop ${{ inputs.region }}
+      working-directory: ansible
+
+    - id: delete-load-runners
+      shell: bash
+      run: ./aws_ec2.sh delete ${{ inputs.region }}
+      working-directory: ansible

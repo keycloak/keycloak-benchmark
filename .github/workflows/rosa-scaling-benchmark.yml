@@ -1,0 +1,213 @@
+name: Rosa Cluster - Scaling Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+        default: 'gh-keycloak'
+      region:
+        description: 'Name of the region where EC2 instances should be installed'
+        type: string
+        default: 'eu-west-1'
+      numberOfEntitiesInRealm:
+        description: 'Number of entities for the scenario in DB'
+        type: string
+        default: '100000'
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: string
+        default: '900'
+      numberOfUsersPerSecond:
+        description: 'Initial users per second'
+        type: string
+        default: '200'
+      numberOfClientsPerSecond:
+          description: 'Initial clients per second'
+          type: string
+          default: '1000'
+      skipCreateDeployment:
+        description: 'Skip creating Keycloak deployment'
+        type: boolean
+        default: false
+      skipCreateDataset:
+        description: 'Skip creating dataset'
+        type: boolean
+        default: false
+      skipDeleteProject:
+        description: 'Skip deleting project'
+        type: boolean
+        default: false
+
+concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+env:
+  PROJECT_PREFIX: runner- # same as default
+  PROJECT: runner-keycloak
+  KC_CPU_REQUESTS: 6
+  KC_INSTANCES: 3
+  KC_DISABLE_STICKY_SESSION: true
+  KC_MEMORY_REQUESTS_MB: 4000
+  KC_MEMORY_LIMITS_MB: 4000
+  KC_HEAP_MAX_MB: 2048
+  KC_DB_POOL_INITIAL_SIZE: 30
+  KC_DB_POOL_MAX_SIZE: 30
+  KC_DB_POOL_MIN_SIZE: 30
+
+jobs:
+  run:
+    name: Run Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Cache Maven Wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            .mvn/wrapper/maven-wrapper.jar
+          key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-wrapper-
+
+      - name: Build with Maven
+        run: |
+          ./mvnw -B clean package -DskipTests -pl benchmark
+          tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
+          mv keycloak-benchmark-* keycloak-benchmark
+
+      - name: Allow cluster to scale
+        if: ${{ !inputs.skipCreateDeployment }}
+        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 3 --max-replicas 10 scaling
+
+      - name: Create Keycloak deployment
+        if: ${{ !inputs.skipCreateDeployment }}
+        uses: ./.github/actions/keycloak-create-deployment
+        with:
+          projectPrefix: ${{ env.PROJECT_PREFIX }}
+          disableStickySessions: ${{ !env.KC_DISABLE_STICKY_SESSION }}
+          replicas: ${{ env.KC_INSTANCES }}
+          podCpuRequests: ${{ env.KC_CPU_REQUESTS }}
+          podMemoryRequests: ${{ env.KC_MEMORY_REQUESTS_MB }}
+          podMemoryLimit: ${{ env.KC_MEMORY_LIMITS_MB }}
+          heapMaxSizeMB: ${{ env.KC_HEAP_MAX_MB }}
+          deployMonitoring: true
+
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
+        if: ${{ !inputs.skipCreateDataset }}
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          users: ${{ inputs.numberOfEntitiesInRealm }}
+          clients: 100
+          clientsPerRealm: ${{ inputs.numberOfEntitiesInRealm }}
+          createClientForSpecificRealm: true
+          maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
+
+      - name: Create AWS EC2 instances
+        id: create_aws_ec2_instances
+        uses: ./.github/actions/ec2-create-instances
+        with:
+          region: ${{ inputs.region }}
+
+      - name: Get URLs
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ env.PROJECT }}
+
+      - name: Testing memory for creating sessions
+        id: kcb-authorization-code-1
+        run: |
+          ./benchmark.sh ${{ inputs.region }} \
+          --scenario=keycloak.scenario.authentication.AuthorizationCode \
+          --server-url=${{ env.KEYCLOAK_URL }} \
+          --realm-name=realm-0 \
+          --users-per-sec=${{ inputs.numberOfUsersPerSecond }} \
+          --ramp-up=20 \
+          --logout-percentage=0 \
+          --measurement=600 \
+          --users-per-realm=100000 \
+          --log-http-on-failure
+        working-directory: ansible
+
+      - name: Testing CPU usage for user logins
+        id: kcb-authorization-code-2
+        run: |
+          ./benchmark.sh ${{ inputs.region }}  \
+          --scenario=keycloak.scenario.authentication.AuthorizationCode \
+          --server-url=${{ env.KEYCLOAK_URL }} \
+          --realm-name=realm-0 \
+          --users-per-sec=${{ inputs.numberOfUsersPerSecond }} \
+          --ramp-up=20 \
+          --logout-percentage=100 \
+          --measurement=600 \
+          --users-per-realm=100000 \
+          --log-http-on-failure
+        working-directory: ansible
+
+      - name: Testing CPU usage for client credential grants
+        id: kcb-client-secret
+        run: |
+          ./benchmark.sh ${{ inputs.region }} \
+          --scenario=keycloak.scenario.authentication.ClientSecret \
+          --server-url=${{ env.KEYCLOAK_URL }} \
+          --realm-name=realm-0 \
+          --users-per-sec=${{ inputs.numberOfClientsPerSecond }} \
+          --ramp-up=20 \
+          --measurement=600 \
+          --users-per-realm=100000 \
+          --log-http-on-failure
+        working-directory: ansible
+
+      - name: Archive Gatling reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: gatling-results
+          path: ansible/files/benchmark/*/results
+          retention-days: 5
+
+      - name: Archive Summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: summary
+          path: ansible/files/benchmark/*/results/*/js/stats.json
+          retention-days: 5
+
+      - name: Stop and Delete EC2 instances
+        if: ${{ success() || (failure() && steps.create_aws_ec2_instances.conclusion != 'skipped') }}
+        uses: ./.github/actions/ec2-delete-instances
+        with:
+          region: ${{ inputs.region }}
+
+      - name: Delete Keycloak deployment
+        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
+        uses: ./.github/actions/keycloak-delete-deployment
+        with:
+          project: ${{ env.PROJECT }}
+
+      - name: Scale down the cluster
+        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
+        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 --max-replicas 0 scaling
