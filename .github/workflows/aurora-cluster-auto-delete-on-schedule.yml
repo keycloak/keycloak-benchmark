@@ -15,6 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
+
       - if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
         run: ./provision/aws/rds/aurora_cluster_reaper.sh
         env:
