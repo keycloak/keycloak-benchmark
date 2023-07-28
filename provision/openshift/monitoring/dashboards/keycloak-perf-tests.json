@@ -938,7 +938,7 @@
         "y": 18
       },
       "id": 2,
-      "interval": "120",
+      "interval": "30",
       "options": {
         "legend": {
           "calcs": [
@@ -965,7 +965,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(container_cpu_usage_seconds_total{job=\"kubelet\", namespace=\"$namespace\",container!=\"\"}\r\n[$__rate_interval])) without (cpu)",
+          "expr": "sum(irate(container_cpu_usage_seconds_total{job=\"kubelet\", namespace=\"$namespace\",container!=\"\"}\r\n[$__rate_interval])) without (cpu)",
           "hide": false,
           "legendFormat": "{{pod}}",
           "range": true,
@@ -1041,7 +1041,7 @@
         "y": 18
       },
       "id": 52,
-      "interval": "120",
+      "interval": "30",
       "options": {
         "legend": {
           "calcs": [
@@ -1247,7 +1247,7 @@
         "y": 18
       },
       "id": 4,
-      "interval": "120",
+      "interval": "30",
       "options": {
         "legend": {
           "calcs": [
@@ -1274,7 +1274,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(container_network_receive_bytes_total{job=\"kubelet\",namespace=\"$namespace\"}[$__rate_interval])) without (interface)",
+          "expr": "sum(irate(container_network_receive_bytes_total{job=\"kubelet\",namespace=\"$namespace\"}[1m])) without (interface)",
           "hide": false,
           "legendFormat": "{{pod}} receive",
           "range": true,
