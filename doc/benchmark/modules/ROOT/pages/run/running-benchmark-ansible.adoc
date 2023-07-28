@@ -39,11 +39,18 @@ The most important parameters to customize in `env.yml` are:
 
 `cluster_size`:: Number of instances to be created.
 As default, Gatling will create new HTTP connections for each new user.
-As the network stack of the load driver can be congested with a lot of connections in the `TIME_WAIT` state, consider using one EC2 instance per 300 users per seconds.
+As the network stack of the load driver can be congested with a lot of connections in the `TIME_WAIT` state, consider using one EC2 instance per 250 users per seconds.
 
 `instance_type`:: Size of instances to be created, see https://aws.amazon.com/ec2/instance-types/[AWS instance types].
 
 === Creating EC2 instances
+
+NOTE: Instances will be bound to the IP address of the system which creates them!
+
+When creating the instances, the public IP address of the host creating the machines is added to the EC2 security group, and only this IP address is allowed to log in to the load drivers via SSH.
+When the public IP address changes you'll need to re-run the `create` command.
+The public IP address changes, for example, when changing locations or networks, or when the internet connection at home renews the IP address every night.
+The message displayed when the IP address of the host running Ansible can't connect is "`Failed to connect to the host via ssh`".
 
 . Install the required Ansible AWS collections.
 +
