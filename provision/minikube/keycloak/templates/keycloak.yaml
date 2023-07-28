@@ -148,6 +148,18 @@ spec:
             imagePullPolicy: Never
 {{ end }}
             env:
+              # Limiting Keycloak thread pool as it might lead to an exhaustion of the JGroups thread pool.
+              # The combined worker thread pool size of all Keycloak instances shouldn't exceed the size of the JGroups thread pool on each node.
+              # Due to https://issues.redhat.com/browse/ISPN-14780 there is currently no way to configure the JGroups thread pool max size,
+              # so there is no way to increase the value from the 100 which are the default in JGroups AFAIK.
+              - name: 'QUARKUS_THREAD_POOL_MAX_THREADS'
+                value: {{ div 100 .Values.instances | quote }}
+              # This is the queue size on each Keycloak node, that when exceeded will return a 503 response immediately (load shedding).
+              # Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
+              # In the future, the queue size could be determined dynamically on each node based on the processing time of previous requests.
+              # See: https://github.com/keycloak/keycloak/issues/21962
+              - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE'
+                value: '1000'
 {{ if .Values.otel }}
               # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
               # As a workaround, force downgrade to HTTP/1.1
@@ -213,7 +225,7 @@ spec:
                 {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
             startupProbe:
               httpGet:
-                path: /health/ready
+                path: /health/started
                 port: 8443
                 scheme: HTTPS
               failureThreshold: 600
@@ -224,15 +236,21 @@ spec:
                 path: /health/ready
                 port: 8443
                 scheme: HTTPS
-              failureThreshold: 10
-              periodSeconds: 10
+              failureThreshold: 3
+              periodSeconds: 30
+              # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds
+              # With all requests being queued, also the liveness probe is queue, and is therefore slow.
+              timeoutSeconds: 20
             livenessProbe:
               httpGet:
                 path: /health/live
                 port: 8443
                 scheme: HTTPS
-              failureThreshold: 10
-              periodSeconds: 10
+              failureThreshold: 3
+              periodSeconds: 30
+              # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds
+              # With all requests being queued, also the liveness probe is queue, and is therefore slow.
+              timeoutSeconds: 20
             volumeMounts:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers

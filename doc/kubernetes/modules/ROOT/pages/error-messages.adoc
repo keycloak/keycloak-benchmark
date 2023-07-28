@@ -101,3 +101,30 @@ No transactions against any store participating in the JTA transaction complete,
 Remedy::
 Via the environment variable `QUARKUS_TRANSACTION_MANAGER_OBJECT_STORE_DIRECTORY` pass in a folder that is writable.
 This has been fixed upstream for Keycloak 21.1 in https://github.com/keycloak/keycloak/pull/19384[keycloak#19384].
+
+[#jgroups-thread-pool-is-full]
+== Keycloak message 'org.jgroups.util.ThreadPool: thread pool is full'
+
+Full message::
+org.jgroups.util.ThreadPool: thread pool is full (max=xx, active=xx); thread dump (dumped once, until thread_dump is reset)
+
+Context::
+This happens when the thread pool in JGroups runs out of threads.
+
+Cause::
+Each Keycloak pod has executor threads which execute the RESTEasy requests.
+While those can request data from the local caches directly (either the primary or the back ones), they need to call out to remote caches via JGroups.
+While some of these requests might get bundled, each of the Keycloak requests calling out remotely might need to acquire one JGroups thread.
+
+Effect::
+When JGroups runs out of threads in its thread pool, those remote calls to be enqueued are rejected and discarded.
+This will lead to longer processing times and eventually to timeouts on Infinispan where JGroups is the underlying transport.
+
+Remedy::
+The number of executor threads in all Keycloak Pods in a cluster combined should be equal to the maximum size of the JGroups thread pool.
++
+--
+include::partial$executor-jgroups-thread-calculation.adoc[]
+--
++
+See more in the xref:load-behavior.adoc#threads[section on threads on the load behavior page].
