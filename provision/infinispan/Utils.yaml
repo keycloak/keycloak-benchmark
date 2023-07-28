@@ -1,0 +1,401 @@
+# https://taskfile.dev
+version: '3'
+
+tasks:
+  rosa-oc-login:
+    desc: "Login into ROSA cluster"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - mkdir -p .task/kubecfg
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" CLUSTER_NAME="{{.ROSA_CLUSTER_NAME}}" ../aws/rosa_oc_login.sh
+    generates:
+      - .task/kubecfg/{{.ROSA_CLUSTER_NAME}}
+    status:
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+    internal: true
+
+  create-namespace:
+    desc: "Creates a new namespace if missing"
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+    cmds:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc new-project "{{.NAMESPACE}}" || true
+    preconditions:
+      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+    status:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc project "{{.NAMESPACE}}" -q
+    internal: true
+
+  deploy-infinispan:
+    internal: true
+    desc: "Deploys Infinispan CR"
+    requires:
+      vars:
+        - KUBECONFIG
+        - NAMESPACE
+    vars:
+      CROSS_DC_SA_TOKEN_SECRET: '{{.CROSS_DC_SA_TOKEN_SECRET | default "xsite-token-secret"}}'
+      CROSS_DC_JGRP_TS_SECRET: '{{.CROSS_DC_JGRP_TS_SECRET | default "xsite-truststore-secret"}}'
+      CROSS_DC_JGRP_KS_SECRET: '{{.CROSS_DC_JGRP_KS_SECRET | default "xsite-keystore-secret"}}'
+      CROSS_DC_EXTERNAL_ROUTER_ENABLED: '{{.CROSS_DC_EXTERNAL_ROUTER_ENABLED | default "false"}}'
+      CROSS_DC_ENABLED: '{{.CROSS_DC_ENABLED | default "false"}}'
+    cmds:
+      - >
+        KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
+        --set namespace={{.NAMESPACE}}
+        --set crossdc.enabled={{.CROSS_DC_ENABLED}}
+        --set crossdc.local.name={{.CROSS_DC_LOCAL_SITE}}
+        --set crossdc.remote.name={{.CROSS_DC_REMOTE_SITE}}
+        --set crossdc.remote.namespace={{.CROSS_DC_REMOTE_SITE_NAMESPACE}}
+        --set crossdc.remote.url={{.CROSS_DC_API_URL}}
+        --set crossdc.remote.secret={{.CROSS_DC_SA_TOKEN_SECRET}}
+        --set crossdc.route.enabled={{.CROSS_DC_EXTERNAL_ROUTER_ENABLED}}
+        --set crossdc.route.tls.keystore.secret={{.CROSS_DC_JGRP_KS_SECRET}}
+        --set crossdc.route.tls.truststore.secret={{.CROSS_DC_JGRP_TS_SECRET}}
+        --set image={{.CROSS_DC_IMAGE}}
+        ./ispn-helm
+    preconditions:
+      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+    status:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc -n {{.NAMESPACE}} get infinispans.infinispan.org infinispan
+      - test "{{.FORCE_INFINISPAN | default 0}}" == "0"
+
+  create-jgroups-tls-secret:
+    internal: true
+    desc: "Creates Keystore and Truststore secrets used by JGroups to establish TLS connections"
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+    vars:
+      CROSS_DC_JGRP_TS_SECRET: '{{.CROSS_DC_JGRP_TS_SECRET |  default "xsite-truststore-secret"}}'
+      CROSS_DC_JGRP_KS_SECRET: '{{.CROSS_DC_JGRP_KS_SECRET | default "xsite-keystore-secret"}}'
+    cmds:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc -n "{{.NAMESPACE}}" delete secret "{{.CROSS_DC_JGRP_KS_SECRET}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc -n "{{.NAMESPACE}}" delete secret "{{.CROSS_DC_JGRP_TS_SECRET}}" || true
+      - >
+        KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}"
+        oc -n "{{.NAMESPACE}}" create secret generic "{{.CROSS_DC_JGRP_KS_SECRET}}"
+        --from-file=keystore.p12="./certs/keystore.p12"
+        --from-literal=password=secret
+        --from-literal=type=pkcs12
+      - >
+        KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}"
+        oc -n "{{.NAMESPACE}}" create secret generic "{{.CROSS_DC_JGRP_TS_SECRET}}"
+        --from-file=truststore.p12="./certs/truststore.p12"
+        --from-literal=password=caSecret
+        --from-literal=type=pkcs12
+    sources:
+      - ./certs/keystore.p12
+      - ./certs/truststore.p12
+      - .task/kubecfg/{{.KUBECONFIG}}
+    preconditions:
+      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+    status:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc get secrets -n "{{.NAMESPACE}}" "{{.CROSS_DC_JGRP_KS_SECRET}}"
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc get secrets -n "{{.NAMESPACE}}" "{{.CROSS_DC_JGRP_TS_SECRET}}"
+
+  create-xsite-service-account:
+    internal: true
+    desc: "Creates a service account for Cross-Site. Infinispan operator uses to connect to the remote site"
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+        - TOKEN_FILE
+    vars:
+      CROSS_DC_SERVICE_ACCOUNT: '{{.CROSS_DC_SERVICE_ACCOUNT | default "xsite-sa"}}'
+    cmds:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc create sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc policy add-role-to-user view -n "{{.NAMESPACE}}" -z "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
+      - mkdir -p .task/tokens
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc create token -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" > .task/tokens/{{.TOKEN_FILE}}
+    generates:
+      - .task/tokens/{{.TOKEN_FILE}}
+    preconditions:
+      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+    status:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc get sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}"
+      - test -f .task/tokens/{{.TOKEN_FILE}}
+
+  deploy-xsite-service-account-token:
+    internal: true
+    desc: "Creates a secret with the service account token"
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+        - TOKEN_FILE
+    vars:
+      CROSS_DC_SA_TOKEN_SECRET: '{{.CROSS_DC_SA_TOKEN_SECRET | default "xsite-token-secret"}}'
+    cmds:
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc delete secret -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc create secret generic -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" --from-literal=token="$(cat .task/tokens/{{.TOKEN_FILE}})"
+    sources:
+      - .task/tokens/{{.TOKEN_FILE}}
+    preconditions:
+      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+
+  fetch_ocp_api_url:
+    internal: true
+    desc: "Fetches and stores the OCP API URL"
+    requires:
+      vars:
+        - KUBECONFIG
+        - FILENAME
+    cmds:
+      - mkdir -p .task/apiurl
+      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|^http[s]://||g' > .task/apiurl/{{.FILENAME}}
+    generates:
+      - .task/apiurl/{{.FILENAME}}
+    preconditions:
+      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+    status:
+      - test -f ".task/apiurl/{{.FILENAME}}"
+
+  wait-cluster:
+    internal: true
+    desc: "Waits for the Infinispan cluster to form"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - NAMESPACE
+    vars:
+      CROSS_DC_WAIT_TIMEOUT: '{{.CROSS_DC_WAIT_TIMEOUT | default "300"}}'
+    cmds:
+      - echo "Waiting for the Infinispan cluster to form on namespace '{{.NAMESPACE}}' (timeout after {{.CROSS_DC_WAIT_TIMEOUT}} seconds)"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for condition=WellFormed --timeout={{.CROSS_DC_WAIT_TIMEOUT}}s infinispans.infinispan.org -n "{{.NAMESPACE}}" infinispan
+    preconditions:
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  wait-crossdc:
+    internal: true
+    desc: "Waits for the Infinispan Cross-Site to form"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - NAMESPACE
+    vars:
+      CROSS_DC_WAIT_TIMEOUT: '{{.CROSS_DC_WAIT_TIMEOUT | default "300"}}'
+    cmds:
+      - echo "Waiting for the Infinispan cross-site to form on namespace '{{.NAMESPACE}}' (timeout after {{.CROSS_DC_WAIT_TIMEOUT}} seconds)"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for condition=CrossSiteViewFormed --timeout={{.CROSS_DC_WAIT_TIMEOUT}}s infinispans.infinispan.org -n "{{.NAMESPACE}}" infinispan
+    preconditions:
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  single-cluster:
+    internal: true
+    desc: "Creates a single cluster Infinispan deployment"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - OC_NAMESPACE
+    cmds:
+      - task: rosa-oc-login
+      - task: create-namespace
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.OC_NAMESPACE}}"
+      - task: deploy-infinispan
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.OC_NAMESPACE}}"
+          CROSS_DC_ENABLED: "false"
+      - task: wait-cluster
+        vars:
+          NAMESPACE: "{{.OC_NAMESPACE}}"
+
+  crossdc-single:
+    internal: true
+    desc: "Creates a cross-site enabled Infinispan deployment between 2 namespaces"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - OC_NAMESPACE_1
+        - OC_NAMESPACE_2
+    cmds:
+      - task: rosa-oc-login
+      - task: create-namespace
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: create-namespace
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - task: deploy-infinispan
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_ENABLED: "true"
+          CROSS_DC_LOCAL_SITE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_REMOTE_SITE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_REMOTE_SITE_NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - task: deploy-infinispan
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_ENABLED: "true"
+          CROSS_DC_LOCAL_SITE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_REMOTE_SITE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_REMOTE_SITE_NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: wait-cluster
+        vars:
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: wait-cluster
+        vars:
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - task: wait-crossdc
+        vars:
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: wait-crossdc
+        vars:
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+
+  crossdc:
+    internal: true
+    desc: "Creates a cross-site enabled Infinispan deployment between 2 OCP clusters"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - OC_NAMESPACE_1
+        - OC_NAMESPACE_2
+    cmds:
+      - task: rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+      - task: create-namespace
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: create-namespace
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+
+      - task: create-jgroups-tls-secret
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: create-jgroups-tls-secret
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+
+      - task: create-xsite-service-account
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          TOKEN_FILE: "site-1"
+      - task: create-xsite-service-account
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          TOKEN_FILE: "site-2"
+
+      - task: deploy-xsite-service-account-token
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          TOKEN_FILE: "site-2"
+      - task: deploy-xsite-service-account-token
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          TOKEN_FILE: "site-1"
+
+      - task: fetch_ocp_api_url
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          FILENAME: "site-1"
+      - task: fetch_ocp_api_url
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          FILENAME: "site-2"
+
+      - task: deploy-infinispan
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_ENABLED: "true"
+          CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
+          CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
+          CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
+          CROSS_DC_API_URL: "openshift://$(cat .task/apiurl/site-2)"
+      - task: deploy-infinispan
+        vars:
+          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_ENABLED: "true"
+          CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
+          CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
+          CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
+          CROSS_DC_API_URL: "openshift://$(cat .task/apiurl/site-1)"
+      - task: wait-cluster
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: wait-cluster
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - task: wait-crossdc
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+      - task: wait-crossdc
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+
+  delete-infinispan:
+    internal: true
+    desc: "Deletes the Infinispan CR"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - OC_NAMESPACE
+    cmds:
+      - task: rosa-oc-login
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE}}" infinispan
+
+  delete-crossdc-single:
+    internal: true
+    desc: "Deletes the Infinispan CR in a cross-site deployment in a single OCP cluster"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - OC_NAMESPACE_1
+        - OC_NAMESPACE_2
+    cmds:
+      - task: rosa-oc-login
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_1}}" infinispan
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_2}}" infinispan
+
+  delete-crossdc:
+    internal: true
+    desc: "Deletes the Infinispan CR from cross-site deployment"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - OC_NAMESPACE_1
+        - OC_NAMESPACE_2
+    cmds:
+      - task: rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_1}}" infinispan
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_2}}" infinispan
