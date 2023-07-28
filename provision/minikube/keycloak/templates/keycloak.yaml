@@ -7,7 +7,11 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   hostname:
+    {{- if .Values.keycloakHostname }}
+    hostname: {{ .Values.keycloakHostname }}
+    {{- else }}
     hostname: keycloak-{{ .Values.namespace }}.{{ .Values.hostname }}
+    {{- end }}
 {{ if .Values.disableIngressStickySession }}
   ingress:
     enabled: true
