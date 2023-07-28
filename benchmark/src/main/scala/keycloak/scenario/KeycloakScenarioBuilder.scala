@@ -243,7 +243,6 @@ class KeycloakScenarioBuilder {
         .formParam("code", "${code}")
         .check(
           status.is(200),
-          // other elements like the access token not captured as we don't need them in the current scenarios and want to save memory
           jsonPath("$..id_token").find.saveAs("idToken"),
           jsonPath("$..access_token").find.saveAs("accessToken"),
           jsonPath("$..refresh_token").find.saveAs("refreshToken"),
@@ -324,7 +323,6 @@ class KeycloakScenarioBuilder {
       .exitHereIfFailed
     this
   }
-
 
   def serviceAccountToken(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
@@ -735,7 +733,6 @@ class KeycloakScenarioBuilder {
         .formParam("redirect_uri", "${redirectUri}")
         .check(
           status.is(200),
-          // other elements like the access token not captured as we don't need them in the current scenarios and want to save memory
           jsonPath("$..id_token").find.saveAs("idToken"),
           jsonPath("$..access_token").find.saveAs("accessToken"),
           jsonPath("$..refresh_token").find.saveAs("refreshToken"),
@@ -747,8 +744,8 @@ class KeycloakScenarioBuilder {
 
   def repeatRefresh(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .repeat(10, "refresh_i") {  // TODO how to parameterize the count, or end condition and pause time between refreshes .. and how to spread out the users for whatever target load the user wants
-        refreshToken().pause(1)
+      .repeat(10, "refresh_i") {  //ToDo how to parameterize the count
+        refreshToken().pause(Config.userThinkTime)
       }
     this
   }

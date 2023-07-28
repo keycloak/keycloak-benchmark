@@ -2,9 +2,9 @@ package keycloak.scenario.authentication
 
 import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
 
-class RefreshToken extends CommonSimulation {
+class AuthCodeWithRefreshToken extends CommonSimulation {
 
-  setUp("Authentication - Refresh Token", new KeycloakScenarioBuilder()
+  setUp("Authentication - Authorization Code Username/Password with Refresh Token", new KeycloakScenarioBuilder()
     .openLoginPage(true)
     .loginUsernamePassword()
     .exchangeCode()
