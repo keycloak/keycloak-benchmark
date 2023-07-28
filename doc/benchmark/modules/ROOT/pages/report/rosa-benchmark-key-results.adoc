@@ -81,7 +81,8 @@ Keycloak spends most of the CPU time hashing the password provided by the user.
 +
 Most CPU time goes into creating new TLS connections, as each client runs only a single request.
 
-* Leave 100% extra head-room for CPU usage to handle spikes in the load.
+* Leave 200% extra head-room for CPU usage to handle spikes in the load.
+This ensures a fast startup of the node, and sufficient capacity to handle failover tasks like, for example, re-balancing Infinispan caches, when one node fails.
 Performance of Keycloak dropped significantly when its Pods were throttled in our tests.
 
 === Calculation example
@@ -98,9 +99,9 @@ Limits calculated:
 +
 (45 logins per second = 1 vCPU, 250 client credential grants per second = 1 vCPU)
 
-* CPU limit: 4 vCPU
+* CPU limit: 6 vCPU
 +
-(doubling the CPU requested to handle peaks, and also refresh token handling which we don't have numbers on, yet)
+(Allow for three times the CPU requested to handle peaks, startups and failover tasks, and also refresh token handling which we don't have numbers on, yet)
 
 * Memory requested: 1.2 GB
 +

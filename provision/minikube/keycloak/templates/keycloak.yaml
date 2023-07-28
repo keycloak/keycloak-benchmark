@@ -225,7 +225,7 @@ spec:
                 {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
             startupProbe:
               httpGet:
-                path: /health/ready
+                path: /health/started
                 port: 8443
                 scheme: HTTPS
               failureThreshold: 600
@@ -236,15 +236,21 @@ spec:
                 path: /health/ready
                 port: 8443
                 scheme: HTTPS
-              failureThreshold: 10
-              periodSeconds: 10
+              failureThreshold: 3
+              periodSeconds: 30
+              # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds
+              # With all requests being queued, also the liveness probe is queue, and is therefore slow.
+              timeoutSeconds: 20
             livenessProbe:
               httpGet:
                 path: /health/live
                 port: 8443
                 scheme: HTTPS
-              failureThreshold: 10
-              periodSeconds: 10
+              failureThreshold: 3
+              periodSeconds: 30
+              # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds
+              # With all requests being queued, also the liveness probe is queue, and is therefore slow.
+              timeoutSeconds: 20
             volumeMounts:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
