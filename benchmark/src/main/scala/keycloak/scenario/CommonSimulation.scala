@@ -27,6 +27,10 @@ abstract class CommonSimulation extends Simulation {
     var default = http
       .acceptHeader("application/json")
       .disableFollowRedirect
+      .shareConnections
+      .connectionHeader("keep-alive")
+      .useAllLocalAddresses
+      .disableCaching
 
     if (Config.inferHtmlResources) {
       default.inferHtmlResources()
