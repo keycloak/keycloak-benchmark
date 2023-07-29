@@ -5,7 +5,7 @@ import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
 class AuthCodeWithRefreshToken extends CommonSimulation {
 
   setUp("Authentication - Authorization Code Username/Password with Refresh Token", new KeycloakScenarioBuilder()
-    .openLoginPage(true)
+    .openLoginPage(false/*pauseAfter*/)
     .loginUsernamePassword()
     .exchangeCode()
     .repeatRefresh()

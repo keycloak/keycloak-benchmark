@@ -28,7 +28,7 @@ abstract class CommonSimulation extends Simulation {
       .acceptHeader("application/json")
       .disableFollowRedirect
       .shareConnections
-      .connectionHeader("keep-alive")
+      //.connectionHeader("keep-alive")
       .useAllLocalAddresses
       .disableCaching
 
