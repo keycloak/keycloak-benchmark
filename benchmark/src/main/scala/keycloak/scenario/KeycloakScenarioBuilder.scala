@@ -324,6 +324,7 @@ class KeycloakScenarioBuilder {
     this
   }
 
+
   def serviceAccountToken(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(getServiceAccountTokenExec())
