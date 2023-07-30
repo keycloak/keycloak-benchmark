@@ -1,6 +1,7 @@
 package keycloak.scenario.authentication
 
 import keycloak.scenario.{CommonSimulation, KeycloakScenarioBuilder}
+import org.keycloak.benchmark.Config
 
 class AuthCodeWithRefreshToken extends CommonSimulation {
 
@@ -8,7 +9,7 @@ class AuthCodeWithRefreshToken extends CommonSimulation {
     .openLoginPage(false/*pauseAfter*/)
     .loginUsernamePassword()
     .exchangeCode()
-    .repeatRefresh()
+    .repeatRefresh(Config.refreshTokenCount, Config.userThinkTime)
     .logout(true)
   )
 
