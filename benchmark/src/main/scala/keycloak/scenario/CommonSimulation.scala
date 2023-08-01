@@ -27,10 +27,15 @@ abstract class CommonSimulation extends Simulation {
     var default = http
       .acceptHeader("application/json")
       .disableFollowRedirect
-      .shareConnections
-      //.connectionHeader("keep-alive")
-      .useAllLocalAddresses
-      .disableCaching
+
+    if (Config.shareConnections) {
+      default = default.shareConnections
+    }
+
+    // since the test may involve tens of thousands of connections from a single testing
+    // system to a single host:port on a server, we may need to add additional addresses to
+    // increase the number of TCP connections we can make and this enables the use of those.
+    default = default.useAllLocalAddresses
 
     if (Config.inferHtmlResources) {
       default.inferHtmlResources()

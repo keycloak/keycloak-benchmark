@@ -9,7 +9,7 @@ class AuthCodeWithRefreshToken extends CommonSimulation {
     .openLoginPage(false/*pauseAfter*/)
     .loginUsernamePassword()
     .exchangeCode()
-    .repeatRefresh(Config.refreshTokenCount, Config.userThinkTime)
+    .repeatRefresh(Config.refreshTokenCount, Config.refreshTokenPeriod)
     .logout(true)
   )
 

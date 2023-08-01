@@ -134,9 +134,15 @@ public class Config {
     public static final boolean filterResults = Boolean.getBoolean("filter-results"); // filter out results outside of measurementPeriod
 
     /**
-     * Used by the AuthCodeWithRefreshToken scenario to specify how many times the token should be refreshed before the user logs out.
+     * Used by the AuthorizationCode scenario to specify how many times the token should be refreshed before the user logs out.
      */
-    public static final int refreshTokenCount = Integer.getInteger("refresh-token-count", 50);
+    public static final int refreshTokenCount = Integer.getInteger("refresh-token-count", 0);
+
+    /**
+     * Whether to share TCP connections among the multiple users in the test scenario, possibly helpful
+     * when the local testing system is overtaxed.  But this will induce a lesser load than real world.
+     */
+    public static final boolean shareConnections = Boolean.getBoolean("share-connections");
 
     // Computed timestamps
     public static final long simulationStartTime = System.currentTimeMillis();
