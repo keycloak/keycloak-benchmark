@@ -29,6 +29,9 @@ abstract class CommonSimulation extends Simulation {
       .disableFollowRedirect
 
     if (Config.shareConnections) {
+      // When a local system cannot handle a large number of connections, using shared connections
+      // may help by sharing existing connections among multiple users.  However, this sharing will
+      // occur if while there are pauses within a scenario, allowing such an opportunity.
       default = default.shareConnections
     }
 
