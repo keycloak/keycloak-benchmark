@@ -28,6 +28,15 @@ Specify multiple URLs separated with a blank to run the test against multiple se
 
 `+--server-url="http://host1:8080/ http://host2:8080/"+`
 
+| [.nowrap]`--share-connections`
+| false
+| Enable sharing of connections among concurrent users within a scenario.
+This can be useful if the testing system cannot handle as many TCP connections as are necessary.
+Note, using this option will produce less load on the target system than real world.
+Note, only scenarios that pause between steps allow sharing of connections.
+
+`+--share-connections=true+`
+
 | [.nowrap]`--scenario`
 | ClientSecret scenario
 | The full classname of the scenario to run, for example `keycloak.scenario.authentication.AuthorizationCode`.
