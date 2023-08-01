@@ -8,6 +8,7 @@ class AuthorizationCode extends CommonSimulation {
     .openLoginPage(true)
     .loginUsernamePassword()
     .exchangeCode()
+    .repeatRefresh()
     .logout(true))
 
 }

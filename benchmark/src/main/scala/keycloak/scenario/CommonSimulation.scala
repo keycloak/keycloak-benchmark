@@ -28,6 +28,21 @@ abstract class CommonSimulation extends Simulation {
       .acceptHeader("application/json")
       .disableFollowRedirect
 
+    if (Config.shareConnections) {
+      // When a local system cannot handle a large number of connections, using shared connections
+      // may help by sharing existing connections among multiple users.  However, this sharing will
+      // occur if while there are pauses within a scenario, allowing such an opportunity.
+      default = default.shareConnections
+      // when sharing connections across users, the number of connections in the pool shouldn't be limited
+      // to the default of 6 connections when using HTTP/1.1.
+      default = default.maxConnectionsPerHost(9999)
+    }
+
+    // since the test may involve tens of thousands of connections from a single testing
+    // system to a single host:port on a server, we may need to add additional addresses to
+    // increase the number of TCP connections we can make and this enables the use of those.
+    default = default.useAllLocalAddresses
+
     if (Config.inferHtmlResources) {
       default.inferHtmlResources()
     }

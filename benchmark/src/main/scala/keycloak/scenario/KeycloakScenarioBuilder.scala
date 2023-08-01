@@ -243,8 +243,10 @@ class KeycloakScenarioBuilder {
         .formParam("code", "${code}")
         .check(
           status.is(200),
-          // other elements like the access token not captured as we don't need them in the current scenarios and want to save memory
           jsonPath("$..id_token").find.saveAs("idToken"),
+          jsonPath("$..access_token").find.saveAs("accessToken"),
+          jsonPath("$..refresh_token").find.saveAs("refreshToken"),
+          jsonPath("$..expires_in").find.saveAs("expiresIn"),
         )
       )
       .exec(session => (session.removeAll("code")))
@@ -719,6 +721,34 @@ class KeycloakScenarioBuilder {
 
     // 5 seconds before expiry is time to refresh
     lastRefresh + sess("expiresIn").as[String].toInt * 1000 - 5000 < System.currentTimeMillis()
+  }
+
+  private def refreshToken(): ChainBuilder = {
+      exec(http("RefreshToken")
+        .post(TOKEN_ENDPOINT)
+        .headers(UI_HEADERS)
+        .formParam("grant_type", "refresh_token")
+        .formParam("refresh_token", "${refreshToken}")
+        .formParam("client_id", "${clientId}")
+        .formParam("client_secret", "${clientSecret}")
+        .formParam("redirect_uri", "${redirectUri}")
+        .check(
+          status.is(200),
+          jsonPath("$..id_token").find.saveAs("idToken"),
+          jsonPath("$..access_token").find.saveAs("accessToken"),
+          jsonPath("$..refresh_token").find.saveAs("refreshToken"),
+          jsonPath("$..expires_in").find.saveAs("expiresIn"),
+        )
+      )
+      .exitHereIfFailed
+  }
+
+  def repeatRefresh(): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .repeat(Config.refreshTokenCount, "refresh_i") {
+        refreshToken().pause(Config.refreshTokenPeriod)
+      }
+    this
   }
 }
 
