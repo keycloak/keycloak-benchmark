@@ -33,6 +33,9 @@ abstract class CommonSimulation extends Simulation {
       // may help by sharing existing connections among multiple users.  However, this sharing will
       // occur if while there are pauses within a scenario, allowing such an opportunity.
       default = default.shareConnections
+      // when sharing connections across users, the number of connections in the pool shouldn't be limited
+      // to the default of 6 connections when using HTTP/1.1.
+      default = default.maxConnectionsPerHost(9999)
     }
 
     // since the test may involve tens of thousands of connections from a single testing
