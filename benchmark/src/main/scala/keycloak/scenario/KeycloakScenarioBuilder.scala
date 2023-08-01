@@ -743,10 +743,10 @@ class KeycloakScenarioBuilder {
       .exitHereIfFailed
   }
 
-  def repeatRefresh(refreshCount: Int, refreshPeriod: Int): KeycloakScenarioBuilder = {
+  def repeatRefresh(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
-      .repeat(refreshCount, "refresh_i") {
-        refreshToken().pause(refreshPeriod)
+      .repeat(Config.refreshTokenCount, "refresh_i") {
+        refreshToken().pause(Config.refreshTokenPeriod)
       }
     this
   }
