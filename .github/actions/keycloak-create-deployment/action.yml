@@ -32,6 +32,10 @@ inputs:
     default: 'postgres'
   databaseUrl:
     description: 'The external URL of the database'
+  kcHostnameOverride:
+    description: 'The hostname to be used by Keycloak'
+  kcHealthHostname:
+    description: 'The hostname used to create a health Route'
 
 runs:
   using: "composite"
@@ -56,3 +60,5 @@ runs:
         KC_OTEL: ${{ inputs.otel }}
         KC_DATABASE: ${{ inputs.database }}
         KC_DATABASE_URL: ${{ inputs.databaseUrl }}
+        KC_HOSTNAME_OVERRIDE: ${{ inputs.kcHostnameOverride }}
+        KC_HEALTH_HOSTNAME: ${{ inputs.kcHealthHostname }}

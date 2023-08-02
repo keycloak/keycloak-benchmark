@@ -49,6 +49,8 @@ jobs:
     env:
       AURORA_CLUSTER: ${{ fromJson(inputs.additional_args).auroraDb }}
       AURORA_REGION: ${{ fromJson(inputs.additional_args).auroraRegion }}
+      KC_HOSTNAME_OVERRIDE: ${{ fromJson(inputs.additional_args).kcHostnameOverride }}
+      KC_HEALTH_HOSTNAME: ${{ fromJson(inputs.additional_args).kcHealthHostname }}
       CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
     steps:
       - name: Checkout repository
@@ -102,3 +104,5 @@ jobs:
           heapMaxSizeMB: ${{ inputs.heapMaxSizeMB }}
           database: ${{ env.DATABASE }}
           databaseUrl: ${{ env.AURORA_URL }}
+          kcHostnameOverride: ${{ env.KC_HOSTNAME_OVERRIDE }}
+          kcHealthHostname: ${{ env.KC_HEALTH_HOSTNAME }}

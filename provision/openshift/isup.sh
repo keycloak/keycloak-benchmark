@@ -18,16 +18,23 @@ kubectl get pods -n "${KC_NAMESPACE_PREFIX}keycloak" | grep -E "(BackOff|Error)"
 
 MAXRETRIES=1200
 
-declare -A SERVICES=( \
- ["keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="realms/master/.well-known/openid-configuration" \
- ["cryostat-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="/" \
-)
+if [[ "${KC_HEALTH_HOSTNAME}" != '' ]]; then
+  declare -A SERVICES=( \
+   ["${KC_HEALTH_HOSTNAME}"]="realms/master/.well-known/openid-configuration" \
+   ["cryostat-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="/" \
+  )
+else
+  declare -A SERVICES=( \
+   ["keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="realms/master/.well-known/openid-configuration" \
+   ["cryostat-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="/" \
+  )
+fi
 
 for SERVICE in "${!SERVICES[@]}"; do
   RETRIES=$MAXRETRIES
   # loop until we connect successfully or failed
 
-  if [ "${SERVICE}" == "keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}" ]
+  if [[ "${SERVICE}" == "keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}" || "${SERVICE}" == "${KC_HEALTH_HOSTNAME}" ]]
   then
     kubectl wait --for=condition=Available --timeout=1200s deployments.apps/keycloak-operator -n "${KC_NAMESPACE_PREFIX}keycloak"
     kubectl wait --for=condition=Ready --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak"
@@ -36,7 +43,7 @@ for SERVICE in "${!SERVICES[@]}"; do
 
   if [[ ${SERVICE} = cryostat* ]] && ! ${KC_CRYOSTAT}; then continue; fi
 
-  until kubectl get route -A 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
+  until kubectl get route -n "${KC_NAMESPACE_PREFIX}keycloak" 2>/dev/null | grep ${SERVICE} >/dev/null && curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} >/dev/null 2>/dev/null
   do
     RETRIES=$(($RETRIES - 1))
     if [ $RETRIES -eq 0 ]
