@@ -10,7 +10,8 @@ INSTALL_NAMESPACE=${INSTALL_NAMESPACE:-cert-manager-operator}
 
 oc new-project ${INSTALL_NAMESPACE} || true
 
-# Create subscription for Infinispan Operator
+echo "Installing cert manager operator."
+
 oc apply -f - << EOF
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup

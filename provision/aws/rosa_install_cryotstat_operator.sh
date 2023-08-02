@@ -8,6 +8,8 @@ fi
 
 INSTALL_NAMESPACE=${INSTALL_NAMESPACE:-openshift-operators}
 
+echo "Installing cryostat operator."
+
 oc apply -f - << EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription

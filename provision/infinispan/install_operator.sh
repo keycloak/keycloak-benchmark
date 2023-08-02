@@ -5,6 +5,8 @@ OPERATOR_SOURCE=${OPERATOR_SOURCE:-"community-operators"}
 OPERATOR_SOURCE_NS=${OPERATOR_SOURCE_NS:-"openshift-marketplace"}
 OPERATOR_CHANNEL=${OPERATOR_CHANNEL:-"2.3.x"}
 
+echo "Installing Infinispan operator."
+
 # Create subscription for Infinispan Operator
 oc apply -f - << EOF
 apiVersion: operators.coreos.com/v1alpha1

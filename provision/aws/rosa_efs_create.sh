@@ -21,7 +21,8 @@ AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 cd efs
 
-oc create -f aws-efs-csi-driver-operator.yaml
+echo "Installing EFS CSI driver operator."
+oc apply -f aws-efs-csi-driver-operator.yaml
 
 # We've seen that the 'oc get...' has returned two entries in the past. Let's make sure that everything settled before we retrieve the one pod which is ready
 kubectl wait --for=condition=Available --timeout=300s -n openshift-cloud-credential-operator deployment/cloud-credential-operator
@@ -33,9 +34,13 @@ chmod 775 ./ccoctl
 
 ./ccoctl aws create-iam-roles --name=${CLUSTER_NAME} --region=${AWS_REGION} --credentials-requests-dir=credentialRequests/ --identity-provider-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}
 
-oc create -f manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml
+# if the CredentialsRequest was processed, manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml file should be created
+# create credentials if present
+if [[ -f manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml ]]; then
+    oc apply -f manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml
+fi
 
-oc create -f efs-csi-aws-com-cluster-csi-driver.yaml
+oc apply -f efs-csi-aws-com-cluster-csi-driver.yaml
 
 kubectl wait --for=condition=AWSEFSDriverNodeServiceControllerAvailable --timeout=300s clustercsidriver.operator.openshift.io/efs.csi.aws.com
 kubectl wait --for=condition=AWSEFSDriverControllerServiceControllerAvailable --timeout=300s clustercsidriver.operator.openshift.io/efs.csi.aws.com
@@ -62,13 +67,16 @@ SG=$(aws ec2 describe-instances --filters \
   | jq -r '.[0][0].SecurityGroups[0].GroupId')
 echo "CIDR - $CIDR,  SG - $SG"
 
-aws ec2 authorize-security-group-ingress \
- --group-id $SG \
- --protocol tcp \
- --port 2049 \
- --output json \
- --region $AWS_REGION \
- --cidr $CIDR | jq .
+EXISTS=$(aws ec2 describe-security-groups --group-id $SG  --region $AWS_REGION --output json | jq -r '.SecurityGroups[] | .IpPermissions[] | select(.FromPort == 2049 and .ToPort == 2049 and .IpProtocol == "tcp")')
+if [[ -z "$EXISTS" ]]; then
+    aws ec2 authorize-security-group-ingress \
+     --group-id $SG \
+     --protocol tcp \
+     --port 2049 \
+     --output json \
+     --region $AWS_REGION \
+     --cidr $CIDR | jq .
+fi
 
 SUBNET=$(aws ec2 describe-subnets \
   --filters Name=vpc-id,Values=$VPC Name=tag:Name,Values='*-private*' \
@@ -80,12 +88,16 @@ AWS_ZONE=$(aws ec2 describe-subnets --filters Name=subnet-id,Values=$SUBNET \
   --output json \
   --region $AWS_REGION | jq -r '.Subnets[0].AvailabilityZone')
 
-EFS=$(aws efs create-file-system --creation-token efs-token-${CLUSTER_NAME} \
-   --availability-zone-name $AWS_ZONE \
-   --output json \
-   --tags Key=Name,Value=${CLUSTER_NAME} \
-   --region $AWS_REGION \
-   --encrypted | jq -r '.FileSystemId')
+EFS=$(aws efs describe-file-systems --region $AWS_REGION --output json --creation-token efs-token-${CLUSTER_NAME} | jq -r '.FileSystems[] | .FileSystemId')
+if [[ -z "$EFS" ]]; then
+    EFS=$(aws efs create-file-system --creation-token efs-token-${CLUSTER_NAME} \
+     --availability-zone-name $AWS_ZONE \
+     --output json \
+     --tags Key=Name,Value=${CLUSTER_NAME} \
+     --region $AWS_REGION \
+     --encrypted | jq -r '.FileSystemId')
+fi
+
 echo $EFS
 
 cat <<EOF | oc apply -f -
@@ -121,10 +133,13 @@ for SUBNET in $(aws ec2 describe-subnets \
   --output json \
   --region $AWS_REGION \
   | jq -r '.[].SubnetId'); do \
-    MOUNT_TARGET=$(aws efs create-mount-target --file-system-id $EFS \
-       --subnet-id $SUBNET --security-groups $SG \
-       --output json \
-       --region $AWS_REGION \
-       | jq -r '.MountTargetId'); \
+    MOUNT_TARGET=$(aws efs describe-mount-targets --output json --file-system-id $EFS --region $AWS_REGION | jq -r '.MountTargets[] | .MountTargetId')
+    if [[ -z "$MOUNT_TARGET" ]]; then
+        MOUNT_TARGET=$(aws efs create-mount-target --file-system-id $EFS \
+         --subnet-id $SUBNET --security-groups $SG \
+         --output json \
+         --region $AWS_REGION \
+         | jq -r '.MountTargetId'); \
+    fi
     echo $MOUNT_TARGET; \
 done
