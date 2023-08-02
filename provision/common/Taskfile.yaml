@@ -73,6 +73,8 @@ tasks:
       - echo {{.KC_REMOTE_STORE_HOST}} > .task/var-KC_REMOTE_STORE_HOST
       - echo {{.KC_REMOTE_STORE_PORT}} > .task/var-KC_REMOTE_STORE_PORT
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
+      - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
+      - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -102,6 +104,8 @@ tasks:
       - test "{{.KC_REMOTE_STORE_HOST}}" == "$(cat .task/var-KC_REMOTE_STORE_HOST)"
       - test "{{.KC_REMOTE_STORE_PORT}}" == "$(cat .task/var-KC_REMOTE_STORE_PORT)"
       - test "{{.KC_DISABLE_STICKY_SESSION}}" == "$(cat .task/var-KC_DISABLE_STICKY_SESSION)"
+      - test "{{.KC_HOSTNAME_OVERRIDE}}" == "$(cat .task/var-KC_HOSTNAME_OVERRIDE)"
+      - test "{{.KC_HEALTH_HOSTNAME}}" == "$(cat .task/var-KC_HEALTH_HOSTNAME)"
 
   mvnw:
     dir: ../..

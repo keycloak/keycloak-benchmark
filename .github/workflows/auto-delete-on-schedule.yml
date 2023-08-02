@@ -32,3 +32,22 @@ jobs:
         run: ./provision/aws/rds/aurora_cluster_reaper.sh
         env:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+
+  route53-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: ./provision/aws/route53/route53_delete.sh
+        env:
+          AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}

@@ -1,0 +1,16 @@
+{{ if .Values.keycloakHealthHostname }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: aws-health-route
+spec:
+  host: {{ .Values.keycloakHealthHostname }}
+  port:
+    targetPort: https
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: passthrough
+  to:
+    kind: Service
+    name: keycloak-service
+{{ end }}

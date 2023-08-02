@@ -1,0 +1,35 @@
+name: Route53 Create
+
+on:
+  workflow_dispatch:
+    inputs:
+      primaryCluster:
+        description: 'The name of the ROSA cluster to be the primary Keycloak site'
+        type: string
+        required: true
+      backupCluster:
+        description: 'The name of the ROSA cluster to be the backup Keycloak site'
+        type: string
+        required: true
+
+jobs:
+  create:
+    name: Create Route53 Records
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Create Records
+        run: ./provision/aws/route53/route53_create.sh
+        env:
+          PRIMARY_CLUSTER: ${{ inputs.primaryCluster }}
+          BACKUP_CLUSTER: ${{ inputs.backupCluster }}

@@ -1,0 +1,30 @@
+name: Route53 Delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      subdomain:
+        description: 'The subdomain of keycloak-benchmark.com to remove Route 53 records and Health Checks'
+        type: string
+        required: true
+
+jobs:
+  delete:
+    name: Delete Route53 Records
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Delete Records
+        run: ./provision/aws/route53/route53_delete.sh
+        env:
+          SUBDOMAIN: ${{ inputs.subdomain }}
