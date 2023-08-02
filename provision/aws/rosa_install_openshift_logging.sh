@@ -20,6 +20,8 @@ waitFor() {
   eval "$xtrace"
 }
 
+echo "Installing openshift operator."
+
 oc apply -f - << EOF
 apiVersion: v1
 kind: Namespace
@@ -59,6 +61,8 @@ EOF
 
 waitFor default crd clusterloggings.logging.openshift.io
 oc wait --for condition=established --timeout=60s crd/clusterloggings.logging.openshift.io
+
+echo "Installing openshift logging."
 
 oc apply -f - << EOF
 apiVersion: logging.openshift.io/v1

@@ -87,7 +87,10 @@ echo
 
 ./rosa_recreate_admin.sh
 
-rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-replicas 0 --min-replicas 0 --name scaling --enable-autoscaling
+SCALING_MACHINE_POOL=$(rosa list machinepools -c "${CLUSTER_NAME}" -o json | jq -r '.[] | select(.id == "scaling") | .id')
+if [[ "${SCALING_MACHINE_POOL}" != "scaling" ]]; then
+    rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-replicas 0 --min-replicas 0 --name scaling --enable-autoscaling
+fi
 
 ./rosa_efs_create.sh
 ../infinispan/install_operator.sh
@@ -97,3 +100,5 @@ rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-re
 ./rosa_install_cryotstat_operator.sh
 
 ./rosa_install_openshift_logging.sh
+
+echo "Cluster ${CLUSTER_NAME} is ready."
