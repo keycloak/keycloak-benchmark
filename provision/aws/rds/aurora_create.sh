@@ -16,7 +16,7 @@ EXISTING_INSTANCE=$(aws rds describe-db-instances \
 )
 if [ -n "${EXISTING_INSTANCE}" ]; then
   echo "Aurora instance '${AURORA_INSTANCE}:${AWS_REGION}' already exists"
-  exit 1
+  exit 0
 fi
 
 # Create the Aurora VPC
