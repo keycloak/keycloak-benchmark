@@ -164,6 +164,19 @@ spec:
               # See: https://github.com/keycloak/keycloak/issues/21962
               - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE'
                 value: '1000'
+              # We want to have an externally provided username and password, therefore, we override those two environment variables
+              - name: KEYCLOAK_ADMIN
+                valueFrom:
+                  secretKeyRef:
+                    name: keycloak-preconfigured-admin
+                    key: username
+                    optional: false
+              - name: KEYCLOAK_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: keycloak-preconfigured-admin
+                    key: password
+                    optional: false
 {{ if .Values.otel }}
               # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
               # As a workaround, force downgrade to HTTP/1.1
