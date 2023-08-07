@@ -1,4 +1,13 @@
 {{- $namespace := .Values.namespace | required ".Values.namespace is required." -}}
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: connect-secret
+  namespace: {{ $namespace }}
+data:
+  identities.yaml: {{ (.Files.Get "identities.yaml") | replace "_password_" .Values.hotrodPassword | b64enc }}
+---
 apiVersion: infinispan.org/v1
 kind: Infinispan
 metadata:
@@ -17,6 +26,8 @@ spec:
     categories:
       org.infinispan: {{ .Values.logging.infinispan }}
       org.jgroups: {{ .Values.logging.jgroups }}
+  security:
+    endpointSecretName: connect-secret
   service:
     type: DataGrid
     {{ if .Values.crossdc.enabled }}

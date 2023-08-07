@@ -6,7 +6,6 @@ vars:
   KC_HOSTNAME_SUFFIX: '{{default "$(kubectl get route/console -n openshift-console -o jsonpath=\u0027{.spec.host}\u0027 | cut -d . -f 2-)" .KC_HOSTNAME_SUFFIX}}'
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
   KC_ADMIN_PASSWORD: '{{default "$(aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin)" .KC_ADMIN_PASSWORD}}'
-  KC_ISPN_PORT: '{{ default "11222" .KC_ISPN_PORT}}'
 
 output: prefixed
 
@@ -61,7 +60,6 @@ tasks:
       - echo {{.KC_HOSTNAME_SUFFIX}} > .task/var-KC_HOSTNAME_SUFFIX
       - echo {{.KC_NAMESPACE_PREFIX}} > .task/var-KC_NAMESPACE_PREFIX
       - echo {{.KC_ADMIN_PASSWORD}} > .task/var-KC_ADMIN_PASSWORD
-      - echo {{.KC_ISPN_PORT}} > .task/var-KC_ISPN_PORT
       - echo {{.KC_ISPN_NAMESPACE}} > .task/var-KC_ISPN_NAMESPACE
     run: once
     sources:
@@ -70,7 +68,6 @@ tasks:
       - test "{{.KC_HOSTNAME_SUFFIX}}" == "$(cat .task/var-KC_HOSTNAME_SUFFIX)"
       - test "{{.KC_NAMESPACE_PREFIX}}" == "$(cat .task/var-KC_NAMESPACE_PREFIX)"
       - test "{{.KC_ADMIN_PASSWORD}}" == '$(cat .task/var-KC_ADMIN_PASSWORD)'
-      - test "{{.KC_ISPN_PORT}}" == '$(cat .task/var-KC_ISPN_PORT)'
       - test "{{.KC_ISPN_NAMESPACE}}" == '$(cat .task/var-KC_ISPN_NAMESPACE)'
 
   dataset-import:
@@ -198,19 +195,16 @@ tasks:
         if [ "{{.KC_ISPN_NAMESPACE}}" != "" ]; then
         echo "true" > .task/remote-store-enabled
         echo "infinispan.{{.KC_ISPN_NAMESPACE}}.svc" > .task/remote-store-host
-        oc -n {{.KC_ISPN_NAMESPACE}} get secrets infinispan-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].username > .task/remote-store-username
-        oc -n {{.KC_ISPN_NAMESPACE}} get secrets infinispan-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].password > .task/remote-store-password
+        oc -n {{.KC_ISPN_NAMESPACE}} get secrets connect-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].password > .task/remote-store-password
         exit 0
         fi
         echo "false" > .task/remote-store-enabled
         echo "" > .task/remote-store-host
-        echo "" > .task/remote-store-username
         echo "" > .task/remote-store-password
         exit 0
     generates:
       - .task/remote-store-enabled
       - .task/remote-store-host
-      - .task/remote-store-username
       - .task/remote-store-password
     sources:
       - .task/var-KC_ISPN_NAMESPACE
@@ -261,8 +255,6 @@ tasks:
         --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
         --set infinispan.remoteStore.enabled=$(cat .task/remote-store-enabled)
         --set infinispan.remoteStore.host=$(cat .task/remote-store-host)
-        --set infinispan.remoteStore.port={{ .KC_ISPN_PORT }}
-        --set infinispan.remoteStore.username=$(cat .task/remote-store-username)
         --set infinispan.remoteStore.password=$(cat .task/remote-store-password)
         --set cryostat={{ .KC_CRYOSTAT }}
         --set sqlpad=false
