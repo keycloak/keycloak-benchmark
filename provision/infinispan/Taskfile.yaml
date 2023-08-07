@@ -1,0 +1,50 @@
+# https://taskfile.dev
+version: '3'
+includes:
+  utils:
+    taskfile: ./Utils.yaml
+    internal: true
+output: prefixed
+
+dotenv: [ '.env' ]
+
+tasks:
+  wait-cluster:
+    desc: "Waits for the Infinispan cluster to form"
+    cmd:
+      task: utils:{{.TASK}}
+
+  wait-crossdc:
+    desc: "Waits for the Infinispan Cross-Site to form"
+    cmd:
+      task: utils:{{.TASK}}
+
+  single-cluster:
+    desc: "Creates a single cluster Infinispan deployment"
+    cmd:
+      task: utils:{{.TASK}}
+
+  crossdc-single:
+    desc: "Creates a cross-site enabled Infinispan deployment between 2 namespaces"
+    cmd:
+      task: utils:{{.TASK}}
+
+  crossdc:
+    desc: "Creates a cross-site enabled Infinispan deployment between 2 OCP clusters"
+    cmd:
+      task: utils:{{.TASK}}
+
+  delete-infinispan:
+    desc: "Deletes the Infinispan CR"
+    cmd:
+      task: utils:{{.TASK}}
+
+  delete-crossdc-single:
+    desc: "Deletes the Infinispan CR in a cross-site deployment in a single OCP cluster"
+    cmd:
+      task: utils:{{.TASK}}
+
+  delete-crossdc:
+    desc: "Deletes the Infinispan CR from cross-site deployment"
+    cmd:
+      task: utils:{{.TASK}}

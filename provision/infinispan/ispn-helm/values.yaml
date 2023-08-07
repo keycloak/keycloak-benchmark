@@ -1,0 +1,33 @@
+# Default values for ispn-helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicas: 3
+cacheDefaults:
+  owners: 2
+  crossSiteMode: SYNC
+caches:
+  sessions:
+    owners: 2
+  actionTokens: {}
+  authenticationSessions: {}
+  offlineSessions: {}
+  clientSessions: {}
+  offlineClientSessions: {}
+  loginFailures: {}
+  work: {}
+crossdc:
+  enabled: false
+  local: {}
+  remote: {}
+  route:
+    enabled: false
+    tls:
+      keystore:
+        alias: xsite
+        filename: keystore.p12
+      truststore:
+        filename: truststore.p12
+logging:
+  infinispan: info
+  jgroups: info

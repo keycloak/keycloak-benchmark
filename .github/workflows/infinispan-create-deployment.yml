@@ -34,10 +34,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
       - name: Create Infinispan deployment
-        uses: ./.github/actions/infinispan-create-deployment
-        with:
-          cluster1: ${{ inputs.clusterName1 }}
-          namespace1: ${{ inputs.namespace1 }}
-          cluster2: ${{ inputs.clusterName2 }}
-          namespace2: ${{ inputs.namespace2 }}
+        working-directory: provision/infinispan
+        run: task crossdc
+        env:
+          ROSA_CLUSTER_NAME_1: "${{ inputs.clusterName1 }}"
+          ROSA_CLUSTER_NAME_2: "${{ inputs.clusterName2 }}"
+          OC_NAMESPACE_1: "${{ inputs.namespace1 }}"
+          OC_NAMESPACE_2: "${{ inputs.namespace2 }}"

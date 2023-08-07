@@ -1,0 +1,84 @@
+{{- $namespace := .Values.namespace | required ".Values.namespace is required." -}}
+apiVersion: infinispan.org/v1
+kind: Infinispan
+metadata:
+  name: infinispan
+  namespace: {{ $namespace }}
+  annotations:
+    infinispan.org/monitoring: 'true'
+spec:
+  {{ if .Values.image }}
+  image: {{ .Values.image }}
+  {{ end }}
+  configListener:
+    enabled: false
+  replicas: {{ .Values.replicas }}
+  logging:
+    categories:
+      org.infinispan: {{ .Values.logging.infinispan }}
+      org.jgroups: {{ .Values.logging.jgroups }}
+  service:
+    type: DataGrid
+    {{ if .Values.crossdc.enabled }}
+    {{- $_ := .Values.crossdc.local.name | required ".Values.crossdc.local.name is required." -}}
+    {{- $_ := .Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
+    sites:
+      local:
+        name: {{ .Values.crossdc.local.name }}
+        expose:
+          type: {{ if .Values.crossdc.route.enabled }}Route{{else}}ClusterIP{{end}}
+        maxRelayNodes: 128
+        {{ if .Values.crossdc.route.enabled }}
+        {{- $_ := .Values.crossdc.route.tls.keystore.secret | required ".Values.crossdc.route.tls.keystore.secret is required." -}}
+        {{- $_ := .Values.crossdc.route.tls.truststore.secret | required ".Values.crossdc.route.tls.truststore.secret is required." -}}
+        encryption:
+          transportKeyStore:
+            secretName: {{ .Values.crossdc.route.tls.keystore.secret }}
+            alias: {{ .Values.crossdc.route.tls.keystore.alias }}
+            filename: {{ .Values.crossdc.route.tls.keystore.filename }}
+          routerKeyStore:
+            secretName: {{ .Values.crossdc.route.tls.keystore.secret }}
+            alias: {{ .Values.crossdc.route.tls.keystore.alias }}
+            filename: {{ .Values.crossdc.route.tls.keystore.filename }}
+          trustStore:
+            secretName: {{ .Values.crossdc.route.tls.truststore.secret }}
+            filename: {{ .Values.crossdc.route.tls.truststore.filename }}
+        {{- end }}
+      locations:
+        - name: {{ .Values.crossdc.remote.name}}
+          clusterName: infinispan
+          namespace: {{ .Values.crossdc.remote.namespace}}
+          {{ if .Values.crossdc.route.enabled }}
+          {{- $_ := .Values.crossdc.remote.url | required ".Values.crossdc.remote.url is required." -}}
+          {{- $_ := .Values.crossdc.remote.secret | required ".Values.crossdc.remote.secret is required." -}}
+          url: {{ .Values.crossdc.remote.url }}
+          secretName: {{ .Values.crossdc.remote.secret }}
+          {{ end }}
+    {{- end }}
+{{range $cache, $config := .Values.caches -}}
+---
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: {{ $cache | lower }}
+  namespace: {{ $namespace }}
+spec:
+  clusterName: infinispan
+  name: {{ $cache }}
+  template: |-
+    distributedCache:
+      mode: "SYNC"
+      owners: {{ $config.owners | default $.Values.cacheDefaults.owners | quote }}
+      statistics: "true"
+      stateTransfer:
+        chunkSize: 16
+      {{ if $.Values.crossdc.enabled }}
+      {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
+      backups:
+        {{$.Values.crossdc.remote.name }}:
+          backup:
+            strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }}
+            stateTransfer:
+              chunkSize: 16
+      {{- end }}
+{{end}}

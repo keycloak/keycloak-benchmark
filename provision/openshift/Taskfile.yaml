@@ -62,7 +62,6 @@ tasks:
       - echo {{.KC_NAMESPACE_PREFIX}} > .task/var-KC_NAMESPACE_PREFIX
       - echo {{.KC_ADMIN_PASSWORD}} > .task/var-KC_ADMIN_PASSWORD
       - echo {{.KC_ISPN_PORT}} > .task/var-KC_ISPN_PORT
-      - echo {{.KC_ISPN_CLUSTER}} > .task/var-KC_ISPN_CLUSTER
       - echo {{.KC_ISPN_NAMESPACE}} > .task/var-KC_ISPN_NAMESPACE
     run: once
     sources:
@@ -72,7 +71,6 @@ tasks:
       - test "{{.KC_NAMESPACE_PREFIX}}" == "$(cat .task/var-KC_NAMESPACE_PREFIX)"
       - test "{{.KC_ADMIN_PASSWORD}}" == '$(cat .task/var-KC_ADMIN_PASSWORD)'
       - test "{{.KC_ISPN_PORT}}" == '$(cat .task/var-KC_ISPN_PORT)'
-      - test "{{.KC_ISPN_CLUSTER}}" == '$(cat .task/var-KC_ISPN_CLUSTER)'
       - test "{{.KC_ISPN_NAMESPACE}}" == '$(cat .task/var-KC_ISPN_NAMESPACE)'
 
   dataset-import:
@@ -197,11 +195,11 @@ tasks:
       - openshift-env
     cmds:
       - |
-        if [ "{{.KC_ISPN_CLUSTER}}" != "" ] && [ "{{.KC_ISPN_NAMESPACE}}" != "" ]; then
+        if [ "{{.KC_ISPN_NAMESPACE}}" != "" ]; then
         echo "true" > .task/remote-store-enabled
-        echo "{{.KC_ISPN_CLUSTER}}.{{.KC_ISPN_NAMESPACE}}.svc" > .task/remote-store-host
-        oc -n {{.KC_ISPN_NAMESPACE}} get secrets {{.KC_ISPN_CLUSTER}}-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].username > .task/remote-store-username
-        oc -n {{.KC_ISPN_NAMESPACE}} get secrets {{.KC_ISPN_CLUSTER}}-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].password > .task/remote-store-password
+        echo "infinispan.{{.KC_ISPN_NAMESPACE}}.svc" > .task/remote-store-host
+        oc -n {{.KC_ISPN_NAMESPACE}} get secrets infinispan-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].username > .task/remote-store-username
+        oc -n {{.KC_ISPN_NAMESPACE}} get secrets infinispan-generated-secret -o 'jsonpath={.data.identities\.yaml}' | base64 -d | yq .credentials[0].password > .task/remote-store-password
         exit 0
         fi
         echo "false" > .task/remote-store-enabled
@@ -215,7 +213,6 @@ tasks:
       - .task/remote-store-username
       - .task/remote-store-password
     sources:
-      - .task/var-KC_ISPN_CLUSTER
       - .task/var-KC_ISPN_NAMESPACE
 
   keycloak:
