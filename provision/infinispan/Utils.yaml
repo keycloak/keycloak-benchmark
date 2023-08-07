@@ -48,6 +48,7 @@ tasks:
       CROSS_DC_EXTERNAL_ROUTER_ENABLED: '{{.CROSS_DC_EXTERNAL_ROUTER_ENABLED | default "false"}}'
       CROSS_DC_ENABLED: '{{.CROSS_DC_ENABLED | default "false"}}'
       CROSS_DC_HOT_ROD_PASSWORD: '{{.CROSS_DC_HOT_ROD_PASSWORD | default .INTERNAL_SHARED_PASSWORD | default "changeme" }}'
+      CROSS_DC_HISTOGRAMS: '{{.CROSS_DC_HISTOGRAMS | default "false"}}'
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
@@ -61,6 +62,7 @@ tasks:
         --set crossdc.route.enabled={{.CROSS_DC_EXTERNAL_ROUTER_ENABLED}}
         --set crossdc.route.tls.keystore.secret={{.CROSS_DC_JGRP_KS_SECRET}}
         --set crossdc.route.tls.truststore.secret={{.CROSS_DC_JGRP_TS_SECRET}}
+        --set metrics.histograms={{.CROSS_DC_HISTOGRAMS}}
         --set hotrodPassword={{.CROSS_DC_HOT_ROD_PASSWORD}}
         --set image={{.CROSS_DC_IMAGE}}
         ./ispn-helm
