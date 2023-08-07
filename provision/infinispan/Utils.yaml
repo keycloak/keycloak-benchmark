@@ -1,6 +1,10 @@
 # https://taskfile.dev
 version: '3'
 
+vars:
+  INTERNAL_SHARED_PASSWORD:
+    sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
+
 tasks:
   rosa-oc-login:
     desc: "Login into ROSA cluster"
@@ -43,6 +47,7 @@ tasks:
       CROSS_DC_JGRP_KS_SECRET: '{{.CROSS_DC_JGRP_KS_SECRET | default "xsite-keystore-secret"}}'
       CROSS_DC_EXTERNAL_ROUTER_ENABLED: '{{.CROSS_DC_EXTERNAL_ROUTER_ENABLED | default "false"}}'
       CROSS_DC_ENABLED: '{{.CROSS_DC_ENABLED | default "false"}}'
+      CROSS_DC_HOT_ROD_PASSWORD: '{{.CROSS_DC_HOT_ROD_PASSWORD | default .INTERNAL_SHARED_PASSWORD | default "changeme" }}'
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
@@ -56,6 +61,7 @@ tasks:
         --set crossdc.route.enabled={{.CROSS_DC_EXTERNAL_ROUTER_ENABLED}}
         --set crossdc.route.tls.keystore.secret={{.CROSS_DC_JGRP_KS_SECRET}}
         --set crossdc.route.tls.truststore.secret={{.CROSS_DC_JGRP_TS_SECRET}}
+        --set hotrodPassword={{.CROSS_DC_HOT_ROD_PASSWORD}}
         --set image={{.CROSS_DC_IMAGE}}
         ./ispn-helm
     preconditions:
