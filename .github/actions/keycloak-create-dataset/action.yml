@@ -16,15 +16,12 @@ inputs:
     default: '1'
   createClientForSpecificRealm:
     description: 'Create client for realm'
-    type: boolean
-    default: false
+    default: 'false'
   clientsPerRealm:
     description: 'Number of clients per Realm.'
-    type: string
     default: '1'
   realmNameForClients:
     description: 'Name of the realm'
-    type: string
     default: 'realm-0'
   maxWaitEntityCreation:
     description: 'Maximum number of seconds to wait for creation of entities'
@@ -46,12 +43,9 @@ runs:
       working-directory: dataset
 
     - id: create_clients_for_realm
+      if: ${{ inputs.createClientForSpecificRealm }}
       shell: bash
       run: |
-        if [[ ${{ inputs.createClientForSpecificRealm }} == true ]]; then
-          ./dataset-import.sh -a create-clients -c ${{ inputs.clientsPerRealm }} -n ${{ inputs.realmNameForClients }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
-          ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
-        else
-          echo "Nothing should be done here. Passed parameter is: ${{ inputs.createClientForSpecificRealm }}"
-        fi
+        ./dataset-import.sh -a create-clients -c ${{ inputs.clientsPerRealm }} -n ${{ inputs.realmNameForClients }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
+        ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
       working-directory: dataset

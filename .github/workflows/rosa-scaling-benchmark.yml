@@ -13,20 +13,24 @@ on:
         default: 'eu-west-1'
       numberOfEntitiesInRealm:
         description: 'Number of entities for the scenario in DB'
-        type: string
-        default: '100000'
+        type: number
+        default: 100000
       maxWaitEntityCreation:
         description: 'Maximum number of seconds to wait for creation of entities'
-        type: string
-        default: '900'
+        type: number
+        default: 900
       numberOfUsersPerSecond:
-        description: 'Initial users per second'
-        type: string
-        default: '200'
+        description: 'User logins per second'
+        type: number
+        default: 200
       numberOfClientsPerSecond:
-          description: 'Initial clients per second'
-          type: string
-          default: '1000'
+        description: 'Client credential grants per second'
+        type: number
+        default: 1000
+      measurement:
+        description: 'Measurement period (seconds)'
+        type: number
+        default: 600
       skipCreateDeployment:
         description: 'Skip creating Keycloak deployment'
         type: boolean
@@ -54,6 +58,7 @@ env:
   KC_DB_POOL_INITIAL_SIZE: 30
   KC_DB_POOL_MAX_SIZE: 30
   KC_DB_POOL_MIN_SIZE: 30
+  ANSIBLE_CUSTOM_VARS_ARG: '-e @env_rosa_benchmark.yml'
 
 jobs:
   run:
@@ -113,9 +118,13 @@ jobs:
           podMemoryRequests: ${{ env.KC_MEMORY_REQUESTS_MB }}
           podMemoryLimit: ${{ env.KC_MEMORY_LIMITS_MB }}
           heapMaxSizeMB: ${{ env.KC_HEAP_MAX_MB }}
-          deployMonitoring: true
 
-      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users
+      - name: Get URLs
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ env.PROJECT }}
+
+      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users and clients
         if: ${{ !inputs.skipCreateDataset }}
         uses: ./.github/actions/keycloak-create-dataset
         with:
@@ -132,11 +141,6 @@ jobs:
         with:
           region: ${{ inputs.region }}
 
-      - name: Get URLs
-        uses: ./.github/actions/get-keycloak-url
-        with:
-          project: ${{ env.PROJECT }}
-
       - name: Testing memory for creating sessions
         id: kcb-authorization-code-1
         run: |
@@ -147,8 +151,8 @@ jobs:
           --users-per-sec=${{ inputs.numberOfUsersPerSecond }} \
           --ramp-up=20 \
           --logout-percentage=0 \
-          --measurement=600 \
-          --users-per-realm=100000 \
+          --measurement=${{ inputs.measurement }} \
+          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
           --log-http-on-failure
         working-directory: ansible
 
@@ -162,8 +166,8 @@ jobs:
           --users-per-sec=${{ inputs.numberOfUsersPerSecond }} \
           --ramp-up=20 \
           --logout-percentage=100 \
-          --measurement=600 \
-          --users-per-realm=100000 \
+          --measurement=${{ inputs.measurement }} \
+          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
           --log-http-on-failure
         working-directory: ansible
 
@@ -176,8 +180,8 @@ jobs:
           --realm-name=realm-0 \
           --users-per-sec=${{ inputs.numberOfClientsPerSecond }} \
           --ramp-up=20 \
-          --measurement=600 \
-          --users-per-realm=100000 \
+          --measurement=${{ inputs.measurement }} \
+          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
           --log-http-on-failure
         working-directory: ansible
 
@@ -196,8 +200,8 @@ jobs:
           path: ansible/files/benchmark/*/results/*/js/stats.json
           retention-days: 5
 
-      - name: Stop and Delete EC2 instances
-        if: ${{ success() || (failure() && steps.create_aws_ec2_instances.conclusion != 'skipped') }}
+      - name: Delete EC2 instances
+        if: ${{ (success() || failure()) && steps.create_aws_ec2_instances.conclusion != 'skipped' }}
         uses: ./.github/actions/ec2-delete-instances
         with:
           region: ${{ inputs.region }}

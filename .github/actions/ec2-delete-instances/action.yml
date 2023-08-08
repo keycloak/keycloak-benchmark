@@ -9,11 +9,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - id: stop-ec2-instances
-      shell: bash
-      run: ./aws_ec2.sh stop ${{ inputs.region }}
-      working-directory: ansible
-
     - id: delete-load-runners
       shell: bash
       run: ./aws_ec2.sh delete ${{ inputs.region }}

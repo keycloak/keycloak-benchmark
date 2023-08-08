@@ -7,8 +7,8 @@ KCB_PARAMS=${@:2}
 
 CLUSTER_NAME=${CLUSTER_NAME:-"benchmark_$(whoami)"}
 
-if [ -f "env.yml" ]; then CUSTOM_VARS_ARG="-e @env.yml"; fi
+if [ -f "env.yml" ]; then ANSIBLE_CUSTOM_VARS_ARG="-e @env.yml"; fi
 
 ansible-playbook -i ${CLUSTER_NAME}_${REGION}_inventory.yml benchmark.yml \
-  $CUSTOM_VARS_ARG \
+  $ANSIBLE_CUSTOM_VARS_ARG \
   -e "kcb_params=\"${KCB_PARAMS}\""
