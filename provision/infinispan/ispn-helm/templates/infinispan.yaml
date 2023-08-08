@@ -31,12 +31,20 @@ metadata:
     infinispan.org/monitoring: 'true'
 spec:
   configMapName: "cluster-config"
-  {{ if .Values.image }}
+  {{- if .Values.image }}
   image: {{ .Values.image }}
-  {{ end }}
+  {{- end }}
   configListener:
     enabled: false
   replicas: {{ .Values.replicas }}
+  container:
+    extraJvmOpts: '-Dorg.infinispan.openssl=false {{.Values.jvmOptions}}'
+    {{- if .Values.cpu }}
+    cpu: {{ .Values.cpu }}
+    {{- end}}
+    {{- if .Values.memory }}
+    memory: {{ .Values.memory }}
+    {{- end}}
   logging:
     categories:
       org.infinispan: {{ .Values.logging.infinispan }}

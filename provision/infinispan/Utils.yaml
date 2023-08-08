@@ -49,10 +49,19 @@ tasks:
       CROSS_DC_ENABLED: '{{.CROSS_DC_ENABLED | default "false"}}'
       CROSS_DC_HOT_ROD_PASSWORD: '{{.CROSS_DC_HOT_ROD_PASSWORD | default .INTERNAL_SHARED_PASSWORD | default "changeme" }}'
       CROSS_DC_HISTOGRAMS: '{{.CROSS_DC_HISTOGRAMS | default "false"}}'
+      CROSS_DC_MODE: '{{.CROSS_DC_MODE | default "SYNC" }}'
+      CROSS_DC_ISPN_REPLICAS: '{{.CROSS_DC_ISPN_REPLICAS | default "3" }}'
+      CROSS_DC_CPU_REQUESTS: '{{.CROSS_DC_CPU_REQUESTS}}'
+      CROSS_DC_MEMORY_REQUESTS: '{{.CROSS_DC_MEMORY_REQUESTS}}'
+      CROSS_DC_JVM_OPTS: '{{.CROSS_DC_JVM_OPTS}}'
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
         --set namespace={{.NAMESPACE}}
+        --set replicas={{.CROSS_DC_ISPN_REPLICAS}}
+        --set cpu={{.CROSS_DC_CPU_REQUESTS}}
+        --set memory={{.CROSS_DC_MEMORY_REQUESTS}}
+        --set jvmOptions={{.CROSS_DC_JVM_OPTS}}
         --set crossdc.enabled={{.CROSS_DC_ENABLED}}
         --set crossdc.local.name={{.CROSS_DC_LOCAL_SITE}}
         --set crossdc.remote.name={{.CROSS_DC_REMOTE_SITE}}
@@ -64,6 +73,7 @@ tasks:
         --set crossdc.route.tls.truststore.secret={{.CROSS_DC_JGRP_TS_SECRET}}
         --set metrics.histograms={{.CROSS_DC_HISTOGRAMS}}
         --set hotrodPassword={{.CROSS_DC_HOT_ROD_PASSWORD}}
+        --set cacheDefaults.crossSiteMode={{.CROSS_DC_MODE}}
         --set image={{.CROSS_DC_IMAGE}}
         ./ispn-helm
     preconditions:
@@ -225,6 +235,9 @@ tasks:
         - ROSA_CLUSTER_NAME
         - OC_NAMESPACE_1
         - OC_NAMESPACE_2
+    preconditions:
+      - sh: test "{{.OC_NAMESPACE_1}}" != "{{.OC_NAMESPACE_2}}"
+        msg: "Different namespaces are required."
     cmds:
       - task: rosa-oc-login
       - task: create-namespace
@@ -273,6 +286,9 @@ tasks:
         - ROSA_CLUSTER_NAME_2
         - OC_NAMESPACE_1
         - OC_NAMESPACE_2
+    preconditions:
+      - sh: test "{{.ROSA_CLUSTER_NAME_1}}" != "{{.ROSA_CLUSTER_NAME_2}}"
+        msg: "Different ROSA clusters are required."
     cmds:
       - task: rosa-oc-login
         vars:
@@ -384,6 +400,9 @@ tasks:
         - ROSA_CLUSTER_NAME
         - OC_NAMESPACE_1
         - OC_NAMESPACE_2
+    preconditions:
+      - sh: test "{{.OC_NAMESPACE_1}}" != "{{.OC_NAMESPACE_2}}"
+        msg: "Different namespaces are required."
     cmds:
       - task: rosa-oc-login
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_1}}" infinispan
@@ -398,6 +417,9 @@ tasks:
         - ROSA_CLUSTER_NAME_2
         - OC_NAMESPACE_1
         - OC_NAMESPACE_2
+    preconditions:
+      - sh: test "{{.ROSA_CLUSTER_NAME_1}}" != "{{.ROSA_CLUSTER_NAME_2}}"
+        msg: "Different ROSA clusters are required."
     cmds:
       - task: rosa-oc-login
         vars:
