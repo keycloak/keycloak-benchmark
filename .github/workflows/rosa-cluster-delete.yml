@@ -39,6 +39,7 @@ jobs:
 
       - name: Delete a ROSA Cluster
         if: ${{ inputs.deleteAll == 'no' }}
+        shell: bash
         run: ./rosa_delete_cluster.sh
         working-directory: provision/aws
         env:
@@ -46,6 +47,7 @@ jobs:
 
       - name: Delete all ROSA Clusters
         if: ${{ inputs.deleteAll == 'yes' }}
+        shell: bash
         run: ./rosa_cluster_reaper.sh
         working-directory: provision/aws
 

@@ -29,6 +29,7 @@ jobs:
           aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
 
       - if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        shell: bash
         run: ./provision/aws/rds/aurora_cluster_reaper.sh
         env:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
