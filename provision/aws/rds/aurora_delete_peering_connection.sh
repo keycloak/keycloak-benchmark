@@ -7,7 +7,9 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/aurora_common.sh
 
-export AWS_REGION=$(rosa describe cluster -c ${CLUSTER_NAME} -o json | jq -r .region.id)
+ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)
+ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
+export AWS_REGION=$(echo ${ROSA_CLUSTER} | jq -r .region.id)
 
 if [ -z "${ROSA_VPC}" ]; then
   sh ${SCRIPT_DIR}/../rosa_oc_login.sh
@@ -68,7 +70,7 @@ if [ -n ${AURORA_REGION} ]; then
   if [ -n "${AURORA_PUBLIC_ROUTE_TABLE_ID}" ]; then
     aws ec2 delete-route \
       --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
-      --destination-cidr-block 10.0.0.0/16 \
+      --destination-cidr-block ${ROSA_MACHINE_CIDR} \
       --region ${AURORA_REGION} \
       || true
   fi
@@ -84,7 +86,7 @@ if [ -n ${AURORA_REGION} ]; then
       --group-id ${AURORA_SECURITY_GROUP_ID} \
       --protocol tcp \
       --port 5432 \
-      --cidr 10.0.0.0/16 \
+      --cidr ${ROSA_MACHINE_CIDR} \
       --region ${AURORA_REGION}
   fi
 fi

@@ -10,7 +10,9 @@ source ${SCRIPT_DIR}/aurora_common.sh
 
 sh ${SCRIPT_DIR}/../rosa_oc_login.sh
 
-export AWS_REGION=$(rosa describe cluster -c ${CLUSTER_NAME} -o json | jq -r .region.id)
+ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)
+ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
+export AWS_REGION=$(echo ${ROSA_CLUSTER} | jq -r .region.id)
 
 AURORA_VPC=$(aws ec2 describe-vpcs \
   --filters "Name=cidr,Values=${AURORA_VPC_CIDR}" "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
@@ -75,7 +77,7 @@ AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
 )
 aws ec2 create-route \
   --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
-  --destination-cidr-block 10.0.0.0/16 \
+  --destination-cidr-block ${ROSA_MACHINE_CIDR} \
   --vpc-peering-connection-id ${PEERING_CONNECTION_ID} \
   --region ${AURORA_REGION}
 
@@ -91,5 +93,5 @@ aws ec2 authorize-security-group-ingress \
   --group-id ${AURORA_SECURITY_GROUP_ID} \
   --protocol tcp \
   --port 5432 \
-  --cidr 10.0.0.0/16 \
+  --cidr ${ROSA_MACHINE_CIDR} \
   --region ${AURORA_REGION}
