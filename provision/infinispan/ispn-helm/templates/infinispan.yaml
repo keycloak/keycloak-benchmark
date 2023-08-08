@@ -8,6 +8,20 @@ metadata:
 data:
   identities.yaml: {{ (.Files.Get "identities.yaml") | replace "_password_" .Values.hotrodPassword | b64enc }}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: {{ $namespace }}
+data:
+  infinispan-config.yaml: >
+    infinispan:
+      cacheContainer:
+        metrics:
+          namesAsTags: true
+          gauges: true
+          histograms: {{ .Values.metrics.histograms }}
+---
 apiVersion: infinispan.org/v1
 kind: Infinispan
 metadata:
@@ -16,6 +30,7 @@ metadata:
   annotations:
     infinispan.org/monitoring: 'true'
 spec:
+  configMapName: "cluster-config"
   {{ if .Values.image }}
   image: {{ .Values.image }}
   {{ end }}
