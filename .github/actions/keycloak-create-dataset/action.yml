@@ -14,6 +14,15 @@ inputs:
   clients:
     description: 'Number of clients to create'
     default: '1'
+  createClientForSpecificRealm:
+    description: 'Create client for realm'
+    default: 'false'
+  clientsPerRealm:
+    description: 'Number of clients per Realm.'
+    default: '1'
+  realmNameForClients:
+    description: 'Name of the realm'
+    default: 'realm-0'
   maxWaitEntityCreation:
     description: 'Maximum number of seconds to wait for creation of entities'
     default: '300'
@@ -30,5 +39,13 @@ runs:
       shell: bash
       run: |
         ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
+        ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
+      working-directory: dataset
+
+    - id: create_clients_for_realm
+      if: ${{ inputs.createClientForSpecificRealm }}
+      shell: bash
+      run: |
+        ./dataset-import.sh -a create-clients -c ${{ inputs.clientsPerRealm }} -n ${{ inputs.realmNameForClients }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
         ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
       working-directory: dataset

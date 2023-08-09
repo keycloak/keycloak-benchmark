@@ -1,0 +1,24 @@
+name: Create EC2 instances
+description: Creates EC2 instances
+
+inputs:
+  region:
+    description: 'The AWS region used to host the EC2 instances.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: aws-ec2-requirements-install
+      name: Install the required Ansible AWS collections.
+      shell: bash
+      run: |
+        ./aws_ec2.sh requirements
+        pipx inject ansible-core boto3 botocore
+      working-directory: ansible
+
+    - id: create-ec2-instances
+      shell: bash
+      run: |
+        ./aws_ec2.sh create ${{ inputs.region }}
+      working-directory: ansible
