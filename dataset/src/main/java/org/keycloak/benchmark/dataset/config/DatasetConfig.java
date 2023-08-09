@@ -119,6 +119,16 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "groups-per-transaction", defaultValue = 100, operations = { CREATE_REALMS })
     private Integer groupsPerTransaction;
 
+    @QueryParamFill(paramName = "groups-with-hierarchy", defaultValue = "false", operations = { CREATE_REALMS })
+    private String groupsWithHierarchy;
+
+    @QueryParamIntFill(paramName = "groups-hierarchy-depth", defaultValue = 3, operations = { CREATE_REALMS })
+    private Integer groupsHierarchyDepth;
+
+    @QueryParamIntFill(paramName = "groups-count-each-level", defaultValue = 10, operations = { CREATE_REALMS })
+    private Integer countGroupsAtEachLevel;
+
+
     // Prefix for newly created users
     @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS, CREATE_OFFLINE_SESSIONS, LAST_USER, CREATE_AUTHZ_CLIENT })
     private String userPrefix;
@@ -269,6 +279,13 @@ public class DatasetConfig {
     public Integer getGroupsPerUser() {
         return groupsPerUser;
     }
+
+    public String getGroupsWithHierarchy() {return groupsWithHierarchy;}
+
+    public Integer getGroupsHierarchyDepth() {return groupsHierarchyDepth;}
+
+    public Integer getCountGroupsAtEachLevel() {return countGroupsAtEachLevel;}
+
 
     public Integer getRealmRolesPerUser() {
         return realmRolesPerUser;
