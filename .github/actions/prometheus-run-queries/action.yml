@@ -1,0 +1,53 @@
+name: Run Prometheus Queries
+description: Run Prometheus Queries
+
+inputs:
+  project:
+    description: 'The name of keycloak namespace'
+    default: 'runner-keycloak'
+  runCpuSecsUtil:
+    description: 'Identifies if "CPU Secs Util." query should be run.'
+    default: 'false'
+  runMemoryUsageTotal:
+    description: 'Identifies if "Memory Usage Total" query should be run.'
+    default: 'false'
+  output:
+    description: 'The name of the output to store data in'
+    default: 'out'
+
+runs:
+  using: composite
+  steps:
+    - id: retrieve-token
+      name: Retrieving token and Thanos host and set as Env Variables
+      shell: bash
+      run: |
+        host=$(oc -n openshift-monitoring get route thanos-querier -ojsonpath='{.spec.host}')
+        token=$(oc whoami -t)
+        echo "THANOS_HOST=$host" >> $GITHUB_ENV
+        echo "OC_TOKEN=$token" >> $GITHUB_ENV
+
+    - id: cpu-sec-util-query
+      name: CPU Sec Util
+      if: ${{ inputs.runCpuSecsUtil == 'true' }}
+      shell: bash
+      run: |
+        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        'query=sum(container_cpu_usage_seconds_total{job="kubelet", namespace="${{   inputs.project }}",container="keycloak"})' \
+        | jq '.data.result[0].value[1]' -r >> ${{ inputs.output }}
+      env:
+        THANOS_HOST: ${{ env.THANOS_HOST }}
+        OC_TOKEN: ${{ env.OC_TOKEN }}
+
+    - id: memory-usage-total-query
+      name: Memory Usage Total
+      if: ${{ inputs.runMemoryUsageTotal == 'true' }}
+      shell: bash
+      run: |
+        #Converting Bytes to MB before storing to file.
+        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        'query=sum(container_memory_working_set_bytes{job="kubelet", namespace="${{ inputs.project }}",container="keycloak"})' \
+        | jq '.data.result[0].value[1]' -r | awk '{print $0/1000/1000}' >> ${{ inputs.output }}
+      env:
+        THANOS_HOST: ${{ env.THANOS_HOST }}
+        OC_TOKEN: ${{ env.OC_TOKEN }}

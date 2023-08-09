@@ -1,0 +1,97 @@
+name: Execute metrics calculation
+description: Execute metrics calculation
+
+inputs:
+  input:
+    description: 'The file name containing result numbers.'
+    required: true
+  performedTestName:
+    description: 'The name of the performed test to include in JSON file.'
+    required: true
+  calculatedMetricName:
+    description: 'The name of the metric that is calculated for including in JSON file.'
+    default: '1vCPU'
+  criteriaName:
+    description: 'The name of the criteria for which the metric is calculated.'
+    default: 'users per sec'
+  criteriaValue:
+    description: 'The value for the criteria used during benchmark run.'
+    required: true
+  isvCPU:
+    description: 'Defines if vCPU metric is calculated.'
+    default: 'true'
+  isMemory:
+    description: 'Defines if memory metric is calculated.'
+    default: 'false'
+  replicas:
+    description: 'Number of pods on which the metric is calculated.'
+    default: '3'
+  measurementInterval:
+    description: 'A specific time period over which we want to calculate the required metrics.'
+  output:
+    description: 'The name of the output to store data in JSON format'
+    default: 'results.json'
+
+runs:
+  using: composite
+  steps:
+    - id: calculate-vcpu-metrics
+      name: Calculate the vCPU metric and store environment variable.
+      if: ${{ inputs.isvCPU == 'true' }}
+      env:
+        POD_NUM: ${{ inputs.replicas }}             #redefining the input parameters as environment variables due to math operations below
+        CRITERIA_VALUE: ${{ inputs.criteriaValue }}
+        TIME_INTERVAL: ${{ inputs.measurementInterval }}
+      shell: bash
+      run: |
+        readarray -t lines < ${{ inputs.input }}
+        num1=${lines[0]}
+        num2=${lines[1]}
+        #calculating the difference of cumulative metric (changed during the benchmark execution)
+        difference=$(awk "BEGIN {print ($num2-$num1); exit}")
+        #the script calculates vCPU need to calculate the vcpu number from CPU seconds metrics for the interval during which the test was running
+        metric_count_in_interval=$(awk "BEGIN {print $difference/$TIME_INTERVAL; exit}")
+        #calculating the average metric per pod
+        metric_per_pod=$(awk "BEGIN {print $metric_count_in_interval/$POD_NUM; exit}")
+        #Calculating the final number, i.e. how many of specified criteria (e.g. user logins/sec, client credential grants, etc)
+        #can be handled with requested metric per pod. The result is number rounded down.
+        result=$(awk "BEGIN {print $CRITERIA_VALUE/$metric_per_pod; exit}" | sed 's/\..*//')
+        echo "CALCULATED_METRIC_VALUE=$result" >> $GITHUB_ENV
+
+    - id: calculate-memory-metric
+      name: Calculate the memory metric and store in environment variable.
+      if: ${{ inputs.isMemory == 'true' }}
+      env:
+        POD_NUM: ${{ inputs.replicas }}             #redefining the input parameters as environment variables due to math operations below
+        CRITERIA_VALUE: ${{ inputs.criteriaValue }}
+        TIME_INTERVAL: ${{ inputs.measurementInterval }}
+      shell: bash
+      run: |
+        readarray -t lines < ${{ inputs.input }}
+        num1=${lines[0]}
+        num2=${lines[1]}
+        #calculating the difference of cumulative metric (changed during the benchmark execution)
+        difference=$(awk "BEGIN {print ($num2-$num1); exit}")
+        #calculating the average metric per pod
+        metric_per_pod=$(awk "BEGIN {print $difference/$POD_NUM; exit}")
+        #Calculating the final number, i.e. based on current environment setup how many of specified criteria (e.g. user active session, etc)
+        #can be handled with 500Mb per pod based on the number calculated above. The result is number rounded down.
+        result=$(awk "BEGIN {print $CRITERIA_VALUE*500/$metric_per_pod; exit}" | sed 's/\..*//')
+        echo "CALCULATED_METRIC_VALUE=$result" >> $GITHUB_ENV
+
+    - id: metric-store-in-result-file
+      name: Stores got information in JSON file.
+      env:
+        CALCULATED_METRIC_VALUE: ${{ env.CALCULATED_METRIC_VALUE }}
+      shell: bash
+      run: |
+        #Preparing and storing all information in JSON using jq library
+        description="${{ inputs.calculatedMetricName }} per pod in ${{ inputs.replicas }} node cluster handles:"
+        if [ -f ${{ inputs.output }} ]; then
+          cat ${{ inputs.output }} | jq --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
+          --arg val "${CALCULATED_METRIC_VALUE} ${{ inputs.criteriaName }}" '. + {($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' \
+          | tee ${{ inputs.output }}
+        else
+          jq -n --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
+          --arg val "${CALCULATED_METRIC_VALUE} ${{ inputs.criteriaName }}" '{($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' > ${{ inputs.output }}
+        fi
