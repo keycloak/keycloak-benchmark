@@ -21,6 +21,11 @@ on:
         required: true
         default: '2'
         type: string
+      machineCidr:
+        description: 'Machine CIDR of the ROSA cluster'
+        required: true
+        default: '10.0.0.0/16'
+        type: string
 
 concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
@@ -54,6 +59,7 @@ jobs:
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
           MULTI_AZ: ${{ inputs.multiAz }}
           REPLICAS: ${{ inputs.replicas }}
+          MACHINE_CIDR: ${{ inputs.machineCidr }}
 
       - name: Archive ROSA logs
         uses: actions/upload-artifact@v3

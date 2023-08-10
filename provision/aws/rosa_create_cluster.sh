@@ -33,6 +33,8 @@ else
 
   echo "Installing ROSA cluster ${CLUSTER_NAME}"
 
+  MACHINE_CIDR=${MACHINE_CIDR:-"10.0.0.0/16"}
+
   ROSA_CMD="rosa create cluster \
   --sts \
   --cluster-name ${CLUSTER_NAME} \
@@ -45,7 +47,7 @@ else
   --region ${REGION} ${MULTI_AZ_PARAM} \
   --replicas ${REPLICAS} \
   --compute-machine-type ${COMPUTE_MACHINE_TYPE} \
-  --machine-cidr 10.0.0.0/16 \
+  --machine-cidr ${MACHINE_CIDR} \
   --service-cidr 172.30.0.0/16 \
   --pod-cidr 10.128.0.0/14 \
   --host-prefix 23"
