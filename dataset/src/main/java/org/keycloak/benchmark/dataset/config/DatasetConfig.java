@@ -280,12 +280,17 @@ public class DatasetConfig {
         return groupsPerUser;
     }
 
-    public String getGroupsWithHierarchy() {return groupsWithHierarchy;}
+    public String getGroupsWithHierarchy() {
+        return groupsWithHierarchy;
+    }
 
-    public Integer getGroupsHierarchyDepth() {return groupsHierarchyDepth;}
+    public Integer getGroupsHierarchyDepth() {
+        return groupsHierarchyDepth;
+    }
 
-    public Integer getCountGroupsAtEachLevel() {return countGroupsAtEachLevel;}
-
+    public Integer getCountGroupsAtEachLevel() {
+        return countGroupsAtEachLevel;
+    }
 
     public Integer getRealmRolesPerUser() {
         return realmRolesPerUser;

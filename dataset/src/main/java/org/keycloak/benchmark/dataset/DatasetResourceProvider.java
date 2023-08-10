@@ -33,7 +33,19 @@ import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
 import org.keycloak.http.HttpRequest;
-import org.keycloak.models.*;
+import org.keycloak.models.AuthenticatedClientSessionModel;
+import org.keycloak.models.ClientModel;
+import org.keycloak.models.GroupModel;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.KeycloakUriInfo;
+import org.keycloak.models.PasswordPolicy;
+import org.keycloak.models.RealmModel;
+import org.keycloak.models.RealmProvider;
+import org.keycloak.models.RoleModel;
+import org.keycloak.models.UserCredentialModel;
+import org.keycloak.models.UserModel;
+import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
@@ -45,10 +57,24 @@ import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.*;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -185,7 +211,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
     private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, Task task) {
         int groupsPerRealm = config.getGroupsPerRealm();
-        boolean hierarchicalGroups = Boolean.valueOf(config.getGroupsWithHierarchy());
+        boolean hierarchicalGroups = Boolean.parseBoolean(config.getGroupsWithHierarchy());
         int hierarchyDepth = config.getGroupsHierarchyDepth();
         int countGroupsAtEachLevel = hierarchicalGroups ? config.getCountGroupsAtEachLevel() : groupsPerRealm;
         int totalNumberOfGroups =  hierarchicalGroups ? (int) Math.pow(countGroupsAtEachLevel, hierarchyDepth) : groupsPerRealm;
@@ -979,6 +1005,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
         return groupName.substring(0, groupName.lastIndexOf(GROUP_NAME_SEPARATOR));
     }
+
     private void createGroups(RealmContext context, int startIndex, int endIndex, boolean hierarchicalGroups, int hierarchyDepth, int countGroupsAtEachLevel, KeycloakSession session) {
         RealmModel realm = context.getRealm();
         for (int i = startIndex; i < endIndex; i++) {
@@ -1072,8 +1099,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     .sorted((group1, group2) -> {
                         String name1 = group1.getName().substring(config.getGroupPrefix().length());
                         String name2 = group2.getName().substring(config.getGroupPrefix().length());
-                        String [] name1Exploded = name1.split(GROUP_NAME_SEPARATOR);
-                        String [] name2Exploded = name2.split(GROUP_NAME_SEPARATOR);
+                        String [] name1Exploded = name1.split(Pattern.quote(GROUP_NAME_SEPARATOR));
+                        String [] name2Exploded = name2.split(Pattern.quote(GROUP_NAME_SEPARATOR));
                         for(int i = 0; i< Math.min(name1Exploded.length, name2Exploded.length); i++) {
                             if (name1Exploded[i].compareTo(name2Exploded[i]) != 0) {
                                 return name1Exploded[i].compareTo(name2Exploded[i]);
