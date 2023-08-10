@@ -65,6 +65,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
@@ -989,8 +990,15 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
         // we are using "." separated paths in the group names, this is basically a number system with countGroupsAtEachLevel being the basis
         // this allows us to find the parent group by trimming the group name even if the parent was created in previous transaction
-        int leftover = currentCount;
         StringBuilder groupName = new StringBuilder();
+        if(countGroupsAtEachLevel == 1) {
+            // numbering system does not work for base 1
+            groupName.append("0");
+            IntStream.range(0, currentCount).forEach(i -> groupName.append(GROUP_NAME_SEPARATOR).append("0"));
+            return prefix + groupName;
+        }
+
+        int leftover = currentCount;
         while (leftover > 0) {
             int digit = leftover % countGroupsAtEachLevel;
             groupName.insert(0, digit + GROUP_NAME_SEPARATOR);
