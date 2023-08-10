@@ -39,7 +39,7 @@ for REGION in ${REGIONS}; do
                 | jq length
             )
             if [ ${KEEP_ALIVE} == "0" ]; then
-                sh ${SCRIPT_DIR}/aurora_delete.sh
+                bash ${SCRIPT_DIR}/aurora_delete.sh
             fi
         done
     fi
