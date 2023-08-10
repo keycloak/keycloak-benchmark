@@ -59,6 +59,8 @@ spec:
     sites:
       local:
         name: {{ .Values.crossdc.local.name }}
+        discovery:
+          launchGossipRouter: {{ .Values.crossdc.local.gossipRouterEnabled }}
         expose:
           type: {{ if .Values.crossdc.route.enabled }}Route{{else}}ClusterIP{{end}}
         maxRelayNodes: 128
@@ -79,7 +81,8 @@ spec:
             filename: {{ .Values.crossdc.route.tls.truststore.filename }}
         {{- end }}
       locations:
-        - name: {{ .Values.crossdc.remote.name}}
+        - name: {{ .Values.crossdc.remote.name }}
+          {{- if .Values.crossdc.remote.gossipRouterEnabled }}
           clusterName: infinispan
           namespace: {{ .Values.crossdc.remote.namespace}}
           {{ if .Values.crossdc.route.enabled }}
@@ -88,6 +91,7 @@ spec:
           url: {{ .Values.crossdc.remote.url }}
           secretName: {{ .Values.crossdc.remote.secret }}
           {{ end }}
+          {{- end }}
     {{- end }}
 {{range $cache, $config := .Values.caches -}}
 ---

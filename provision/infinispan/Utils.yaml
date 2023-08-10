@@ -54,6 +54,8 @@ tasks:
       CROSS_DC_CPU_REQUESTS: '{{.CROSS_DC_CPU_REQUESTS}}'
       CROSS_DC_MEMORY_REQUESTS: '{{.CROSS_DC_MEMORY_REQUESTS}}'
       CROSS_DC_JVM_OPTS: '{{.CROSS_DC_JVM_OPTS}}'
+      CROSS_DC_LOCAL_GOSSIP_ROUTER: '{{.CROSS_DC_LOCAL_GOSSIP_ROUTER | default "true"}}'
+      CROSS_DC_REMOTE_GOSSIP_ROUTER: '{{.CROSS_DC_REMOTE_GOSSIP_ROUTER | default "true"}}'
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
@@ -64,7 +66,9 @@ tasks:
         --set jvmOptions={{.CROSS_DC_JVM_OPTS}}
         --set crossdc.enabled={{.CROSS_DC_ENABLED}}
         --set crossdc.local.name={{.CROSS_DC_LOCAL_SITE}}
+        --set crossdc.local.gossipRouterEnabled={{.CROSS_DC_LOCAL_GOSSIP_ROUTER}}
         --set crossdc.remote.name={{.CROSS_DC_REMOTE_SITE}}
+        --set crossdc.remote.gossipRouterEnabled={{.CROSS_DC_REMOTE_GOSSIP_ROUTER}}
         --set crossdc.remote.namespace={{.CROSS_DC_REMOTE_SITE_NAMESPACE}}
         --set crossdc.remote.url={{.CROSS_DC_API_URL}}
         --set crossdc.remote.secret={{.CROSS_DC_SA_TOKEN_SECRET}}
@@ -256,6 +260,8 @@ tasks:
           CROSS_DC_LOCAL_SITE: "{{.OC_NAMESPACE_1}}"
           CROSS_DC_REMOTE_SITE: "{{.OC_NAMESPACE_2}}"
           CROSS_DC_REMOTE_SITE_NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_LOCAL_GOSSIP_ROUTER: 'true'
+          CROSS_DC_REMOTE_GOSSIP_ROUTER: 'false'
       - task: deploy-infinispan
         vars:
           KUBECONFIG: "{{.ROSA_CLUSTER_NAME}}"
@@ -264,6 +270,8 @@ tasks:
           CROSS_DC_LOCAL_SITE: "{{.OC_NAMESPACE_2}}"
           CROSS_DC_REMOTE_SITE: "{{.OC_NAMESPACE_1}}"
           CROSS_DC_REMOTE_SITE_NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_LOCAL_GOSSIP_ROUTER: 'false'
+          CROSS_DC_REMOTE_GOSSIP_ROUTER: 'true'
       - task: wait-cluster
         vars:
           NAMESPACE: "{{.OC_NAMESPACE_1}}"
@@ -354,7 +362,10 @@ tasks:
           CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
           CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
           CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
-          CROSS_DC_API_URL: "openshift://$(cat .task/apiurl/site-2)"
+          CROSS_DC_API_URL:
+            sh: echo "openshift://$(cat .task/apiurl/site-2)"
+          CROSS_DC_LOCAL_GOSSIP_ROUTER: 'true'
+          CROSS_DC_REMOTE_GOSSIP_ROUTER: 'false'
       - task: deploy-infinispan
         vars:
           KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
@@ -363,7 +374,10 @@ tasks:
           CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
           CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
           CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
-          CROSS_DC_API_URL: "openshift://$(cat .task/apiurl/site-1)"
+          CROSS_DC_API_URL:
+            sh: echo "openshift://$(cat .task/apiurl/site-1)"
+          CROSS_DC_LOCAL_GOSSIP_ROUTER: 'false'
+          CROSS_DC_REMOTE_GOSSIP_ROUTER: 'true'
       - task: wait-cluster
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
