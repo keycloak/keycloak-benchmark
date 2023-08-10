@@ -219,7 +219,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
         for (int i = 0; i < totalNumberOfGroups; i += config.getGroupsPerTransaction()) {
             int groupsStartIndex = i;
-            int groupEndIndex = Math.min(groupsStartIndex + config.getGroupsPerTransaction(), groupsStartIndex + config.getGroupsPerRealm());
+            int groupEndIndex =  hierarchicalGroups ? Math.min(groupsStartIndex + config.getGroupsPerTransaction(), totalNumberOfGroups)
+            : Math.min(groupsStartIndex + config.getGroupsPerTransaction(), config.getGroupsPerRealm());
 
             logger.tracef("groupsStartIndex: %d, groupsEndIndex: %d", groupsStartIndex, groupEndIndex);
 
