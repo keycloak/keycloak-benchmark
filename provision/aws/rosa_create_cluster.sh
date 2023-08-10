@@ -33,7 +33,7 @@ else
 
   echo "Installing ROSA cluster ${CLUSTER_NAME}"
 
-  MACHINE_CIDR=${MACHINE_CIDR:-"10.0.0.0/16"}
+  MACHINE_CIDR=$(./rosa_machine_cidr.sh)
 
   ROSA_CMD="rosa create cluster \
   --sts \
