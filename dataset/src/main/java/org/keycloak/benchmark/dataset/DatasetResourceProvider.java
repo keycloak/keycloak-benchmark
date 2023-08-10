@@ -979,9 +979,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         task.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
     }
 
-    private String getGroupName(boolean hiearchicalGroups, int hierarchyDepth, int countGroupsAtEachLevel, String prefix, int currentCount) {
+    private String getGroupName(boolean hierarchicalGroups, int countGroupsAtEachLevel, String prefix, int currentCount) {
 
-        if (!hiearchicalGroups) {
+        if (!hierarchicalGroups) {
             return prefix + currentCount;
         }
         if(currentCount == 0) {
@@ -1009,7 +1009,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     private void createGroups(RealmContext context, int startIndex, int endIndex, boolean hierarchicalGroups, int hierarchyDepth, int countGroupsAtEachLevel, KeycloakSession session) {
         RealmModel realm = context.getRealm();
         for (int i = startIndex; i < endIndex; i++) {
-            String groupName = getGroupName(hierarchicalGroups, hierarchyDepth, countGroupsAtEachLevel, context.getConfig().getGroupPrefix(), i);
+            String groupName = getGroupName(hierarchicalGroups, countGroupsAtEachLevel, context.getConfig().getGroupPrefix(), i);
             String parentGroupName = getParentGroupName(groupName);
 
             if (parentGroupName != null) {
