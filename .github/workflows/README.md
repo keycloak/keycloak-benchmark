@@ -6,7 +6,7 @@
 2. Create new secret `AWS_ACCESS_KEY_ID` with value of your AWS access key id.
 3. Create new secret `AWS_SECRET_ACCESS_KEY` with value of your AWS access key value.
 4. Create new secret `ROSA_TOKEN` with value of your ROSA token. See [Red Hat OpenShift Cluster Manager API](https://cloud.redhat.com/openshift/token) for more information.
-5. Create new variable `AWS_REGION` with value of your preferred AWS region, for example, `eu-central-1`.
+5. Create new variable `AWS_DEFAULT_REGION` with value of your preferred AWS region, for example, `eu-central-1`.
 
 ## Create cluster
 
