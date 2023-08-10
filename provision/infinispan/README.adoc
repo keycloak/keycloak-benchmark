@@ -4,30 +4,151 @@ Deploy an Infinispan cluster (with or without cross-site) and configures the nec
 
 == Taskfile
 
-For single cluster mode:
+=== Main tasks
 
-[source, bash]
+==== Single cluster without cross-site.
+
+[source,bash]
 ----
 task single-cluster ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE=infinispan
 ----
 
-For cross-site between different namespaces:
+Required Variables:
 
-[source, bash]
+|===
+|Variable |Details
+
+|`ROSA_CLUSTER_NAME`
+|The ROSA cluster name. Check `rosa list clusters` for the available clusters.
+
+|`OC_NAMESPACE`
+|The namespace where the Infinispan cluster is installed.
+|===
+
+==== Two Infinispan cluster connected with cross-site in the same OCP cluster.
+
+[source,bash]
 ----
 task crossdc-single ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE_1=ispn-1 OC_NAMESPACE_2=ispn-2
 ----
 
-And finally, for cross-site between different OCP clusters:
-[source, bash]
+Required Variables:
+
+|===
+|Variable |Details
+
+|`ROSA_CLUSTER_NAME`
+|The ROSA cluster name. Check `rosa list clusters` for the available clusters.
+
+|`OC_NAMESPACE_1`
+|The first namespace where the Infinispan cluster is installed.
+
+|`OC_NAMESPACE_2`
+|The second namespace where the Infinispan cluster is installed.
+|===
+
+IMPORTANT: The variables `OC_NAMESPACE_1` and `OC_NAMESPACE_2` must be different.
+
+==== Two Infinispan cluster connected with cross-site in different OCP clusters.
+
+[source,bash]
 ----
 task crossdc ROSA_CLUSTER_NAME_1=gh-keycloak ROSA_CLUSTER_NAME_2=gh-pruivo OC_NAMESPACE_1=infinispan OC_NAMESPACE_2=infinispan
 ----
 
+Required Variables:
+
+|===
+|Variable |Details
+
+|`ROSA_CLUSTER_NAME_1`
+|The first ROSA cluster name. Check `rosa list clusters` for the available clusters.
+
+|`ROSA_CLUSTER_NAME_2`
+|The second ROSA cluster name. Check `rosa list clusters` for the available clusters.
+
+|`OC_NAMESPACE_1`
+|The namespace where the Infinispan cluster is installed in the first ROSA cluster.
+
+|`OC_NAMESPACE_2`
+|The namespace where the Infinispan cluster is installed in the second ROSA cluster.
+|===
+
+IMPORTANT: The variables `ROSA_CLUSTER_NAME_1` and `ROSA_CLUSTER_NAME_2` must be different.
+
+=== Optional Variables
+
+|===
+|Variable |Default |Used By Task |Details
+
+|`CROSS_DC_ISPN_REPLICAS`
+|3
+|All
+|The number of Infinispan pods replicas to create.
+
+|`CROSS_DC_CPU_REQUESTS`
+|-
+|All
+|The CPU requests in the format of `<limit>:<requests>`.
+For example, `2000m:1000m` limits pods to a maximum of `2000m` of CPU and requests `1000m` of CPU for each pod at startup.
+Specifying a single value sets both the limit and request.
+
+|`CROSS_DC_MEMORY_REQUESTS`
+|-
+|All
+|The Memory requests in the format of `<limit>:<requests>`.
+For example, `2Gi:1Gi` limits pods to a maximum of `2Gi` of memory and requests `1Gi` of memory for each pod at startup.
+Specifying a single value sets both the limit and request.
+
+|`CROSS_DC_JVM_OPTS`
+|-
+|All
+|Extra JVM options for the Infinispan server.
+Can be used to set the Java's heap memory as follows: `-Xmx750`
+
+|`CROSS_DC_HOT_ROD_PASSWORD`
+|Shared secret from AWS IAM or `changeme`
+|All
+|The credential for the Infinispan Hot Rod endpoint.
+
+|`CROSS_DC_HISTOGRAMS`
+|`false`
+|All
+|Enables the histograms metrics in the Infinispan cluster.
+
+|`CROSS_DC_MODE`
+|`SYNC`
+|`crossdc-single` and `crossdc`
+|Sets the cache cross-site strategy. It can be `SYNC` or `ASYNC` cross-site replication.
+
+|`CROSS_DC_SERVICE_ACCOUNT`
+|`xsite-sa`
+|`crossdc`
+|The service account required by the Infinispan operator to authenticate and configure the cross-site between different OCP clusters.
+The Infinispan operator uses this account to authenticate into the remote cluster.
+
+|`CROSS_DC_SA_TOKEN_SECRET`
+|`xsite-token-secret`
+|`crossdc`
+|The secret name where the service account token for the remote OCP cluster is stored.
+
+|`CROSS_DC_JGRP_TS_SECRET`
+|`xsite-truststore-secret`
+|`crossdc`
+|The secret where the truststore is stored.
+The truststore is used to allow TLS communication between Infinispan and Gossip Router pods.
+
+|`CROSS_DC_JGRP_KS_SECRET`
+|`xsite-keystore-secret`
+|`crossdc`
+|The secret where the keystore is stored.
+The keystore is used for the TLS communication between Infinispan and Gossip Router pods.
+
+|===
+
 == Provision Keycloak
 
 The Taskfile in `provistion/openshift` introduced 4 more variables:
-
 
 |===
 |Variable |Default |Details
@@ -41,10 +162,9 @@ The Taskfile in `provistion/openshift` introduced 4 more variables:
 |The namespace where the Infinispan cluster is installed.
 |===
 
-As an example, using a single Infinispan cluster, Infinispan and keycloak can be deployed using the
-following commands from this directory (assuming `.env` is properly configured to access the OCP cluster):
+As an example, using a single Infinispan cluster, Infinispan and keycloak can be deployed using the following commands from this directory (assuming `.env` is properly configured to access the OCP cluster):
 
-[source, bash]
+[source,bash]
 ----
 cd provistion/infinispan
 task single-cluster ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE=ispn-server
