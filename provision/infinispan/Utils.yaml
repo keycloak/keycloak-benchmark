@@ -7,39 +7,56 @@ vars:
 
 tasks:
   rosa-oc-login:
+    label: 'rosa-oc-login-{{.ROSA_CLUSTER_NAME}}'
     desc: "Login into ROSA cluster"
     requires:
       vars:
         - ROSA_CLUSTER_NAME
+    vars:
+      # do not overwrite! Storing the ROSA cluster ID here.
+      INTERNAL_ROSA_ID:
+        sh: rosa describe cluster -c "{{.ROSA_CLUSTER_NAME}}" -o json | jq .id
     cmds:
       - mkdir -p .task/kubecfg
+      - rm ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" || true
+      - echo {{.INTERNAL_ROSA_ID}} > ".task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" CLUSTER_NAME="{{.ROSA_CLUSTER_NAME}}" ../aws/rosa_oc_login.sh
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get route/console -n openshift-console -o jsonpath={.spec.host} | cut -d . -f 2- > ".task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|^http[s]://||g' > .task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}
     generates:
       - .task/kubecfg/{{.ROSA_CLUSTER_NAME}}
+      - .task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
+      - .task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}
     status:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+      - test -f ".task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}"
+      - test -f ".task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
+      - test -f ".task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}"
+      - test {{.INTERNAL_ROSA_ID}} == "$(cat .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}})"
     internal: true
 
   create-namespace:
+    label: 'create-namespace-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     desc: "Creates a new namespace if missing"
     requires:
       vars:
         - NAMESPACE
-        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
     cmds:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc new-project "{{.NAMESPACE}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc new-project "{{.NAMESPACE}}" || true
     preconditions:
-      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
     status:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc project "{{.NAMESPACE}}" -q
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc project "{{.NAMESPACE}}" -q
     internal: true
 
   deploy-infinispan:
+    label: 'deploy-infinispan-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     internal: true
     desc: "Deploys Infinispan CR"
     requires:
       vars:
-        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
         - NAMESPACE
     vars:
       CROSS_DC_SA_TOKEN_SECRET: '{{.CROSS_DC_SA_TOKEN_SECRET | default "xsite-token-secret"}}'
@@ -58,7 +75,7 @@ tasks:
       CROSS_DC_REMOTE_GOSSIP_ROUTER: '{{.CROSS_DC_REMOTE_GOSSIP_ROUTER | default "true"}}'
     cmds:
       - >
-        KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
+        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
         --set namespace={{.NAMESPACE}}
         --set replicas={{.CROSS_DC_ISPN_REPLICAS}}
         --set cpu={{.CROSS_DC_CPU_REQUESTS}}
@@ -81,32 +98,33 @@ tasks:
         --set image={{.CROSS_DC_IMAGE}}
         ./ispn-helm
     preconditions:
-      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
     status:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc -n {{.NAMESPACE}} get infinispans.infinispan.org infinispan
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.NAMESPACE}} get infinispans.infinispan.org infinispan
       - test "{{.FORCE_INFINISPAN | default 0}}" == "0"
 
   create-jgroups-tls-secret:
+    label: 'create-jgroups-tls-secret-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     internal: true
     desc: "Creates Keystore and Truststore secrets used by JGroups to establish TLS connections"
     requires:
       vars:
         - NAMESPACE
-        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
     vars:
       CROSS_DC_JGRP_TS_SECRET: '{{.CROSS_DC_JGRP_TS_SECRET |  default "xsite-truststore-secret"}}'
       CROSS_DC_JGRP_KS_SECRET: '{{.CROSS_DC_JGRP_KS_SECRET | default "xsite-keystore-secret"}}'
     cmds:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc -n "{{.NAMESPACE}}" delete secret "{{.CROSS_DC_JGRP_KS_SECRET}}" || true
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc -n "{{.NAMESPACE}}" delete secret "{{.CROSS_DC_JGRP_TS_SECRET}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n "{{.NAMESPACE}}" delete secret "{{.CROSS_DC_JGRP_KS_SECRET}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n "{{.NAMESPACE}}" delete secret "{{.CROSS_DC_JGRP_TS_SECRET}}" || true
       - >
-        KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}"
+        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
         oc -n "{{.NAMESPACE}}" create secret generic "{{.CROSS_DC_JGRP_KS_SECRET}}"
         --from-file=keystore.p12="./certs/keystore.p12"
         --from-literal=password=secret
         --from-literal=type=pkcs12
       - >
-        KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}"
+        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
         oc -n "{{.NAMESPACE}}" create secret generic "{{.CROSS_DC_JGRP_TS_SECRET}}"
         --from-file=truststore.p12="./certs/truststore.p12"
         --from-literal=password=caSecret
@@ -114,72 +132,58 @@ tasks:
     sources:
       - ./certs/keystore.p12
       - ./certs/truststore.p12
-      - .task/kubecfg/{{.KUBECONFIG}}
+      - .task/kubecfg/{{.ROSA_CLUSTER_NAME}}
     preconditions:
-      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
     status:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc get secrets -n "{{.NAMESPACE}}" "{{.CROSS_DC_JGRP_KS_SECRET}}"
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc get secrets -n "{{.NAMESPACE}}" "{{.CROSS_DC_JGRP_TS_SECRET}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get secrets -n "{{.NAMESPACE}}" "{{.CROSS_DC_JGRP_KS_SECRET}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get secrets -n "{{.NAMESPACE}}" "{{.CROSS_DC_JGRP_TS_SECRET}}"
 
   create-xsite-service-account:
+    label: 'create-xsite-service-account-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     internal: true
     desc: "Creates a service account for Cross-Site. Infinispan operator uses to connect to the remote site"
     requires:
       vars:
         - NAMESPACE
-        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
         - TOKEN_FILE
     vars:
       CROSS_DC_SERVICE_ACCOUNT: '{{.CROSS_DC_SERVICE_ACCOUNT | default "xsite-sa"}}'
     cmds:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc create sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc policy add-role-to-user view -n "{{.NAMESPACE}}" -z "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc policy add-role-to-user view -n "{{.NAMESPACE}}" -z "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
       - mkdir -p .task/tokens
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc create token -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" > .task/tokens/{{.TOKEN_FILE}}
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create token -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" > .task/tokens/{{.TOKEN_FILE}}
     generates:
       - .task/tokens/{{.TOKEN_FILE}}
     preconditions:
-      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
     status:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc get sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}"
       - test -f .task/tokens/{{.TOKEN_FILE}}
 
   deploy-xsite-service-account-token:
+    label: 'deploy-xsite-service-account-token-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     internal: true
     desc: "Creates a secret with the service account token"
     requires:
       vars:
         - NAMESPACE
-        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
         - TOKEN_FILE
     vars:
       CROSS_DC_SA_TOKEN_SECRET: '{{.CROSS_DC_SA_TOKEN_SECRET | default "xsite-token-secret"}}'
     cmds:
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc delete secret -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" || true
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc create secret generic -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" --from-literal=token="$(cat .task/tokens/{{.TOKEN_FILE}})"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc delete secret -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create secret generic -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" --from-literal=token="$(cat .task/tokens/{{.TOKEN_FILE}})"
     sources:
       - .task/tokens/{{.TOKEN_FILE}}
     preconditions:
-      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
-
-  fetch_ocp_api_url:
-    internal: true
-    desc: "Fetches and stores the OCP API URL"
-    requires:
-      vars:
-        - KUBECONFIG
-        - FILENAME
-    cmds:
-      - mkdir -p .task/apiurl
-      - KUBECONFIG=".task/kubecfg/{{.KUBECONFIG}}" oc config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|^http[s]://||g' > .task/apiurl/{{.FILENAME}}
-    generates:
-      - .task/apiurl/{{.FILENAME}}
-    preconditions:
-      - test -f ".task/kubecfg/{{.KUBECONFIG}}"
-    status:
-      - test -f ".task/apiurl/{{.FILENAME}}"
+      - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
 
   wait-cluster:
+    label: 'wait-cluster-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     internal: true
     desc: "Waits for the Infinispan cluster to form"
     requires:
@@ -195,6 +199,7 @@ tasks:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
 
   wait-crossdc:
+    label: 'wait-crossdc-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
     internal: true
     desc: "Waits for the Infinispan Cross-Site to form"
     requires:
@@ -307,75 +312,68 @@ tasks:
 
       - task: create-namespace
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           NAMESPACE: "{{.OC_NAMESPACE_1}}"
       - task: create-namespace
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
 
       - task: create-jgroups-tls-secret
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           NAMESPACE: "{{.OC_NAMESPACE_1}}"
       - task: create-jgroups-tls-secret
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
 
       - task: create-xsite-service-account
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           NAMESPACE: "{{.OC_NAMESPACE_1}}"
-          TOKEN_FILE: "site-1"
+          TOKEN_FILE: "{{.ROSA_CLUSTER_NAME_1}}"
       - task: create-xsite-service-account
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
-          TOKEN_FILE: "site-2"
+          TOKEN_FILE: "{{.ROSA_CLUSTER_NAME_2}}"
 
       - task: deploy-xsite-service-account-token
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           NAMESPACE: "{{.OC_NAMESPACE_1}}"
-          TOKEN_FILE: "site-2"
+          TOKEN_FILE: "{{.ROSA_CLUSTER_NAME_2}}"
       - task: deploy-xsite-service-account-token
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
-          TOKEN_FILE: "site-1"
-
-      - task: fetch_ocp_api_url
-        vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
-          FILENAME: "site-1"
-      - task: fetch_ocp_api_url
-        vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
-          FILENAME: "site-2"
+          TOKEN_FILE: "{{.ROSA_CLUSTER_NAME_1}}"
 
       - task: deploy-infinispan
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_REMOTE_SITE_NAMESPACE: "{{.OC_NAMESPACE_2}}"
           CROSS_DC_ENABLED: "true"
           CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
           CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
           CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
           CROSS_DC_API_URL:
-            sh: echo "openshift://$(cat .task/apiurl/site-2)"
+            sh: echo "openshift://$(cat .task/kubecfg/api-{{.ROSA_CLUSTER_NAME_2}})"
           CROSS_DC_LOCAL_GOSSIP_ROUTER: 'true'
           CROSS_DC_REMOTE_GOSSIP_ROUTER: 'false'
       - task: deploy-infinispan
         vars:
-          KUBECONFIG: "{{.ROSA_CLUSTER_NAME_2}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_REMOTE_SITE_NAMESPACE: "{{.OC_NAMESPACE_1}}"
           CROSS_DC_ENABLED: "true"
           CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
           CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
           CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
           CROSS_DC_API_URL:
-            sh: echo "openshift://$(cat .task/apiurl/site-1)"
+            sh: echo "openshift://$(cat .task/kubecfg/api-{{.ROSA_CLUSTER_NAME_1}})"
           CROSS_DC_LOCAL_GOSSIP_ROUTER: 'false'
           CROSS_DC_REMOTE_GOSSIP_ROUTER: 'true'
       - task: wait-cluster
