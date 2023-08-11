@@ -18,12 +18,12 @@ tasks:
         sh: rosa describe cluster -c "{{.ROSA_CLUSTER_NAME}}" -o json | jq .id
     cmds:
       - mkdir -p .task/kubecfg
-      - rm ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" || true
       - echo {{.INTERNAL_ROSA_ID}} > ".task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" CLUSTER_NAME="{{.ROSA_CLUSTER_NAME}}" ../aws/rosa_oc_login.sh
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get route/console -n openshift-console -o jsonpath={.spec.host} | cut -d . -f 2- > ".task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|^http[s]://||g' > .task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}
     generates:
+      - .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}
       - .task/kubecfg/{{.ROSA_CLUSTER_NAME}}
       - .task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
       - .task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}
@@ -102,6 +102,10 @@ tasks:
     status:
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.NAMESPACE}} get infinispans.infinispan.org infinispan
       - test "{{.FORCE_INFINISPAN | default 0}}" == "0"
+    sources:
+      - .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}
+      - ispn-helm/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
 
   create-jgroups-tls-secret:
     label: 'create-jgroups-tls-secret-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
@@ -132,7 +136,8 @@ tasks:
     sources:
       - ./certs/keystore.p12
       - ./certs/truststore.p12
-      - .task/kubecfg/{{.ROSA_CLUSTER_NAME}}
+      - .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}
+      - .task/subtask-{{.TASK}}.yaml
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
     status:
@@ -159,6 +164,9 @@ tasks:
       - .task/tokens/{{.TOKEN_FILE}}
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+    sources:
+      - .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}
+      - .task/subtask-{{.TASK}}.yaml
     status:
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}"
       - test -f .task/tokens/{{.TOKEN_FILE}}
@@ -178,6 +186,8 @@ tasks:
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc delete secret -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" || true
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create secret generic -n "{{.NAMESPACE}}" "{{.CROSS_DC_SA_TOKEN_SECRET}}" --from-literal=token="$(cat .task/tokens/{{.TOKEN_FILE}})"
     sources:
+      - .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}
+      - .task/subtask-{{.TASK}}.yaml
       - .task/tokens/{{.TOKEN_FILE}}
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
