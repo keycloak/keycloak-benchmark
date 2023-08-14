@@ -40,6 +40,7 @@ for REGION in ${REGIONS}; do
             )
             if [ ${KEEP_ALIVE} == "0" ]; then
                 export AWS_REGION=${REGION}
+                export RUNNER_DEBUG=1
                 ${SCRIPT_DIR}/aurora_delete.sh
             fi
         done
