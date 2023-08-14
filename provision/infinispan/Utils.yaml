@@ -369,8 +369,7 @@ tasks:
           CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
           CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
           CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
-          CROSS_DC_API_URL:
-            sh: echo "openshift://$(cat .task/kubecfg/api-{{.ROSA_CLUSTER_NAME_2}})"
+          CROSS_DC_API_URL: "openshift://$(cat .task/kubecfg/api-{{.ROSA_CLUSTER_NAME_2}})"
           CROSS_DC_LOCAL_GOSSIP_ROUTER: 'true'
           CROSS_DC_REMOTE_GOSSIP_ROUTER: 'false'
       - task: deploy-infinispan
@@ -382,8 +381,7 @@ tasks:
           CROSS_DC_EXTERNAL_ROUTER_ENABLED: "true"
           CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
           CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
-          CROSS_DC_API_URL:
-            sh: echo "openshift://$(cat .task/kubecfg/api-{{.ROSA_CLUSTER_NAME_1}})"
+          CROSS_DC_API_URL: "openshift://$(cat .task/kubecfg/api-{{.ROSA_CLUSTER_NAME_1}})"
           CROSS_DC_LOCAL_GOSSIP_ROUTER: 'false'
           CROSS_DC_REMOTE_GOSSIP_ROUTER: 'true'
       - task: wait-cluster

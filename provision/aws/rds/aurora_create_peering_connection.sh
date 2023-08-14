@@ -8,7 +8,9 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/aurora_common.sh
 
-sh ${SCRIPT_DIR}/../rosa_oc_login.sh
+if [ "${SKIP_ROSA_LOGIN}" != "true" ]; then
+  sh ${SCRIPT_DIR}/../rosa_oc_login.sh
+fi
 
 ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)
 ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
@@ -63,10 +65,23 @@ ROSA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
   --query "RouteTables[*].RouteTableId" \
   --output text
 )
-aws ec2 create-route \
-  --route-table-id ${ROSA_PUBLIC_ROUTE_TABLE_ID} \
-  --destination-cidr-block ${AURORA_VPC_CIDR} \
-  --vpc-peering-connection-id ${PEERING_CONNECTION_ID}
+
+
+EXISTS=$(aws ec2 describe-route-tables\
+  --filters "Name=route-table-id,Values=${ROSA_PUBLIC_ROUTE_TABLE_ID}" \
+    "Name=route.destination-cidr-block,Values=${AURORA_VPC_CIDR}" \
+    "Name=route.vpc-peering-connection-id,Values=${PEERING_CONNECTION_ID}" \
+  --query "RouteTables[*].RouteTableId" \
+  --output text)
+
+if [ "${EXISTS}" == "" ]; then
+  aws ec2 create-route \
+    --route-table-id ${ROSA_PUBLIC_ROUTE_TABLE_ID} \
+    --destination-cidr-block ${AURORA_VPC_CIDR} \
+    --vpc-peering-connection-id ${PEERING_CONNECTION_ID}
+else
+  echo "Route to ${AURORA_VPC_CIDR} already exists for region ${AWS_REGION}."
+fi
 
 # Update the Aurora Cluster VPC's Route Table
 AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
@@ -75,11 +90,24 @@ AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
   --region ${AURORA_REGION} \
   --output text
 )
-aws ec2 create-route \
-  --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
-  --destination-cidr-block ${ROSA_MACHINE_CIDR} \
-  --vpc-peering-connection-id ${PEERING_CONNECTION_ID} \
-  --region ${AURORA_REGION}
+
+EXISTS=$(aws ec2 describe-route-tables\
+  --filters "Name=route-table-id,Values=${AURORA_PUBLIC_ROUTE_TABLE_ID}" \
+    "Name=route.destination-cidr-block,Values=${ROSA_MACHINE_CIDR}" \
+    "Name=route.vpc-peering-connection-id,Values=${PEERING_CONNECTION_ID}" \
+  --query "RouteTables[*].RouteTableId" \
+  --region ${AURORA_REGION} \
+  --output text)
+
+if [ "${EXISTS}" == "" ]; then
+  aws ec2 create-route \
+    --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
+    --destination-cidr-block ${ROSA_MACHINE_CIDR} \
+    --vpc-peering-connection-id ${PEERING_CONNECTION_ID} \
+    --region ${AURORA_REGION}
+else
+  echo "Route to ${ROSA_MACHINE_CIDR} already exists for region ${AURORA_REGION}."
+fi
 
 # Update the RDS Instance's Security Group
 AURORA_SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
@@ -89,9 +117,23 @@ AURORA_SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
   --output text
 )
 
-aws ec2 authorize-security-group-ingress \
-  --group-id ${AURORA_SECURITY_GROUP_ID} \
-  --protocol tcp \
-  --port 5432 \
-  --cidr ${ROSA_MACHINE_CIDR} \
-  --region ${AURORA_REGION}
+EXISTS=$(aws ec2 describe-security-groups \
+  --filters  \
+    "Name=group-id,Values=${AURORA_SECURITY_GROUP_ID}" \
+    "Name=ip-permission.protocol,Values=tcp" \
+    "Name=ip-permission.from-port,Values=5432" \
+    "Name=ip-permission.cidr,Values=${ROSA_MACHINE_CIDR}" \
+  --query "SecurityGroups[*].GroupId" \
+  --region ${AURORA_REGION} \
+  --output text)
+
+if [ "${EXISTS}" == "" ]; then
+  aws ec2 authorize-security-group-ingress \
+    --group-id ${AURORA_SECURITY_GROUP_ID} \
+    --protocol tcp \
+    --port 5432 \
+    --cidr ${ROSA_MACHINE_CIDR} \
+    --region ${AURORA_REGION}
+else
+  echo "Ingress authorization already exists from ${ROSA_MACHINE_CIDR} for region ${AURORA_REGION}"
+fi
