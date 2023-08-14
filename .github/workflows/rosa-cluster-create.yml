@@ -22,9 +22,7 @@ on:
         default: '2'
         type: string
       region:
-        description: 'The AWS region to create the cluster in'
-        required: false
-        default: 'vars.AWS_DEFAULT_REGION'
+        description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
 
 concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
