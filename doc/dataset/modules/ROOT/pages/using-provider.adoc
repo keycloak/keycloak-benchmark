@@ -99,6 +99,23 @@ Each user will have password like «Username»-password . For example `user-156`
 .../realms/master/dataset/create-users?count=1000&realm-name=realm-5
 ----
 
+=== Create many groups
+
+Groups are created as part of the realm creation. Number of groups and the structure of the created groups can be managed by using the following parameters:
+
+* groups-per-realm: Total number of groups per realm. Default value is 20.
+* groups-per-transaction: Number of groups to be created in one transaction. Default value is 100.
+* groups-with-hierarchy: "true" or "false", the default value is "false". With the default value only top-level groups are created. With groups-with-hierarchy = 'true' a tree structure of groups is created; the depth of the tree is defined by the parameter 'groups-hierarchy-depth' and 'groups-count-each-level' defines how many subgroups each created group will have.
+* groups-hierarchy-depth: The depth of the groups tree structure. Default value is 3. With the default value top level groups will have 'groups-count-each-level' subgroups and each subgroup will have 'groups-count-each-level' themselves. This parameter is active only when 'groups-with-hierarchy' is true.
+* groups-count-each-level: Number of subgroups each created group will have. This parameter is active only when 'groups-with-hierarchy' is true.
+
+With the default values only top-level groups are created. With groups-with-hierarchy=true, groups-per-realm parameter is ignored and the group tree structure is created by as defined by the other parameters. groups-count-each-level ^ groups-hierarchy-depth will be the total number of groups created. The hierarchical groups implementation honors groups-per-transaction.
+The adopted subgroup naming convention  uses "." in the group names which allows finding the parent group even if it was created in a previous transaction.
+
+----
+.../realms/master/dataset/create-realms?count=1&groups-with-hierarchy=true&groups-hierarchy-depth=3&groups-count-each-level=50
+----
+
 === Create many events
 
 This is request to create 10M new events in the available realms with prefix `realm-`.
