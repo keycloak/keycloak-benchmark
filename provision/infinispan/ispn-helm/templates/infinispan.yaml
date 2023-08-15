@@ -38,7 +38,7 @@ spec:
     enabled: false
   replicas: {{ .Values.replicas }}
   container:
-    extraJvmOpts: '-Dorg.infinispan.openssl=false {{.Values.jvmOptions}}'
+    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}}'
     {{- if .Values.cpu }}
     cpu: {{ .Values.cpu }}
     {{- end}}
