@@ -15,6 +15,7 @@ if [ -z "$REGION" ]; then echo "Variable REGION needs to be set."; exit 1; fi
 if [ -z "$COMPUTE_MACHINE_TYPE" ]; then echo "Variable COMPUTE_MACHINE_TYPE needs to be set."; exit 1; fi
 
 if [ "$MULTI_AZ" = "true" ]; then MULTI_AZ_PARAM="--multi-az"; else MULTI_AZ_PARAM=""; fi
+if [ -z "$AVAILABILITY_ZONES" ]; then AVAILABILITY_ZONES_PARAM=""; else AVAILABILITY_ZONES_PARAM="--availability-zones $AVAILABILITY_ZONES"; fi
 if [ -z "$REPLICAS" ]; then echo "Variable REPLICAS needs to be set."; exit 1; fi
 
 echo "Checking if cluster ${CLUSTER_NAME} already exists."
@@ -44,7 +45,7 @@ else
   --controlplane-iam-role arn:aws:iam::${AWS_ACCOUNT}:role/ManagedOpenShift-ControlPlane-Role \
   --worker-iam-role arn:aws:iam::${AWS_ACCOUNT}:role/ManagedOpenShift-Worker-Role \
   --operator-roles-prefix ${CLUSTER_NAME} \
-  --region ${REGION} ${MULTI_AZ_PARAM} \
+  --region ${REGION} ${MULTI_AZ_PARAM} ${AVAILABILITY_ZONES_PARAM} \
   --replicas ${REPLICAS} \
   --compute-machine-type ${COMPUTE_MACHINE_TYPE} \
   --machine-cidr ${MACHINE_CIDR} \
