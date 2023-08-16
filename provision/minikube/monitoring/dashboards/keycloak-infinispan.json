@@ -919,13 +919,10 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
@@ -935,12 +932,14 @@
         "x": 5,
         "y": 21
       },
-      "id": 289,
+      "id": 356,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull",
-            "max"
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
           ],
           "displayMode": "table",
           "placement": "bottom",
@@ -951,6 +950,7 @@
           "sort": "none"
         }
       },
+      "pluginVersion": "9.4.7",
       "targets": [
         {
           "datasource": {
@@ -958,13 +958,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_state_transfer_manager_inflight_segment_transfer_count{cache=\"$distributed_cache\", namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "rate(vendor_statistics_stores{cache=\"$distributed_cache\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Number of requested segments",
+      "title": "Number of put operations in last 2 minutes",
       "type": "timeseries"
     },
     {
@@ -975,7 +975,37 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -993,22 +1023,27 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 3,
+        "w": 5,
         "x": 10,
         "y": 21
       },
       "id": 142,
       "options": {
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
+            "min",
+            "max",
+            "mean",
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "9.4.7",
       "targets": [
@@ -1025,7 +1060,7 @@
         }
       ],
       "title": "Average read",
-      "type": "gauge"
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1035,7 +1070,37 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -1053,22 +1118,27 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 3,
-        "x": 13,
+        "w": 5,
+        "x": 15,
         "y": 21
       },
       "id": 141,
       "options": {
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
+            "min",
+            "max",
+            "mean",
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "9.4.7",
       "targets": [
@@ -1085,7 +1155,212 @@
         }
       ],
       "title": "Average write",
-      "type": "gauge"
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 5,
+        "x": 0,
+        "y": 31
+      },
+      "id": 290,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.0.5",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "sum by (pod,other_dc_name) (rate(label_replace({__name__=~\"vendor_rpc_manager_number_xsite_requests_sent_to_.+\", job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}, \"other_dc_name\", \"$1\", \"__name__\", \"vendor_rpc_manager_number_xsite_requests_sent_to_(.+)\")[2m:]))",
+          "legendFormat": "{{pod}} -> {{other_dc_name}} - sent",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "sum by (pod,other_dc_name) (rate(label_replace({__name__=~\"vendor_rpc_manager_number_xsite_requests_received_from_.+\", job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}, \"other_dc_name\", \"$1\", \"__name__\", \"vendor_rpc_manager_number_xsite_requests_received_from_(.+)\")[2m:]))",
+          "hide": false,
+          "legendFormat": "{{pod}} <- {{other_dc_name}} - received",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "XSite requests to other DCs in last 2 minutes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 5,
+        "x": 5,
+        "y": 31
+      },
+      "id": 291,
+      "options": {
+        "legend": {
+          "calcs": [
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.0.5",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "sum by (pod,other_dc_name) (label_replace({__name__=~\"vendor_rpc_manager_average_xsite_replication_time_to_.+\", job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}, \"other_dc_name\", \"$1\", \"__name__\", \"vendor_rpc_manager_average_xsite_replication_time_to_(.+)\"))",
+          "legendFormat": "{{pod}} -> {{other_dc_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Average xsite request duration to other DCs in ms",
+      "type": "timeseries"
     },
     {
       "collapsed": false,
@@ -1093,7 +1368,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 164
+        "y": 188
       },
       "id": 8,
       "panels": [],
@@ -1147,7 +1422,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1162,7 +1438,7 @@
         "h": 10,
         "w": 5,
         "x": 0,
-        "y": 165
+        "y": 189
       },
       "id": 10,
       "options": {
@@ -1245,7 +1521,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -1257,7 +1534,7 @@
         "h": 10,
         "w": 5,
         "x": 5,
-        "y": 165
+        "y": 189
       },
       "id": 25,
       "options": {
@@ -1299,14 +1576,45 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -1316,22 +1624,27 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 3,
+        "w": 4,
         "x": 10,
-        "y": 165
+        "y": 189
       },
       "id": 51,
       "options": {
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
+            "min",
+            "max",
+            "mean",
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "9.4.7",
       "targets": [
@@ -1348,7 +1661,7 @@
         }
       ],
       "title": "Average read operation duration",
-      "type": "gauge"
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1358,14 +1671,45 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -1375,22 +1719,27 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 3,
-        "x": 13,
-        "y": 165
+        "w": 4,
+        "x": 14,
+        "y": 189
       },
       "id": 36,
       "options": {
-        "orientation": "auto",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
+            "min",
+            "max",
+            "mean",
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "9.4.7",
       "targets": [
@@ -1407,7 +1756,7 @@
         }
       ],
       "title": "Average write operation duration",
-      "type": "gauge"
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
