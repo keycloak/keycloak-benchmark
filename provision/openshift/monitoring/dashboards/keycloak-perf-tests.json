@@ -3192,7 +3192,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(pg_settings_max_connections) by (server)",
+          "expr": "sum(pg_settings_max_connections{namespace=\"${namespace}\"}) by (server)",
           "hide": false,
           "legendFormat": "max connections",
           "range": true,
@@ -3204,7 +3204,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "pg_stat_activity_count{datname=\"keycloak\"} > 0",
+          "expr": "pg_stat_activity_count{datname=\"keycloak\",namespace=\"${namespace}\"} > 0",
           "format": "time_series",
           "hide": false,
           "legendFormat": "{{state}}",
@@ -3217,7 +3217,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(pg_stat_activity_count{datname!=\"keycloak\"}) > 0",
+          "expr": "sum(pg_stat_activity_count{datname!=\"keycloak\",namespace=\"${namespace}\"}) > 0",
           "hide": false,
           "legendFormat": "other db connections",
           "range": true,
@@ -3315,7 +3315,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "100 * (rate(pg_stat_database_blks_hit{datname=\"keycloak\"}[$__rate_interval]) /\n((rate(pg_stat_database_blks_hit{datname=\"keycloak\"}[$__rate_interval]) +\nrate(pg_stat_database_blks_read{datname=\"keycloak\"}[$__rate_interval]))>0))",
+          "expr": "100 * (rate(pg_stat_database_blks_hit{datname=\"keycloak\",namespace=\"${namespace}\"}[$__rate_interval]) /\n((rate(pg_stat_database_blks_hit{datname=\"keycloak\",namespace=\"${namespace}\"}[$__rate_interval]) +\nrate(pg_stat_database_blks_read{datname=\"keycloak\",namespace=\"${namespace}\"}[$__rate_interval]))>0))",
           "legendFormat": "cache hit rate",
           "range": true,
           "refId": "A"
@@ -3412,7 +3412,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(pg_stat_bgwriter_checkpoints_req[5m]) /\n(rate(pg_stat_bgwriter_checkpoints_req[5m]) + rate(pg_stat_bgwriter_checkpoints_timed[5m])) * 100",
+          "expr": "rate(pg_stat_bgwriter_checkpoints_req{namespace=\"${namespace}\"}[5m]) /\n(rate(pg_stat_bgwriter_checkpoints_req{namespace=\"${namespace}\"}[5m]) + rate(pg_stat_bgwriter_checkpoints_timed{namespace=\"${namespace}\"}[5m])) * 100",
           "legendFormat": "requested checkpoint rate",
           "range": true,
           "refId": "A"
@@ -3509,7 +3509,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(pg_stat_database_deadlocks{datname=\"keycloak\"}[$__rate_interval])",
+          "expr": "rate(pg_stat_database_deadlocks{datname=\"keycloak\",namespace=\"${namespace}\"}[$__rate_interval])",
           "legendFormat": "{{pod}} : pg_stat_db_deadlocks",
           "range": true,
           "refId": "A"
@@ -3606,7 +3606,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(pg_locks_waiting_count{job=\"postgres-exporter\", datname=\"keycloak\"}) without (mode)",
+          "expr": "sum(pg_locks_waiting_count{job=\"postgres-exporter\", datname=\"keycloak\",namespace=\"${namespace}\"}) without (mode)",
           "legendFormat": "{{pod}} : pg_locks_waiting_count",
           "range": true,
           "refId": "A"
