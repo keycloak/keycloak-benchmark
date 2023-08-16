@@ -150,17 +150,17 @@ jobs:
 
       - name: Testing memory for creating sessions
         id: kcb-authorization-code-1
-        run: |
-          ./benchmark.sh ${{ inputs.region }} \
-          --scenario=keycloak.scenario.authentication.AuthorizationCode \
-          --server-url=${{ env.KEYCLOAK_URL }} \
-          --realm-name=realm-0 \
-          --users-per-sec=${{ inputs.numberOfUsersPerSecond }} \
-          --ramp-up=20 \
-          --logout-percentage=0 \
-          --measurement=${{ inputs.measurement }} \
-          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
-          --log-http-on-failure \
+        run: >
+          ./benchmark.sh ${{ inputs.region }}
+          --scenario=keycloak.scenario.authentication.AuthorizationCode
+          --server-url=${{ env.KEYCLOAK_URL }}
+          --realm-name=realm-0
+          --users-per-sec=${{ inputs.numberOfUsersPerSecond }}
+          --ramp-up=20
+          --logout-percentage=0
+          --measurement=${{ inputs.measurement }}
+          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }}
+          --log-http-on-failure
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
@@ -192,17 +192,17 @@ jobs:
 
       - name: Testing CPU usage for user logins
         id: kcb-authorization-code-2
-        run: |
-          ./benchmark.sh ${{ inputs.region }}  \
-          --scenario=keycloak.scenario.authentication.AuthorizationCode \
-          --server-url=${{ env.KEYCLOAK_URL }} \
-          --realm-name=realm-0 \
-          --users-per-sec=${{ inputs.numberOfUsersPerSecond }} \
-          --ramp-up=20 \
-          --logout-percentage=100 \
-          --measurement=${{ inputs.measurement }} \
-          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
-          --log-http-on-failure \
+        run: >
+          ./benchmark.sh ${{ inputs.region }}
+          --scenario=keycloak.scenario.authentication.AuthorizationCode
+          --server-url=${{ env.KEYCLOAK_URL }}
+          --realm-name=realm-0
+          --users-per-sec=${{ inputs.numberOfUsersPerSecond }}
+          --ramp-up=20
+          --logout-percentage=100
+          --measurement=${{ inputs.measurement }}
+          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }}
+          --log-http-on-failure
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
@@ -234,16 +234,16 @@ jobs:
 
       - name: Testing CPU usage for client credential grants
         id: kcb-client-secret
-        run: |
-          ./benchmark.sh ${{ inputs.region }} \
-          --scenario=keycloak.scenario.authentication.ClientSecret \
-          --server-url=${{ env.KEYCLOAK_URL }} \
-          --realm-name=realm-0 \
-          --users-per-sec=${{ inputs.numberOfClientsPerSecond }} \
-          --ramp-up=20 \
-          --measurement=${{ inputs.measurement }} \
-          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }} \
-          --log-http-on-failure \
+        run: >
+          ./benchmark.sh ${{ inputs.region }}
+          --scenario=keycloak.scenario.authentication.ClientSecret
+          --server-url=${{ env.KEYCLOAK_URL }}
+          --realm-name=realm-0
+          --users-per-sec=${{ inputs.numberOfClientsPerSecond }}
+          --ramp-up=20
+          --measurement=${{ inputs.measurement }}
+          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }}
+          --log-http-on-failure
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible

@@ -31,9 +31,10 @@ runs:
       name: CPU Sec Util
       if: ${{ inputs.runCpuSecsUtil == 'true' }}
       shell: bash
-      run: |
-        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
-        'query=sum(container_cpu_usage_seconds_total{job="kubelet", namespace="${{   inputs.project }}",container="keycloak"})' \
+      # language=bash
+      run: >
+        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
+        'query=sum(container_cpu_usage_seconds_total{job="kubelet", namespace="${{   inputs.project }}",container="keycloak"})'
         | jq '.data.result[0].value[1]' -r >> ${{ inputs.output }}
       env:
         THANOS_HOST: ${{ env.THANOS_HOST }}
@@ -43,10 +44,10 @@ runs:
       name: Memory Usage Total
       if: ${{ inputs.runMemoryUsageTotal == 'true' }}
       shell: bash
-      run: |
-        #Converting Bytes to MB before storing to file.
-        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
-        'query=sum(container_memory_working_set_bytes{job="kubelet", namespace="${{ inputs.project }}",container="keycloak"})' \
+      # Converting Bytes to MB before storing to file.
+      run: >
+        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
+        'query=sum(container_memory_working_set_bytes{job="kubelet", namespace="${{ inputs.project }}",container="keycloak"})'
         | jq '.data.result[0].value[1]' -r | awk '{print $0/1000/1000}' >> ${{ inputs.output }}
       env:
         THANOS_HOST: ${{ env.THANOS_HOST }}
