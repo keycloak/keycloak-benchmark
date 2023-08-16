@@ -18,31 +18,12 @@
 
 package org.keycloak.benchmark.dataset;
 
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
-import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
-import java.util.Collections;
-import java.util.stream.Collectors;
-
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
-
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.annotations.cache.NoCache;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
@@ -76,12 +57,33 @@ import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_USER;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.REMOVE_REALMS;
+
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
 public class DatasetResourceProvider implements RealmResourceProvider {
 
     protected static final Logger logger = Logger.getLogger(DatasetResourceProvider.class);
+    public static final String GROUP_NAME_SEPARATOR = ".";
 
     // Ideally don't use this session to run any DB transactions
     protected final KeycloakSession baseSession;
@@ -209,14 +211,21 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, Task task) {
+        int groupsPerRealm = config.getGroupsPerRealm();
+        boolean hierarchicalGroups = Boolean.parseBoolean(config.getGroupsWithHierarchy());
+        int hierarchyDepth = config.getGroupsHierarchyDepth();
+        int countGroupsAtEachLevel = hierarchicalGroups ? config.getCountGroupsAtEachLevel() : groupsPerRealm;
+        int totalNumberOfGroups =  hierarchicalGroups ? (int) Math.pow(countGroupsAtEachLevel, hierarchyDepth) : groupsPerRealm;
 
-        for (int i = 0; i < config.getGroupsPerRealm(); i += config.getGroupsPerTransaction()) {
+        for (int i = 0; i < totalNumberOfGroups; i += config.getGroupsPerTransaction()) {
             int groupsStartIndex = i;
-            int groupEndIndex = Math.min(groupsStartIndex + config.getGroupsPerTransaction(), config.getGroupsPerRealm());
+            int groupEndIndex =  hierarchicalGroups ? Math.min(groupsStartIndex + config.getGroupsPerTransaction(), totalNumberOfGroups)
+            : Math.min(groupsStartIndex + config.getGroupsPerTransaction(), config.getGroupsPerRealm());
+
             logger.tracef("groupsStartIndex: %d, groupsEndIndex: %d", groupsStartIndex, groupEndIndex);
 
             KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(),
-                    session -> createGroups(context, groupsStartIndex, groupEndIndex, session),
+                    session -> createGroups(context, groupsStartIndex, groupEndIndex, hierarchicalGroups, hierarchyDepth, countGroupsAtEachLevel, session),
                     config.getTransactionTimeoutInSeconds());
 
             task.debug(logger, "Created %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
@@ -972,12 +981,56 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         task.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
     }
 
-    private void createGroups(RealmContext context, int startIndex, int endIndex, KeycloakSession session) {
+    private String getGroupName(boolean hierarchicalGroups, int countGroupsAtEachLevel, String prefix, int currentCount) {
+
+        if (!hierarchicalGroups) {
+            return prefix + currentCount;
+        }
+        if(currentCount == 0) {
+            return  prefix + "0";
+        }
+        // we are using "." separated paths in the group names, this is basically a number system with countGroupsAtEachLevel being the basis
+        // this allows us to find the parent group by trimming the group name even if the parent was created in previous transaction
+        StringBuilder groupName = new StringBuilder();
+        if(countGroupsAtEachLevel == 1) {
+            // numbering system does not work for base 1
+            groupName.append("0");
+            IntStream.range(0, currentCount).forEach(i -> groupName.append(GROUP_NAME_SEPARATOR).append("0"));
+            return prefix + groupName;
+        }
+
+        int leftover = currentCount;
+        while (leftover > 0) {
+            int digit = leftover % countGroupsAtEachLevel;
+            groupName.insert(0, digit + GROUP_NAME_SEPARATOR);
+            leftover = (leftover - digit) / countGroupsAtEachLevel;
+        }
+        return prefix + groupName.substring(0, groupName.length() - 1);
+    }
+
+    private String getParentGroupName(String groupName) {
+        if (groupName == null || groupName.lastIndexOf(GROUP_NAME_SEPARATOR) < 0) {
+            return null;
+        }
+        return groupName.substring(0, groupName.lastIndexOf(GROUP_NAME_SEPARATOR));
+    }
+
+    private void createGroups(RealmContext context, int startIndex, int endIndex, boolean hierarchicalGroups, int hierarchyDepth, int countGroupsAtEachLevel, KeycloakSession session) {
         RealmModel realm = context.getRealm();
         for (int i = startIndex; i < endIndex; i++) {
-            String groupName = context.getConfig().getGroupPrefix() + i;
-            GroupModel groupModel = session.groups().createGroup(realm, groupName);
-            context.groupCreated(groupModel);
+            String groupName = getGroupName(hierarchicalGroups, countGroupsAtEachLevel, context.getConfig().getGroupPrefix(), i);
+            String parentGroupName = getParentGroupName(groupName);
+
+            if (parentGroupName != null) {
+                Optional<GroupModel> maybeParent = session.groups().searchForGroupByNameStream(realm, parentGroupName, true, 1, 1).findFirst();
+                maybeParent.ifPresent(parent -> {
+                    GroupModel groupModel = session.groups().createGroup(realm, groupName, parent);
+                    context.groupCreated(groupModel);
+                });
+            } else {
+                GroupModel groupModel = session.groups().createGroup(realm, groupName);
+                context.groupCreated(groupModel);
+            }
         }
     }
 
@@ -1055,7 +1108,14 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     .sorted((group1, group2) -> {
                         String name1 = group1.getName().substring(config.getGroupPrefix().length());
                         String name2 = group2.getName().substring(config.getGroupPrefix().length());
-                        return Integer.parseInt(name1) - Integer.parseInt(name2);
+                        String [] name1Exploded = name1.split(Pattern.quote(GROUP_NAME_SEPARATOR));
+                        String [] name2Exploded = name2.split(Pattern.quote(GROUP_NAME_SEPARATOR));
+                        for(int i = 0; i< Math.min(name1Exploded.length, name2Exploded.length); i++) {
+                            if (name1Exploded[i].compareTo(name2Exploded[i]) != 0) {
+                                return name1Exploded[i].compareTo(name2Exploded[i]);
+                            }
+                        }
+                        return name1.compareTo(name2);
                     })
                     .collect(Collectors.toList());
             context.setGroups(sortedGroups);

@@ -116,8 +116,22 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "groups-per-realm", defaultValue = 20, operations = { CREATE_REALMS })
     private Integer groupsPerRealm;
 
+    // Number of groups to be created in one transaction
     @QueryParamIntFill(paramName = "groups-per-transaction", defaultValue = 100, operations = { CREATE_REALMS })
     private Integer groupsPerTransaction;
+
+    // When this parameter is false only top level groups are created, groups and subgroups are created
+    @QueryParamFill(paramName = "groups-with-hierarchy", defaultValue = "false", operations = { CREATE_REALMS })
+    private String groupsWithHierarchy;
+
+   // Depth of the group hierarchy tree. Active if groups-with-hierarchy = true
+    @QueryParamIntFill(paramName = "groups-hierarchy-depth", defaultValue = 3, operations = { CREATE_REALMS })
+    private Integer groupsHierarchyDepth;
+
+    // Number of at each level of hierarchy. Each group will have this many subgroups. Active if groups-with-hierarchy = true
+    @QueryParamIntFill(paramName = "groups-count-each-level", defaultValue = 10, operations = { CREATE_REALMS })
+    private Integer countGroupsAtEachLevel;
+
 
     // Prefix for newly created users
     @QueryParamFill(paramName = "user-prefix", defaultValue = "user-", operations = { CREATE_REALMS, CREATE_USERS, CREATE_OFFLINE_SESSIONS, LAST_USER, CREATE_AUTHZ_CLIENT })
@@ -268,6 +282,18 @@ public class DatasetConfig {
 
     public Integer getGroupsPerUser() {
         return groupsPerUser;
+    }
+
+    public String getGroupsWithHierarchy() {
+        return groupsWithHierarchy;
+    }
+
+    public Integer getGroupsHierarchyDepth() {
+        return groupsHierarchyDepth;
+    }
+
+    public Integer getCountGroupsAtEachLevel() {
+        return countGroupsAtEachLevel;
     }
 
     public Integer getRealmRolesPerUser() {
