@@ -25,6 +25,7 @@ runs:
         host=$(oc -n openshift-monitoring get route thanos-querier -ojsonpath='{.spec.host}')
         token=$(oc whoami -t)
         echo "THANOS_HOST=$host" >> $GITHUB_ENV
+        echo "::add-mask::$token"
         echo "OC_TOKEN=$token" >> $GITHUB_ENV
 
     - id: cpu-sec-util-query

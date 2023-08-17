@@ -73,11 +73,11 @@ Observations:
 This assumes that each user connects to only one client.
 Memory requirements increase with the number of client sessions per user session (not tested yet).
 
-* For each 45 user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 300 per second).
+* For each 40 user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 300 per second).
 +
 Keycloak spends most of the CPU time hashing the password provided by the user.
 
-* For each 250 client credential grants per second, 1 vCPU per Pod in a three node cluster (tested with up to 2000 per second).
+* For each 450 client credential grants per second, 1 vCPU per Pod in a three node cluster (tested with up to 2000 per second).
 +
 Most CPU time goes into creating new TLS connections, as each client runs only a single request.
 
@@ -90,24 +90,24 @@ Performance of Keycloak dropped significantly when its Pods were throttled in ou
 Target size:
 
 * 50,000 active user sessions
-* 45 logins per seconds
-* 250 client credential grants per second
+* 40 logins per seconds
+* 450 client credential grants per second
 
 Limits calculated:
 
 * CPU requested: 2 vCPU
 +
-(45 logins per second = 1 vCPU, 250 client credential grants per second = 1 vCPU)
+(40 logins per second = 1 vCPU, 450 client credential grants per second = 1 vCPU)
 
 * CPU limit: 6 vCPU
 +
 (Allow for three times the CPU requested to handle peaks, startups and failover tasks, and also refresh token handling which we don't have numbers on, yet)
 
-* Memory requested: 1.2 GB
+* Memory requested: 1.25 GB
 +
-(1 GB base memory plus 200 MB RAM for 50,000 active sessions)
+(1 GB base memory plus 250 MB RAM for 50,000 active sessions)
 
-* Memory limit: 2.2 GB
+* Memory limit: 2.25 GB
 +
 (adding 1 GB to the memory requested)
 

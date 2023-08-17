@@ -89,9 +89,9 @@ runs:
         description="${{ inputs.calculatedMetricName }} per Pod in ${{ inputs.replicas }} Pod cluster"
         if [ -f ${{ inputs.output }} ]; then
           cat ${{ inputs.output }} | jq --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
-          --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' \
+          --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($key):($val|tonumber)}}' \
           | tee ${{ inputs.output }}
         else
           jq -n --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
-          --arg val ${CALCULATED_METRIC_VALUE} '{($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' > ${{ inputs.output }}
+          --arg val ${CALCULATED_METRIC_VALUE} '{($testName): {($key):($val|tonumber)}}' > ${{ inputs.output }}
         fi
