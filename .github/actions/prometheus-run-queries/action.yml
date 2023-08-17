@@ -44,11 +44,11 @@ runs:
       name: Memory Usage Total
       if: ${{ inputs.runMemoryUsageTotal == 'true' }}
       shell: bash
-      # Converting Bytes to MB before storing to file.
+      # language=bash
       run: >
         curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
         'query=sum(container_memory_working_set_bytes{job="kubelet", namespace="${{ inputs.project }}",container="keycloak"})'
-        | jq '.data.result[0].value[1]' -r | awk '{print $0/1000/1000}' >> ${{ inputs.output }}
+        | jq '.data.result[0].value[1]' -r | awk '{print $0/1000/1000}' >> ${{ inputs.output }}       # Converting Bytes to MB before storing to file.
       env:
         THANOS_HOST: ${{ env.THANOS_HOST }}
         OC_TOKEN: ${{ env.OC_TOKEN }}

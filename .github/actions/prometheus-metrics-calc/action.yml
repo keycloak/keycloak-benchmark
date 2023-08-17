@@ -11,9 +11,6 @@ inputs:
   calculatedMetricName:
     description: 'The name of the metric that is calculated for including in JSON file.'
     default: '1vCPU'
-  criteriaName:
-    description: 'The name of the criteria for which the metric is calculated.'
-    default: 'users per sec'
   criteriaValue:
     description: 'The value for the criteria used during benchmark run.'
     required: true
@@ -56,7 +53,7 @@ runs:
         metric_per_pod=$(awk "BEGIN {print $metric_count_in_interval/$POD_NUM; exit}")
         #Calculating the final number, i.e. how many of specified criteria (e.g. user logins/sec, client credential grants, etc)
         #can be handled with requested metric per pod. The result is number rounded down.
-        result=$(awk "BEGIN {print int($CRITERIA_VALUE/$metric_per_pod); exit}"
+        result=$(awk "BEGIN {print int($CRITERIA_VALUE/$metric_per_pod); exit}")
         echo "CALCULATED_METRIC_VALUE=$result" >> $GITHUB_ENV
 
     - id: calculate-memory-metric
@@ -78,7 +75,7 @@ runs:
         metric_per_pod=$(awk "BEGIN {print $difference/$POD_NUM; exit}")
         #Calculating the final number, i.e. based on current environment setup how many of specified criteria (e.g. user active session, etc)
         #can be handled with 500Mb per pod based on the number calculated above. The result is number rounded down.
-        result=$(awk "BEGIN {print int($CRITERIA_VALUE*500/$metric_per_pod); exit}"
+        result=$(awk "BEGIN {print int($CRITERIA_VALUE*500/$metric_per_pod); exit}")
         echo "CALCULATED_METRIC_VALUE=$result" >> $GITHUB_ENV
 
     - id: metric-store-in-result-file
@@ -89,12 +86,12 @@ runs:
       # language=bash
       run: |
         #Preparing and storing all information in JSON using jq library
-        description="${{ inputs.calculatedMetricName }} per pod in ${{ inputs.replicas }} node cluster handles"
+        description="${{ inputs.calculatedMetricName }} per Pod in ${{ inputs.replicas }} Pod cluster"
         if [ -f ${{ inputs.output }} ]; then
           cat ${{ inputs.output }} | jq --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
-          --arg val "${CALCULATED_METRIC_VALUE} ${{ inputs.criteriaName }}" '. + {($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' \
+          --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' \
           | tee ${{ inputs.output }}
         else
           jq -n --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
-          --arg val "${CALCULATED_METRIC_VALUE} ${{ inputs.criteriaName }}" '{($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' > ${{ inputs.output }}
+          --arg val ${CALCULATED_METRIC_VALUE} '{($testName): {($ARGS.named["key"]):($ARGS.named["val"])}}' > ${{ inputs.output }}
         fi
