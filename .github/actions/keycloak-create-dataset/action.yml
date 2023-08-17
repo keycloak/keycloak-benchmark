@@ -43,7 +43,7 @@ runs:
       working-directory: dataset
 
     - id: create_clients_for_realm
-      if: ${{ inputs.createClientForSpecificRealm }}
+      if: ${{ inputs.createClientForSpecificRealm == 'true' }}
       shell: bash
       run: |
         ./dataset-import.sh -a create-clients -c ${{ inputs.clientsPerRealm }} -n ${{ inputs.realmNameForClients }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
