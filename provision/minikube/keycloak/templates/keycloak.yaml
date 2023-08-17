@@ -20,9 +20,6 @@ spec:
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
   additionalOptions:
-     # Workaround for https://github.com/keycloak/keycloak/issues/21092
-    - name: 'cache-stack'
-      value: kubernetes-with-fdsock
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     - name: db
       value: postgres
@@ -154,10 +151,10 @@ spec:
             env:
               # Limiting Keycloak thread pool as it might lead to an exhaustion of the JGroups thread pool.
               # The combined worker thread pool size of all Keycloak instances shouldn't exceed the size of the JGroups thread pool on each node.
-              # Due to https://issues.redhat.com/browse/ISPN-14780 there is currently no way to configure the JGroups thread pool max size,
-              # so there is no way to increase the value from the 100 which are the default in JGroups AFAIK.
+              # After https://issues.redhat.com/browse/ISPN-14780 was fixed in KC 22.0.2 and KC 23, it again defaults to 200.
+              # It can be configured by a system property 'jgroups.thread_pool.max_threads' for a different value.
               - name: 'QUARKUS_THREAD_POOL_MAX_THREADS'
-                value: {{ div 100 .Values.instances | quote }}
+                value: {{ div 200 .Values.instances | quote }}
               # This is the queue size on each Keycloak node, that when exceeded will return a 503 response immediately (load shedding).
               # Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
               # In the future, the queue size could be determined dynamically on each node based on the processing time of previous requests.
