@@ -42,14 +42,13 @@ xref:kubernetes-guide::error-messages.adoc#jgroups-thread-pool-is-full['org.jgro
 include::partial$executor-jgroups-thread-calculation.adoc[]
 --
 +
-Configure `quarkus.thread-pool.queue-size` to specify a maximum queue length to allow for effective load shedding once this queue size is exceeded: Keycloak will return HTTP Status code 503 (server unavailable) in this situation (available in Keycloak 23, see https://github.com/keycloak/keycloak/issues/21962[#21962] for details).
+Configure `quarkus.thread-pool.queue-size` to specify a maximum queue length to allow for effective load shedding once this queue size is exceeded: Keycloak will return HTTP Status code 503 (server unavailable) in this situation (available in Keycloak 23, see https://github.com/keycloak/keycloak/issues/21962[keycloak#21962] for details).
 Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
 
-* All health and liveness probes are handled in the Vert.x worker pool.
-This is configured in https://quarkus.io/guides/all-config#quarkus-vertx_quarkus.vertx.worker-pool-size[`quarkus.vertx.worker-pool-size`] and has a default of 20 threads.
-As it is independent of requests queueing up in the executor pool, health and liveness will still be handled fast and without a delay, so it is safe to use them in Kubernetes without having pods restarted under a high load.
-+
-There should be no need to configure a specific value for this.
+* All health and liveness probes are handled in the Quarkus executor worker pool.
+When requests queue up in Keycloak, also Readiness and Liveness probes are delayed, which might trigger failure detection in Kubernetes and will lead to Pod restarts in overload or load-shedding situations.
+This is tracked in https://github.com/keycloak/keycloak/issues/22109[keycloak#22109].
+For the time being, consider a longer timeout for the probes to survive spikes in the delay, or disabling the liveness probe to avoid Pod restarts.
 
 In order for Java to create threads, when running on Linux it needs to have file handles available.
 Therefore, the number of open files (as retrieved as `ulimit -n` on Linux) need to provide head-space for Keycloak to increase the number of threads needed.
