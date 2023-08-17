@@ -33,6 +33,8 @@ tasks:
       - test -f ".task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
       - test -f ".task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}"
       - test {{.INTERNAL_ROSA_ID}} == "$(cat .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}})"
+      # we ensure during the status test, the login session is still up-to-date.
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc project
     internal: true
 
   create-namespace:
