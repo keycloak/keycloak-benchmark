@@ -1,7 +1,9 @@
 - name: Get Ansible Control Host's public IP
-  shell: curl -ks ifconfig.me
+  shell: curl -ks --ipv4 https://ifconfig.me
   register: control_host_ip
   no_log: "{{ no_log_sensitive }}"
+
+- debug: var=cidr_ip
 
 - name: Create Security Group
   amazon.aws.ec2_group:
