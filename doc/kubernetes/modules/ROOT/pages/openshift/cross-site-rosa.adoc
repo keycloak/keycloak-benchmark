@@ -1,0 +1,76 @@
+= Cross-site deployment with Aurora DB, Infinispan and Keycloak
+:navtitle: Cross-site Deployment
+:description: Deploy a Keycloak between two ROSA cluster with Infinispan (cross-site enabled) and a shared Aurora DB.
+
+{description}
+
+This steps creates the Aurora DB, if it does not exist yet, and configures the AWS VPC and AWS Route Tables to allow the ROSA clusters to access the Aurora DB instance.
+
+Both Infinispan and Keycloak are deployed in the same namespace.
+
+== Prerequisites
+
+* xref:prerequisite/prerequisite-rosa.adoc[ROSA]
+* xref:prerequisite/prerequisite-openshift.adoc[OpenShift]
+* xref:prerequisite/prerequisite-infinispan-operator.adoc[Infinispan Operator]
+* xref:prerequisite/prerequisite-helm.adoc[Helm]
+* xref:prerequisite/prerequisite-kubectl.adoc[kubectl]
+* xref:prerequisite/prerequisite-task.adoc[Task]
+* xref:prerequisite/prerequisite-java.adoc[Java 17]
+
+== Installation steps
+
+. Check out the Git repository from https://github.com/keycloak/keycloak-benchmark/.
+
+. Change to the folder `link:{github-files}/provision/rosa-cross-dc/[provision/rosa-cross-dc]`.
+
+. Run the `task` command to provision all containers on both OpenShift clusters (check below the required variables).
+
+=== Available Tasks
+
+Two tasks are available, one to deploy and the other to undeploy, as follows:
+
+[source]
+----
+task: Available tasks for this project:
+* default:        Deploys Infinispan, Aurora DB and Keycloak in a Cross-Site deployment using ROSA clusters
+* undeploy:       Undeploy Infinispan and Keycloak in a Cross-Site deployment using ROSA clusters
+----
+
+WARNING: The `undeploy` task does not remove the Aurora DB and it needs to be manually remove.
+Check scripts in directory `link:{github-files}/provision/aws/rds/[provision/aws/rds]`.
+
+=== Required variables
+
+|===
+|Variable |Details
+
+|AURORA_CLUSTER
+|The unique name for Aurora Database.
+
+|AURORA_REGION
+|The AWS region to deploy Aurora DB.
+
+|ROSA_CLUSTER_NAME_1
+|The mame of one ROSA cluster.
+
+|ROSA_CLUSTER_NAME_2
+|The mame of the other ROSA cluster.
+|===
+
+=== Customize Aurora DB, Keycloak or Infinispan deployments.
+
+This installation scripts support most of the variables defined by the original deployment scripts.
+
+For Aurora DB variables, check the xref:storage/aurora-postgres.adoc[Aurora installation] page.
+
+For Infinispan deployment, check xref:openshift/installation-infinispan.adoc#ispn-variables[Infinispan installation] page.
+
+For Keycloak deployment, check xref:customizing-deployment.adoc[Keycloak Customization] page.
+Note that not all variable are respected.
+As an example, `KC_ISPN_NAMESPACE` is not possible to change since it is automatically computed by this installation script.
+
+=== Warnings / Known issues
+
+Using `--force` will break the keycloak deployment because it patches the keycloak operator deployment with an incorrect image.
+

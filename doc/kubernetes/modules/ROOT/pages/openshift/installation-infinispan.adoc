@@ -1,84 +1,157 @@
 = Installing Infinispan on OpenShift
 :navtitle: Installing Infinispan
-:description: Deploy an Infinispan cluster (with or without cross-site) and configures the necessary caches for Keycloak.
+:description: Deploy one or more Infinispan clusters (with or without cross-site).
 
 {description}
 
-== Taskfile
+== Prerequisites
 
-=== Main tasks
+* xref:prerequisite/prerequisite-rosa.adoc[ROSA]
+* xref:prerequisite/prerequisite-openshift.adoc[OpenShift]
+* xref:prerequisite/prerequisite-infinispan-operator.adoc[Infinispan Operator]
+* xref:prerequisite/prerequisite-helm.adoc[Helm]
+* xref:prerequisite/prerequisite-kubectl.adoc[kubectl]
+* xref:prerequisite/prerequisite-task.adoc[Task]
 
-==== Single cluster without cross-site.
+== Installing Infinispan on OpenShift
 
+. Check out the Git repository from https://github.com/keycloak/keycloak-benchmark/.
+
+. Change to the folder `link:{github-files}/provision/infinispan[provision/infinispan]`.
+
+. Run the `task <task-name>` command to provision all containers on OpenShift.
+
+TIP: Check xref:customizing-deployment.adoc#legacy-connect-external-ispn[Keycloak Customization] on how to connect the Keycloak cluster to the Infinispan cluster.
+
+=== Available Tasks
+
+Infinispan can be installed with or without cross-site using a single or multiple Openshift clusters.
+The available tasks are as follows:
+
+[source]
+----
+task: Available tasks for this project:
+* crossdc:                     Creates a cross-site enabled Infinispan deployment between 2 OCP clusters
+* crossdc-single:              Creates a cross-site enabled Infinispan deployment between 2 namespaces
+* delete-crossdc:              Deletes the Infinispan CR from cross-site deployment
+* delete-crossdc-single:       Deletes the Infinispan CR in a cross-site deployment in a single OCP cluster
+* delete-infinispan:           Deletes the Infinispan CR
+* single-cluster:              Creates a single cluster Infinispan deployment
+
+----
+
+==== Single cluster without cross-site
+
+To install just a simple Infinispan cluster without cross-site, run the task `single-cluser`.
+This task has the following required variables:
+
+|===
+|Variable |Details
+
+|`ROSA_CLUSTER_NAME`
+|The ROSA cluster name.
+Use `rosa list clusters` for the available clusters name.
+
+|`OC_NAMESPACE`
+|The namespace to deploy the Infinispan cluster.
+|===
+
+.Example
 [source,bash]
 ----
 task single-cluster ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE=infinispan
 ----
 
-Required Variables:
+To delete the Infinispan cluster, run the task `delete-infinispan` with the same variables.
+
+.Example
+[source,bash]
+----
+task delete-infinispan ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE=infinispan
+----
+
+==== Cross-Site enabled Infinispan clusters in a single Openshift cluster
+
+To deploy two Infinispan clusters with cross-site enabled, run the task `crossdc-single`.
+This task requires two different namespaces where each Infinispan cluster is going to be deployed.
+The required variables are:
 
 |===
 |Variable |Details
 
 |`ROSA_CLUSTER_NAME`
-|The ROSA cluster name. Check `rosa list clusters` for the available clusters.
+|The ROSA cluster name.
+Use `rosa list clusters` for the available clusters name.
 
-|`OC_NAMESPACE`
-|The namespace where the Infinispan cluster is installed.
+|`OC_NAMESPACE_1`
+|The first namespace to install the first Infinispan cluster.
+
+|`OC_NAMESPACE_2`
+|The second namespace to install the second Infinispan cluster.
 |===
 
-==== Two Infinispan cluster connected with cross-site in the same OCP cluster.
+IMPORTANT: The variables `OC_NAMESPACE_1` and `OC_NAMESPACE_2` must be different.
 
+.Example
 [source,bash]
 ----
 task crossdc-single ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE_1=ispn-1 OC_NAMESPACE_2=ispn-2
 ----
 
-Required Variables:
+To delete this deployment, run the task `delete-crossdc-single` with the same variables.
 
-|===
-|Variable |Details
-
-|`ROSA_CLUSTER_NAME`
-|The ROSA cluster name. Check `rosa list clusters` for the available clusters.
-
-|`OC_NAMESPACE_1`
-|The first namespace where the Infinispan cluster is installed.
-
-|`OC_NAMESPACE_2`
-|The second namespace where the Infinispan cluster is installed.
-|===
-
-IMPORTANT: The variables `OC_NAMESPACE_1` and `OC_NAMESPACE_2` must be different.
-
-==== Two Infinispan cluster connected with cross-site in different OCP clusters.
-
+.Example
 [source,bash]
 ----
-task crossdc ROSA_CLUSTER_NAME_1=gh-keycloak ROSA_CLUSTER_NAME_2=gh-pruivo OC_NAMESPACE_1=infinispan OC_NAMESPACE_2=infinispan
+task delete-crossdc-single ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE_1=ispn-1 OC_NAMESPACE_2=ispn-2
 ----
 
-Required Variables:
+==== Cross-Site enabled Infinispan clusters in two different Openshift clusters
+
+Last, but not least, to deploy Infinispan with cross-site in two different Openshift clusters, run the task `crossdc`.
+The following variable are required:
 
 |===
 |Variable |Details
 
 |`ROSA_CLUSTER_NAME_1`
-|The first ROSA cluster name. Check `rosa list clusters` for the available clusters.
+|The first ROSA cluster name.
+Use `rosa list clusters` for the available clusters.
 
 |`ROSA_CLUSTER_NAME_2`
-|The second ROSA cluster name. Check `rosa list clusters` for the available clusters.
+|The second ROSA cluster name.
+Use `rosa list clusters` for the available clusters.
 
 |`OC_NAMESPACE_1`
-|The namespace where the Infinispan cluster is installed in the first ROSA cluster.
+|The namespace to install the Infinispan cluster in the first ROSA cluster.
 
 |`OC_NAMESPACE_2`
-|The namespace where the Infinispan cluster is installed in the second ROSA cluster.
+|The namespace to install the Infinispan cluster in the second ROSA cluster.
 |===
 
 IMPORTANT: The variables `ROSA_CLUSTER_NAME_1` and `ROSA_CLUSTER_NAME_2` must be different.
 
+NOTE: The variables `OC_NAMESPACE_1` and `OC_NAMESPACE_2` can have the same value.
+
+.Example
+[source,bash]
+----
+task crossdc ROSA_CLUSTER_NAME_1=gh-keycloak ROSA_CLUSTER_NAME_2=gh-pruivo OC_NAMESPACE_1=infinispan OC_NAMESPACE_2=infinispan
+----
+
+To delete this deployment, run the task `delete-crossdc` with the same variables.
+
+.Example
+[source,bash]
+----
+task delete-crossdc ROSA_CLUSTER_NAME_1=gh-keycloak ROSA_CLUSTER_NAME_2=gh-pruivo OC_NAMESPACE_1=infinispan OC_NAMESPACE_2=infinispan
+----
+
+[#ispn-variables]
 === Optional Variables
+
+Below is the list of variables to customize the Infinispan deployment.
+Some of them are used by all tasks and others are task specific.
 
 |===
 |Variable |Default |Used By Task |Details
@@ -147,29 +220,3 @@ The truststore is used to allow TLS communication between Infinispan and Gossip 
 The keystore is used for the TLS communication between Infinispan and Gossip Router pods.
 
 |===
-
-== Provision Keycloak
-
-The Taskfile in `provistion/openshift` introduced 4 more variables:
-
-|===
-|Variable |Default |Details
-
-|`KC_CUSTOM_INFINISPAN_CONFIG_FILE`
-|`config/kcb-infinispan-cache-config.xml`
-|The path to the Infinispan configuration file to be used by Keycloak
-
-|`KC_ISPN_NAMESPACE`
-|-
-|The namespace where the Infinispan cluster is installed.
-|===
-
-As an example, using a single Infinispan cluster, Infinispan and keycloak can be deployed using the following commands from this directory (assuming `.env` is properly configured to access the OCP cluster):
-
-[source,bash]
-----
-cd provistion/infinispan
-task single-cluster ROSA_CLUSTER_NAME=gh-keycloak OC_NAMESPACE=ispn-server
-cd ../provistion/openshift
-task KC_CUSTOM_INFINISPAN_CONFIG_FILE=config/kcb-infinispan-cache-remote-store-config.xml KC_ISPN_NAMESPACE=ispn-server
-----
