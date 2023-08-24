@@ -292,7 +292,7 @@ jobs:
         with:
           name: Calculated environment conclusion
           path: |
-            results.json
+            result-*.json
           retention-days: 5
 
       - name: Delete EC2 instances
@@ -310,3 +310,42 @@ jobs:
       - name: Scale down the cluster
         if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
         run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 --max-replicas 0 scaling
+
+  archive:
+    name: Commit results to Git repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - run
+    steps:
+      - name: Checkout repository for results
+        uses: actions/checkout@v3
+        with:
+          ref: 'result-data'
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: Calculated environment conclusion
+
+      - name: Commit result-summary
+        shell: bash
+        env:
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          DATE_FOLDER=rosa_scalability/$(date +"%Y/%m/%d")
+          mkdir -p ${DATE_FOLDER}
+          mv *.json ${DATE_FOLDER}
+          git add .
+          git commit -m "generated"
+          git push
+
+      - name: Trigger data aggregation
+        if: github.repository == 'keycloak/keycloak-benchmark'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # manually trigger the run, as a push with a standard GitHub action token doesn't trigger any workflow run on GitHub
+        run: gh workflow run -R keycloak/keycloak-benchmark aggregate-results.yaml --ref result-data
