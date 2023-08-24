@@ -63,11 +63,16 @@
   - template:
       src: gatling.j2.rc
       dest: "{{ kcb_home }}/bin/gatling.rc"
+
+  - name: Create gatling folder
+    delegate_to: localhost
+    file: path="{{ local_results_dir }}/gatling" state=directory
+
   - name: Get Gatling return code
-    fetch:
+    synchronize:
       src: "{{ kcb_home }}/bin/gatling.rc"
       dest: "{{ local_results_dir }}/gatling/{{ inventory_hostname }}.rc"
-      flat: yes
+      mode: pull
 
 - name: Fetch the latest Gatling results
   block:
@@ -80,17 +85,20 @@
     set_fact:
       latest_results: "{{ results.files | sort(attribute='mtime') | last }}"
   - debug: var=latest_results.path
-  - name: Fetch Gatling results
-    fetch:
+  - name: Create simulation folder
+    delegate_to: localhost
+    file: path="{{ local_results_dir }}/simulation" state=directory
+  - name: Fetch Simulation results
+    synchronize:
       src: "{{ latest_results.path }}/simulation.log"
       dest: "{{ local_results_dir }}/simulation/{{ inventory_hostname }}.log"
-      flat: yes
+      mode: pull
 
 - name: Fetch the Gatling logs
-  fetch:
+  synchronize:
     src: "{{ kcb_home }}/bin/gatling.log"
     dest: "{{ local_results_dir }}/gatling/{{ inventory_hostname }}.log"
-    flat: yes
+    mode: pull
 
 - name: Create the aggregate report locally
   delegate_to: localhost
