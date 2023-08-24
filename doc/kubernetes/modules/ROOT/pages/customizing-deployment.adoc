@@ -295,3 +295,20 @@ Retention period in hours to keep logs, metrics and traces.
 Default: `168h`
 +
 Available options: Can be changed to any value in hours that is a multiple of 24h.
+
+[#legacy-connect-external-ispn]
+== Connect to external Infinispan cluster with the Legacy Store
+
+IMPORTANT: Only for Openshift Deployments.
+
+If Infinispan is deployed in the Openshift cluster as described in xref:openshift/installation-infinispan.adoc[], use the following variable to indicate the namespace where the Infinispan cluster is running.
+
+KC_ISPN_NAMESPACE::
+The namespace in the local Openshift cluster where the Infinispan cluster is deployed.
+
+Also, the caches need to be configured with a https://infinispan.org/docs/stable/titles/configuring/configuring.html#remote-cache-store_persistence[Remote Store].
+Using the Hot Rod protocol, it offloads the sessions to the Infinispan cluster.
+The file `link:{github-files}/provision/minikube/keycloak/config/kcb-infinispan-cache-remote-store-config.xml[kcb-infinispan-cache-remote-store-config.xml]` contains the configuration required for this.
+Use `KC_CUSTOM_INFINISPAN_CONFIG_FILE=config/kcb-infinispan-cache-remote-store-config.xml` to upload and use this file in your Keycloak cluster.
+
+NOTE: Cross-site enabled Infinispan cluster can be used as well.
