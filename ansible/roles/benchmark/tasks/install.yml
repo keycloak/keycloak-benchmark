@@ -14,6 +14,16 @@
 - name: Install jq
   package: name=jq state=present
 
+- name: Install dig
+  package: name=bind-utils state=present
+
+- name: Download & install OpenShift client
+  unarchive:
+    src: "https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz"
+    dest: /usr/bin/
+    remote_src: yes
+    creates: /usr/bin/oc
+
 - name: Copy keycloak-benchmark {{ kcb_version }} on the remote hosts
   copy:
     src: "{{ kcb_zip }}"

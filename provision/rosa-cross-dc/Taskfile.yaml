@@ -117,6 +117,7 @@ tasks:
         helm upgrade --install keycloak --namespace {{.KC_NAMESPACE_PREFIX}}keycloak
         --set hostname={{.KC_HOSTNAME_SUFFIX}}
         --set keycloakHostname={{.KC_HOSTNAME_OVERRIDE}}
+        --set keycloakHealthHostname={{.KC_HEALTH_HOSTNAME}}
         --set otel={{.KC_OTEL}}
         --set otelSamplingPercentage={{.KC_OTEL_SAMPLING_PERCENTAGE}}
         --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
@@ -193,6 +194,8 @@ tasks:
     requires:
       vars:
         - ROSA_CLUSTER_NAME
+        - KC_HOSTNAME_OVERRIDE
+        - KC_HEALTH_HOSTNAME
     cmds:
       - task: create-peering-connection
         vars:
@@ -200,6 +203,8 @@ tasks:
       - task: install-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+          KC_HOSTNAME_OVERRIDE: "{{.KC_HOSTNAME_OVERRIDE}}"
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_HOSTNAME}}"
       - task: wait-cryostat
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
@@ -266,9 +271,13 @@ tasks:
       - task: deploy-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_1}}"
       - task: deploy-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
 
   undeploy:
     desc: "Undeploy Infinispan and Keycloak in a Cross-Site deployment using ROSA clusters"
