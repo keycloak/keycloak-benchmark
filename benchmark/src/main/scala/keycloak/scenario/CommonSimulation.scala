@@ -38,10 +38,18 @@ abstract class CommonSimulation extends Simulation {
       default = default.maxConnectionsPerHost(9999)
     }
 
-    // since the test may involve tens of thousands of connections from a single testing
-    // system to a single host:port on a server, we may need to add additional addresses to
-    // increase the number of TCP connections we can make and this enables the use of those.
-    default = default.useAllLocalAddresses
+    if (Config.useAllLocalAddresses) {
+      // since the test may involve tens of thousands of connections from a single testing
+      // system to a single host:port on a server, we may need to add additional addresses to
+      // increase the number of TCP connections we can make and this enables the use of those.
+
+      // Don't use this by default, as it has side effects when accessing localhost which has an IPv6 address,
+      // while the system itself doesn't have an IPv6 address, and it will report
+      //     Can't connect to IPv6 remote localhost/[0:0:0:0:0:0:0:1]:8180 + from IPv4 local one /xxx.xxx.xxx.xxx:0`
+      // A different remedy might be to disable IPv6 address resolution, as described in https://github.com/gatling/gatling/issues/2013,
+      // but that would have other implications.
+      default = default.useAllLocalAddresses
+    }
 
     if (Config.inferHtmlResources) {
       default.inferHtmlResources()

@@ -144,6 +144,8 @@ public class Config {
      */
     public static final boolean shareConnections = Boolean.getBoolean("share-connections");
 
+    public static final boolean useAllLocalAddresses = Boolean.getBoolean("use-all-local-addresses");
+
     // Computed timestamps
     public static final long simulationStartTime = System.currentTimeMillis();
     public static final long warmUpStartTime = simulationStartTime + rampUpPeriod * 1000L;
