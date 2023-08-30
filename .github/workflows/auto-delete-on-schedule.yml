@@ -8,13 +8,11 @@ on:
 jobs:
 
   rosa-delete:
-    name: ROSA Scheduled Delete cluster(s)
-    runs-on: ubuntu-latest
-    steps:
-      - run: gh workflow run -R keycloak/keycloak-benchmark rosa-cluster-delete.yml -f deleteAll='yes'
-        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-cluster-delete.yml
+    secrets: inherit
+    with:
+      deleteAll: yes
 
   aurora-delete:
     needs: rosa-delete
@@ -29,7 +27,7 @@ jobs:
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
-        
+
       - if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
         shell: bash
         run: ./provision/aws/rds/aurora_cluster_reaper.sh
@@ -51,7 +49,7 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
-      - name: Delete Route 53 entires 
+      - name: Delete Route 53 entries
         if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
         run: ./provision/aws/route53/route53_delete.sh
         env:
