@@ -47,5 +47,11 @@ if [ -n "${AURORA_SECURITY_GROUP_ID}" ]; then
   aws ec2 delete-security-group --group-id ${AURORA_SECURITY_GROUP_ID}
 fi
 
-# Delete the Aurora VPC
-aws ec2 delete-vpc --vpc-id ${AURORA_VPC}
+# Delete the Aurora VPC, retrying 5 times in case that dependencies are not removed instantly
+n=0
+until [ "$n" -ge 5 ]
+do
+   aws ec2 delete-vpc --vpc-id ${AURORA_VPC} && break
+   n=$((n+1))
+   sleep 10
+done
