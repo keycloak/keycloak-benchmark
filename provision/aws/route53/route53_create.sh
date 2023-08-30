@@ -19,12 +19,13 @@ function createHealthCheck() {
   --output text \
   --health-check-config '
   {
-    "Type": "HTTP",
+    "Type": "HTTPS",
     "ResourcePath": "/health/live",
     "FullyQualifiedDomainName": "'$1'",
-    "Port": 80,
+    "Port": 443,
     "RequestInterval": 30,
-    "FailureThreshold": 1
+    "FailureThreshold": 1,
+    "EnableSNI": true
   }
   '
 }
