@@ -9,7 +9,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/aurora_common.sh
 
 if [ "${SKIP_ROSA_LOGIN}" != "true" ]; then
-  sh ${SCRIPT_DIR}/../rosa_oc_login.sh
+  bash ${SCRIPT_DIR}/../rosa_oc_login.sh
 fi
 
 ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)

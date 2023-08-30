@@ -12,7 +12,7 @@ ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
 export AWS_REGION=$(echo ${ROSA_CLUSTER} | jq -r .region.id)
 
 if [ -z "${ROSA_VPC}" ]; then
-  sh ${SCRIPT_DIR}/../rosa_oc_login.sh
+  bash ${SCRIPT_DIR}/../rosa_oc_login.sh
 
   NODE=$(oc get nodes --selector=node-role.kubernetes.io/worker \
   -o jsonpath='{.items[0].metadata.name}'
