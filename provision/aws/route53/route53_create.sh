@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -e -o pipefail
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
@@ -9,8 +9,12 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/route53_common.sh
 
 function createHealthCheck() {
+  # Creating a hash of the caller reference to allow for names longer than 64 characters
+  # shellcheck disable=SC2207
+  REF=($(echo $1 | sha1sum ))
+  # shellcheck disable=SC2128
   aws route53 create-health-check \
-  --caller-reference $1 \
+  --caller-reference "$REF" \
   --query "HealthCheck.Id" \
   --output text \
   --health-check-config '
