@@ -1,0 +1,36 @@
+= Scenario Get
+:description: Repeatedly call a specific URL and report timing and check the response code.
+
+{description}
+
+See xref:scenario-overview.adoc[] for a list of all scenarios.
+
+== Steps of the scenario
+
+. Call the URL provided via the xref:configuration.adoc#basic-url[on the CLI] with HTTP GET and check the status code to be `200`.
+
+See the source code at link:{github-files}/benchmark/src/main/scala/keycloak/scenario/basic/Get.scala[Get.scala] for details.
+
+== Running an example scenario
+
+=== Prerequisites
+
+* Target URL known.
+
+=== Running the scenario
+
+The following scenario runs with the default settings for 30 seconds.
+
+See xref:configuration.adoc[] for additional CLI options.
+
+[source,bash]
+----
+bin/kcb.sh \
+  --scenario=keycloak.scenario.basic.Get \
+  --basic-url=http://localhost:8080/ \
+  --log-http-on-failure
+----
+
+== Further Reading
+
+* xref:run/running-benchmark-cli.adoc[]
