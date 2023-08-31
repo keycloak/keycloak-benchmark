@@ -324,7 +324,6 @@ class KeycloakScenarioBuilder {
     this
   }
 
-
   def serviceAccountToken(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(getServiceAccountTokenExec())
@@ -748,6 +747,16 @@ class KeycloakScenarioBuilder {
       .repeat(Config.refreshTokenCount, "refresh_i") {
         refreshToken().pause(Config.refreshTokenPeriod)
       }
+    this
+  }
+
+  def basicGet(endpoint: String): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .exec(http("Hello")
+        .get(endpoint)
+        .header("Accept", "*/*")
+        .check(status.is(200)))
+      .exitHereIfFailed
     this
   }
 }

@@ -75,6 +75,11 @@ public class Config {
      */
     public static final String scope = System.getProperty("scope");
 
+    /**
+     * Used to specify basic endpoint to get
+     */
+    public static final String basicUrl = System.getProperty("basic-url");
+
     public static final Double usersPerSec;
 
     public static final Integer concurrentUsers;
