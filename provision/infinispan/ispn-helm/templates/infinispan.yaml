@@ -31,9 +31,7 @@ metadata:
     infinispan.org/monitoring: 'true'
 spec:
   configMapName: "cluster-config"
-  {{- if .Values.image }}
-  image: {{ .Values.image }}
-  {{- end }}
+  image: {{ .Values.image | default .Values.defaultImage }}
   configListener:
     enabled: false
   replicas: {{ .Values.replicas }}
