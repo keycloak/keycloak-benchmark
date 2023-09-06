@@ -116,5 +116,8 @@ spec:
             strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }}
             stateTransfer:
               chunkSize: 16
+              {{- if eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC"}}
+              mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }}
+              {{- end }}
       {{- end }}
 {{end}}
