@@ -69,6 +69,7 @@ tasks:
       CROSS_DC_HOT_ROD_PASSWORD: '{{.CROSS_DC_HOT_ROD_PASSWORD | default .INTERNAL_SHARED_PASSWORD | default "changeme" }}'
       CROSS_DC_HISTOGRAMS: '{{.CROSS_DC_HISTOGRAMS | default "false"}}'
       CROSS_DC_MODE: '{{.CROSS_DC_MODE | default "SYNC" }}'
+      CROSS_DC_STATE_TRANSFER_MODE: '{{.CROSS_DC_STATE_TRANSFER_MODE | default "AUTO" }}'
       CROSS_DC_ISPN_REPLICAS: '{{.CROSS_DC_ISPN_REPLICAS | default "3" }}'
       CROSS_DC_CPU_REQUESTS: '{{.CROSS_DC_CPU_REQUESTS}}'
       CROSS_DC_MEMORY_REQUESTS: '{{.CROSS_DC_MEMORY_REQUESTS}}'
@@ -97,6 +98,7 @@ tasks:
         --set metrics.histograms={{.CROSS_DC_HISTOGRAMS}}
         --set hotrodPassword={{.CROSS_DC_HOT_ROD_PASSWORD}}
         --set cacheDefaults.crossSiteMode={{.CROSS_DC_MODE}}
+        --set cacheDefaults.stateTransferMode={{.CROSS_DC_STATE_TRANSFER_MODE}}
         --set image={{.CROSS_DC_IMAGE}}
         ./ispn-helm
     preconditions:
