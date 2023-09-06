@@ -6,8 +6,7 @@ Use them to perform a load testing in your environment.
 
 [WARNING]
 ====
-CPU usage for refreshing a token is currently missing.
-We hope to add this soon.
+Collecting the CPU usage for refreshing a token is currently performed manually and is expected to be automated in the near future (https://github.com/keycloak/keycloak-benchmark/issues/517[keycloak/keycloak-benchmark#517], https://github.com/keycloak/keycloak-benchmark/issues/518[keycloak/keycloak-benchmark#518]).
 ====
 
 == Data collection
@@ -80,6 +79,8 @@ Keycloak spends most of the CPU time hashing the password provided by the user.
 * For each 450 client credential grants per second, 1 vCPU per Pod in a three node cluster (tested with up to 2000 per second).
 +
 Most CPU time goes into creating new TLS connections, as each client runs only a single request.
+
+* For each 350 refresh token requests per second, 1 vCPU per Pod in a three node cluster (tested with up to 435 refresh token requests per second).
 
 * Leave 200% extra head-room for CPU usage to handle spikes in the load.
 This ensures a fast startup of the node, and sufficient capacity to handle failover tasks like, for example, re-balancing Infinispan caches, when one node fails.
@@ -188,6 +189,24 @@ cd ../../ansible
 --users-per-sec=**<number of users per second>** \
 --ramp-up=20 \
 --logout-percentage=100 \
+--measurement=600 \
+--users-per-realm=100000 \
+--log-http-on-failure
+----
+
+* Testing CPU usage for logins and refreshing tokens with a ratio of 10 refreshes per one login.
+Use the previous test to deduct the CPU usage of logins only to get the CPU usage of token refreshes.
++
+[source,bash,subs="+quotes"]
+----
+./benchmark.sh eu-west-1 \
+--scenario=keycloak.scenario.authentication.AuthorizationCode \
+--server-url=${KEYCLOAK_URL} \
+--realm-name=realm-0 \
+--users-per-sec=**<number of users per second>** \
+--ramp-up=20 \
+--logout-percentage=100 \
+--refresh-token-count=10 \
 --measurement=600 \
 --users-per-realm=100000 \
 --log-http-on-failure
