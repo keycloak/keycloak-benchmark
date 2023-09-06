@@ -290,6 +290,12 @@ tasks:
         - ROSA_CLUSTER_NAME_1
         - ROSA_CLUSTER_NAME_2
     cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - task: uninstall-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
