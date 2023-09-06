@@ -318,7 +318,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_tcp_get_thread_pool_size{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_tcp_get_thread_pool_size{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
           "legendFormat": "{{pod}} - pool size",
           "range": true,
           "refId": "A"
@@ -329,7 +329,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_tcp_get_thread_pool_size_active{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_tcp_get_thread_pool_size_active{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
           "hide": false,
           "legendFormat": "{{pod}} active threads",
           "range": true,
@@ -341,7 +341,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_tcp_get_largest_size{job=\"$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_tcp_get_largest_size{job=\"$namespace/keycloak-metrics\"}",
           "hide": true,
           "legendFormat": "{{pod}} - largest thread pool",
           "range": true,
@@ -439,7 +439,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_ufc_get_average_time_blocked{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_ufc_get_average_time_blocked{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
           "legendFormat": "{{pod}} UFC average time blocked",
           "range": true,
           "refId": "A"
@@ -450,7 +450,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_mfc_get_average_time_blocked{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_mfc_get_average_time_blocked{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
           "hide": false,
           "legendFormat": "{{pod}} MFC average time blocked",
           "range": true,
@@ -547,7 +547,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_tcp_get_num_rejected_msgs{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_tcp_get_num_rejected_msgs{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
           "legendFormat": "{{pod}} - rejected msg by thread pool",
           "range": true,
           "refId": "A"
@@ -558,7 +558,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "vendor_jgroups_ISPN_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
+          "expr": "vendor_jgroups_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
           "hide": false,
           "legendFormat": "{{pod}} - RED dropped messages",
           "range": true,
@@ -658,7 +658,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_jgroups_ISPN_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / rate(vendor_jgroups_ISPN_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m])",
+          "expr": "rate(vendor_jgroups_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / rate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -754,7 +754,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_jgroups_ISPN_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
+          "expr": "rate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -1244,8 +1244,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum by (pod,other_dc_name) (rate(label_replace({__name__=~\"vendor_rpc_manager_number_xsite_requests_sent_to_.+\", job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}, \"other_dc_name\", \"$1\", \"__name__\", \"vendor_rpc_manager_number_xsite_requests_sent_to_(.+)\")[2m:]))",
-          "legendFormat": "{{pod}} -> {{other_dc_name}} - sent",
+          "expr": "sum by (pod,site) (rate(vendor_rpc_manager_number_xsite_requests_sent{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
+          "legendFormat": "{{pod}} -> {{site}} - sent",
           "range": true,
           "refId": "A"
         },
@@ -1255,9 +1255,9 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum by (pod,other_dc_name) (rate(label_replace({__name__=~\"vendor_rpc_manager_number_xsite_requests_received_from_.+\", job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}, \"other_dc_name\", \"$1\", \"__name__\", \"vendor_rpc_manager_number_xsite_requests_received_from_(.+)\")[2m:]))",
+          "expr": "sum by (pod,site) (rate(vendor_rpc_manager_number_xsite_requests_received{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
           "hide": false,
-          "legendFormat": "{{pod}} <- {{other_dc_name}} - received",
+          "legendFormat": "{{pod}} <- {{site}} - received",
           "range": true,
           "refId": "B"
         }
@@ -1353,8 +1353,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum by (pod,other_dc_name) (label_replace({__name__=~\"vendor_rpc_manager_average_xsite_replication_time_to_.+\", job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}, \"other_dc_name\", \"$1\", \"__name__\", \"vendor_rpc_manager_average_xsite_replication_time_to_(.+)\"))",
-          "legendFormat": "{{pod}} -> {{other_dc_name}}",
+          "expr": "sum by (pod, site) (vendor_rpc_manager_average_xsite_replication_time{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"})",
+          "legendFormat": "{{pod}} -> {{site}}",
           "range": true,
           "refId": "A"
         }
