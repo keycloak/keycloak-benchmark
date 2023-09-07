@@ -2,7 +2,7 @@ package keycloak.scenario
 
 import io.gatling.commons.validation.Validation
 import io.gatling.core.Predef._
-import io.gatling.http.Predef.http
+import io.gatling.http.Predef.{http, Proxy}
 import org.keycloak.benchmark.gatling.log.LogProcessor
 import org.keycloak.benchmark.Config
 import org.keycloak.benchmark.WorkloadModel
@@ -27,6 +27,12 @@ abstract class CommonSimulation extends Simulation {
     var default = http
       .acceptHeader("application/json")
       .disableFollowRedirect
+
+    if (Config.httpProxy) {
+
+      default = default.proxy(Proxy("127.0.0.1", 8888))
+
+    }
 
     if (Config.shareConnections) {
       // When a local system cannot handle a large number of connections, using shared connections

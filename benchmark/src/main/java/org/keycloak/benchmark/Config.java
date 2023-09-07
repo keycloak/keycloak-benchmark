@@ -130,6 +130,7 @@ public class Config {
      */
     public static final int badLoginCount = Integer.getInteger("bad-login-count", 0);
 
+
     /**
      * If tests should infer HTML resources and include steps to fetch them automatically.
      */
@@ -148,6 +149,8 @@ public class Config {
      * when the local testing system is overtaxed.  But this will induce a lesser load than real world.
      */
     public static final boolean shareConnections = Boolean.getBoolean("share-connections");
+    public static final boolean closeHttpConnection = Boolean.getBoolean("close-http-connection");
+    public static final boolean httpProxy = Boolean.getBoolean("http-proxy");
 
     public static final boolean useAllLocalAddresses = Boolean.getBoolean("use-all-local-addresses");
 

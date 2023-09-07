@@ -723,6 +723,25 @@ class KeycloakScenarioBuilder {
   }
 
   private def refreshToken(): ChainBuilder = {
+    doIfOrElse(Config.closeHttpConnection) {
+      exec(http("RefreshTokenWithNewHTTPConnection")
+        .post(TOKEN_ENDPOINT)
+        .headers(UI_HEADERS)
+        .formParam("grant_type", "refresh_token")
+        .formParam("refresh_token", "${refreshToken}")
+        .formParam("client_id", "${clientId}")
+        .formParam("client_secret", "${clientSecret}")
+        .formParam("redirect_uri", "${redirectUri}")
+        .formParam("connection", "close")
+        .check(
+          status.is(200),
+          jsonPath("$..id_token").find.saveAs("idToken"),
+          jsonPath("$..access_token").find.saveAs("accessToken"),
+          jsonPath("$..refresh_token").find.saveAs("refreshToken"),
+          jsonPath("$..expires_in").find.saveAs("expiresIn"),
+        )
+      ).exitHereIfFailed
+    } {
       exec(http("RefreshToken")
         .post(TOKEN_ENDPOINT)
         .headers(UI_HEADERS)
@@ -738,8 +757,8 @@ class KeycloakScenarioBuilder {
           jsonPath("$..refresh_token").find.saveAs("refreshToken"),
           jsonPath("$..expires_in").find.saveAs("expiresIn"),
         )
-      )
-      .exitHereIfFailed
+      ).exitHereIfFailed
+    }
   }
 
   def repeatRefresh(): KeycloakScenarioBuilder = {

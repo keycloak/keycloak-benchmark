@@ -49,7 +49,7 @@ bin/kcb.sh \
 
 To create offline sessions, set the parameter xref:configuration.adoc#scope[`--scope`] to a value including `offline_access`, for example, `openid profile offline_access`.
 
-To test repeated refreshing of tokens between authenticating and logging out, pass `--refresh-token-count=<count>` and `--refresh-token-period=<seconds>`.
+To test repeated refreshing of tokens between authenticating and logging out, pass `--refresh-token-count=<count>` and `--refresh-token-period=<seconds>`. And pass in the additional optional argument `--close-http-connection=true` to test with a new http connection for the refresh token endpoint every time, we also should see the Request name in the metadata to be `RefreshTokenWithNewHTTPConnection` instead of `RefreshToken`, when `--close-http-connection=true` is in use.
 
 == Error messages
 
