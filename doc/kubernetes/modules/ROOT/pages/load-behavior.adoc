@@ -18,14 +18,10 @@ See xref:customizing-deployment.adoc#KC_DB_POOL_INITIAL_SIZE[the Keycloak deploy
 [#threads]
 == Threads
 
-Starting with Keycloak 20.0.0 and running Quarkus, all Keycloak requests are dispatched to the executor pool of Quarkus (see https://github.com/keycloak/keycloak/pull/15193[keycloak#15193]).
+* Keycloak requests are handled on the Quarkus executor pool, as well as all liveness and readiness probes.
+There is an open issue to investigate on how to make the probes non-blocking, thereby not being queue in the Quarkus executor pool, see https://github.com/keycloak/keycloak/issues/22109[keycloak#22109].
 
-Before that change, regular Keycloak requests were handled on the Vert.x worker pool and could therefore exhaust it, the liveness probe could fail, and Keycloak pods would restart under a high load.
-
-Since this change, the threads behave as follows:
-
-* All Keycloak requests are handled on the Quarkus executor pool.
-This is configured in https://quarkus.io/guides/all-config#quarkus-core_quarkus.thread-pool.max-threads[`quarkus.thread-pool.max-threads`] and has a maximum size of at least 200 threads.
+* The Quarkus executor thread pool is configured in https://quarkus.io/guides/all-config#quarkus-core_quarkus.thread-pool.max-threads[`quarkus.thread-pool.max-threads`] and has a maximum size of at least 200 threads.
 Depending on the available CPU cores it can grow even larger.
 Threads are created as needed, and will end when no longer needed, so the system will scale up and down as needed.
 +
@@ -50,6 +46,6 @@ When requests queue up in Keycloak, also Readiness and Liveness probes are delay
 This is tracked in https://github.com/keycloak/keycloak/issues/22109[keycloak#22109].
 For the time being, consider a longer timeout for the probes to survive spikes in the delay, or disabling the liveness probe to avoid Pod restarts.
 
-In order for Java to create threads, when running on Linux it needs to have file handles available.
+* In order for Java to create threads, when running on Linux it needs to have file handles available.
 Therefore, the number of open files (as retrieved as `ulimit -n` on Linux) need to provide head-space for Keycloak to increase the number of threads needed.
 Each thread will also consume memory, and the container memory limits need to be set to a value that allows for this or the pod will be killed by Kubernetes.
