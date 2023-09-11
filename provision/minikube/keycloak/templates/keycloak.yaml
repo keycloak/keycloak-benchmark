@@ -248,26 +248,21 @@ spec:
               failureThreshold: 600
               initialDelaySeconds: 10
               periodSeconds: 2
+            # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds.
+            # With all requests being queued, also the liveness probe is queue, and is therefore slow.
+            # In a high-load or even overload scenario, the probes will be queued in the executor thread pool, and won't return in time.
+            # With load shedding activated when requests are rejected from the executor thread pool, failing readiness probes will lead to Pods not receiving any load for
+            # a period or time, and with failing liveness probes the Pods will eventually be restarted. So the best way to run Keycloak in Kubernetes would be to disable
+            # those probes for now.
+            # https://github.com/keycloak/keycloak/issues/22109
             readinessProbe:
-              httpGet:
-                path: /health/ready
-                port: 8443
-                scheme: HTTPS
-              failureThreshold: 3
-              periodSeconds: 30
-              # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds
-              # With all requests being queued, also the liveness probe is queue, and is therefore slow.
-              timeoutSeconds: 20
+              exec:
+                command:
+                  - 'true'
             livenessProbe:
-              httpGet:
-                path: /health/live
-                port: 8443
-                scheme: HTTPS
-              failureThreshold: 3
-              periodSeconds: 30
-              # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds
-              # With all requests being queued, also the liveness probe is queue, and is therefore slow.
-              timeoutSeconds: 20
+              exec:
+                command:
+                  - 'true'
             volumeMounts:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
