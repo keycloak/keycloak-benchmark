@@ -76,6 +76,8 @@ tasks:
       CROSS_DC_JVM_OPTS: '{{.CROSS_DC_JVM_OPTS}}'
       CROSS_DC_LOCAL_GOSSIP_ROUTER: '{{.CROSS_DC_LOCAL_GOSSIP_ROUTER | default "true"}}'
       CROSS_DC_REMOTE_GOSSIP_ROUTER: '{{.CROSS_DC_REMOTE_GOSSIP_ROUTER | default "true"}}'
+      CROSS_DC_FD_INTERVAL: '{{.CROSS_DC_FD_INTERVAL | default "2000"}}'
+      CROSS_DC_FD_TIMEOUT: '{{.CROSS_DC_FD_TIMEOUT | default "10000"}}'
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
@@ -100,6 +102,8 @@ tasks:
         --set cacheDefaults.crossSiteMode={{.CROSS_DC_MODE}}
         --set cacheDefaults.stateTransferMode={{.CROSS_DC_STATE_TRANSFER_MODE}}
         --set image={{.CROSS_DC_IMAGE}}
+        --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
+        --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}
         ./ispn-helm
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"

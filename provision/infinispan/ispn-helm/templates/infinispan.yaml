@@ -36,7 +36,7 @@ spec:
     enabled: false
   replicas: {{ .Values.replicas }}
   container:
-    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}}'
+    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}} -Djgroups.xsite.fd.interval={{.Values.fd.interval}} -Djgroups.xsite.fd.timeout={{.Values.fd.timeout}}'
     {{- if .Values.cpu }}
     cpu: {{ .Values.cpu }}
     {{- end}}
