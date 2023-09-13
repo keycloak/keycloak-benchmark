@@ -144,12 +144,13 @@ public class Config {
      */
     public static final int refreshTokenCount = Integer.getInteger("refresh-token-count", 0);
 
+    public static final boolean refreshCloseHttpConnection = Boolean.getBoolean(System.getProperty("refresh-close-http-connection", "true"));
+
     /**
      * Whether to share TCP connections among the multiple users in the test scenario, possibly helpful
      * when the local testing system is overtaxed.  But this will induce a lesser load than real world.
      */
     public static final boolean shareConnections = Boolean.getBoolean("share-connections");
-    public static final boolean closeHttpConnection = Boolean.getBoolean("close-http-connection");
     public static final boolean httpProxy = Boolean.getBoolean("http-proxy");
 
     public static final boolean useAllLocalAddresses = Boolean.getBoolean("use-all-local-addresses");
