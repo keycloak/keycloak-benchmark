@@ -723,6 +723,29 @@ class KeycloakScenarioBuilder {
   }
 
   private def refreshToken(): ChainBuilder = {
+    doIfOrElse(Config.refreshCloseHttpConnection) {
+      // In the real world a token refresh will need to start a new HTTP connection before the request.
+      // This simulates the behavior in the load test by closing the connection after the request, so that the next
+      // request will need to create a new connection. This assumes that a scenario will issue multiple refreshes
+      // in the scenario, or at lest have one more request after this refresh, like a logout.
+      exec(http("RefreshTokenAndCloseHttpConnection")
+        .post(TOKEN_ENDPOINT)
+        .headers(UI_HEADERS)
+        .formParam("grant_type", "refresh_token")
+        .formParam("refresh_token", "${refreshToken}")
+        .formParam("client_id", "${clientId}")
+        .formParam("client_secret", "${clientSecret}")
+        .formParam("redirect_uri", "${redirectUri}")
+        .formParam("connection", "close")
+        .check(
+          status.is(200),
+          jsonPath("$..id_token").find.saveAs("idToken"),
+          jsonPath("$..access_token").find.saveAs("accessToken"),
+          jsonPath("$..refresh_token").find.saveAs("refreshToken"),
+          jsonPath("$..expires_in").find.saveAs("expiresIn"),
+        )
+      ).exitHereIfFailed
+    } {
       exec(http("RefreshToken")
         .post(TOKEN_ENDPOINT)
         .headers(UI_HEADERS)
@@ -738,8 +761,8 @@ class KeycloakScenarioBuilder {
           jsonPath("$..refresh_token").find.saveAs("refreshToken"),
           jsonPath("$..expires_in").find.saveAs("expiresIn"),
         )
-      )
-      .exitHereIfFailed
+      ).exitHereIfFailed
+    }
   }
 
   def repeatRefresh(): KeycloakScenarioBuilder = {

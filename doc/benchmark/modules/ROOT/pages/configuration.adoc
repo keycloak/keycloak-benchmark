@@ -104,6 +104,12 @@ Will log a lot of information.
 Use this only during development.
 Never use it during a load test as it slows down Gatling.
 
+| [.nowrap]`--http-proxy`
+| (not set)
+| If set, will proxy all HTTP requests to a proxy tool of your choice and the current default proxy host and port are `127.0.0.1`, `8888` respectively. These are currently not configurable.
+
+Never use it during a load test as it slows down Gatling to be able to proxy the requests to a proxy client and comes with the usual proxy nuances that we have to be careful, in general.
+
 | [.nowrap]`--sla-error-percentage`
 | `0`
 | Maximum percentage of requests to fail during a run.
@@ -259,6 +265,11 @@ Used in xref:scenario/authorization-code.adoc[].
 | [[refresh-token-count]][.nowrap]`--refresh-token-count`
 | `0`
 | Number of token refreshes after logging in.
+Used in xref:scenario/authorization-code.adoc[].
+
+| [.nowrap]`--refresh-close-http-connection`
+| `true`
+| Close the HTTP connection after a token refresh.
 Used in xref:scenario/authorization-code.adoc[].
 
 | [[basic-url]][.nowrap]`--basic-url`
