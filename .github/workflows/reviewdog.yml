@@ -1,0 +1,22 @@
+name: reviewdog
+on:
+  pull_request:
+    paths-ignore:
+      - 'doc/**/*.adoc'
+      - '.github/workflows/*.yml'
+      - '!.github/workflows/reviewdog.yml'
+
+jobs:
+  vale:
+    name: runner / vale
+    runs-on: ubuntu-latest
+    env:
+      REVIEWDOG_TOKEN: ${{ secrets.REVIEWDOG_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: errata-ai/vale-action@reviewdog
+        with:
+          files: doc
+          debug: true
+          reporter: github-pr-check
+          fail_on_error: 'false'
