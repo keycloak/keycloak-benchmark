@@ -1,11 +1,11 @@
-= Manual JFR recording in Kubernetes
-:description: This describes how to create a JFR recording for Keycloak in a containerized environment when no additional tools like Cryostat are available.
+= Manual Java Flight Recorder recording in Kubernetes
+:description: This describes how to create a Java Flight Recorder recording for Keycloak in a containerized environment when no additional tools are available.
 
 {description}
 
 == Overview
 
-Java Flight Recorder records events of the Java Virtual Machine including thread dumps which can then be assembled to flame graphs and which can be used to analyze the performance.
+Java Flight Recorder (JFR) records events of the Java Virtual Machine including thread dumps that can then be assembled to flame graphs and that can be used to analyze the performance.
 In a fully-fledged setup, xref:util/cryostat.adoc[] offers an automated way, and no custom Keycloak image is required.
 If such a setup is not available, follow these instructions to capture a JFR.
 
@@ -91,7 +91,7 @@ To start the recording, issue a command in the container:
 kubectl exec -n _namespace_ _pod_ -- jcmd 1 JFR.start duration=60s filename=/tmp/recording.jfr settings=/usr/lib/jvm/java/lib/jfr/profile.jfc
 ----
 
-The value `1` is the process ID of the Java process which is the default for all Quarkus based Keycloak containers.
+The value `1` is the process ID of the Java process that is the default for all Quarkus-based Keycloak containers.
 For Wildfly based distributions, this might be a different process ID.
 Use `jcmd` without parameters to list all Java process IDs to find the one you're looking for.
 

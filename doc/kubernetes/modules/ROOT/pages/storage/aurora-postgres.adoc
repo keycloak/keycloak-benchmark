@@ -25,11 +25,11 @@ https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.CreateInstan
 
 == Connecting ROSA cluster to Aurora Cluster
 
-In order to follow security best practices, the Aurora cluster is not exposed publicly over the internet. Instead, it's
+In order to follow security best practices, the Aurora cluster is not exposed publicly over the internet. Instead, it is
 necessary for us to establish a https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html[Peering Connection]
 between a ROSA cluster VPC and the Aurora Cluster VPC.
 
-To configure such a connection execute `./provision/aws/rds/aurora_create_peering_connection.sh` with the following env:
+To configure such a connection run `./provision/aws/rds/aurora_create_peering_connection.sh` with the following environment:
 
 [source]
 ----
@@ -39,8 +39,7 @@ CLUSTER_NAME= # The name of the ROSA cluster to establish the peering connectin 
 AWS_REGION= # The AWS region hosting the ROSA cluster
 ----
 
-NOTE: If connecting multiple ROSA clusters from different AWS regions to the Aurora DB, it's necessary for each cluster
-to have non-overlapping machine-cidr configured.
+NOTE: If connecting many ROSA clusters from different AWS regions to the Aurora DB, it is necessary for each cluster to have non-overlapping machine-CIDR configured.
 
 == Enabling Aurora PostgreSQL storage
 

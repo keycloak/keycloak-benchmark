@@ -8,13 +8,13 @@
 == Keycloak message `ERROR: Failed to obtain JDBC connection`
 
 Context::
-This error message can appear when running Keycloak with a relational database like PostgreSQL or CockroachDB.
+This error message can appear when running Keycloak with a relational database such as PostgreSQL or CockroachDB.
 +
 Similar other error messages:
 +
 --
-* "`Unable to acquire JDBC Connection`"
-* "`Sorry, acquisition timeout!`"
+* `Unable to acquire JDBC Connection`
+* `Sorry, acquisition timeout!`
 --
 +
 This might happen during the startup and then the startup fails.
@@ -25,10 +25,10 @@ The database is either not started, or the number of database connections is exh
 
 Remedy::
 * Ensure that the database is running.
-* Ensure that the database didn't restart, for example, due to an out-of-memory problem.
-* Ensure that the number of DB connections in total doesn't exceed the maximum number of connections of the database.
+* Ensure that the database did not restart, for example, due to an out-of-memory problem.
+* Ensure that the number of DB connections in total does not exceed the maximum number of connections of the database.
 See xref:customizing-deployment.adoc#KC_DB_POOL_INITIAL_SIZE[the Keycloak deployment configuration options `KC_DB_*`] for details.
-* Ensure that Keycloak doesn't try to use more connections than configured as maximum numbers of connections.
+* Ensure that Keycloak does not try to use more connections than configured as maximum numbers of connections.
 
 Caution::
 * Under high load, the number of database connections is usually the constraint of the system.
@@ -39,7 +39,11 @@ See xref:load-behavior.adoc[] for details.
 == Keycloak message `RETRY_SERIALIZABLE`
 
 Full message::
-org.postgresql.util.PSQLException, ERROR: restart transaction: TransactionRetryWithProtoRefreshError: TransactionRetryError: retry txn (RETRY_SERIALIZABLE - failed preemptive refresh due to a conflict: intent on key /Table/137/... See: \https://www.cockroachlabs.com/docs/v22.1/transaction-retry-error-reference.html#retry_serializable
++
+[.wrap]
+----
+org.postgresql.util.PSQLException, ERROR: restart transaction: TransactionRetryWithProtoRefreshError: TransactionRetryError: retry txn (RETRY_SERIALIZABLE - failed preemptive refresh due to a conflict: intent on key /Table/137/... See: https://www.cockroachlabs.com/docs/v22.1/transaction-retry-error-reference.html#retry_serializable
+----
 
 Context::
 This error message can appear when running Keycloak with CockroachDB, both xref:storage/cockroach-single.adoc[single node] or xref:storage/cockroach-operator.adoc[multi node with the operator].
@@ -54,8 +58,8 @@ The database rolls back the transaction and asks the caller to repeat the reques
 Some users see error messages.
 
 Remedy::
-* Analyze the request/URL where this happens by looking at the log, and discuss this with engineers.
-* Use the following SQL to determine the table which is causing the problems, which would by `137` in the example given above:
+* Analyze the request or URL where this happens by looking at the log, and discuss this with engineers.
+* Use the following SQL to find the table that is causing the problems. In the preceding example it would be `137`:
 +
 [source,sql]
 ----
@@ -67,18 +71,22 @@ SELECT DISTINCT ti.descriptor_name as table_name, us.table_id
 == Keycloak message `prepared transactions are disabled`
 
 Full message::
++
+[.wrap]
+----
 org.postgresql.util.PSQLException: ERROR: prepared transactions are disabled.
 Hint: Set max_prepared_transactions to a nonzero value.
+----
 
 Context::
-This happens when the transaction manager or Quarkus handles more than one transaction in a request, and one of the transactions is handled by a PostgreSQL database.
+This happens when the transaction manager or Quarkus handles more than one transaction in a request, and one of the transactions belongs to a PostgreSQL database.
 
 Cause::
-Once the transaction manager of Quarkus bundles two transactions, it sends a `PREPARE TRANSACTION` command to the database before sending the commit after all transactions have been prepared.
+Once the transaction manager of Quarkus bundles two transactions, it sends a `PREPARE TRANSACTION` command to the database before sending the commit after it prepared all transactions.
 For this to work, the database needs to have the `max_prepared_transactions` parameter set.
 
 Effect::
-No transactions against the PostgreSQL database complete.
+No transactions against the PostgreSQL database succeed.
 
 Remedy::
 Pass the parameters `-c max_prepared_transactions=xxx` to the database.
@@ -87,7 +95,11 @@ For the containerized database in the Kubernetes setup, this has been configured
 == Keycloak message `ARJUNA012225: cannot access root of object store`
 
 Full message::
++
+[.wrap]
+----
 ARJUNA012225: FileSystemStore::setupStore - cannot access root of object store: ObjectStore/ShadowNoFileLockStore/defaultStore/
+----
 
 Context::
 This happens when the transaction manager or Quarkus handles more than one transaction in a request and attempts to locally persist the state of the transaction.
@@ -103,21 +115,25 @@ Via the environment variable `QUARKUS_TRANSACTION_MANAGER_OBJECT_STORE_DIRECTORY
 This has been fixed upstream for Keycloak 21.1 in https://github.com/keycloak/keycloak/pull/19384[keycloak#19384].
 
 [#jgroups-thread-pool-is-full]
-== Keycloak message 'org.jgroups.util.ThreadPool: thread pool is full'
+== Keycloak message '``org.jgroups.util.ThreadPool``: thread pool is full'
 
 Full message::
-org.jgroups.util.ThreadPool: thread pool is full (max=xx, active=xx); thread dump (dumped once, until thread_dump is reset)
++
+[.wrap]
+----
+org.jgroups.util.ThreadPool`: thread pool is full (max=xx, active=xx); thread dump (dumped once, until thread_dump is reset)
+----
 
 Context::
 This happens when the thread pool in JGroups runs out of threads.
 
 Cause::
-Each Keycloak pod has executor threads which execute the RESTEasy requests.
-While those can request data from the local caches directly (either the primary or the back ones), they need to call out to remote caches via JGroups.
-While some of these requests might get bundled, each of the Keycloak requests calling out remotely might need to acquire one JGroups thread.
+Each Keycloak pod has executor threads that run the RESTEasy requests.
+While those can request data from the local caches directly (either the primary or the back ones), they need to call remote caches through JGroups.
+While some of these requests might get bundled, each of the Keycloak requests calling out remotely might need to use one JGroups thread.
 
 Effect::
-When JGroups runs out of threads in its thread pool, those remote calls to be enqueued are rejected and discarded.
+When JGroups runs out of threads in its thread pool, it rejects and discards those remote calls it is about to enqueue.
 This will lead to longer processing times and eventually to timeouts on Infinispan where JGroups is the underlying transport.
 
 Remedy::

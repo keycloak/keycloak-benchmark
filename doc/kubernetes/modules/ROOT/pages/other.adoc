@@ -6,7 +6,7 @@ This section shows the different steps with variants, explain them a bit more.
 It also shows the `helm upgrade` commands that can update parts of the stack incrementally which helps development and upgrades.
 
 Startup minikube in default mode with a VM.
-Per default, it uses 2 CPUs, and this can be adjusted
+Per default, it uses two CPUs, and this can be adjusted.
 
 [source,shell]
 ----
@@ -32,11 +32,11 @@ minikube config set cpus 4
 minikube start
 ----
 
-Startup minikube on Linux w/ podman driver.
-This allows faster startup times, less overhead, and no limitation (?) on CPU usage.
+Startup minikube on Linux with the Podman driver.
+This allows faster startup times, less memory usage, and no limitation on CPU usage.
 
 ////
-Installation of cri-o not needed, cri-o runs inside the minikube podman?
+Installation of cri-o not needed, cri-o runs inside the minikube Podman?
 dnf module enable cri-o:1.19
 dnf install cri-o
 ////
@@ -63,7 +63,7 @@ For a lightweight installation that today doesn't scale beyond 3-5 Keycloak inst
 minikube start --driver=podman --container-runtime=cri-o
 ----
 
-On Linux, allow to use podman and crio via sudo:
+On Linux, allow to use Podman and crio via sudo:
 
 . run `sudo visudo`
 . add the following to the sudoer's file
@@ -85,7 +85,7 @@ It runs all tasks in the correct order and in parallel when possible.
 If a task definition changes, it runs it again.
 Use `task -f` to force running all tasks again, for example after you've reset minikube.
 
-For more information, please look into xref:util/task.adoc[].
+For more information, look into xref:util/task.adoc[].
 
 == Customizing Keycloak
 
@@ -93,13 +93,13 @@ Keycloak is installed with monitoring enabled.
 
 Add local customizations via `keycloak/values.yaml`:
 
-* Set `monitoring` to `false` to install Keycloak without monitoring options.
+* Set `monitoring` to `false` to install Keycloak without monitoring options is.
 
-* Set `disableCaches` to `true` to disable caches in the Keycloak's JPA legacy store.
+* Set `disableCaches` to `true` to disable caches in the Keycloak's legacy store.
 
 == Pause/Resume setup
 
-The setup can be paused and resumed without restarting/reinstalling all pods.
+The setup can be paused and resumed without restarting or reinstalling all pods.
 
 To stop, run the following command:
 
@@ -119,7 +119,7 @@ After minikube has been re-started, it might have a different IP address for the
 Due to that, all ingresses need to be updated.
 Do this, run `task`.
 
-== Reset the system under test aka Keycloak
+== Reset the system under test (Keycloak)
 
 This clears the database and restart the Keycloak instance.
 Once that is complete, it re-initializes the user for Gatling.
@@ -142,7 +142,7 @@ https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this 
 
 The dataprovider module is deployed by default.
 
-To test if the dataprovider module has been deployed, test the URL \https://keycloak-keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status.
+To test if the dataprovider module has been deployed, test the URL `+https://keycloak-keycloak.xx.xx.xx.xx.nip.io/realms/master/dataset/status+`.
 Use the `./isup.sh` script to find out about the IP address of Keycloak.
 
 == Running `kcadm.sh` with invalid TLS certificates
@@ -178,7 +178,7 @@ If they would, this would be a security concern due to the default passwords and
 To connect to Keycloak and other services remotely, one way is to use SSH port forwarding.
 
 As Keycloak is quick specific about the configured port and IP address, the port forwarding needs to bind the same port as on minikube.
-As it is running on minikube with port 443, this requires running ssh as root so that it can bind port 443 locally.
+As it is running on minikube with port 443, this requires running SSH as root so that it can bind port 443 locally.
 
 Given the IP address of minikube on the remote host retrieved by `mininkube ip` with content of `192.168.39.19` the following steps work.
 
@@ -193,9 +193,9 @@ Whenever the minikube instance on the remote host is re-created, it receives a d
 127.0.0.1 kubebox.192.168.39.19.nip.io grafana.192.168.39.19.nip.io keycloak.192.168.39.19.nip.io
 ----
 
-. Put the current user's ssh keys in for the root user, so that `sudo ssh` has access to them.
+. Put the current user's SSH keys in for the root user, so that `sudo ssh` has access to them.
 
-. Run ssh with port forwarding:
+. Run SSH with port forwarding:
 +
 ----
 sudo ssh -L 443:192.168.39.19:443 user@remotehost

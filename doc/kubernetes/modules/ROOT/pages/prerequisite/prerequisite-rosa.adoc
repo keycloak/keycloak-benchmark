@@ -27,7 +27,7 @@ The installation process is automated in the `rosa_create_cluster.sh` script in 
 
 It loads environment variables pre-set in `.env` file inside the `aws/` directory.
 
-The script creates the OCP cluster via `rosa create cluster` command, additionally it creates the required operator roles and OIDC provider.
+The script creates the OpenShift cluster via `rosa create cluster` command, additionally it creates the required operator roles and OIDC provider.
 After the installation process is finished, it creates a new admin user.
 
 .Example `.env` file
@@ -44,10 +44,10 @@ If no `ADMIN_PASSWORD` is provided in the configuration, it reads it from the AW
 
 === Mandatory parameters
 
-`VERSION`:: OCP cluster version.
+`VERSION`:: OpenShift cluster version.
 `REGION`:: AWS region where the cluster should run.
-`COMPUTE_MACHINE_TYPE`:: https://aws.amazon.com/ec2/instance-types/[AWS instance type] for the default OCP worker machine pool.
-`MULTI_AZ`:: Boolean parameter to indicate whether the OCP cluster should span multiple Availability Zones within the selected region.
+`COMPUTE_MACHINE_TYPE`:: https://aws.amazon.com/ec2/instance-types/[AWS instance type] for the default OpenShift worker machine pool.
+`MULTI_AZ`:: Boolean parameter to indicate whether the OpenShift cluster should span many Availability Zones within the selected region.
 `AVAILABILITY_ZONES`:: Comma separated list of Availability Zones to use for the cluster. For example, `eu-central-1a,eu-central-1b`.
 `REPLICAS`:: Number of worker nodes.
 If multi-AZ installation is selected, then this needs to be a multiple of the number of AZs available in the region.
@@ -119,11 +119,12 @@ The following docs have been used to set up EFS:
 
 * https://docs.openshift.com/rosa/storage/container_storage_interface/osd-persistent-storage-aws-efs-csi.html[Official OpenShift docs: Setting up AWS Elastic File Service CSI Driver Operator]
 * https://mobb.ninja/docs/rosa/aws-efs/[Community docs: Enabling the AWS EFS CSI Driver Operator on ROSA]
-* https://access.redhat.com/articles/6966373[Red Hat knowledge base article: AWS EFS CSI Driver Operator installation guide in OCP]
+* https://access.redhat.com/articles/6966373[Red Hat Knowledgebase article: AWS EFS CSI Driver Operator installation guide in OpenShift]
 
 == Rotate admin user password
 
-The admin user password can be rotated via the `rosa_rotate_admin_password.sh` script.Note admin password for existing clusters are not updated.
+The admin user password can be rotated via the `rosa_rotate_admin_password.sh` script.
+Note the admin password for existing clusters is not updated.
 The new password can be applied using script `rosa_recreate_admin.sh` with corresponding `CLUSTER_NAME` variable.
 
 == Uninstallation
