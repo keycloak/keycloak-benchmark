@@ -115,7 +115,7 @@ CLASSPATH_OPTS="$DIRNAME/../lib/*"
 declare -A RESULT_CACHE
 
 rewrite_output() {
-    cat | sed 's|Please open the following file: |Please open the following file://|g' < /dev/stdin 
+    cat | sed 's|Please open the following file: |Please open the following file://|g' < /dev/stdin
 }
 
 run_benchmark_with_workload() {
@@ -126,6 +126,7 @@ run_benchmark_with_workload() {
   local OUTPUT_DIR="${4:-"$DIRNAME/../results/"}"
   echo "INFO: Running benchmark with $1=$2, result output will be available in: $OUTPUT_DIR"
   mkdir -p "$OUTPUT_DIR"
+  GRAFANA_FROM_DATE_UNIX_MS=$(date +%s%3N)
   DATE_START_UNIX=$(date +%s)
   DATE_START_ISO=$(date --iso-8601=seconds)
   DATE_START_ISO_COMPRESSED=$(date '+%Y%m%d-%H%M%S')
@@ -141,6 +142,8 @@ run_benchmark_with_workload() {
   OUTPUT_FOLDER=$OUTPUT_DIR/$(ls $OUTPUT_DIR -Art | grep -- -20 | tail -1)
   DATE_END_UNIX=$(date +%s)
   DATE_END_ISO=$(date --iso-8601=seconds)
+  GRAFANA_TO_DATE_UNIX_MS=$(date +%s%3N)
+  SNAP_GRAFANA_TIME_WINDOW="from=${GRAFANA_FROM_DATE_UNIX_MS}&to=${GRAFANA_TO_DATE_UNIX_MS}"
   jq '{ "grafana_output": { "stats": . } }' $OUTPUT_FOLDER/js/stats.json > $OUTPUT_FOLDER/result_grafana_stats.json
   UUID=$(uuidgen)
   jq '.'  > $OUTPUT_FOLDER/result_grafana_inputs.json <<EOF
@@ -158,6 +161,7 @@ run_benchmark_with_workload() {
       },
       "input": {
         "scenario": "${SCENARIO}",
+        "snap_grafana_time_window": "${SNAP_GRAFANA_TIME_WINDOW}",
         "unit": "$1",
         "value": $2,
         "config": "${CONFIG_ARGS_CLEAN[@]}"

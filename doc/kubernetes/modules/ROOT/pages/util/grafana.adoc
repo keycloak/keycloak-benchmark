@@ -22,9 +22,109 @@ image::util/grafana.png[]
 
 == Adding custom dashboards
 
-Login to Grafana with the username `admin` and the password `keycloak` when anonymous login is not sufficient.
+Login to Grafana with the username `admin` and the password `keycloak` or the password relevant to your deployment when anonymous login is not sufficient.
 
 Custom dashboards are included in folder `monitoring/dashboards`.
 Add more dashboards there as new files, and `task` installs the latest versions in the minikube cluster.
 
+== Taking dashboard snapshots
 
+Once logged in to Grafana with the username `admin` and the password relevant to the deployment, the user would have the ability to take snapshots of the dashboards and export the snapshots as a json file to be able to import them into a standalone Grafana instance to view and interact with the dashboard.
+
+You can read on more on how to take the snapshot and other ways to share a dashboard https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/#publish-a-snapshot[here].
+
+== Automated dashboard PDF downloads
+
+We have a python script `link:{github-files}/benchmark/src/main/python/snapGrafana.py[snapGrafana.py]` which allows us to take the PDF snapshots of the available dashboards for a given time window, Grafana instance, Kubernetes namespace.
+
+=== Installing needed python libraries
+
+[source,bash]
+----
+pip3 install -U -r requirements.txt
+----
+
+And we can check if all the requirements are satisfied using the below command.
+[source,bash]
+----
+python3 -m pip check
+----
+
+
+NOTE: The playwright python module that's imported needs additional installation using the command `playwright install` if not we would see a exception similar to this.
+
+[source,bash]
+----
+if you see a missing playwright._impl._api_types.Error: Executable doesn't exist at  exception, just run the below command to download the needed browsers for the script to work.
+----
+
+=== Usage
+
+Once the requirements for the script are satisfied, you can use it with the below command and the dashboard pdf's are downloaded to the current directory where you are executing this script from.
+
+[source, bash]
+----
+python3 snapGrafana.py --grafana_domain ${GRAFANA_DOMAIN} \
+--admin_password ${KEYCLOAK_MASTER_PASSWORD} \
+--time_window "from=1694801561166&to=1694802033424" \
+--keycloak_namespace "runner-keycloak"
+----
+
+=== snapGrafana.py cli options
+
+[cols='2,1,5a']
+|===
+| CLI option | Default |Notes
+
+| [.nowrap]`--grafana_domain`
+| (not set)
+| The domain of the Grafana server without the `http://`.
+
+example: `--grafana_domain grafana.apps.gh-keycloak.abcd.xx.openshiftapps.com`
+
+| [.nowrap]`--admin_password`
+| (not set)
+| This is the Grafana Admin user password, if you use minikube deployment its `admin` and if you use openshift its what is set for `KEYCLOAK_MASTER_PASSWORD`
+
+| [.nowrap]`--keycloak_namespace`
+| runner-keycloak
+| The namespace in which the target Keycloak is deployed, this is used by the grafana dashboards to filter.
+
+| [.nowrap]`--time_window`
+| (not set)
+| The time window used by the dashboard to filter the scope of the dashboard.
+
+When using the Ansible module's `benchmark.sh` script, you will find a message like the below at the end of the playbook run.
+
+[source, bash]
+----
+INFO: Input for snapGrafana.py is from=1695382925487&to=1695383025382
+----
+
+When using `kcb.sh` directly, user can get this value from the `result_grafana_inputs.json` file generated after the `kcb.sh` based load simulations and can be found in the `keycloak-benchmark-0.XX-SNAPSHOT/results/` directory. Below is an example output of the `result_grafana_inputs.json` file and the needed time window value is associated with the `snap_grafana_time_window` key.
+
+[source, json]
+----
+{
+  "uuid": "108fdd0c-41b7-41d5-af66-8a41cff19a8f",
+  "name": "Scenario 'keycloak.scenario.authentication.AuthorizationCode' with 2 users-per-sec",
+  "grafana_input": {
+    "start": {
+      "epoch_seconds": 1695213772,
+      "iso": "2023-09-20T08:42:52-04:00"
+    },
+    "end": {
+      "epoch_seconds": 1695213810,
+      "iso": "2023-09-20T08:43:30-04:00"
+    },
+    "input": {
+      "scenario": "keycloak.scenario.authentication.AuthorizationCode",
+      "snap_grafana_time_window": "from=1695213772731&to=1695213810554",
+      "unit": "users-per-sec",
+      "value": 2,
+      "config": "-Drealm-name=test-realm"
+    }
+  }
+}
+----
+|===
