@@ -1,29 +1,31 @@
 #!/usr/bin/env bash
-# set -x
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 set -e
 
-#prerequisite checks
-#this test is valid only on Linux, and would fail on Windows, MacOS
-if [ "$(uname)" == "Linux" ]; then
- if [ "$(egrep -c 'vmx|svm' /proc/cpuinfo)" -gt 0 ]; then
-   echo "PRE-REQ CHECK PASSED: Virtualization is enabled on the host machine, its safe to proceed."
- else
-   echo >&2 "PRE-REQ CHECK FAILED: Virtualization is not enabled properly on the host machine. Please check the installation docs."
-   exit 1
- fi
-fi
-
-# this test is valid only on Linux, and would fail on Windows
-if [ "$(uname)" == "Linux" ]; then
-  if [ "$(getent group libvirt | grep -c $USER)" -gt 0 ]; then
-    echo "PRE-REQ CHECK PASSED: User is found in the libvirt group."
-  else
-    echo >&2 "PRE-REQ CHECK FAILED: User is not found in the libvirt group. Please check the installation docs."
-    exit 1
-  fi
-fi
-
 if [ "$GITHUB_ACTIONS" == "" ]; then
+  #prerequisite checks
+  #this test is valid only on Linux, and would fail on Windows, MacOS
+  if [ "$(uname)" == "Linux" ]; then
+   if [ "$(egrep -c 'vmx|svm' /proc/cpuinfo)" -gt 0 ]; then
+     echo "PRE-REQ CHECK PASSED: Virtualization is enabled on the host machine, its safe to proceed."
+   else
+     echo >&2 "PRE-REQ CHECK FAILED: Virtualization is not enabled properly on the host machine. Please check the installation docs."
+     exit 1
+   fi
+  fi
+
+  # this test is valid only on Linux, and would fail on Windows
+  if [ "$(uname)" == "Linux" ]; then
+    if [ "$(getent group libvirt | grep -c $USER)" -gt 0 ]; then
+      echo "PRE-REQ CHECK PASSED: User is found in the libvirt group."
+    else
+      echo >&2 "PRE-REQ CHECK FAILED: User is not found in the libvirt group. Please check the installation docs."
+      exit 1
+    fi
+  fi
+
   minikube delete
   minikube config set memory 8192
   minikube config set cpus 4
