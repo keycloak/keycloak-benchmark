@@ -33,6 +33,7 @@ With the number of threads in the executor pool being an order of magnitude larg
 +
 The combined number of executor threads in all Keycloak nodes in the cluster shouldn't exceed the number of threads available in JGroups thread pool to avoid the error described in
 xref:kubernetes-guide::error-messages.adoc#jgroups-thread-pool-is-full[`org.jgroups.util.ThreadPool: thread pool is full`].
+To see the error the first time it happens, the system property `jgroups.thread_dumps_threshold` needs to be set to `1`, as otherwise the message will appear only after 10000 threads have been rejected.
 +
 --
 include::partial$executor-jgroups-thread-calculation.adoc[]

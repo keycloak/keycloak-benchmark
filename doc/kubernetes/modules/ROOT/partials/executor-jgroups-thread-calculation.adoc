@@ -1,2 +1,3 @@
-Due to the bug https://issues.redhat.com/browse/ISPN-14780[ISPN-14780] there was currently no known way to configure the size different from the default JGroups 100 max threads before Keycloak 23.0.0 and 22.0.2, so assuming a Keycloak cluster with 4 Pods, each Pod shouldn't have more than 25 worker threads.
+With https://issues.redhat.com/browse/ISPN-14780[ISPN-14780] being fixed in Keycloak 22.0.2, the number of JGroup threads is `200` by default, and can be configured using the property Java system property `jgroups.thread_pool.max_threads`.
+As shown in experiments, assuming a Keycloak cluster with 4 Pods, each Pod shouldn't have more than 50 worker threads so that it doesn't run out of threads in the JGroup thread pool of 200.
 Use the Quarkus configuration options `quarkus.thread-pool.max-threads` to configure the maximum number of worker threads.

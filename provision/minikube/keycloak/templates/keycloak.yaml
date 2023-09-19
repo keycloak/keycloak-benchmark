@@ -204,10 +204,11 @@ spec:
                 value: "10000"
 {{ end }}
               - name: JAVA_OPTS_APPEND
-                # using non-blocking random, make DNS lookups expire after 10 seconds and not cache them forever
+                # jgroups.thread_dumps_threshold ensure that a log message "thread pool is full" appears once the thread pool is full for the first time
                 value: >
                   -Xms{{ .Values.heapInitMB }}m -Xmx{{ .Values.heapMaxMB }}m
                   -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
+                  -Djgroups.thread_dumps_threshold=1
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- if .Values.otel }}
                   -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
