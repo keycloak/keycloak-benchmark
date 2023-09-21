@@ -8,9 +8,10 @@ vars:
   # To compute Infinispan namespace
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
   KC_ISPN_NAMESPACE: '{{.KC_NAMESPACE_PREFIX}}keycloak'
-  ISPN_DIR: "../infinispan"
-  RDS_DIR: "../aws/rds"
-  KC_DIR: "../openshift"
+  ISPN_DIR: "{{.ROOT_DIR}}/../infinispan"
+  ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
+  RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
+  KC_DIR: "{{.ROOT_DIR}}/../openshift"
   RS_HOT_ROD_PASSWORD:
     sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
 
@@ -62,8 +63,6 @@ tasks:
     cmd: ../aws/rds/aurora_endpoint.sh > .task/aurora-endpoint-{{.AURORA_CLUSTER}}
     generates:
       - .task/aurora-endpoint-{{.AURORA_CLUSTER}}
-    status:
-      - ! test -f .task/aurora-endpoint-{{.AURORA_CLUSTER}}
 
   deploy-infinispan-crossdc:
     desc: "Deploys Infinispan in both ROSA clusters"
@@ -308,3 +307,185 @@ tasks:
       - task: uninstall-infinispan
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+
+
+  helm-add-repos:
+    internal: true
+    cmds:
+      - helm repo add grafana https://grafana.github.io/helm-charts
+      - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+      - helm repo update
+
+  create-grafana-service-account:
+    label: "create-grafana-service-account-{{.ROSA_CLUSTER_NAME}}"
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    vars:
+      NAMESPACE: '{{.NAMESPACE | default "monitoring"}}'
+      SERVICE_ACCOUNT: '{{.SERVICE_ACCOUNT | default "grafana"}}'
+    cmds:
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create sa -n "{{.NAMESPACE}}" "{{.SERVICE_ACCOUNT}}" || true
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc adm policy add-cluster-role-to-user cluster-monitoring-view -z "{{.SERVICE_ACCOUNT}}" -n "{{.NAMESPACE}}"
+      - mkdir -p .task/monitoring
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
+    generates:
+      - .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
+    status:
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get sa -n "{{.NAMESPACE}}" "{{.SERVICE_ACCOUNT}}"
+      - test -f .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
+    sources:
+      - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  install-grafana:
+    label: "install-grafana-{{.ROSA_CLUSTER_NAME}}"
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    vars:
+      GRAFANA_VERSION: '{{.GRAFANA_VERSION | default "6.55.0"}}'
+      MONITORING_UIDS:
+        sh: "cat {{.ROOT_DIR}}/.task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}"
+      GRAFANA_PASSWORD:
+        sh: "aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin"
+      GRAFANA_DOMAIN:
+        sh: "cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
+    cmds:
+      - >
+        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+        helm -n monitoring upgrade --install grafana grafana/grafana --version {{.GRAFANA_VERSION}} -f "{{.KC_DIR}}/grafana.yaml"
+        --set ingress.hosts[0]="grafana.{{.GRAFANA_DOMAIN}}"
+        --set securityContext.runAsUser="{{.MONITORING_UIDS}}"
+        --set securityContext.runAsGroup="{{.MONITORING_UIDS}}"
+        --set securityContext.fsGroup="{{.MONITORING_UIDS}}"
+        --set adminPassword="{{.GRAFANA_PASSWORD}}"
+    sources:
+      - "{{.ROOT_DIR}}/.task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}"
+      - "{{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
+      - "{{.KC_DIR}}/grafana.yaml"
+      - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  install-jaeger:
+    label: "install-jaeger-{{.ROSA_CLUSTER_NAME}}"
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    vars:
+      RETENTION: '{{.RETENTION | default "168h"}}'
+      JAEGER_VERSION: '{{.JAEGER_VERSION | default "0.58.0"}}'
+    env:
+      KB_RETENTION: '{{.RETENTION}}'
+    cmds:
+      - >
+        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+        helm upgrade --install jaeger jaegertracing/jaeger --version {{.JAEGER_VERSION}} -n monitoring -f "{{.ROOT_DIR}}/../minikube/jaeger/values.yaml"
+      - envsubst < "{{.ROOT_DIR}}/../minikube/jaeger/deployment-patch.yaml" > .task/jaeger-{{.ROSA_CLUSTER_NAME}}-patchfile.yaml
+      - >
+        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+        oc patch deployment jaeger -n monitoring --patch-file .task/jaeger-{{.ROSA_CLUSTER_NAME}}-patchfile.yaml
+    sources:
+      - "{{.ROOT_DIR}}/../minikube/jaeger/values.yaml"
+      - "{{.ROOT_DIR}}/../minikube/jaeger/deployment-patch.yaml"
+      - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  install-grafana-charts:
+    label: "install-grafana-charts-{{.ROSA_CLUSTER_NAME}}"
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - >
+        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+        helm upgrade --install monitoring "{{.KC_DIR}}/monitoring"
+    sources:
+      - "{{.KC_DIR}}/monitoring/*"
+      - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+
+  monitoring:
+    desc: "Install grafana dashboards in both ROSA clusters"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - task: helm-add-repos
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:create-namespace
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "monitoring"
+      - task: ispn:create-namespace
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "monitoring"
+      - task: create-grafana-service-account
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: create-grafana-service-account
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: install-grafana
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: install-grafana
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: install-jaeger
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: install-jaeger
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: install-grafana-charts
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: install-grafana-charts
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  route53:
+    desc: "Creates Route53 primary/backup DNS records"
+    dir: "{{.ROUTE53_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - PRIMARY_CLUSTER={{.ROSA_CLUSTER_NAME_1}} BACKUP_CLUSTER={{.ROSA_CLUSTER_NAME_2}} ./route53_create.sh
+      - >
+        echo 'WARNING: use the information above to configure your Keycloak deployment!'
+
+  dataset-import:
+    desc: "Triggers the dataset creation task in the primary Keycloak cluster. It does not wait for completion."
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+    vars:
+      USERS: "{{.USERS | default 100000}}"
+      USERS_PER_TX: "{{.USERS_PER_TX | default 256}}"
+      THREADS: "{{.THREADS | default 8}}"
+      KC_HOSTNAME_PREFIX:
+        sh: "cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME_1}}"
+        # KC_HEALTH_URL_CLUSTER_1 should be set when Route53 is configured. This is the fallback.
+      FALLBACK_URL: "keycloak-{{.KC_NAMESPACE_PREFIX}}keycloak.{{.KC_HOSTNAME_PREFIX}}"
+    cmds:
+      - curl -k "https://{{.KC_HEALTH_URL_CLUSTER_1 | default .FALLBACK_URL}}/realms/master/dataset/create-realms?realm-name=realm-0&count=1&threads-count={{.THREADS}}&users-per-realm={{.USERS}}&users-per-transaction={{.USERS_PER_TX}}"
