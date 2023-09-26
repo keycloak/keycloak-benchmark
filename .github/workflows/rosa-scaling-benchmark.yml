@@ -105,7 +105,7 @@ jobs:
 
       - name: Allow cluster to scale
         if: ${{ !inputs.skipCreateDeployment }}
-        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 3 --max-replicas 10 scaling
+        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 3 scaling
 
       - name: Create Keycloak deployment
         if: ${{ !inputs.skipCreateDeployment }}
@@ -309,7 +309,7 @@ jobs:
 
       - name: Scale down the cluster
         if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
-        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 --max-replicas 0 scaling
+        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 scaling
 
   archive:
     name: Commit results to Git repository
