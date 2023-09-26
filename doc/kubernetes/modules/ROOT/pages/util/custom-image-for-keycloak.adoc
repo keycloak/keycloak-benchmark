@@ -63,6 +63,49 @@ docker build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t localhost/ke
 task
 ----
 
+== Building a custom Keycloak image for OpenShift
+
+. Check out https://github.com/keycloak/keycloak[Keycloak's Git repository].
+. Build using `mvn clean install -DskipTests` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
+. Build the container, either with Podman or with Docker.
++
+.When running Podman
+[source,bash]
+----
+cd quarkus/container
+cp ../dist/target/keycloak-*.tar.gz .
+IMAGE_NAME=imageName
+podman build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t $IMAGE_NAME
+podman login quay.io
+podman push $IMAGE_NAME quay.io/namespace/repository:tag
+----
++
+.When running Docker
+[source,bash]
+----
+cd quarkus/container
+cp ../dist/target/keycloak-*.tar.gz .
+IMAGE_NAME=imageName
+docker build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t $IMAGE_NAME
+docker login quay.io
+docker push $IMAGE_NAME quay.io/namespace/repository:tag
+----
++
+. Configure the OpenShift environment to use the custom image.
++
+.Example entry in the `provision/openshift/.env` file
+----
+KC_CONTAINER_IMAGE=$IMAGE_NAME
+----
++
+To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
+. Run `task` as usual to deploy the image.
++
+[source]
+----
+task
+----
+
 == Further reading
 
 Once the image has been deployed, it can be debugged. See xref:./debugging-keycloak.adoc[] for details.
