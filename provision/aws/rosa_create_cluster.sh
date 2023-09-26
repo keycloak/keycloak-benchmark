@@ -92,7 +92,7 @@ echo
 
 SCALING_MACHINE_POOL=$(rosa list machinepools -c "${CLUSTER_NAME}" -o json | jq -r '.[] | select(.id == "scaling") | .id')
 if [[ "${SCALING_MACHINE_POOL}" != "scaling" ]]; then
-    rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-replicas 0 --min-replicas 0 --name scaling --enable-autoscaling
+    rosa create machinepool -c "${CLUSTER_NAME}" --instance-type m5.4xlarge --max-replicas 10 --min-replicas 0 --name scaling --enable-autoscaling
 fi
 
 ./rosa_efs_create.sh
