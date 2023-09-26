@@ -69,15 +69,17 @@ task
 . Build using `mvn clean install -DskipTests` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
 . Build the container, either with Podman or with Docker.
 +
+In the following examples, replace `quay.io` and `quay.io/namespace/repository:tag` with the registry and the image name you are using.
++
 .When running Podman
 [source,bash]
 ----
 cd quarkus/container
 cp ../dist/target/keycloak-*.tar.gz .
-IMAGE_NAME=imageName
+IMAGE_NAME=quay.io/namespace/repository:tag
 podman build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t $IMAGE_NAME
 podman login quay.io
-podman push $IMAGE_NAME quay.io/namespace/repository:tag
+podman push $IMAGE_NAME
 ----
 +
 .When running Docker
@@ -85,17 +87,19 @@ podman push $IMAGE_NAME quay.io/namespace/repository:tag
 ----
 cd quarkus/container
 cp ../dist/target/keycloak-*.tar.gz .
-IMAGE_NAME=imageName
+IMAGE_NAME=quay.io/namespace/repository:tag
 docker build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t $IMAGE_NAME
 docker login quay.io
-docker push $IMAGE_NAME quay.io/namespace/repository:tag
+docker push $IMAGE_NAME
 ----
 +
 . Configure the OpenShift environment to use the custom image.
 +
+In the following example, replace `quay.io/namespace/repository:tag` with the registry and the image name you are using.
++
 .Example entry in the `provision/openshift/.env` file
 ----
-KC_CONTAINER_IMAGE=$IMAGE_NAME
+KC_CONTAINER_IMAGE=quay.io/namespace/repository:tag
 ----
 +
 To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
