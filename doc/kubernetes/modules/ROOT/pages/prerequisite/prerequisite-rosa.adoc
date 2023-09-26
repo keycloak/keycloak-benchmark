@@ -86,20 +86,21 @@ The above installation script creates an admin user automatically but in case th
 == Scaling the cluster's nodes on demand
 
 The standard setup of nodes might be too small for running a load test, at the same time using a different instance type and rebuilding the cluster takes a lot of time (about 45 minutes).
-To scale the cluster on demand, the standard setup has a machine pool named `scaling` with instances of type `m5.4xlarge` spot instances which is scaled to zero by default.
+To scale the cluster on demand, the standard setup has a machine pool named `scaling` with instances of type `m5.4xlarge` which is auto-scaled based on the current demand from 0 to 10 instances.
+However, auto-scaling of worker nodes is quite time-consuming as nodes are scaled one by one.
 
-To scale the machine pool at runtime, issue a command like the following, and the additional nodes will be available within about 5 minutes:
-
-[source,bash,subs=+quotes]
-----
-rosa edit machinepool -c _**clustername**_ --min-replicas 3 --max-replicas 10 scaling
-----
-
-To scale down the cluster, use a command like the following:
+To scale the machine pool faster, issue a command like the following, and the additional nodes will be spawned at the same time:
 
 [source,bash,subs=+quotes]
 ----
-rosa edit machinepool -c _**clustername**_ --min-replicas 0 --max-replicas 0 scaling
+rosa edit machinepool -c _**clustername**_ --min-replicas 3 scaling
+----
+
+To allow scaling the machine pool back to 0, use a command like the following:
+
+[source,bash,subs=+quotes]
+----
+rosa edit machinepool -c _**clustername**_ --min-replicas 0 scaling
 ----
 
 To use different instance types, use `rosa create machinepool` to create additional machine pools
