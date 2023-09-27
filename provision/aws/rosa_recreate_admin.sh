@@ -17,6 +17,9 @@ KEYCLOAK_MASTER_PASSWORD_SECRET_NAME=${KEYCLOAK_MASTER_PASSWORD_SECRET_NAME:-"ke
 SECRET_MANAGER_REGION="eu-central-1"
 ADMIN_PASSWORD=${ADMIN_PASSWORD:-$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)}
 
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set +x
+fi
 if [ -z "$ADMIN_PASSWORD" ]; then
   ./aws_rotate_keycloak_master_password.sh
   ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
@@ -24,6 +27,9 @@ fi
 
 if [ "$GITHUB_ACTIONS" != "" ]; then
   echo "::add-mask::${ADMIN_PASSWORD}"
+fi
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
 fi
 
 CLUSTER_DESCRIPTION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json)
