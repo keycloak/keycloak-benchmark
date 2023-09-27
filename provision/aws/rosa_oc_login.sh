@@ -17,6 +17,7 @@ SECRET_MANAGER_REGION="eu-central-1"
 API_URL=$(rosa describe cluster -c "$CLUSTER_NAME" -o json | jq -r '.api.url')
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  # prevent logging the password in debug mode
   set +x
 fi
 ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
