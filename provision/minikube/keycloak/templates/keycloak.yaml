@@ -1,3 +1,4 @@
+# tag::keycloak[]
 apiVersion: k8s.keycloak.org/v2alpha1
 kind: Keycloak
 metadata:
@@ -16,6 +17,8 @@ spec:
   ingress:
     enabled: true
     annotations:
+      # When running load tests, disable sticky sessions on the OpenShift HAProxy router
+      # to avoid receiving all requests on a single Keycloak Pod.
       haproxy.router.openshift.io/balance: roundrobin
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
@@ -50,11 +53,11 @@ spec:
     - name: storage-hotrod-password
       value: admin
 {{ end }}
-    - name: db-pool-min-size
+    - name: db-pool-min-size # <1>
       value: {{ quote .Values.dbPoolMinSize }}
-    - name: db-pool-max-size
+    - name: db-pool-max-size # <1>
       value: {{ quote .Values.dbPoolMaxSize }}
-    - name: db-pool-initial-size
+    - name: db-pool-initial-size # <1>
       value: {{ quote .Values.dbPoolInitialSize }}
 {{ if .Values.disableCaches }}
     - name: cache-realm-enabled
@@ -78,8 +81,6 @@ spec:
       value: hotrod
     - name: storage-area-login-failure
       value: hotrod
-    - name: storage-deployment-state-version-seed
-      value: some-secret-seed
 {{ else if ne .Values.storage "" }}
     - name: storage
       value: {{ quote .Values.storage }}
@@ -91,9 +92,7 @@ spec:
 {{ end }}
     - name: log-console-output
       value: json
-    - name: metrics-enabled
-      value: 'true'
-    - name: health-enabled
+    - name: metrics-enabled # <2>
       value: 'true'
     - name: db-username
       secret:
@@ -122,9 +121,11 @@ spec:
   instances: {{ .Values.instances }}
   unsupported:
     podTemplate:
+      # end::keycloak[]
       metadata:
         annotations:
           checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}-{{ .Values.otelVersion }}
+      # tag::keycloak[]
       spec:
         {{ if .Values.otel }}
         initContainers:
@@ -149,18 +150,23 @@ spec:
             imagePullPolicy: Never
 {{ end }}
             env:
+              # end::keycloak[]
               # Limiting Keycloak thread pool as it might lead to an exhaustion of the JGroups thread pool.
               # The combined worker thread pool size of all Keycloak instances shouldn't exceed the size of the JGroups thread pool on each node.
               # After https://issues.redhat.com/browse/ISPN-14780 was fixed in KC 22.0.2 and KC 23, it again defaults to 200.
               # It can be configured by a system property 'jgroups.thread_pool.max_threads' for a different value.
-              - name: 'QUARKUS_THREAD_POOL_MAX_THREADS'
+              # tag::keycloak[]
+              - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <3>
                 value: {{ div 200 .Values.instances | quote }}
+              # end::keycloak[]
               # This is the queue size on each Keycloak node, that when exceeded will return a 503 response immediately (load shedding).
               # Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
               # In the future, the queue size could be determined dynamically on each node based on the processing time of previous requests.
               # See: https://github.com/keycloak/keycloak/issues/21962
-              - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE'
+              # tag::keycloak[]
+              - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE' # <4>
                 value: '1000'
+              # end::keycloak[]
               # We want to have an externally provided username and password, therefore, we override those two environment variables
               - name: KEYCLOAK_ADMIN
                 valueFrom:
@@ -174,6 +180,7 @@ spec:
                     name: keycloak-preconfigured-admin
                     key: password
                     optional: false
+                # tag::keycloak[]
 {{ if .Values.otel }}
               # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
               # As a workaround, force downgrade to HTTP/1.1
@@ -203,13 +210,14 @@ spec:
               - name: KC_SPI_MAP_STORAGE_JPA_LOCK_TIMEOUT
                 value: "10000"
 {{ end }}
-              - name: JAVA_OPTS_APPEND
-                # jgroups.thread_dumps_threshold ensure that a log message "thread pool is full" appears once the thread pool is full for the first time
+              - name: JAVA_OPTS_APPEND # <5>
                 value: >
                   -Xms{{ .Values.heapInitMB }}m -Xmx{{ .Values.heapMaxMB }}m
                   -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
                   -Djgroups.thread_dumps_threshold=1
+{{- if .Values.jvmDebug }}
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
+{{- end -}}
 {{- if .Values.otel }}
                   -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
 {{- end -}}
@@ -218,7 +226,8 @@ spec:
 {{- end }}
 {{- if .Values.infinispan.site }}
                   -Djboss.site.name={{.Values.infinispan.site}}
-{{- end}}
+{{- end }}
+# end::keycloak[]
             ports:
 {{ if .Values.otel }}
               - containerPort: 9464
@@ -230,9 +239,12 @@ spec:
                 protocol: TCP
                 name: jfr-jmx
 {{ end }}
+{{ if .Values.jvmDebug }}
               - containerPort: 8787
                 protocol: TCP
-                name: jvmdebug
+                name: jvmDebug
+{{ end }}
+# tag::keycloak[]
             resources:
               requests:
                 {{ if .Values.cpuRequests }}cpu: "{{ .Values.cpuRequests }}"{{end}}
@@ -240,29 +252,15 @@ spec:
               limits:
                 {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
                 {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
-            startupProbe:
-              httpGet:
-                path: /health/started
-                port: 8443
-                scheme: HTTPS
-              failureThreshold: 600
-              initialDelaySeconds: 10
-              periodSeconds: 2
-            # During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds.
-            # With all requests being queued, also the liveness probe is queue, and is therefore slow.
-            # In a high-load or even overload scenario, the probes will be queued in the executor thread pool, and won't return in time.
-            # With load shedding activated when requests are rejected from the executor thread pool, failing readiness probes will lead to Pods not receiving any load for
-            # a period or time, and with failing liveness probes the Pods will eventually be restarted. So the best way to run Keycloak in Kubernetes would be to disable
-            # those probes for now.
-            # https://github.com/keycloak/keycloak/issues/22109
-            readinessProbe:
+            readinessProbe: # <6>
               exec:
                 command:
                   - 'true'
-            livenessProbe:
+            livenessProbe: # <6>
               exec:
                 command:
                   - 'true'
+            # end::keycloak[]
             volumeMounts:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
@@ -316,3 +314,5 @@ spec:
                       - key: tls.pk8
                         path: client.root.key
 {{ end }}
+# tag::keycloak[]
+# end::keycloak[]
