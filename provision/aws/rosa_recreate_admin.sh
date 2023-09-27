@@ -22,6 +22,10 @@ if [ -z "$ADMIN_PASSWORD" ]; then
   ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
 fi
 
+if [ "$GITHUB_ACTIONS" != "" ]; then
+  echo "::add-mask::${ADMIN_PASSWORD}"
+fi
+
 CLUSTER_DESCRIPTION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json)
 
 echo $CLUSTER_DESCRIPTION
