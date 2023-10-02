@@ -32,7 +32,7 @@ include::example$helm/keycloak.yaml[tag=keycloak]
 ----
 <1> The database connection pool initial, max and min size should be identical to allow statement caching for the database.
 <2> To be able to analyze the system under load, enabling the metrics endpoint is helpful.
-The downside of the setting is that the metrics will be available at the external Keycloak endpoint, so you must add additional filtering so that the endpoint is not available from the outside.
+The downside of the setting is that, the metrics will be available at the external Keycloak endpoint, so you must add a filter so that the endpoint is not available from the outside.
 <3> The internal JGroup thread pools is by default set up for 200 threads maximum.
 The number of all Keycloak threads in the stateful set should not exceed the number of JGroup threads to avoid a JGroup thread pool exhaustion which could stall Keycloak request processing.
 It might be beneficial to limit the number of threads even further, as too many concurrent threads will lead to throttling by Kubernetes once the requested CPU limit is reached.
