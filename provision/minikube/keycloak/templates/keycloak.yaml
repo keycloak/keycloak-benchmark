@@ -1,3 +1,4 @@
+# There are several callouts in this YAML marked with `# <1>' etc. See 'running/keycloak-deployment.adoc` for the details.
 # tag::keycloak[]
 apiVersion: k8s.keycloak.org/v2alpha1
 kind: Keycloak
@@ -13,6 +14,26 @@ spec:
     {{- else }}
     hostname: keycloak-{{ .Values.namespace }}.{{ .Values.hostname }}
     {{- end }}
+  db:
+{{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
+    vendor: postgres
+    url: jdbc:postgresql://postgres:5432/keycloak
+{{ else if eq .Values.database "cockroach-single" }}
+    vendor: postgres
+    url: jdbc:postgresql://cockroach:26257/keycloak?sslmode=disable
+{{ else if eq .Values.database "cockroach-operator" }}
+    vendor: postgres
+    url: jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
+{{ end }}
+    poolMinSize: {{ .Values.dbPoolMinSize }} # <1>
+    poolInitialSize: {{ .Values.dbPoolInitialSize }}
+    poolMaxSize: {{ .Values.dbPoolMaxSize }}
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
 {{ if .Values.disableIngressStickySession }}
   ingress:
     enabled: true
@@ -23,22 +44,6 @@ spec:
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
   additionalOptions:
-{{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
-    - name: db
-      value: postgres
-    - name: db-url
-      value: jdbc:postgresql://postgres:5432/keycloak
-{{ else if eq .Values.database "cockroach-single" }}
-    - name: db
-      value: postgres
-    - name: db-url
-      value: jdbc:postgresql://cockroach:26257/keycloak?sslmode=disable
-{{ else if eq .Values.database "cockroach-operator" }}
-    - name: db
-      value: postgres
-    - name: db-url
-      value:  jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
-{{ end }}
 {{- if .Values.infinispan.customConfig }}
     - name: cache-config-file
       value: {{ base .Values.infinispan.configFile }}
@@ -53,12 +58,6 @@ spec:
     - name: storage-hotrod-password
       value: admin
 {{ end }}
-    - name: db-pool-min-size # <1>
-      value: {{ quote .Values.dbPoolMinSize }}
-    - name: db-pool-max-size # <1>
-      value: {{ quote .Values.dbPoolMaxSize }}
-    - name: db-pool-initial-size # <1>
-      value: {{ quote .Values.dbPoolInitialSize }}
 {{ if .Values.disableCaches }}
     - name: cache-realm-enabled
       value: 'false'
@@ -94,14 +93,6 @@ spec:
       value: json
     - name: metrics-enabled # <2>
       value: 'true'
-    - name: db-username
-      secret:
-        name: keycloak-db-secret
-        key: username
-    - name: db-password
-      secret:
-        name: keycloak-db-secret
-        key: password
 {{- if .Values.infinispan.remoteStore.enabled }}
     - name: remote-store-host
       value: {{ quote .Values.infinispan.remoteStore.host }}
@@ -150,20 +141,8 @@ spec:
             imagePullPolicy: Never
 {{ end }}
             env:
-              # end::keycloak[]
-              # Limiting Keycloak thread pool as it might lead to an exhaustion of the JGroups thread pool.
-              # The combined worker thread pool size of all Keycloak instances shouldn't exceed the size of the JGroups thread pool on each node.
-              # After https://issues.redhat.com/browse/ISPN-14780 was fixed in KC 22.0.2 and KC 23, it again defaults to 200.
-              # It can be configured by a system property 'jgroups.thread_pool.max_threads' for a different value.
-              # tag::keycloak[]
               - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <3>
                 value: {{ div 200 .Values.instances | quote }}
-              # end::keycloak[]
-              # This is the queue size on each Keycloak node, that when exceeded will return a 503 response immediately (load shedding).
-              # Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
-              # In the future, the queue size could be determined dynamically on each node based on the processing time of previous requests.
-              # See: https://github.com/keycloak/keycloak/issues/21962
-              # tag::keycloak[]
               - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE' # <4>
                 value: '1000'
               # end::keycloak[]
@@ -213,7 +192,8 @@ spec:
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
                   -Xms{{ .Values.heapInitMB }}m -Xmx{{ .Values.heapMaxMB }}m
-                  -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
+                  {{- if not (eq (int .Values.metaspaceInitMB) 96) }} -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m {{ end }}
+                  {{- if not (eq (int .Values.metaspaceMaxMB) 256) }} -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m {{ end }}
                   -Djgroups.thread_dumps_threshold=1
 {{- if .Values.jvmDebug }}
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
@@ -242,7 +222,7 @@ spec:
 {{ if .Values.jvmDebug }}
               - containerPort: 8787
                 protocol: TCP
-                name: jvmDebug
+                name: jvm-debug
 {{ end }}
 # tag::keycloak[]
             resources:
@@ -314,5 +294,3 @@ spec:
                       - key: tls.pk8
                         path: client.root.key
 {{ end }}
-# tag::keycloak[]
-# end::keycloak[]

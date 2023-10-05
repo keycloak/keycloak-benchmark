@@ -1,0 +1,69 @@
+= Configuration of thread pools
+:navtitle: Thread Pools
+:description: This describes the reasoning behind configuring thread pools for Keycloak.
+
+{description}
+
+== Audience
+
+Read this page to understand considerations and best practices on how to configure thread pools connection pools for Keycloak.
+For a configuration where this is applied, visit xref:running/keycloak-deployment.adoc[].
+
+== Concepts
+
+=== Quarkus executor pool
+
+Keycloak requests are handled on the Quarkus executor pool, as well as all liveness and readiness probes.
+
+The Quarkus executor thread pool is configured in https://quarkus.io/guides/all-config#quarkus-core_quarkus.thread-pool.max-threads[`quarkus.thread-pool.max-threads`] and has a maximum size of at least 200 threads.
+Depending on the available CPU cores, it can grow even larger.
+Threads are created as needed, and will end when no longer needed, so the system will scale up and down as needed.
+
+When the load and the number of threads increases, the bottleneck will usually be the database connections.
+Once a request can't acquire a database connection, it will fail with a message in the log like `Unable to acquire JDBC Connection` or similar as described in xref:error-messages.adoc#keycloak-message-error-failed-to-obtain-jdbc-connection[the known error messages].
+The caller will receive a response with a 5xx HTTP status code indicating a server side error.
+
+With the number of threads in the executor pool being an order of magnitude larger than the number of database connections and with requests failing when no database connection is available within the https://quarkus.io/guides/all-config#quarkus-agroal_quarkus.datasource.jdbc.acquisition-timeout[`quarkus.datasource.jdbc.acquisition-timeout`] (5 seconds default), this is somewhat of a https://en.wikipedia.org/wiki/Demand_response#Load_shedding[load-shedding behavior] where it returns an error response instead of queueing requests for an indefinite amount of time.
+
+=== JGroup connection pool
+
+The combined number of executor threads in all Keycloak nodes in the cluster shouldn't exceed the number of threads available in JGroups thread pool to avoid the error described in
+xref:kubernetes-guide::error-messages.adoc#jgroups-thread-pool-is-full[`org.jgroups.util.ThreadPool: thread pool is full`].
+To see the error the first time it happens, the system property `jgroups.thread_dumps_threshold` needs to be set to `1`, as otherwise the message will appear only after 10000 threads have been rejected.
+
+--
+include::partial$executor-jgroups-thread-calculation.adoc[]
+--
+
+[#load-shedding]
+=== Load Shedding
+
+By default, Keycloak will queue all incoming requests infinitely, even if the request processing stalls.
+This will use additional memory in the Pod, can exhaust resources in the load balancers, and the requests will eventually time out on the client side without the client knowing if the request has been processed.
+To limit the number of queued requests in Keycloak, set an additional Quarkus configuration option.
+
+Configure `quarkus.thread-pool.queue-size` to specify a maximum queue length to allow for effective load shedding once this queue size is exceeded: Keycloak will return HTTP Status code 500 (server error).
+Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
+
+When this setting is active, requests that exceed the number of queued requests will return with an HTTP 500 error.
+Keycloak logs the error message in its log.
+
+Future version of Keycloak will have better means to handle that: https://github.com/keycloak/keycloak/issues/23340[keycloak#23340].
+
+[#probes]
+=== Probes
+
+All health probes, including liveness and readiness probes, are handled in the Quarkus executor worker pool.
+With all requests being queued, also the liveness probe is queued, and is therefore slow.
+During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds.
+In a high-load or even overload scenario, the probes will be queued in the executor thread pool, and won't return in time.
+When requests queue up in Keycloak, also Readiness and Liveness probes are delayed, which might trigger failure detection in Kubernetes and will lead to Pod restarts in overload or load-shedding situations.
+With load shedding activated, when requests are rejected from the executor thread pool, failing readiness probes will lead to Pods not receiving any load for a period or time, and with failing liveness probes the Pods will eventually be restarted.
+This is tracked in https://github.com/keycloak/keycloak/issues/22109[keycloak#22109].
+For the time being, consider a longer timeout for the probes to survive spikes in the delay, or disabling the liveness probe to avoid Pod restarts.
+
+=== OS Resources
+
+In order for Java to create threads, when running on Linux it needs to have file handles available.
+Therefore, the number of open files (as retrieved as `ulimit -n` on Linux) need to provide head-space for Keycloak to increase the number of threads needed.
+Each thread will also consume memory, and the container memory limits need to be set to a value that allows for this or the pod will be killed by Kubernetes.

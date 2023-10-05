@@ -16,6 +16,8 @@ SECRET_MANAGER_REGION="eu-central-1"
 
 API_URL=$(rosa describe cluster -c "$CLUSTER_NAME" -o json | jq -r '.api.url')
 
+CONSOLE_URL=$(rosa describe cluster -c "$CLUSTER_NAME" -o json | jq -r '.console.url')
+
 if [[ "$RUNNER_DEBUG" == "1" ]]; then
   # prevent logging the password in debug mode
   set +x
@@ -29,3 +31,5 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
 fi
 
 oc login $API_URL --username cluster-admin --password $ADMIN_PASSWORD --insecure-skip-tls-verify
+
+echo Use ${CONSOLE_URL} to log in using the console
