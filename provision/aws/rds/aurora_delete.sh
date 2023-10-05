@@ -14,14 +14,18 @@ AURORA_VPC=$(aws ec2 describe-vpcs \
 )
 
 # Delete the Aurora DB cluster and instances
-aws rds delete-db-instance --db-instance-identifier ${AURORA_INSTANCE} || true
+for i in $( seq ${AURORA_INSTANCES} ); do
+  aws rds delete-db-instance --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}" || true
+done
 
 aws rds delete-db-cluster \
   --db-cluster-identifier ${AURORA_CLUSTER} \
   --skip-final-snapshot \
   || true
 
-aws rds wait db-instance-deleted --db-instance-identifier ${AURORA_INSTANCE}
+for i in $( seq ${AURORA_INSTANCES} ); do
+  aws rds wait db-instance-deleted --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}"
+done
 aws rds wait db-cluster-deleted --db-cluster-identifier ${AURORA_CLUSTER}
 
 # Delete the Aurora subnet group
