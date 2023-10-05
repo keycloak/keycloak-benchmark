@@ -53,7 +53,7 @@ fi
 
 # Delete the Aurora VPC, retrying 5 times in case that dependencies are not removed instantly
 n=0
-until [ "$n" -ge 5 ]
+until [ "$n" -ge 20 ]
 do
    aws ec2 delete-vpc --vpc-id ${AURORA_VPC} && break
    n=$((n+1))

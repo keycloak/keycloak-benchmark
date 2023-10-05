@@ -14,9 +14,9 @@ AURORA_REGION= # The AWS region hosting the Aurora cluster
 AURORA_INSTANCES= # The number of Aurora db instances to create in the AURORA_REGION, defaults to 1
 ----
 
-This creates the necessary VPCs, subnets and routes required by an Aurora cluster as well as a single Aurora instance
-for said cluster. The script waits until both the cluster and instance are available. If the cluster already exists,
-a message indiciating this is displayed and the script will fail with exit code 1.
+This creates the necessary VPCs, subnets and routes required by an Aurora cluster as well as `$AURORA_INSTANCES` Aurora instances
+for said cluster. The script waits until the cluster and all instance are available. If the cluster already exists,
+a message indicating this is displayed and the script will fail with exit code 1.
 
 [NOTE]
 ====
@@ -80,13 +80,13 @@ Upon exiting the pod shell, the pod will be deleted.
 == Disconnecting ROSA cluster from Aurora Cluster
 
 To remove a Peering Connection between the ROSA and Aurora VPCS, execute `./provision/aws/rds/aurora_delete_peering_connection.sh`
-wit the the following env:
+with the following env:
 
 [source]
 ----
 AURORA_CLUSTER= # The name of the Aurora cluster instance
 AURORA_REGION= # The AWS region hosting the Aurora cluster
-CLUSTER_NAME= # The name of the ROSA cluster to establish the peering connectin with
+CLUSTER_NAME= # The name of the ROSA cluster to remove the peering connection from
 AWS_REGION= # The AWS region hosting the ROSA cluster
 ----
 
