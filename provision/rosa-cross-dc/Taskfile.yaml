@@ -12,7 +12,10 @@ vars:
   ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
   RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
   KC_DIR: "{{.ROOT_DIR}}/../openshift"
-  RS_HOT_ROD_PASSWORD:
+  ANSIBLE_DIR: "{{.ROOT_DIR}}/../../ansible"
+  PYTHON_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/python"
+  BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
+  KEYCLOAK_MASTER_PASSWORD:
     sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
 
 dotenv: [ '.env' ]
@@ -73,7 +76,7 @@ tasks:
         vars:
           OC_NAMESPACE_1: "{{.KC_ISPN_NAMESPACE}}"
           OC_NAMESPACE_2: "{{.KC_ISPN_NAMESPACE}}"
-          CROSS_DC_HOT_ROD_PASSWORD: "{{.RS_HOT_ROD_PASSWORD}}"
+          CROSS_DC_HOT_ROD_PASSWORD: "{{.RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD}}"
 
   patch-keycloak-image:
     internal: true
@@ -141,7 +144,7 @@ tasks:
         --set infinispan.remoteStore.host=infinispan.{{.KC_ISPN_NAMESPACE}}.svc
         --set infinispan.remoteStore.port=11222
         --set infinispan.remoteStore.username=developer
-        --set infinispan.remoteStore.password={{ .RS_HOT_ROD_PASSWORD }}
+        --set infinispan.remoteStore.password={{ .RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD }}
         --set infinispan.site={{ .ROSA_CLUSTER_NAME }}
         --set cryostat={{ .KC_CRYOSTAT }}
         --set sqlpad=false
@@ -472,20 +475,182 @@ tasks:
         echo 'WARNING: use the information above to configure your Keycloak deployment!'
 
   dataset-import:
-    desc: "Triggers the dataset creation task in the primary Keycloak cluster. It does not wait for completion."
+    internal: true
+    requires:
+      vars:
+        - KC_URL
+    vars:
+      USERS: "{{.USERS | default 100000}}"
+      USERS_PER_TX: "{{.USERS_PER_TX | default 256}}"
+      THREADS: "{{.THREADS | default 8}}"
+    cmds:
+      - curl -k "https://{{.KC_URL}}/realms/master/dataset/create-realms?realm-name=realm-0&count=1&threads-count={{.THREADS}}&users-per-realm={{.USERS}}&users-per-transaction={{.USERS_PER_TX}}"
+
+  dataset-import-route53:
+    desc: "Triggers the dataset creation task using the Route53 load balancer. It does not wait for completion."
     deps:
       - common:split
       - common:env
     requires:
       vars:
-        - ROSA_CLUSTER_NAME_1
-    vars:
-      USERS: "{{.USERS | default 100000}}"
-      USERS_PER_TX: "{{.USERS_PER_TX | default 256}}"
-      THREADS: "{{.THREADS | default 8}}"
-      KC_HOSTNAME_PREFIX:
-        sh: "cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME_1}}"
-        # KC_HEALTH_URL_CLUSTER_1 should be set when Route53 is configured. This is the fallback.
-      FALLBACK_URL: "keycloak-{{.KC_NAMESPACE_PREFIX}}keycloak.{{.KC_HOSTNAME_PREFIX}}"
+        - KC_CLIENT_URL
+    cmd:
+      task: dataset-import
+      vars:
+        KC_URL: "{{.KC_CLIENT_URL}}"
+
+  dataset-import-rosa-cluster:
+    desc: "Triggers the dataset creation task in the ROSA cluster route. It does not wait for completion."
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - KC_NAMESPACE_PREFIX
     cmds:
-      - curl -k "https://{{.KC_HEALTH_URL_CLUSTER_1 | default .FALLBACK_URL}}/realms/master/dataset/create-realms?realm-name=realm-0&count=1&threads-count={{.THREADS}}&users-per-realm={{.USERS}}&users-per-transaction={{.USERS_PER_TX}}"
+      - task: ispn:rosa-oc-login
+      - task: dataset-import
+        vars:
+          KC_URL:
+            sh: echo "keycloak-{{.KC_NAMESPACE_PREFIX}}keycloak.$(cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}})"
+
+  ec2-create:
+    desc: "Creates the EC2 workers"
+    dir: "{{.ANSIBLE_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - EC2_REGION
+    cmds:
+      - ./aws_ec2.sh create {{.EC2_REGION}}
+
+  ec2-delete:
+    desc: "Deletes the EC2 workers"
+    dir: "{{.ANSIBLE_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - EC2_REGION
+    cmds:
+      - ./aws_ec2.sh delete {{.EC2_REGION}}
+
+  ec2-run:
+    internal: true
+    dir: "{{.ANSIBLE_DIR}}"
+    requires:
+      vars:
+        - EC2_REGION
+        - KC_URL
+    vars:
+      SCENARIO: '{{.SCENARIO | default "keycloak.scenario.authentication.AuthorizationCode"}}'
+      USERS: "{{.USERS | default 100000}}"
+    cmds:
+      - >
+        ./benchmark.sh "{{.EC2_REGION}}"
+        --scenario="{{.SCENARIO}}"
+        --server-url="https://{{.KC_URL}}/"
+        --users-per-sec=300
+        --measurement=600
+        --realm-name=realm-0
+        --logout-percentage=100
+        --users-per-realm={{.USERS}}
+        --ramp-up=100
+        --log-http-on-failure
+
+  ec2-run-route53:
+    desc: "Runs a Gatling scenario in EC2 using Route53 load balancer"
+    dir: "{{.ANSIBLE_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - EC2_REGION
+        - KC_CLIENT_URL
+    cmd:
+      task: ec2-run
+      vars:
+        KC_URL: "{{.KC_CLIENT_URL}}"
+
+  ec2-run-rosa-cluster:
+    desc: "Runs a Gatling scenario in EC2 using ROSA cluster route"
+    dir: "{{.ANSIBLE_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - EC2_REGION
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: ispn:rosa-oc-login
+      - task: ec2-run
+        vars:
+          KC_URL:
+            sh: echo "keycloak-{{.KC_NAMESPACE_PREFIX}}keycloak.$(cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}})"
+
+  fetch-grafana-snapshot:
+    internal: true
+    dir: "{{.PYTHON_DIR}}"
+    requires:
+      vars:
+        - TIME_WINDOW
+        - GRAFANA_DOMAIN
+        - KEYCLOAK_MASTER_PASSWORD
+    cmds:
+      - >
+        python3 snapGrafana.py
+        --grafana_domain "{{.GRAFANA_DOMAIN}}"
+        --admin_password "{{.KEYCLOAK_MASTER_PASSWORD}}"
+        --time_window "{{.TIME_WINDOW}}"
+        --keycloak_namespace "{{.KC_NAMESPACE_PREFIX}}keycloak"
+
+  grafana-snapshot:
+    desc: "Takes a snapshot from the Grafana Dashboards into PDF files"
+    dir: "{{.PYTHON_DIR}}"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - TIME_WINDOW
+        - KEYCLOAK_MASTER_PASSWORD
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: fetch-grafana-snapshot
+        vars:
+          GRAFANA_DOMAIN:
+            sh: echo "grafana.$(cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME_1}})"
+      - task: fetch-grafana-snapshot
+        vars:
+          GRAFANA_DOMAIN:
+            sh: echo "grafana.$(cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME_2}})"
+
+  trigger-failover:
+    desc: "Triggers the failover script"
+    dir: "{{.BENCHMARK_DIR}}"
+    requires:
+      vars:
+        - DOMAIN
+        - FAILOVER_MODE
+        - ROSA_CLUSTER_NAME
+    vars:
+      FAILOVER_DELAY: "{{.FAILOVER_DELAY | default 240}}"
+    cmds:
+      - task: ispn:rosa-oc-login
+      - >
+        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+        DOMAIN="{{.DOMAIN}}"
+        PROJECT="{{.KC_NAMESPACE_PREFIX}}keycloak"
+        FAILOVER_MODE="{{.FAILOVER_MODE}}"
+        FAILOVER_DELAY="{{.FAILOVER_DELAY}}"
+        ./kc-failover.sh

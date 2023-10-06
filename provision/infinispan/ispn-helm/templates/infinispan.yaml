@@ -111,6 +111,9 @@ spec:
       {{ if $.Values.crossdc.enabled }}
       {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
       backups:
+        {{- if $config.mergePolicy }}
+        mergePolicy: {{ $config.mergePolicy }}
+        {{- end}}
         {{$.Values.crossdc.remote.name }}:
           backup:
             strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }}
