@@ -1,0 +1,72 @@
+= Configuration of Infinispan cache store
+:navtitle: Configuration of Infinispan cache store
+:description: The Cache configuration in Keycloak is handled via XML files. This describes the Infinispan remote cache configuration xml in detail.
+
+{description}
+
+== Audience
+
+Read this page to understand considerations and best practices on how to configure Infinispan remote cache store for Keycloak.
+For a configuration where this is applied, visit xref:running/keycloak-with-external-infinispan-deployment.adoc[].
+
+== Concepts
+
+When configuring remote cache in Keycloak, it's essential to understand the specific needs of your deployment, in other words, whether you are focusing on high availability, fault tolerance, scalability, or a combination of these. See https://www.keycloak.org/server/caching[Configuring distributed caches in Keycloak] for more details.
+
+Below is an example `<distributed-cache>` XML block for `sessions` named cache, we can configure it for other named caches in a similar way.
+
+[source,xml]
+----
+<distributed-cache name="sessions" owners="2" statistics="true">
+            <expiration lifespan="-1"/>
+            <persistence passivation="false">
+                <remote-store xmlns="urn:infinispan:config:store:remote:14.0"
+                              cache="sessions"
+                              raw-values="true"
+                              shared="true"
+                              segmented="false">
+                    <remote-server host="${env.KC_REMOTE_STORE_HOST}"
+                                   port="${env.KC_REMOTE_STORE_PORT}"/>
+                    <connection-pool max-active="16"
+                                     exhausted-action="CREATE_NEW"/>
+                    <security>
+                        <authentication server-name="infinispan">
+                            <digest username="${env.KC_REMOTE_STORE_USERNAME}"
+                                    password="${env.KC_REMOTE_STORE_PASSWORD}"
+                                    realm="default"/>
+                        </authentication>
+                        <encryption protocol="TLSv1.3"
+                                    sni-hostname="${env.KC_REMOTE_STORE_HOST}">
+                            <truststore filename="/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+                                        type="pem"/>
+                        </encryption>
+                    </security>
+                </remote-store>
+            </persistence>
+            <state-transfer enabled="false"/>
+        </distributed-cache>
+----
+
+
+Properly tuned cache settings can significantly improve the performance and reliability of your Keycloak application. Following are some key concepts in configuring a remote cache store.
+
+=== Cache containers
+Within the XML, you will find a `<cache-container>` tag, which defines the settings for caches that are not explicitly configured.
+
+=== Named Caches
+Inside the default cache container, there are `<local-cache>`, `<distributed-cache>` and other cache types. These named caches have specific roles, like `realms`, `users`, `sessions` etc.
+
+=== Owners
+In a distributed cache configuration `<distributed-cache>`, the `<owners>` XML attribute defines the number of cluster nodes that will store a copy of the cache entry. This is a critical attribute for fault tolerance and performance.
+
+=== Expiration
+Caches usually have an expiration setting to ensure data doesn't become state. The `<expiration>` element, with its attributes like `max-idle`, `lifespan` and `interval` controls the eviction and expiration policies of a given named cache.
+
+=== Remote Store
+The `<remote-store>` XML element within the `<distributed-cache>` configuration enables the cache to store its data remotely, for example in a remote Infinispan server. Attributes like `<remote-server>`, `<connection-pool>`,`<security>` can be set to control the aspects of the remote store.
+
+* `<security>` element contains the authentication details to access the remote Infinispan server with below details.
+** `<authentication>` which handles Username, Password.
+** `<encryption>` which handles the Encryption protocol, truststore certificate file.
+
+
