@@ -1,0 +1,51 @@
+= Infinispan Deployment: Single Cluster
+:description: This describes the Infinispan deployment in a single cluster environment.
+:operator-docs: https://infinispan.org/docs/infinispan-operator/main/operator.html
+
+{description}
+
+== Audience
+
+This guide describes the procedure required to deploy Infinispan in a single cluster environment.
+For simplicity, this guide uses the minimum configuration possible that allows Keycloak to be used with an external infinispan.
+
+See xref:running/index.adoc[] for additional guides.
+
+== Prerequisites
+
+include::partial$/running/infinispan-prerequisites.adoc[]
+
+== Procedure
+
+include::partial$/running/infinispan-install-operator.adoc[]
+include::partial$/running/infinispan-credentials.adoc[]
+
+. Create an Infinispan cluster.
++
+The {operator-docs}#creating-clusters[Creating Infinispan clusters] documentation provides all the information on how to create and configure your Infinispan cluster.
++
+.Infinispan CR
+[source,yaml]
+----
+include::example$helm/ispn-single.yaml[tag=infinispan-single]
+----
+<1> The cluster name
+<2> Allows the cluster to be monitored by Prometheus
+<3> If using a custom credential, configure here the secret name created in the previous step.
+
+. Create the caches for Keycloak.
++
+Keycloak requires the following caches to be present: `sessions`, `actionTokens`, `authenticationSessions`, `offlineSessions`, `clientSessions`, `offlineClientSessions`, `loginFailures`, and `work`.
++
+Use the {operator-docs}#creating-caches[Infinispan Cache CR] to deploy the caches in the Infinispan cluster.
++
+See below for an example for the `sessions` cache.
+Repeat this for all other caches listed above.
++
+.Cache CR for the `sessions` cache
+[source,yaml]
+----
+include::example$helm/ispn-single.yaml[tag=infinispan-cache-sessions]
+----
++
+The https://infinispan.org/docs/stable/titles/configuring/configuring.html[Infinispan documentation] contains more detail about cache configuration ands its options.
