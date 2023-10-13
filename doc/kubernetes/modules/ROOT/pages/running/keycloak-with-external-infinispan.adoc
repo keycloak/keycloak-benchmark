@@ -1,0 +1,71 @@
+= Keycloak with external Infinispan
+:description: This describes configuration tweaks and changes on how to run Keycloak with an external Infinispan Deployment under load.
+
+{description}
+
+== Audience
+
+This guide describes advanced Infinispan configurations for Keycloak on Kubernetes.
+
+While the Helm charts in the Keycloak Benchmark project mix different aspects of production style deployments with instrumentation and monitoring, this documentation focuses on the minimal changes which admins can implement in their own deployments.
+
+See xref:running/index.adoc[] for additional guides.
+
+== Prerequisites
+
+* OpenShift or Kubernetes cluster running.
+* Existing xref:running/keycloak-deployment.adoc[Basic Keycloak deployment] as it will be extended.
+* Existing deployment of Infinispan with the Operator (TODO).
+
+== Procedure
+
+. Prepare an Infinispan Cache configuration XML from the file `cache-ispn.xml` which is part of the Keycloak distribution:
+For each `distributed-cache` entry, add the tags `<persistence />` and `<state-transfer />` as shown below.
++
+[source,xml,indent=0]
+----
+include::example$helm-keycloak-config/kcb-infinispan-cache-remote-store-config.xml[tag=keycloak-ispn-remotestore]
+----
+<1> New tag `<persistence />` to connect it to the remote store.
+<2> For the address to the remote store, reference two environment variables for host name and port number.
+<3> For authentication, reference two environment variables for username and password.
+<4> To secure the remote store connection, use the Kubernetes mechanisms of the pre-configured truststore.
+<5> New tag `<state-transfer />` to avoid a state transfer on node startup and instead use the remote store.
+This speeds up the startup of new nodes.
+
+. Place the Infinispan Cache configuration XML in a ConfigMap.
++
+[source,yaml]
+----
+include::example$helm/keycloak-ispn.yaml[tag=keycloak-ispn-configmap]
+...
+----
+
+. Create a Secret with the username and password to connect to the external Infinispan deployment:
++
+[source,yaml]
+----
+include::example$helm/keycloak-ispn.yaml[tag=keycloak-ispn-secret]
+----
+
+. Extend the Keycloak Custom Resource with `additionalOptions` and extend the `podTemplate` as shown below.
++
+[NOTE]
+====
+* The new `additionalOptions` entries starting with `remote-store` used here are not official Keycloak configurations.
+Instead, they provide their values to environment variables that are then referenced in the Infinispan XML configuration.
+* All the memory, resource and database configurations are skipped from the CR below as they have been described in xref:./keycloak-deployment.adoc[] already.
+Admins should leave those configurations untouched.
+====
++
+[source,yaml]
+----
+include::example$helm/keycloak-ispn.yaml[tag=keycloak-ispn]
+----
+<1> Custom cache configuration XML file definition, which includes configuration for remote or embedded Infinispan store.
+<2> The hostname and port of the remote cache Infinispan cluster.
+<3> The credentials required, username and password, to access the remote cache Infinispan cluster.
+<4> Mounting the cache configuration Volume in Kubernetes.
+<5> `jboss.site.name` is an arbitrary Infinispan site name which Keycloak needs for its embedded Infinispan deployment; this site name is related only to embedded Infinispan and does not need to match any value from the external Infinispan deployment
+<6> Defining the cache configuration Volume using the already created ConfigMap in Kubernetes.
+
