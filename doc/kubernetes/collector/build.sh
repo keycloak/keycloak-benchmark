@@ -12,7 +12,7 @@ mkdir -p ${BUILDDIR}/helm
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set hostname=minikube.nip.io \
-  --set jvmdebug=false \
+  --set jvmDebug=false \
   --set cryostat=false \
   --set instances=3 \
   --set cpuRequests=2 \
@@ -30,18 +30,10 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set hostname=minikube.nip.io \
-  --set jvmdebug=false \
+  --set jvmDebug=false \
   --set cryostat=false \
-  --set instances=3 \
-  --set cpuRequests=2 \
-  --set cpuLimits=6 \
-  --set memoryRequestsMB=1250 \
-  --set memoryLimitsMB=2250 \
-  --set heapInitMB=512 \
-  --set heapMaxMB=1524 \
-  --set dbPoolInitialSize=30 \
-  --set dbPoolMaxSize=30 \
-  --set dbPoolMinSize=30 \
+  --set heapInitMB=64 \
+  --set heapMaxMB=512 \
   --set infinispan.customConfig=true \
   --set infinispan.configFile=config/kcb-infinispan-cache-remote-store-config.xml \
   --set infinispan.remoteStore.enabled=true \

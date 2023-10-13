@@ -204,16 +204,25 @@ spec:
               # tag::keycloak-ispn[]
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
-                  -Xms{{ .Values.heapInitMB }}m -Xmx{{ .Values.heapMaxMB }}m
-                  {{- if not (eq (int .Values.metaspaceInitMB) 96) }} -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m {{ end }}
-                  {{- if not (eq (int .Values.metaspaceMaxMB) 256) }} -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m {{ end }}
+{{- if not (eq (int .Values.heapInitMB) 64) }}
+                  -Xms{{ .Values.heapInitMB }}m
+{{- end }}
+{{- if not (eq (int .Values.heapMaxMB) 512) }}
+                  -Xmx{{ .Values.heapMaxMB }}m
+{{- end }}
+{{- if not (eq (int .Values.metaspaceInitMB) 96) }}
+                  -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m
+{{- end }}
+{{- if not (eq (int .Values.metaspaceMaxMB) 256) }}
+                  -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
+{{- end }}
                   -Djgroups.thread_dumps_threshold=1
 {{- if .Values.jvmDebug }}
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
-{{- end -}}
+{{- end }}
 {{- if .Values.otel }}
                   -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
-{{- end -}}
+{{- end }}
 {{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
 {{- end }}
@@ -257,18 +266,16 @@ spec:
             # end::keycloak[]
             # tag::keycloak-ispn[]
             volumeMounts:
-              # end::keycloak-ispn[]
-              - name: keycloak-providers
-                mountPath: /opt/keycloak/providers
-                readOnly: true
 {{ if .Values.infinispan.customConfig }}
-              # tag::keycloak-ispn[]
               - name: kcb-infinispan-cache-config # <4>
                 mountPath: /opt/keycloak/conf/{{ base .Values.infinispan.configFile }}
                 subPath: {{ base .Values.infinispan.configFile }}
                 readOnly: true
-              # end::keycloak-ispn[]
+                # end::keycloak-ispn[]
 {{ end }}
+              - name: keycloak-providers
+                mountPath: /opt/keycloak/providers
+                readOnly: true
 {{ if .Values.otel }}
               - name: otel
                 mountPath: /otel
@@ -280,9 +287,6 @@ spec:
 {{ end }}
         # tag::keycloak-ispn[]
         volumes:
-          - name: keycloak-providers
-            configMap:
-              name: keycloak-providers
 {{ if .Values.infinispan.customConfig }}
           - name: kcb-infinispan-cache-config # <6>
             configMap:
@@ -290,8 +294,11 @@ spec:
               items:
                 - key: {{base .Values.infinispan.configFile}}
                   path: {{base .Values.infinispan.configFile}}
-        # end::keycloak-ispn[]
+            # end::keycloak-ispn[]
 {{ end }}
+          - name: keycloak-providers
+            configMap:
+              name: keycloak-providers
 {{ if .Values.otel }}
           - name: otel
             persistentVolumeClaim:
