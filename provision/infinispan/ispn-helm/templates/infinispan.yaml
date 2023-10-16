@@ -1,4 +1,6 @@
+# There are several callouts in this YAML marked with `# <1>' etc. See 'running/infinispan-deployment.adoc` for the details.
 {{- $namespace := .Values.namespace | required ".Values.namespace is required." -}}
+# tag::infinispan-credentials[]
 apiVersion: v1
 kind: Secret
 type: Opaque
@@ -6,7 +8,8 @@ metadata:
   name: connect-secret
   namespace: {{ $namespace }}
 data:
-  identities.yaml: {{ (.Files.Get "identities.yaml") | replace "_password_" .Values.hotrodPassword | b64enc }}
+  identities.yaml: {{ (.Files.Get "identities.yaml") | replace "_password_" .Values.hotrodPassword | b64enc }} # <1>
+# end::infinispan-credentials[]
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -22,19 +25,23 @@ data:
           gauges: true
           histograms: {{ .Values.metrics.histograms }}
 ---
+# tag::infinispan-crossdc[]
+# tag::infinispan-single[]
 apiVersion: infinispan.org/v1
 kind: Infinispan
 metadata:
-  name: infinispan
+  name: infinispan # <1>
   namespace: {{ $namespace }}
   annotations:
-    infinispan.org/monitoring: 'true'
+    infinispan.org/monitoring: 'true' # <2>
 spec:
+  replicas: {{ .Values.replicas }}
+# end::infinispan-single[]
+# end::infinispan-crossdc[]
   configMapName: "cluster-config"
   image: {{ .Values.image | default .Values.defaultImage }}
   configListener:
     enabled: false
-  replicas: {{ .Values.replicas }}
   container:
     extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}} -Djgroups.xsite.fd.interval={{.Values.fd.interval}} -Djgroups.xsite.fd.timeout={{.Values.fd.timeout}}'
     {{- if .Values.cpu }}
@@ -47,52 +54,59 @@ spec:
     categories:
       org.infinispan: {{ .Values.logging.infinispan }}
       org.jgroups: {{ .Values.logging.jgroups }}
+  # tag::infinispan-crossdc[]
+  # tag::infinispan-single[]
   security:
-    endpointSecretName: connect-secret
+    endpointSecretName: connect-secret # <3>
   service:
     type: DataGrid
+    # end::infinispan-single[]
     {{ if .Values.crossdc.enabled }}
     {{- $_ := .Values.crossdc.local.name | required ".Values.crossdc.local.name is required." -}}
     {{- $_ := .Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
     sites:
       local:
-        name: {{ .Values.crossdc.local.name }}
+        name: {{ .Values.crossdc.local.name }} # <4>
+        # end::infinispan-crossdc[]
         discovery:
           launchGossipRouter: {{ .Values.crossdc.local.gossipRouterEnabled }}
+        # tag::infinispan-crossdc[]
         expose:
-          type: {{ if .Values.crossdc.route.enabled }}Route{{else}}ClusterIP{{end}}
+          type: {{ if .Values.crossdc.route.enabled }}Route{{else}}ClusterIP{{end}} # <5>
         maxRelayNodes: 128
         {{ if .Values.crossdc.route.enabled }}
         {{- $_ := .Values.crossdc.route.tls.keystore.secret | required ".Values.crossdc.route.tls.keystore.secret is required." -}}
         {{- $_ := .Values.crossdc.route.tls.truststore.secret | required ".Values.crossdc.route.tls.truststore.secret is required." -}}
         encryption:
           transportKeyStore:
-            secretName: {{ .Values.crossdc.route.tls.keystore.secret }}
-            alias: {{ .Values.crossdc.route.tls.keystore.alias }}
-            filename: {{ .Values.crossdc.route.tls.keystore.filename }}
+            secretName: {{ .Values.crossdc.route.tls.keystore.secret }} # <6>
+            alias: {{ .Values.crossdc.route.tls.keystore.alias }} # <7>
+            filename: {{ .Values.crossdc.route.tls.keystore.filename }} # <8>
           routerKeyStore:
-            secretName: {{ .Values.crossdc.route.tls.keystore.secret }}
-            alias: {{ .Values.crossdc.route.tls.keystore.alias }}
-            filename: {{ .Values.crossdc.route.tls.keystore.filename }}
+            secretName: {{ .Values.crossdc.route.tls.keystore.secret }} # <6>
+            alias: {{ .Values.crossdc.route.tls.keystore.alias }} # <7>
+            filename: {{ .Values.crossdc.route.tls.keystore.filename }} # <8>
           trustStore:
-            secretName: {{ .Values.crossdc.route.tls.truststore.secret }}
-            filename: {{ .Values.crossdc.route.tls.truststore.filename }}
+            secretName: {{ .Values.crossdc.route.tls.truststore.secret }} # <9>
+            filename: {{ .Values.crossdc.route.tls.truststore.filename }} # <10>
         {{- end }}
       locations:
-        - name: {{ .Values.crossdc.remote.name }}
+        - name: {{ .Values.crossdc.remote.name }} # <11>
           {{- if .Values.crossdc.remote.gossipRouterEnabled }}
           clusterName: infinispan
-          namespace: {{ .Values.crossdc.remote.namespace}}
+          namespace: {{ .Values.crossdc.remote.namespace}} # <12>
           {{ if .Values.crossdc.route.enabled }}
           {{- $_ := .Values.crossdc.remote.url | required ".Values.crossdc.remote.url is required." -}}
           {{- $_ := .Values.crossdc.remote.secret | required ".Values.crossdc.remote.secret is required." -}}
-          url: {{ .Values.crossdc.remote.url }}
-          secretName: {{ .Values.crossdc.remote.secret }}
+          url: {{ .Values.crossdc.remote.url }} # <13>
+          secretName: {{ .Values.crossdc.remote.secret }} # <14>
           {{ end }}
           {{- end }}
     {{- end }}
+    # end::infinispan-crossdc[]
 {{range $cache, $config := .Values.caches -}}
 ---
+# tag::infinispan-cache-{{ $cache }}[]
 apiVersion: infinispan.org/v2alpha1
 kind: Cache
 metadata:
@@ -112,15 +126,16 @@ spec:
       {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
       backups:
         {{- if $config.mergePolicy }}
-        mergePolicy: {{ $config.mergePolicy }}
+        mergePolicy: {{ $config.mergePolicy }} # <1>
         {{- end}}
-        {{$.Values.crossdc.remote.name }}:
+        {{$.Values.crossdc.remote.name }}: # <2>
           backup:
-            strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }}
+            strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }} # <3>
             stateTransfer:
               chunkSize: 16
               {{- if eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC"}}
-              mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }}
+              mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }} # <4>
               {{- end }}
       {{- end }}
+# end::infinispan-cache-{{ $cache }}[]
 {{end}}

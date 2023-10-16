@@ -15,12 +15,12 @@ See xref:running/index.adoc[] for additional guides.
 
 * OpenShift or Kubernetes cluster running.
 * Existing xref:running/keycloak-deployment.adoc[Basic Keycloak deployment] as it will be extended.
-* Existing deployment of Infinispan with the Operator (TODO).
+* Existing Infinispan deployment, for example, one of xref:running/infinispan-deployment.adoc[] or xref:running/keycloak-with-external-infinispan.adoc[].
 
 == Procedure
 
 . Prepare an Infinispan Cache configuration XML from the file `cache-ispn.xml` which is part of the Keycloak distribution:
-For each `distributed-cache` entry, add the tags `<persistence />` and `<state-transfer />` as shown below.
+.. For each `distributed-cache` entry, add the tags `<persistence />` and `<state-transfer />` as shown below.
 +
 [source,xml,indent=0]
 ----
@@ -32,6 +32,14 @@ include::example$helm-keycloak-config/kcb-infinispan-cache-remote-store-config.x
 <4> To secure the remote store connection, use the Kubernetes mechanisms of the pre-configured truststore.
 <5> New tag `<state-transfer />` to avoid a state transfer on node startup and instead use the remote store.
 This speeds up the startup of new nodes.
+
+.. Prepare an Infinispan Cache configuration XML from the file `cache-ispn.xml` which is part of the Keycloak distribution:
+For each `replicated-cache` entry, add the tag `<persistence />` as shown below.
++
+[source,xml,indent=0]
+----
+include::example$helm-keycloak-config/kcb-infinispan-cache-remote-store-config.xml[tag=keycloak-ispn-remotestore-work]
+----
 
 . Place the Infinispan Cache configuration XML in a ConfigMap.
 +
@@ -66,6 +74,8 @@ include::example$helm/keycloak-ispn.yaml[tag=keycloak-ispn]
 <2> The hostname and port of the remote cache Infinispan cluster.
 <3> The credentials required, username and password, to access the remote cache Infinispan cluster.
 <4> Mounting the cache configuration Volume in Kubernetes.
-<5> `jboss.site.name` is an arbitrary Infinispan site name which Keycloak needs for its embedded Infinispan deployment; this site name is related only to embedded Infinispan and does not need to match any value from the external Infinispan deployment
+<5> `jboss.site.name` is an arbitrary Infinispan site name which Keycloak needs for its embedded Infinispan deployment when a remote store is used. This site name is related only to the embedded Infinispan and does not need to match any value from the external Infinispan deployment.
+However, matching the `jboss.site.name` with the external Infinispan deployment site name helps debugging possible future issues.
+If you are using multiple sites for Keycloak in a cross-DC setup like xref::running/infinispan-crossdc-deployment.adoc[], the site name must be different in each site.
 <6> Defining the cache configuration Volume using the already created ConfigMap in Kubernetes.
 
