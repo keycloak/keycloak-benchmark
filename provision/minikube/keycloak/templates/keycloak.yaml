@@ -155,9 +155,11 @@ spec:
         # end::keycloak-ispn[]
               - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <3>
                 value: {{ div 200 .Values.instances | quote }}
-              - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE' # <4>
-                value: '1000'
               # end::keycloak[]
+              # tag::keycloak-queue-size[]
+              - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE' # <1>
+                value: '1000'
+              # end::keycloak-queue-size[]
               # We want to have an externally provided username and password, therefore, we override those two environment variables
               - name: KEYCLOAK_ADMIN
                 valueFrom:
@@ -202,7 +204,7 @@ spec:
                 value: "10000"
 {{ end }}
               # tag::keycloak-ispn[]
-              - name: JAVA_OPTS_APPEND # <5>
+              - name: JAVA_OPTS_APPEND # <4>
                 value: >
 {{- if not (eq (int .Values.heapInitMB) 64) }}
                   -Xms{{ .Values.heapInitMB }}m
@@ -255,11 +257,11 @@ spec:
               limits:
                 {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
                 {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
-            readinessProbe: # <6>
+            readinessProbe: # <5>
               exec:
                 command:
                   - 'true'
-            livenessProbe: # <6>
+            livenessProbe: # <5>
               exec:
                 command:
                   - 'true'
@@ -267,7 +269,7 @@ spec:
             # tag::keycloak-ispn[]
             volumeMounts:
 {{ if .Values.infinispan.customConfig }}
-              - name: kcb-infinispan-cache-config # <4>
+              - name: kcb-infinispan-cache-config # <5>
                 mountPath: /opt/keycloak/conf/{{ base .Values.infinispan.configFile }}
                 subPath: {{ base .Values.infinispan.configFile }}
                 readOnly: true

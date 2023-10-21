@@ -73,8 +73,8 @@ include::example$helm/keycloak-ispn.yaml[tag=keycloak-ispn]
 <1> Custom cache configuration XML file definition, which includes configuration for remote or embedded Infinispan store.
 <2> The hostname and port of the remote cache Infinispan cluster.
 <3> The credentials required, username and password, to access the remote cache Infinispan cluster.
-<4> Mounting the cache configuration Volume in Kubernetes.
-<5> `jboss.site.name` is an arbitrary Infinispan site name which Keycloak needs for its embedded Infinispan deployment when a remote store is used. This site name is related only to the embedded Infinispan and does not need to match any value from the external Infinispan deployment.
+<4> `jboss.site.name` is an arbitrary Infinispan site name which Keycloak needs for its embedded Infinispan deployment when a remote store is used. This site name is related only to the embedded Infinispan and does not need to match any value from the external Infinispan deployment.
+<5> Mounting the cache configuration Volume in Kubernetes.
 However, matching the `jboss.site.name` with the external Infinispan deployment site name helps debugging possible future issues.
 If you are using multiple sites for Keycloak in a cross-DC setup like xref::running/infinispan-crossdc-deployment.adoc[], the site name must be different in each site.
 <6> Defining the cache configuration Volume using the already created ConfigMap in Kubernetes.
