@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-if [ -f ./.env ]; then
-  source ./.env
-fi
-
 export AURORA_CLUSTER=${AURORA_CLUSTER:-"keycloak"}
 export AURORA_ENGINE=${AURORA_ENGINE:-"aurora-postgresql"}
 export AURORA_ENGINE_VERSION=${AURORA_ENGINE_VERSION:-"15.3"}

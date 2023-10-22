@@ -15,6 +15,7 @@ AURORA_VPC=$(aws ec2 describe-vpcs \
 
 # Delete the Aurora DB cluster and instances
 for i in $( seq ${AURORA_INSTANCES} ); do
+  echo "Deleting Aurora DB instance ${AURORA_CLUSTER}-instance-${i}"
   aws rds delete-db-instance --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}" || true
 done
 

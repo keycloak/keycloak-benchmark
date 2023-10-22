@@ -65,13 +65,18 @@ It's possible to trigger a failover from the Primary to Secondary Aurora cluster
 
 [source]
 ----
-aws rds failover-global-cluster¶ \
+aws rds failover-global-cluster \
   --global-cluster-identifier ${AURORA_GLOBAL_CLUSTER} \
   --target-db-cluster-identifier ${AURORA_CLUSTER_IDENTIFIER} \
   --allow-data-loss
 ----
 
-Where `AURORA_CLUSTER_IDENTIFIER` is the arn of the secondary cluster that you desire to become the Primary.
+Where `AURORA_CLUSTER_IDENTIFIER` is the arn of the secondary cluster that you desire to become the Primary. The following command outputs arns for all members of the Global Aurora cluster:
+[source]
+----
+aws rds describe-global-clusters \
+  --query "GlobalClusters[?GlobalClusterIdentifier=='${AURORA_GLOBAL_CLUSTER}'].GlobalClusterMembers[*].DBClusterArn"
+----
 
 == Disconnecting ROSA cluster from Aurora Cluster
 

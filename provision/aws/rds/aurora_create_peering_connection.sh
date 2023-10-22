@@ -6,13 +6,13 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
 fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)
 source ${SCRIPT_DIR}/aurora_common.sh
 
 if [ "${SKIP_ROSA_LOGIN}" != "true" ]; then
   bash ${SCRIPT_DIR}/../rosa_oc_login.sh
 fi
 
-ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)
 ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
 export AWS_REGION=$(echo ${ROSA_CLUSTER} | jq -r .region.id)
 

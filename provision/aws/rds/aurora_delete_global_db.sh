@@ -8,6 +8,7 @@ fi
 function isGlobalClusterMember() {
     MEMBER=$(aws rds describe-global-clusters \
       --query "GlobalClusters[?GlobalClusterIdentifier=='$1'].GlobalClusterMembers[*]" \
+      --output json \
       | jq -r ".[][] | select(.DBClusterArn==\"$2\")"
     )
     [[ -n ${MEMBER} ]]
@@ -29,6 +30,7 @@ PRIMARY_REGION=${GLOBAL_REGIONS[0]}
 export AURORA_GLOBAL_CLUSTER_IDENTIFIER="--global-cluster-identifier ${AURORA_GLOBAL_CLUSTER}"
 # We must iterate over the regions in reverse order as the Primary cluster must be deleted last
 for (( i = ${#GLOBAL_REGIONS[@]} - 1 ; i >= 0 ; i-- )) ; do
+  echo "Deleting Aurora Cluster in ${GLOBAL_REGIONS[i]}"
   REGION=${GLOBAL_REGIONS[i]}
   export AURORA_CLUSTER=${AURORA_GLOBAL_CLUSTER}-${REGION}
   export AURORA_REGION=${REGION}
@@ -40,6 +42,7 @@ for (( i = ${#GLOBAL_REGIONS[@]} - 1 ; i >= 0 ; i-- )) ; do
     --output text
   )
 
+  echo "Removing ${AURORA_CLUSTER} from ${AURORA_GLOBAL_CLUSTER}"
   if [ -n "${AURORA_CLUSTER_ARN}" ]; then
     aws rds remove-from-global-cluster \
       --db-cluster-identifier ${AURORA_CLUSTER_ARN} \
