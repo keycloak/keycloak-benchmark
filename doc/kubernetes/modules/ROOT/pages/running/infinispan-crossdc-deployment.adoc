@@ -1,13 +1,7 @@
 = Infinispan Deployment: Multiple Clusters
 :description: This describes how to deploy Infinispan with cross-site enabled.
-:site-a: Site-A
-:site-b: Site-B
-:ocp: OpenShift
-:operator-docs: https://infinispan.org/docs/infinispan-operator/main/operator.html
-:xsite-docs: https://infinispan.org/docs/stable/titles/xsite/xsite.html
-:ispn: Infinispan
-:ispn-operator: Infinispan Operator
-:kc: Keycloak
+
+include::partial$running/infinispan-attributes.adoc[]
 
 {description}
 
@@ -42,35 +36,35 @@ For more details check {operator-docs}#managed-cross-site-connections_cross-site
 .. First, create the service account and generate an access token in both {ocp} clusters.
 +
 .Create the service account in `{site-a}`
-[source,bash]
+[source,bash,subs="+attributes"]
 ----
-oc create sa -n ispn-namespace xsite-sa
-oc policy add-role-to-user view -n ispn-namespace -z xsite-sa
-oc create token -n ispn-namespace xsite-sa > site-a-token.txt
+oc create sa -n {ns} {sa}
+oc policy add-role-to-user view -n {ns} -z {sa}
+oc create token -n {ns} {sa} > {site-a}-token.txt
 ----
 +
 .Create the service account in `{site-b}`
-[source,bash]
+[source,bash,subs="+attributes"]
 ----
-oc create sa -n ispn-namespace xsite-sa
-oc policy add-role-to-user view -n ispn-namespace -z xsite-sa
-oc create token -n ispn-namespace xsite-sa > site-b-token.txt
+oc create sa -n {ns} {sa}
+oc policy add-role-to-user view -n {ns} -z {sa}
+oc create token -n {ns} {sa} > {site-b}-token.txt
 ----
 +
 .. The next step is to deploy the token from `{site-a}` into `{site-b}` and vice-versa
 +
 .Deploy `{site-b}` token into `{site-a}`
-[source,bash]
+[source,bash,subs="+attributes"]
 ----
-oc create secret generic -n ispn-namespace xsite-token-secret \
-  --from-literal=token="$(cat site-b-token.txt)"
+oc create secret generic -n {ns} {sa-secret} \
+  --from-literal=token="$(cat {site-b}-token.txt)"
 ----
 +
 .Deploy `{site-a}` token into `{site-b}`
-[source,bash]
+[source,bash,subs="+attributes"]
 ----
-oc create secret generic -n ispn-namespace xsite-token-secret \
-  --from-literal=token="$(cat site-a-token.txt)"
+oc create secret generic -n {ns} {sa-secret} \
+  --from-literal=token="$(cat {site-a}-token.txt)"
 ----
 
 . Create TLS secrets
@@ -88,9 +82,9 @@ How to create the certificates and the stores are out of the scope of this guide
 To upload the Keystore as a Secret, use the following command:
 +
 .Deploy a Keystore
-[source,bash]
+[source,bash,subs="+attributes"]
 ----
-oc -n ispn-namespace create secret generic xsite-keystore-secret \
+oc -n {ns} create secret generic {ks-secret} \
   --from-file=keystore.p12="./certs/keystore.p12" \ # <1>
   --from-literal=password=secret \ #<2>
   --from-literal=type=pkcs12 #<3>
@@ -102,9 +96,9 @@ oc -n ispn-namespace create secret generic xsite-keystore-secret \
 To upload the Truststore as a Secret, use the following command:
 +
 .Deploy a Truststore
-[source,bash]
+[source,bash,subs="+attributes"]
 ----
-oc -n ispn-namespace create secret generic xsite-truststore-secret \
+oc -n {ns} create secret generic {ts-secret} \
         --from-file=truststore.p12="./certs/truststore.p12" \  # <1>
         --from-literal=password=caSecret \  # <2>
         --from-literal=type=pkcs12  # <3>
@@ -178,4 +172,21 @@ For `{site-b}`, the Cache CR is similar except in point 2.
 [source,yaml]
 ----
 include::example$helm/ispn-site-b.yaml[tag=infinispan-cache-sessions]
+----
+
+== Verifying the deployment
+
+Confirm that the {ispn} cluster is formed and the cross-site connection is established between the {ocp} clusters.
+
+
+.Wait until the {ispn} cluster is formed
+[source,bash,subs="+attributes"]
+----
+oc wait --for condition=WellFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
+----
+
+.Wait until the {ispn} cross-site connection is established
+[source,bash,subs="+attributes"]
+----
+oc wait --for condition=CrossSiteViewFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
 ----
