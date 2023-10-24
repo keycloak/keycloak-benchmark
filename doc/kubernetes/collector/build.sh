@@ -46,7 +46,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
 
 # Infinispan single cluster
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
-  --set namespace=ispn-namespace \
+  --set namespace=keycloak \
   --set replicas=3 \
   --set crossdc.enabled=false \
   --set metrics.histograms=false \
@@ -57,14 +57,14 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
 
 # Infinispan site A deployment
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
-  --set namespace=ispn-namespace \
+  --set namespace=keycloak \
   --set replicas=3 \
   --set crossdc.enabled=true \
   --set crossdc.local.name=site-a \
   --set crossdc.local.gossipRouterEnabled=true \
   --set crossdc.remote.name=site-b \
   --set crossdc.remote.gossipRouterEnabled=true \
-  --set crossdc.remote.namespace=ispn-namespace \
+  --set crossdc.remote.namespace=keycloak \
   --set crossdc.remote.url=openshift://api.site-b \
   --set crossdc.remote.secret=xsite-token-secret \
   --set crossdc.route.enabled=true \
@@ -78,14 +78,14 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
 
 # Infinispan site B deployment
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
-  --set namespace=ispn-namespace \
+  --set namespace=keycloak \
   --set replicas=3 \
   --set crossdc.enabled=true \
   --set crossdc.local.name=site-b \
   --set crossdc.local.gossipRouterEnabled=true \
   --set crossdc.remote.name=site-a \
   --set crossdc.remote.gossipRouterEnabled=true \
-  --set crossdc.remote.namespace=ispn-namespace \
+  --set crossdc.remote.namespace=keycloak \
   --set crossdc.remote.url=openshift://api.site-a \
   --set crossdc.remote.secret=xsite-token-secret \
   --set crossdc.route.enabled=true \
