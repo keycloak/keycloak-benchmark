@@ -42,22 +42,31 @@ for (( i = ${#GLOBAL_REGIONS[@]} - 1 ; i >= 0 ; i-- )) ; do
     --output text
   )
 
+  set +e
   echo "Removing ${AURORA_CLUSTER} from ${AURORA_GLOBAL_CLUSTER}"
   if [ -n "${AURORA_CLUSTER_ARN}" ]; then
     aws rds remove-from-global-cluster \
       --db-cluster-identifier ${AURORA_CLUSTER_ARN} \
       --global-cluster-identifier ${AURORA_GLOBAL_CLUSTER} \
-      --region ${AURORA_REGION} \
-      || true
+      --region ${AURORA_REGION}
 
     # Wait for Region cluster to be removed from Global Cluster
     count=0
     until ! isGlobalClusterMember ${AURORA_GLOBAL_CLUSTER} ${AURORA_CLUSTER_ARN} || (( count++ >= 60 )); do
       sleep 10
     done
+
+    if [ $count -gt 60 ]; then
+      echo "Timeout waiting for regional cluster ${AURORA_CLUSTER} to be removed from ${AURORA_GLOBAL_CLUSTER}"
+      exit 1
+    fi
   fi
 
-  ${SCRIPT_DIR}/aurora_delete.sh || true
+  if ! ${SCRIPT_DIR}/aurora_delete.sh; then
+    echo "Failed to delete regional cluster ${AURORA_CLUSTER}"
+    exit 1
+  fi
+  set -e
 done
 
 # Delete Route53 entry for the cluster
