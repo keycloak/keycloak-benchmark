@@ -58,5 +58,6 @@ until [ "$n" -ge 20 ]
 do
    aws ec2 delete-vpc --vpc-id ${AURORA_VPC} && break
    n=$((n+1))
+   echo "Unable to remove VPC ${AURORA_VPC}. Attempt ${n}"
    sleep 10
 done
