@@ -257,15 +257,15 @@ spec:
               limits:
                 {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
                 {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
-            readinessProbe: # <5>
-              exec:
-                command:
-                  - 'true'
-            livenessProbe: # <5>
-              exec:
-                command:
-                  - 'true'
             # end::keycloak[]
+            # readinessProbe:
+            #   exec:
+            #     command:
+            #       - 'true'
+            # livenessProbe:
+            #   exec:
+            #     command:
+            #       - 'true'
             # tag::keycloak-ispn[]
             volumeMounts:
 {{ if .Values.infinispan.customConfig }}

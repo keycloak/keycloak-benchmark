@@ -42,9 +42,12 @@ See xref:./concepts/threads.adoc[] for details.
 <4> The JVM options set additional parameters:
 * `jgroups.thread_dumps_threshold` ensures that a log message "`thread pool is full`" appears once the JGroup thread pool is full for the first time. See xref:./concepts/threads.adoc[] for details.
 * Adjust the memory settings for the heap.
-<5> Probes will be delayed when requests queue up under load, and fail when a load is shed.
-So the best way to run Keycloak in Kubernetes would be to disable those probes, for now.
-See xref:./concepts/threads.adoc#probes[Probes] for details.
+
+[NOTE]
+====
+Previous versions of this documentation recommended to disable the liveness and readiness probes.
+With https://github.com/keycloak/keycloak/issues/22109[keycloak#22109] being available in Keycloak 22.0.5, this is no longer recommended.
+====
 
 == Optional: Load shedding
 

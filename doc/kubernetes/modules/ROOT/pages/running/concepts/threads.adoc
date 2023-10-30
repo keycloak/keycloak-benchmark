@@ -56,14 +56,9 @@ Future version of Keycloak will have better means to handle that: https://github
 [#probes]
 === Probes
 
-All health probes, including liveness and readiness probes, are handled in the Quarkus executor worker pool.
-With all requests being queued, also the liveness probe is queued, and is therefore slow.
-During Keycloak Infinispan view updates for members leaving and rebalancing, there is an increased latency for all requests, observed with up to 10 seconds.
-In a high-load or even overload scenario, the probes will be queued in the executor thread pool, and won't return in time.
-When requests queue up in Keycloak, also Readiness and Liveness probes are delayed, which might trigger failure detection in Kubernetes and will lead to Pod restarts in overload or load-shedding situations.
-With load shedding activated, when requests are rejected from the executor thread pool, failing readiness probes will lead to Pods not receiving any load for a period or time, and with failing liveness probes the Pods will eventually be restarted.
-This is tracked in https://github.com/keycloak/keycloak/issues/22109[keycloak#22109].
-For the time being, consider a longer timeout for the probes to survive spikes in the delay, or disabling the liveness probe to avoid Pod restarts.
+All health probes, including liveness and readiness probes, are handled in the Quarkus executor worker pool by default.
+Starting with Keyloak 22.0.5, there is a workaround in place to have the liveness probe non-blocking (see: https://github.com/keycloak/keycloak/issues/22109[keycloak#22109]).
+Future version of Keycloak and Quarkus plan to have other probes also being non-blocking.
 
 === OS Resources
 
