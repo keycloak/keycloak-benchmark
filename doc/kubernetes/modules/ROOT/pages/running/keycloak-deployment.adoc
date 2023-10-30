@@ -49,6 +49,16 @@ Previous versions of this documentation recommended to disable the liveness and 
 With https://github.com/keycloak/keycloak/issues/22109[keycloak#22109] being available in Keycloak 22.0.5, this is no longer recommended.
 ====
 
+== Verifying the deployment
+
+Confirm that the Keycloak deployment is ready.
+
+[source,bash]
+----
+kubectl wait --for=condition=Ready keycloaks.k8s.keycloak.org/keycloak
+kubectl wait --for=condition=RollingUpdate=False keycloaks.k8s.keycloak.org/keycloak
+----
+
 == Optional: Load shedding
 
 Keycloak currently lacks a mechanism for load shedding.
