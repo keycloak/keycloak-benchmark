@@ -14,6 +14,20 @@ This guide assumes two {ocp} clusters named `{site-a}` and `{site-b}`.
 
 See xref:running/index.adoc[] for additional guides.
 
+== Architecture
+
+Using AWS as a cloud provider, the {ocp} clusters could be in different region (multi-region deployment) or in different availability zones in the same region (multi-az deployment).
+
+This guide works in both deployment types.
+
+.Multi Region deployment in AWS eu-west-1 and eu-east-1 regions
+image::crossdc/infinispan-crossdc-region.dio.svg[]
+
+TIP: An asynchronous cross-site replication, as exemplified in this guide, is recommended for multi-region deployment, due to the possibility high latency between regions.
+
+.Multi AZ deployment in AWS eu-west-1a and eu-west-1b zones
+image::crossdc/infinispan-crossdc-az.dio.svg[]
+
 == Prerequisites
 
 include::partial$running/infinispan-prerequisites.adoc[]
@@ -190,3 +204,7 @@ oc wait --for condition=WellFormed --timeout=300s infinispans.infinispan.org -n 
 ----
 oc wait --for condition=CrossSiteViewFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
 ----
+
+== What's next?
+
+After infinispan is deployed and running, checkout xref:running/keycloak-with-external-infinispan.adoc[] documentation on how to connect your {kc} cluster with the {ispn} cluster.
