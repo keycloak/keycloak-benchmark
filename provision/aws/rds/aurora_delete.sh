@@ -14,14 +14,19 @@ AURORA_VPC=$(aws ec2 describe-vpcs \
 )
 
 # Delete the Aurora DB cluster and instances
-aws rds delete-db-instance --db-instance-identifier ${AURORA_INSTANCE} || true
+for i in $( seq ${AURORA_INSTANCES} ); do
+  echo "Deleting Aurora DB instance ${AURORA_CLUSTER}-instance-${i}"
+  aws rds delete-db-instance --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}" || true
+done
 
 aws rds delete-db-cluster \
   --db-cluster-identifier ${AURORA_CLUSTER} \
   --skip-final-snapshot \
   || true
 
-aws rds wait db-instance-deleted --db-instance-identifier ${AURORA_INSTANCE}
+for i in $( seq ${AURORA_INSTANCES} ); do
+  aws rds wait db-instance-deleted --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}"
+done
 aws rds wait db-cluster-deleted --db-cluster-identifier ${AURORA_CLUSTER}
 
 # Delete the Aurora subnet group
@@ -49,9 +54,10 @@ fi
 
 # Delete the Aurora VPC, retrying 5 times in case that dependencies are not removed instantly
 n=0
-until [ "$n" -ge 5 ]
+until [ "$n" -ge 20 ]
 do
    aws ec2 delete-vpc --vpc-id ${AURORA_VPC} && break
    n=$((n+1))
+   echo "Unable to remove VPC ${AURORA_VPC}. Attempt ${n}"
    sleep 10
 done

@@ -9,13 +9,12 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/aurora_common.sh
 
 # https://cloud.redhat.com/blog/using-vpc-peering-to-connect-an-openshift-service-on-an-aws-rosa-cluster-to-an-amazon-rds-mysql-database-in-a-different-vpc
-EXISTING_INSTANCE=$(aws rds describe-db-instances \
-  --query 'DBInstances[*].[DBInstanceIdentifier]'  \
-  --filters Name=db-instance-id,Values=${AURORA_INSTANCE} \
+EXISTING_INSTANCES=$(aws rds describe-db-instances \
+  --query "DBInstances[?starts_with(DBInstanceIdentifier, '${AURORA_CLUSTER}')].DBInstanceIdentifier" \
   --output text
 )
-if [ -n "${EXISTING_INSTANCE}" ]; then
-  echo "Aurora instance '${AURORA_INSTANCE}:${AWS_REGION}' already exists"
+if [ -n "${EXISTING_INSTANCES}" ]; then
+  echo "Aurora instances '${EXISTING_INSTANCES}' already exist in the '${AWS_REGION}' region"
   exit 0
 fi
 
@@ -73,21 +72,30 @@ AURORA_SECURITY_GROUP_ID=$(aws ec2 create-security-group \
   | jq -r '.GroupId'
 )
 
+if [ -z ${AURORA_GLOBAL_CLUSTER_BACKUP} ]; then
+  AURORA_MASTER_USER="--master-username ${AURORA_USERNAME} --master-user-password ${AURORA_PASSWORD}"
+  AURORA_DATABASE_NAME="--database-name keycloak"
+fi
+
 # Create the Aurora DB cluster and instance
 aws rds create-db-cluster \
     --db-cluster-identifier ${AURORA_CLUSTER} \
-    --database-name keycloak \
+    ${AURORA_DATABASE_NAME} \
     --engine ${AURORA_ENGINE} \
     --engine-version ${AURORA_ENGINE_VERSION} \
-    --master-username ${AURORA_USERNAME} \
-    --master-user-password ${AURORA_PASSWORD} \
+    ${AURORA_MASTER_USER} \
     --vpc-security-group-ids ${AURORA_SECURITY_GROUP_ID} \
-    --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME}
+    --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} \
+    ${AURORA_GLOBAL_CLUSTER_IDENTIFIER}
 
-aws rds create-db-instance \
-  --db-cluster-identifier ${AURORA_CLUSTER} \
-  --db-instance-identifier ${AURORA_INSTANCE} \
-  --db-instance-class ${AURORA_INSTANCE_CLASS} \
-  --engine ${AURORA_ENGINE}
+for i in $( seq ${AURORA_INSTANCES} ); do
+  aws rds create-db-instance \
+    --db-cluster-identifier ${AURORA_CLUSTER} \
+    --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}" \
+    --db-instance-class ${AURORA_INSTANCE_CLASS} \
+    --engine ${AURORA_ENGINE}
+done
 
-aws rds wait db-instance-available --db-instance-identifier ${AURORA_INSTANCE}
+for i in $( seq ${AURORA_INSTANCES} ); do
+  aws rds wait db-instance-available --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}"
+done
