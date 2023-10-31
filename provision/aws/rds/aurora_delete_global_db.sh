@@ -62,6 +62,7 @@ for (( i = ${#GLOBAL_REGIONS[@]} - 1 ; i >= 0 ; i-- )) ; do
     fi
   fi
 
+  unset AURORA_SECURITY_GROUP_NAME AURORA_SUBNET_GROUP_NAME
   if ! ${SCRIPT_DIR}/aurora_delete.sh; then
     echo "Failed to delete regional cluster ${AURORA_CLUSTER}"
     exit 1
