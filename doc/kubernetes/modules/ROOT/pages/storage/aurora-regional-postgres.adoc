@@ -1,5 +1,6 @@
-= Using Amazon Aurora PostgreSQL storage
-:description: An Amazon Aurora PostgreSQL instance can be used as the underlying database for Keycloak in either single, or multi-site configurations.
+= Using Amazon Regional Aurora PostgreSQL storage
+:description: An Amazon Regional Aurora PostgreSQL instance can be used as the underlying database for Keycloak in either single, or multi-site configurations.
+:page-aliases: storage/aurora-postgres.adoc
 
 {description}
 Currently, this is only supported with Keycloak deployments on ROSA.
@@ -16,9 +17,11 @@ AURORA_REGION= # The AWS region hosting the Aurora cluster
 AURORA_INSTANCES= # The number of Aurora db instances to create in the AURORA_REGION, defaults to 1
 ----
 
-This creates the necessary VPCs, subnets and routes required by an Aurora cluster as well as `$AURORA_INSTANCES` Aurora instances
-for said cluster. The script waits until the cluster and all instance are available. If the cluster already exists,
-a message indicating this is displayed and the script will fail with exit code 1.
+This creates the necessary VPCs, subnets and routes required by an Aurora cluster as well as `$AURORA_INSTANCES` Aurora instances for said cluster.
+To create a multi-AZ database, create two instances
+The script currently doesn't support more than two AZs for the instances created, all additional instances are distributed across the two AZs supported by the script.
+The script waits until the cluster and all instances are available.
+If the cluster already exists, a message indicating this is displayed and the script will fail with exit code 1.
 
 [NOTE]
 ====
@@ -93,7 +96,8 @@ AWS_REGION= # The AWS region hosting the ROSA cluster
 ----
 
 == Deleting an Aurora Cluster
-Before deleting an Aurora cluster it's first necessary for all Peering Connections established with ROSA cluster(s) to
+
+Before deleting an Aurora cluster, it is first necessary for all Peering Connections established with ROSA cluster(s) to
 be removed.
 
 To remove an Aurora cluster, execute `./provision/aws/rds/aurora_delete.sh` with the following env:

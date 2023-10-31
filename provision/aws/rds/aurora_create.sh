@@ -88,12 +88,16 @@ aws rds create-db-cluster \
     --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} \
     ${AURORA_GLOBAL_CLUSTER_IDENTIFIER}
 
+# For now only two AZs in each region are supported due to the two subnets created above
+readarray -t AZS < <(echo ${AWS_REGION}a; echo ${AWS_REGION}b)
+
 for i in $( seq ${AURORA_INSTANCES} ); do
   aws rds create-db-instance \
     --db-cluster-identifier ${AURORA_CLUSTER} \
     --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}" \
     --db-instance-class ${AURORA_INSTANCE_CLASS} \
-    --engine ${AURORA_ENGINE}
+    --engine ${AURORA_ENGINE} \
+    --availability-zone "${AZS[$(((i - 1) % ${#AZS[@]}))]}"
 done
 
 for i in $( seq ${AURORA_INSTANCES} ); do
