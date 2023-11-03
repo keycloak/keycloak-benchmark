@@ -38,6 +38,10 @@ spec:
   replicas: {{ .Values.replicas }}
 # end::infinispan-single[]
 # end::infinispan-crossdc[]
+  # This exposes the http endpoint to interact with its caches - more info - https://infinispan.org/docs/stable/titles/rest/rest.html
+  # We can optionally set the host in the below expose yaml block, otherwise it will be set to a default naming pattern.
+  expose:
+    type: Route
   configMapName: "cluster-config"
   image: {{ .Values.image | default .Values.defaultImage }}
   configListener:
