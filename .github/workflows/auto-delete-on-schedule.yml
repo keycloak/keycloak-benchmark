@@ -71,3 +71,13 @@ jobs:
 
       - shell: bash
         run: ./provision/aws/aws_check_vpcs.sh
+
+  accelerator-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Delete Global Accelerators
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: ./provision/aws/accelerators/accelerator_reaper.sh
