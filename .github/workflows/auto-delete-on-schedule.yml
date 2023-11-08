@@ -54,3 +54,13 @@ jobs:
         run: ./provision/aws/route53/route53_delete.sh
         env:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+
+  accelerator-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Delete Global Accelerators
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: ./provision/aws/accelerators/accelerator_reaper.sh
