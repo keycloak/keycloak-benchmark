@@ -24,6 +24,17 @@ data:
           namesAsTags: true
           gauges: true
           histograms: {{ .Values.metrics.histograms }}
+      server:
+        endpoints:
+          - securityRealm: default
+            socketBinding: default
+            connectors:
+              rest:
+                restConnector:
+                  authentication:
+                    mechanisms: BASIC
+              hotrod:
+                hotrodConnector: null
 ---
 # tag::infinispan-crossdc[]
 # tag::infinispan-single[]

@@ -18,6 +18,9 @@
 
 package org.keycloak.benchmark.test;
 
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -25,16 +28,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.junit.Ignore;
-import org.junit.Test;
-
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
 public class ExecutorTest {
 
     @Test
-    @Ignore
+    @Disabled
     public void testExecutor() throws Exception {
         ExecutorService executor = Executors.newFixedThreadPool(5);
 

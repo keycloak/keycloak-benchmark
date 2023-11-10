@@ -20,10 +20,8 @@ package org.keycloak.benchmark.it;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.dataset.TaskResponse;
 
 import java.io.IOException;
@@ -48,6 +46,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * This tests the deployment of the dataset provider in an integration test.
@@ -74,7 +77,7 @@ public class DeploymentIT {
         keycloak = "http://127.0.0.1:" + port + "/";
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         // use a random free port to allow running the tests while other instances of Keycloak run at the same time
         ServerSocket s = new ServerSocket(0);
@@ -116,14 +119,14 @@ public class DeploymentIT {
                 .timeout(Duration.of(10, ChronoUnit.SECONDS))
                 .build();
         HttpResponse<String> clearStatusResponse = httpClient.send(clearStatus, HttpResponse.BodyHandlers.ofString());
-        Assert.assertTrue(clearStatusResponse.statusCode() == 204 || clearStatusResponse.statusCode() == 404);
+        assertTrue(clearStatusResponse.statusCode() == 204 || clearStatusResponse.statusCode() == 404);
 
         HttpRequest masterStatus = HttpRequest.newBuilder(new URI(keycloak + "realms/master/dataset/" + command))
                 .GET()
                 .timeout(Duration.of(10, ChronoUnit.SECONDS))
                 .build();
         HttpResponse<String> healthStatus = httpClient.send(masterStatus, HttpResponse.BodyHandlers.ofString());
-        Assert.assertEquals(healthStatus.statusCode(), 200);
+        assertEquals(healthStatus.statusCode(), 200);
     }
 
     private void waitForDatasetCompleted() throws URISyntaxException {
@@ -163,7 +166,7 @@ public class DeploymentIT {
             ProcessBuilder processBuilder = new ProcessBuilder("taskkill", "/F", "/T", "/PID", String.valueOf(process.pid()));
             Process killProcess = processBuilder.start();
             int exitCodeKill = killProcess.waitFor();
-            Assert.assertEquals(0, exitCodeKill);
+            assertEquals(0, exitCodeKill);
         }
         process.destroy();
         processCompletableFuture.get();
@@ -178,13 +181,13 @@ public class DeploymentIT {
         List<String> cli = new ArrayList<>();
         if (isWindows()) {
             Path executable = keycloakProvidersFolder.resolve("..").resolve("bin").resolve("kc.bat").normalize();
-            Assert.assertTrue(executable.toFile().exists());
+            assertTrue(executable.toFile().exists());
             cli.add("cmd.exe");
             cli.add("/c");
             cli.add(executable.toString().replaceAll("/", "\\"));
         } else {
             Path executable = keycloakProvidersFolder.resolve("..").resolve("bin").resolve("kc.sh").normalize();
-            Assert.assertTrue(executable.toFile().exists());
+            assertTrue(executable.toFile().exists());
             cli.add(executable.toString());
         }
         cli.addAll(Arrays.asList("--verbose", "start-dev", "--http-port", Integer.toString(port)));
@@ -196,7 +199,7 @@ public class DeploymentIT {
                 .redirectErrorStream(true) // redirect error stream to output stream
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT);
         Process keycloak = processBuilder.start();
-        Assert.assertTrue("keycloak should be running", keycloak.isAlive());
+        assertTrue(keycloak.isAlive(), "keycloak should be running");
         return keycloak;
     }
 
@@ -218,7 +221,7 @@ public class DeploymentIT {
         try (Stream<Path> files = Files.list(target).filter(path -> path.getFileName().toString().startsWith("keycloak-benchmark-dataset") && path.getFileName().toString().endsWith(".jar"))) {
             Iterator<Path> iterator = files.iterator();
             Path provider = iterator.next();
-            Assume.assumeFalse("should only have one sibling", iterator.hasNext());
+            assumeFalse(iterator.hasNext(), "should only have one sibling");
             return provider;
         }
     }
@@ -228,9 +231,9 @@ public class DeploymentIT {
         try (Stream<Path> files = Files.list(keycloakExtracted)) {
             Iterator<Path> iterator = files.iterator();
             Path keycloak = iterator.next();
-            Assume.assumeFalse("should only have one sibling", iterator.hasNext());
+            assumeFalse(iterator.hasNext(), "should only have one sibling");
             Path providers = keycloak.resolve("providers");
-            Assume.assumeNotNull(providers);
+            assertNotNull(providers);
             return providers;
         }
     }
@@ -240,7 +243,7 @@ public class DeploymentIT {
      * Only used when running it via the main method / from the IDE.
      */
     private static void packageProvider() throws IOException, InterruptedException {
-        Assert.assertTrue("should be run from the module path 'dataset'", Path.of("../mvnw").toFile().exists());
+        assertTrue(Path.of("../mvnw").toFile().exists(), "should be run from the module path 'dataset'");
         List<String> cli = new ArrayList<>();
         if (isWindows()) {
             cli.addAll(Arrays.asList("cmd", "/c", "mvnw.cmd"));
@@ -255,7 +258,7 @@ public class DeploymentIT {
                 .redirectOutput(ProcessBuilder.Redirect.INHERIT);
         Process keycloak = processBuilder.start();
         keycloak.waitFor();
-        Assert.assertEquals(keycloak.exitValue(), 0);
+        assertEquals( 0, keycloak.exitValue());
     }
 
     private void startService(String[] args) throws IOException, ExecutionException, InterruptedException, URISyntaxException {

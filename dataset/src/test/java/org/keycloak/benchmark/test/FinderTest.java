@@ -20,9 +20,10 @@ package org.keycloak.benchmark.test;
 
 import java.util.function.Function;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -41,7 +42,7 @@ public class FinderTest {
 
     private void assertFinder(int index) {
         SimpleFinder simpleFinder = new SimpleFinder(index);
-        Assert.assertEquals(index + 1, ConfigUtil.findFreeEntityIndex(simpleFinder));
+        assertEquals(index + 1, ConfigUtil.findFreeEntityIndex(simpleFinder));
     }
 
 
