@@ -51,8 +51,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set crossdc.enabled=false \
   --set metrics.histograms=false \
   --set hotrodPassword="strong-password" \
-  --set cacheDefaults.crossSiteMode=ASYNC \
-  --set cacheDefaults.stateTransferMode=AUTO \
+  --set cacheDefaults.crossSiteMode=SYNC \
   > ${BUILDDIR}/helm/ispn-single.yaml
 
 # Infinispan site A deployment
@@ -72,8 +71,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set crossdc.route.tls.truststore.secret=xsite-truststore-secret \
   --set metrics.histograms=false \
   --set hotrodPassword="strong-password" \
-  --set cacheDefaults.crossSiteMode=ASYNC \
-  --set cacheDefaults.stateTransferMode=AUTO \
+  --set cacheDefaults.crossSiteMode=SYNC \
   > ${BUILDDIR}/helm/ispn-site-a.yaml
 
 # Infinispan site B deployment
@@ -93,6 +91,5 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set crossdc.route.tls.truststore.secret=xsite-truststore-secret \
   --set metrics.histograms=false \
   --set hotrodPassword="strong-password" \
-  --set cacheDefaults.crossSiteMode=ASYNC \
-  --set cacheDefaults.stateTransferMode=AUTO \
+  --set cacheDefaults.crossSiteMode=SYNC \
   > ${BUILDDIR}/helm/ispn-site-b.yaml
