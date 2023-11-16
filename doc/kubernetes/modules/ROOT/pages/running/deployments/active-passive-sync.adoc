@@ -1,12 +1,13 @@
 = HA-Keycloak active/passive with synchronous replication
 :navtitle: Active/passive with sync replication
-:description: This concept describes the building blocks needed for a highly available active/passive setup and the behavior customers can expect from it.
+:description: This concept describes the building blocks needed for a highly available active/passive setup and the behavior customers can expect.
 
 {description}
 
 == Audience
 
-Solution architects and customers that plan for a high-available Keycloak environment and want to learn about the requirements, benefits and tradeoffs of a synchronous active/passive setup.
+Solution architects and customers that require a high-available (HA) Keycloak deployment.
+In this guide, we outline the requirements of the HA active/passive architecture, before exploring its benefits and tradeoffs.
 
 After summarizing the architecture see <<building-blocks>> with the links to blueprints for each building block.
 
@@ -21,7 +22,9 @@ image::crossdc/active-passive-sync.dio.svg[]
 
 === When to use this setup
 
-Use this setup for customers who want to be able to recover automatically from a datacenter failure, and not to lose data or sessions.
+Use this setup for customers who want to be able to fail over automatically in the event of a datacenter failure, and not to lose data or sessions.
+
+Manual interactions might still be required to restore the redundancy after the failover.
 
 === Causes of data and service loss
 
@@ -29,7 +32,7 @@ While this setup aims for high availability, the following situations can still 
 
 * Network failures between the datacenters or failures of components can lead to short service downtimes while those failures are detected.
 The service will be restored automatically.
-The system is degraded until the redundancy of components and connectivity is restored.
+The system is degraded until the failures are detected and the backup cluster is promoted to service requests.
 
 * Once failures occur in the communication between the datacenters, manual steps may be necessary to re-synchronize a degraded setup.
 Future versions of Keycloak and Infinispan plan to reduce those manual operations.
@@ -59,13 +62,13 @@ Monitoring is necessary to detect degraded setups.
 | Less than one minute
 
 | Infinispan cluster failure
-| If the Infinispan cluster fails in the active datacenter, Keycloak won't be able to send session data to the secondary datacenter.
-The state between Keycloak and Infinispan is out-of-sync, and also the state between the two Datacenters.
-Keycloak will continue on the best effort basis, but the service might be degraded due to retry mechanisms.
-Even when the Infinispan cluster is restored, its data will be out-of-sync with Keycloak.
+| If the Infinispan cluster fails in the active datacenter, Keycloak won't be able to communicate with the external Infinispan, and the Keycloak service will be unavailable.
+Manual switchover to the secondary datacenter is recommended.
+Future versions will detect this situation and do an automatic failover.
 
-Manual switchover to the secondary datacenter is recommended. As that datacenter is out-of-sync, the customer should consider if all data should be cleared from the session store of the passive datacenter to avoid out-of-date information.
-| Loss of service and data
+When the Infinispan cluster is restored, its data will be out-of-sync with Keycloak.
+Manual operations are required to get Infinispan in the primary datacenter in sync with the secondary datacenter.
+| Loss of service
 | Human intervention required
 
 | Connectivity Infinispan
@@ -84,7 +87,7 @@ Manual operations might be necessary depending on the database.
 | Seconds to minutes (depending on the database)
 
 | Primary Datacenter
-| If none of the Keycloak nodes is available, the loadbalancer will detect the outage and redirect the traffic to the secondary site.
+| If none of the Keycloak nodes are available, the loadbalancer will detect the outage and redirect the traffic to the secondary site.
 Some requests might receive an error message while the loadbalancer hasn't detected the primary datacenter failure.
 The setup will be degraded until the primary site is back up and the session state has been manually synced from the secondary to the primary site.
 | No data loss^3^
