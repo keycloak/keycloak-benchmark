@@ -1,19 +1,17 @@
-= AWS Global Accelerator Load Balancing
+= AWS Route 53 active/passive loadbalancer
 :description: This guide describes the procedure required to configure DNS based failover for Multi-AZ Keycloak clusters \
 using AWS Route53.
 
 {description}
-
-== Audience
-
-This guide describes how to create Route53 DNS records to handle Keycloak client connection failover for multiple
-availability-zone Keycloak deployments.
 
 == Architecture
 
 All Keycloak client requests are routed via a DNS name managed by Route53 records. It's the responsibility of Route53
 to ensure that all client requests are routed to the Primary cluster when it's available and healthy, or to the backup
 cluster in the event of the primary availability-zone and/or Keycloak deployment failing.
+
+If the primary site fails, the DNS changes will need to propagate to the clients. Depending on the client's settings, this may take some minutes and depends on the client's configuration.
+When using mobile connections, some internet providers might not respect the TTL of the DNS entries, which can lead to an extended time until the clients finally connect to the new site.
 
 .AWS Global Accelerator Failover
 image::route53/route53-multi-az-failover.svg[]
@@ -92,9 +90,7 @@ aws elb describe-load-balancers \
 ----
 function createHealthCheck() {
   # Creating a hash of the caller reference to allow for names longer than 64 characters
-  # shellcheck disable=SC2207
   REF=($(echo $1 | sha1sum ))
-  # shellcheck disable=SC2128
   aws route53 create-health-check \
   --caller-reference "$REF" \
   --query "HealthCheck.Id" \
@@ -241,7 +237,7 @@ spec:
 ----
 <1> The domain clients use to connect to Keycloak
 +
-To ensure that request forwarding works as expected, it's necessary for the Keycloak CR to specify the hostname through
+To ensure that request forwarding works, specify in the Keycloak CR the hostname through
 which clients will access the Keycloak instances. This must be the `$CLIENT_DOMAIN` used in the Route53 configuration.
 +
 .. Create health check Route
@@ -275,8 +271,9 @@ cluster is the Primary of Backup cluster, respectively.
 
 
 == Verify
-It should be possible to navigate to your DOMAIN of choice in your local browser and login to the Keycloak console.
 
-To test failover works as expected, login to the Primary cluster and scale the Keycloak deployment to 0 pods. This will
+Navigate to the chosen CLIENT_DOMAIN in your local browser and login to the Keycloak console.
+
+To test failover works as expected, login to the Primary cluster and scale the Keycloak deployment to zero pods. This will
 cause the Primary's health checks to fail and Route53 should start routing traffic to the Keycloak pods on the Backup
 cluster.

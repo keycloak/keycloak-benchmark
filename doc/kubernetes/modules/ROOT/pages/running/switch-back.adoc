@@ -15,6 +15,10 @@ include::partial$running/infinispan-attributes.adoc[]
 This guide contains the procedures required to bring the primary site back to operation when the secondary site is handling all the traffic.
 At the end of the guide, the primary site is online again and handles the traffic.
 
+This is necessary when the primary site has lost its state in Infinispan, a network partition occurred between the primary and the secondary site while the secondary site was active, or the replication was disabled as described in xref:./switch-over.adoc[].
+
+If the data in Infinispan on both sites is still in sync, the procedure for {ispn} can be skipped.
+
 See xref:running/index.adoc[] for additional guides.
 
 == Prerequisites
@@ -112,4 +116,5 @@ include::partial$aurora/aurora-failover.adoc[]
 
 === Route53
 
-Section under development.
+If switching over to the secondary site has been triggered by changing the health endpoint, edit the health check in AWS to point to a correct endpoint (`health/live`).
+It will take some minutes for the clients to notice the change, and traffic will gradually move over to the secondary site.
