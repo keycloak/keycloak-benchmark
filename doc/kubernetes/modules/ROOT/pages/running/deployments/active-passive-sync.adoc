@@ -215,8 +215,7 @@ It might be considered in the future based on customer or community demand.
 
 A loadbalancer which checks the `/health/live` URl of the Keycloak deployment in each datacenter.
 
-*Blueprint:* Amazon Route 53 active-passive failover.
-If an availability zone goes offline, clients might fail to update their cached DNS settings and would fail to reach the secondary availability zone.
+*Blueprint:* xref:running/loadbalancing.adoc[].
 
 *Not considered:* AWS Global Accelerator connecting to Red Hat OpenShift Service on AWS (ROSA) as it supports only weighted traffic routing and not active-passive failover.
 To support active-passive failover, additional logic using, for example, AWS CloudWatch and AWS Lambda would be necessary to simulate the active-passive handling by adjusting the weights when the probes fail.

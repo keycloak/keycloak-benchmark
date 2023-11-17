@@ -1,0 +1,27 @@
+= Switchover to Secondary Site
+:description: This guide describes the steps to fail over from primary site to secondary site.
+
+include::partial$running/infinispan-attributes.adoc[]
+
+{description}
+
+// Infinispan -> stop replication from secondary to primary
+// Aurora -> switch to secondary site?
+// Keycloak -> switch to secondary site?
+// Route53 -> switch to secondary site
+
+== Audience
+
+A failover from the primary site to the secondary site will happen automatically based on the checks configured in the loadbalancer.
+
+When the primary site loses its state in Infinispan or a network partition occurs that prevents the synchronization, manual procedures are necessary to recover the primary site before it can handle traffic again, see xref:./switch-back.adoc[].
+
+To prevent an automatic fallback to the primary site before those manual steps have performed, configure the loadbalancer as described below to prevent this from happening automatically.
+
+See xref:running/index.adoc[] for additional guides.
+
+== Procedure
+
+=== Route53
+
+To force Route53 to mark the primary site as permanently not available and prevent an automatic fallback, edit the health check in AWS to point to a non-existent route (`health/down`).
