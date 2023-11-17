@@ -69,15 +69,17 @@ include::partial$running/infinispan-running-batch.adoc[]
 
 ==== Procedures
 
+WARNING: Transferring the full state may impact the {ispn} cluster perform by increasing the response time and/or resources usage.
+
 First procedure is to delete the stale data from the secondary site.
 
-WARNING: Ensure you are connected to the secondary site before executing the clear operation.
+. Login into your secondary site.
 
-. Login into your secondary site
+. Shutdown Keycloak.
 
 . Run the `crossdc-clear-caches` Batch CR (see xref:#running-infinispan-batch[]).
 
-. Delete all Batch CRs created, since they are not required anymore.
+. Delete all Batch CRs created.
 
 Now we are ready to transfer the state from the primary site to the secondary site.
 
@@ -87,21 +89,23 @@ Now we are ready to transfer the state from the primary site to the secondary si
 
 . Check the replication status is `ONLINE` for all caches with `crossdc-status` Batch CR.
 
-. Wait for the state transfer to completed by checking the output of the Batch CR `crossdc-push-state-status`
+. Wait for the state transfer to complete by checking the output of the Batch CR `crossdc-push-state-status`
 
 . If an error is reported in step 4, try to repeat the operations from step 2.
 
-. Finally, clear the state transfer status with Batch CR `crossdc-reset-push-state-status` and delete all Batch CRs created.
+. Clear the state transfer status with Batch CR `crossdc-reset-push-state-status`.
 
-WARNING: Transferring the full state may impact the {ispn} cluster perform by increasing the response time and/or resources usage.
+. Delete all Batch CRs created.
+
+As now the state is available in the secondary datacenter, Keycloak can be started again:
+
+. Login into your secondary site.
+
+. Startup Keycloak.
 
 === AWS Aurora Database
 
-Section under development.
-
-=== Keycloak Cluster
-
-Section under development.
+No action required.
 
 === Route53
 

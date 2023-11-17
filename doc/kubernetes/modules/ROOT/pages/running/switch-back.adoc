@@ -1,5 +1,5 @@
-= Failover Recovery
-:description: This guide describes the procedures to recover the primary site back to operation.
+= Switch back
+:description: This guide describes the procedures to switch back to the primary site back after a failover or switchover to the secondary site.
 
 include::partial$running/infinispan-attributes.adoc[]
 
@@ -12,11 +12,14 @@ include::partial$running/infinispan-attributes.adoc[]
 
 == Audience
 
-This guide contains the procedures required to bring the primary site back to operation.
-After a crash event in the primary site, the load balance will switch to the secondary site.
-Recovery from the crash implies bringing the primary site online and perform the necessary recovery operations for {ispn} and Aurora.
+This guide contains the procedures required to bring the primary site back to operation when the secondary site is handling all the traffic.
+At the end of the guide, the primary site is online again and handles the traffic.
 
 See xref:running/index.adoc[] for additional guides.
+
+== Prerequisites
+
+This assumes a xref:running/deployments/active-passive-sync.adoc[] setup.
 
 == Procedures
 
@@ -25,8 +28,6 @@ See xref:running/index.adoc[] for additional guides.
 For the context of this guide, `{site-a}` is the primary site, recovering back to operation, and `{site-b}` is the secondary site, running in production.
 
 include::partial$running/infinispan-batchcr-intro.adoc[]
-
-WARNING: It assumes that the primary site (`{site-a}`) starts with empty caches.
 
 The `ConfigMap` with the {ispn} CLI operations are as follows:
 
@@ -54,6 +55,12 @@ include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-push-state-status]
 include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-reset-push-state-status]
 ----
 
+.Clears the cache data in `{site-a}`.
+[source,yaml]
+----
+include::example$helm/ispn-site-a.yaml[tag=infinispan-crossdc-clear-caches]
+----
+
 [#running-infinispan-batch]
 ==== Running {ispn} Batch
 
@@ -63,31 +70,45 @@ include::partial$running/infinispan-running-batch.adoc[]
 
 After the {ispn} in the primary site is back online and joined the cross-site channel (see xref:running/infinispan-crossdc-deployment.adoc#verifying-the-deployment[verifying the {ispn} deployment]), the state transfer must be manually started from the secondary site.
 
-It transfers the full state from the secondary site to the primary site, and it must be completed before the primary site can start handling incoming requests.
+After clearing the state in the primary site, it transfers the full state from the secondary site to the primary site, and it must be completed before the primary site can start handling incoming requests.
 
-. Login into your secondary site
+WARNING: Transferring the full state may impact the {ispn} cluster perform by increasing the response time and/or resources usage.
+
+The first procedure is to delete any stale data from the primary site.
+
+. Login to the primary site.
+
+. Shutdown Keycloak. This will clear all Keycloak caches, and it prevents the state of Keycloak from being out-of-sync with Infinispan.
+
+. Run the `crossdc-clear-caches` Batch CR (see xref:#running-infinispan-batch[]).
+
+. Delete all Batch CRs created.
+
+Now we are ready to transfer the state from the secondary site to the secondary site.
+
+. Login into your secondary site.
 
 . Run the `crossdc-push-state-status` Batch CR (see xref:#running-infinispan-batch[]).
 
 . Check the replication status is `ONLINE` for all caches with `crossdc-status` Batch CR.
 
-. Wait for the state transfer to completed by checking the output of the Batch CR `crossdc-push-state-status`
+. Wait for the state transfer to complete by checking the output of the Batch CR `crossdc-push-state-status`.
 
 . If an error is reported by step 4, try to repeat the operations from step 2.
 
-. Finally, clear the state transfer status with Batch CR `crossdc-reset-push-state-status` and delete all Batch CRs created.
+. Clear the state transfer status with Batch CR `crossdc-reset-push-state-status`
 
-WARNING: Transferring the full state may impact the {ispn} cluster perform by increasing the response time and/or resources usage.
+. Delete all Batch CRs created.
+
+. Login to the primary site.
+
+. Start Keycloak.
 
 Both {ispn} clusters are in sync and the switchover from secondary back to the primary site can be performed.
 
 === AWS Aurora Database
 
-Section under development.
-
-=== Keycloak Cluster
-
-Section under development.
+include::partial$aurora/aurora-failover.adoc[]
 
 === Route53
 
