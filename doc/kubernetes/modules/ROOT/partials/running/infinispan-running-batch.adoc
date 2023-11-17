@@ -1,0 +1,34 @@
+Use the following procedures to execute an {ispn} Batch CR.
+
+1. Create a YAML file with the following content
++
+.{ispn} Batch CR file: mybatch.yaml
+[source,yaml,subs="+attributes"]
+----
+apiVersion: infinispan.org/v2alpha1
+kind: Batch
+metadata:
+  name: mybatch # <1>
+spec:
+  cluster: {cluster-name}
+  configMap: <config-map> # <2>
+
+----
+<1> The CR name, it must be unique.
+<2> The `ConfigMap` with the CLI commands.
++
+2. Apply the file in your {ocp} cluster:
++
+[source,bash,subs="+attributes"]
+----
+oc -n {ns} install -f /path/to/mybatch.yaml
+----
+3. Check the `status.Phase` field in the Batch CR to verify the operations completed successfully
+
+TIP: Read {operator-docs}#batching-configmap_batch[documentation page] for more information.
+
+Modifying an {ispn} Batch CR instance has no effect because they are "one-time" events.
+If you want to run the same CLI command you have to create a new {ispn} Batch CR or delete the previous one to reuse the same name.
+
+The output of the CLI command can be found in the pod that executed the {ispn} Batch CR.
+Use `oc logs` tool to read them.

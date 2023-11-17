@@ -143,3 +143,78 @@ spec:
       {{- end }}
 # end::infinispan-cache-{{ $cache }}[]
 {{end}}
+{{ if .Values.crossdc.enabled }}
+---
+# tag::infinispan-crossdc-status[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-status
+  namespace: {{ $namespace }}
+data:
+  batch: site status --all-caches --site={{.Values.crossdc.remote.name}}
+# end::infinispan-crossdc-status[]
+---
+# tag::infinispan-crossdc-disconnect[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-disconnect
+  namespace: {{ $namespace }}
+data:
+  batch: site take-offline --all-caches --site={{.Values.crossdc.remote.name}}
+# end::infinispan-crossdc-disconnect[]
+---
+# tag::infinispan-crossdc-connect[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-connect
+  namespace: {{ $namespace }}
+data:
+  batch: site bring-online --all-caches --site={{.Values.crossdc.remote.name}}
+# end::infinispan-crossdc-connect[]
+---
+# tag::infinispan-crossdc-push-state[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-push-state
+  namespace: {{ $namespace }}
+data:
+  batch: site push-site-state --all-caches --site={{.Values.crossdc.remote.name}}
+# end::infinispan-crossdc-push-state[]
+---
+# tag::infinispan-crossdc-push-state-status[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-push-state-status
+  namespace: {{ $namespace }}
+data:
+  batch: site push-site-status --all-caches --site={{.Values.crossdc.remote.name}}
+# end::infinispan-crossdc-push-state-status[]
+---
+# tag::infinispan-crossdc-reset-push-state-status[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-reset-push-state-status
+  namespace: {{ $namespace }}
+data:
+  batch: site clear-push-state-status --all-caches --site={{.Values.crossdc.remote.name}}
+# end::infinispan-crossdc-reset-push-state-status[]
+---
+# tag::infinispan-crossdc-clear-caches[]
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crossdc-clear-caches
+  namespace: {{ $namespace }}
+data:
+  batch: |+
+    {{range $cache, $config := .Values.caches -}}
+    clearcache {{ $cache }}
+    {{ end }}
+# end::infinispan-crossdc-clear-caches[]
+{{ end }}

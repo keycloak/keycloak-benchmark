@@ -1,0 +1,71 @@
+= Switchover to Secondary Site
+:description: This guide describes the steps to switch from primary site to secondary site.
+
+include::partial$running/infinispan-attributes.adoc[]
+
+{description}
+
+// Infinispan -> stop replication from secondary to primary
+// Aurora -> switch to secondary site?
+// Keycloak -> switch to secondary site?
+// Route53 -> switch to secondary site
+
+== Audience
+
+This guide describes the procedures required to switch to the secondary site, and it assumes the primary site will be taken offline.
+
+See xref:running/index.adoc[] for additional guides.
+
+=== {ispn} Cluster
+
+For the context of this guide, `{site-a}` is the primary site and `{site-b}` is the secondary site.
+
+For taking a site offline, it is a good practice to disable the replication to it.
+It prevents errors/delays when the channels are disconnected between the primary and the secondary site.
+
+include::partial$running/infinispan-batchcr-intro.adoc[]
+
+The `ConfigMap` with the {ispn} CLI operations are as follows:
+
+.Disables the cross-site replication to `{site-a}`.
+[source,yaml]
+----
+include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-disconnect]
+----
+
+.Checks the cross-site status for all caches backing up to `{site-a}`.
+[source,yaml]
+----
+include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-status]
+----
+
+Install those `ConfigMap` in the secondary site, `{site-b}`.
+
+[#running-infinispan-batch]
+==== Running {ispn} Batch
+
+include::partial$running/infinispan-running-batch.adoc[]
+
+==== Procedures to transfer state from secondary to primary site
+
+. Login into your secondary site
+
+. Run the `crossdc-disconnect` Batch CR (see xref:#running-infinispan-batch[]).
+
+. Check the replication status with `crossdc-status` Batch CR to be `OFFLINE`.
+
+. Delete all Batch CRs created.
+
+The {ispn} cluster in the secondary site is ready to handle requests without trying to replicate to the primary site.
+
+=== AWS Aurora Database
+
+include::partial$aurora/aurora-failover.adoc[]
+
+=== Keycloak Cluster
+
+No action required.
+
+=== Route53
+
+Section under development.
