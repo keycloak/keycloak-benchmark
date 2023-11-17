@@ -14,12 +14,11 @@ See xref:storage-configurations.adoc[] to see which storage options are availabl
 
 To change the default, create an `.env` in the `provision/minikube` folder.
 
-An example configuration as below enables CockroachDB single node and the map storage with JPA.
+An example configuration as below enables PostgreSQL.
 
 [source]
 ----
-KC_DATABASE=cockroach-single
-KC_STORAGE=jpa
+KC_DATABASE=postgres
 ----
 
 include::partial$rerun-task-after-changes.adoc[]
@@ -28,7 +27,7 @@ As an alternative way the parameters can be passed on the command line of the ta
 
 [source,bash]
 ----
-task KC_STORAGE="jpa" KC_DATABASE="cockroach-single"
+task KC_DATABASE="postgres"
 ----
 
 == Available Keycloak configuration options
@@ -51,64 +50,12 @@ See xref:storage/postgres.adoc[] for more information.
 `aurora-postgres`:: Connect to an AWS Aurora PostgreSQL cluster.
 +
 See xref:storage/aurora-regional-postgres.adoc[] and xref:storage/aurora-global-postgres.adoc[] for more information.
-
-`cockroach-single`:: Deploy a single-node CockroachDB instance.
-+
-See xref:storage/cockroach-single.adoc[] for more information.
-
-`cockroach-operator`:: Deploy a multi-node CockroachDB instance using the CockroachDB operator.
-+
-See xref:storage/cockroach-operator.adoc[] for more information.
-
-`infinispan`:: Deploy a single-node Infinispan instance.
-+
-See xref:storage/infinispan.adoc[] for more information.
-
-`postgres+infinispan`:: Deploy mixed setup with session data stored in Infinispan and all other entities stored in PostgreSQL.
-+
-See xref:storage/postgres-infinispan.adoc[] for more information.
-
-`none`:: Deploy no data store.
-+
-See xref:storage/concurrent-hash-map.adoc[] for more information.
 --
 
 KC_DATABASE_URL::
 Define the external endpoint of databases that are deployed external to the Kubernetes cluster.
 +
 Default value: empty
-
-
-[[KC_STORAGE,KC_STORAGE]]
-KC_STORAGE::
-Set the storage configuration parameter for Keycloak.
-+
-Default value: empty
-+
-Available options:
-+
---
-(empty):: Deploys Keycloak with the legacy store.
-This requires `KC_DATABASE` to be set to `postgres`.
-`jpa`:: Deploys Keycloak with the new map store configured for JPA.
-This requires `KC_DATABASE` to be set to `postgres` or `cockroach`.
-+
-See xref:storage/postgres.adoc[], xref:storage/cockroach-single.adoc[] or xref:storage/cockroach-operator.adoc[] for more information.
-
-`hotrod`:: Deploys Keycloak with the new map store configured for Hot Rod.
-This requires `KC_DATABASE` to be set to `infinispan`.
-+
-See xref:storage/infinispan.adoc[] for more information.
-
-`jpa+hotrod`:: Deploys Keycloak with the new map store configured for Hot Rod for sessions and JPA for all other entities.
-This requires `KC_DATABASE` to be set to `postgres+infinispan`.
-+
-See xref:storage/postgres-infinispan.adoc[] for more information.
-
-`chm`:: Deploys Keycloak with the new map store configured with Concurrent Hash Map, which is an in-memory store that is not shared between Keycloak instances.
-+
-See xref:storage/concurrent-hash-map.adoc[] for more information.
---
 
 [[KC_DB_POOL_INITIAL_SIZE,KC_DB_POOL_INITIAL_SIZE]]
 KC_DB_POOL_INITIAL_SIZE::

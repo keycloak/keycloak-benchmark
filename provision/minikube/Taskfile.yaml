@@ -56,13 +56,6 @@ tasks:
              kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0;
         fi'
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=infinispan
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=cockroach
-      - >
-        bash -c '
-        if [ "{{.KC_DATABASE}}" == "cockroach-single" ];
-        then kubectl delete deployment/cockroach -n keycloak || exit 0;
-        fi'
       - ./init-database.sh {{.KC_DATABASE}} reset
       # discard status of keycloak to force redeployment
       - rm -f .task/checksum/keycloak
@@ -184,7 +177,6 @@ tasks:
       - .task/subtask-{{.TASK}}.yaml
       # if keycloak's database deployment changes, this restarts the DB and the Gatling user needs to be re-created
       - .task/status-keycloak-db.json
-      - .task/var-KC_STORAGE
       - .task/var-KC_DATABASE
 
   keycloak:
@@ -221,7 +213,6 @@ tasks:
         --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
         --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
         --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
-        --set storage={{.KC_STORAGE}}
         --set database={{.KC_DATABASE}}
         --set keycloakImage={{.KC_CONTAINER_IMAGE}}
         --set instances={{ .KC_INSTANCES }}
@@ -242,14 +233,7 @@ tasks:
         keycloak
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" == "cockroach-operator" ];
-        then kubectl -n keycloak -o yaml get crdbclusters.crdb.cockroachlabs.com/cockroach > .task/status-{{.TASK}}-db.json;
-        elif [ "{{.KC_DATABASE}}" == "cockroach-single" ];
-        then kubectl get deployment/cockroach -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
-        elif [ "{{.KC_DATABASE}}" == "postgres+infinispan" ];
-        then kubectl get deployment/postgres -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
-             kubectl get deployment/infinispan -n keycloak -o=jsonpath="{.spec}" >> .task/status-{{.TASK}}-db.json;
-        elif [ "{{.KC_DATABASE}}" != "none" ];
+        if [ "{{.KC_DATABASE}}" != "none" ];
         then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'

@@ -1,5 +1,5 @@
 {{ if .Values.sqlpad }}
-{{ if or (eq .Values.database "postgres") (eq .Values.database "cockroach-single") (eq .Values.database "cockroach-operator") (eq .Values.database "postgres+infinispan") }}
+{{ if or (eq .Values.database "postgres") }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -48,36 +48,6 @@ spec:
             - name: SQLPAD_CONNECTIONS__pgdemo__password
               value: pass
 {{ end }}
-{{ if eq .Values.database "cockroach-single" }}
-            - name: SQLPAD_CONNECTIONS__pgdemo__name
-              value: CockroachDB Single Keycloak
-            - name: SQLPAD_CONNECTIONS__pgdemo__port
-              value: '26257'
-            - name: SQLPAD_CONNECTIONS__pgdemo__host
-              value: cockroach
-            - name: SQLPAD_CONNECTIONS__pgdemo__username
-              value: keycloak
-            - name: SQLPAD_CONNECTIONS__pgdemo__password
-              value: pass
-{{ end }}
-{{ if eq .Values.database "cockroach-operator" }}
-            - name: SQLPAD_CONNECTIONS__pgdemo__name
-              value: CockroachDB Operator Keycloak
-            - name: SQLPAD_CONNECTIONS__pgdemo__port
-              value: '26257'
-            - name: SQLPAD_CONNECTIONS__pgdemo__host
-              value: cockroach-public
-            - name: SQLPAD_CONNECTIONS__pgdemo__username
-              value: root
-            - name: SQLPAD_CONNECTIONS__pgdemo__postgresSsl
-              value: 'true'
-            - name: SQLPAD_CONNECTIONS__pgdemo__postgresCert
-              value: '/cockroach/cockroach-certs/client.root.crt'
-            - name: SQLPAD_CONNECTIONS__pgdemo__postgresKey
-              value: '/cockroach/cockroach-certs/client.root.key'
-            - name: SQLPAD_CONNECTIONS__pgdemo__postgresCA
-              value: '/cockroach/cockroach-certs/ca.crt'
-{{ end }}
             - name: SQLPAD_CONNECTIONS__pgdemo__database
               value: keycloak
             - name: SQLPAD_CONNECTIONS__pgdemo__driver
@@ -113,28 +83,6 @@ spec:
           ports:
             - containerPort: 3000
               protocol: TCP
-{{ if eq .Values.database "cockroach-operator" }}
-          volumeMounts:
-            - name: client-certs
-              mountPath: /cockroach/cockroach-certs/
-      volumes:
-        - name: client-certs
-          projected:
-            sources:
-              - secret:
-                  name: cockroach-node
-                  items:
-                    - key: ca.crt
-                      path: ca.crt
-              - secret:
-                  name: cockroach-root
-                  items:
-                    - key: tls.crt
-                      path: client.root.crt
-                    - key: tls.key
-                      path: client.root.key
-            defaultMode: 256
-{{ end }}
       restartPolicy: Always
 ---
 apiVersion: v1
