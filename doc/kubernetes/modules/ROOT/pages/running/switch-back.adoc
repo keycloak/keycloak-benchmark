@@ -83,12 +83,14 @@ The first procedure is to delete any stale data from the primary site.
 . Login to the primary site.
 
 . Shutdown Keycloak. This will clear all Keycloak caches, and it prevents the state of Keycloak from being out-of-sync with Infinispan.
++
+When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to 0.
 
 . Run the `crossdc-clear-caches` Batch CR (see xref:#running-infinispan-batch[]).
 
 . Delete all Batch CRs created.
 
-Now we are ready to transfer the state from the secondary site to the secondary site.
+Now we are ready to transfer the state from the secondary site to the primary site.
 
 . Login into your secondary site.
 
@@ -107,6 +109,8 @@ Now we are ready to transfer the state from the secondary site to the secondary 
 . Login to the primary site.
 
 . Start Keycloak.
++
+When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to the original value.
 
 Both {ispn} clusters are in sync and the switchover from secondary back to the primary site can be performed.
 

@@ -1,5 +1,8 @@
 Assuming a Regional multi-AZ Aurora deployment, the current writer instance should be in the same region as the active Keycloak cluster to avoid latencies and communication across availability zones.
 
+Switching the writer instance of Aurora will lead to a small downtime, and having the writer instance in the other datacenter with a slightly longer latency might be acceptable for some deployments.
+So this might be deferred to a maintenance window or skipped depending on the circumstances of the deployment.
+
 To change the writer instance, run a failover.
 Note that this will make the database unavailable for a short time, and database connections need to be reestablished.
 
