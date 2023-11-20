@@ -9,7 +9,7 @@ export RESET_KEYCLOAK=${RESET_KEYCLOAK:-true}
 export KEYCLOAK_STORAGE=${KEYCLOAK_STORAGE:-"JPA-Legacy-PostgreSQL"}
 if $RESET_KEYCLOAK; then
   cd $MINIKUBE_HOME
-  if [ "$KEYCLOAK_STORAGE" = "JPA-Legacy-PostgreSQL" ]; then
+  if [ "$KEYCLOAK_STORAGE" = "JPA-PostgreSQL" ]; then
     task reset-keycloak KC_DATABASE="postgres"
   else
     echo "Invalid KEYCLOAK_STORAGE: \"$KEYCLOAK_STORAGE\"."
