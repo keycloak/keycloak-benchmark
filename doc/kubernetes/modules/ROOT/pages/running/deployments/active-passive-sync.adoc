@@ -1,30 +1,31 @@
 = HA-Keycloak active/passive with synchronous replication
 :navtitle: Active/passive with sync replication
-:description: This concept describes the building blocks needed for a highly available active/passive setup and the behavior customers can expect.
+:description: This concept describes a highly available active/passive setup and the behavior to expect.
 
 {description}
 
-== Audience
-
-Solution architects and customers that require a high-available (HA) Keycloak deployment.
 In this guide, we outline the requirements of the HA active/passive architecture, before exploring its benefits and tradeoffs.
 
 After summarizing the architecture see <<building-blocks>> with the links to blueprints for each building block.
 
 == Architecture
 
-Two independent Keycloak deployments running in different datacenters connected with a low latency.
-Entities like users, realms and clients are stored in a database which is running synchronously in the two datacenters.
-Sessions are stored exclusively in Infinispan, which is also running synchronously in the two datacenters.
-Offline sessions are stored in Infinispan, and can optionally be stored in the database as well.
-
-image::crossdc/active-passive-sync.dio.svg[]
-
 === When to use this setup
 
-Use this setup for customers who want to be able to fail over automatically in the event of a datacenter failure, and not to lose data or sessions.
+Use this setup to be able to fail over automatically in the event of a datacenter failure, and reduce the likelihood to lose data or sessions.
 
-Manual interactions might still be required to restore the redundancy after the failover.
+Manual interactions are usually required to restore the redundancy after the failover.
+
+=== Deployments
+
+Two independent Keycloak deployments running in different datacenters connected with a low latency network connection.
+Entities like users, realms and clients and also offline sessions are stored in a database which is running synchronously replicated database across the two datacenters. The data is also cached in Keycloak's embedded Infinispan.
+
+Session-related data is stored in the embedded Infinispan of Keycloak, and forwarded to the external Infinispan which forwards information to the external Infinispan running synchronously in the other datacenter.
+
+In the following paragraphs and diagrams, when talking about deploying Infinispan, this always refers to the external Infinispan.
+
+image::crossdc/active-passive-sync.dio.svg[]
 
 === Causes of data and service loss
 
@@ -34,7 +35,7 @@ While this setup aims for high availability, the following situations can still 
 The service will be restored automatically.
 The system is degraded until the failures are detected and the backup cluster is promoted to service requests.
 
-* Once failures occur in the communication between the datacenters, manual steps may be necessary to re-synchronize a degraded setup.
+* Once failures occur in the communication between the datacenters, manual steps are necessary to re-synchronize a degraded setup.
 Future versions of Keycloak and Infinispan plan to reduce those manual operations.
 
 * Degraded setups can lead to service or data loss if additional components fail.
@@ -57,7 +58,7 @@ Monitoring is necessary to detect degraded setups.
 | Less than one minute
 
 | Infinispan node
-| Multiple Infinispan instances run in each datacenter. If one instance fails, it takes a few seconds to the other nodes to notice the change. Sessions are stored in at least two Infinispan nodes, so a single node failure doesn't lead to data loss.
+| Multiple Infinispan instances run in each datacenter. If one instance fails, it takes a few seconds for the other nodes to notice the change. Sessions are stored in at least two Infinispan nodes, so a single node failure doesn't lead to data loss.
 | No data loss
 | Less than one minute
 
@@ -112,20 +113,20 @@ The statement "`No data loss`" depends on the setup not being degraded from prev
 
 ==== Upgrades
 
-* On Keycloak major version upgrade, all session data (except offline session) might be lost as the data format is not guaranteed to be compatible between major versions.
+* On Keycloak upgrade (major, minor, patch) version upgrade, all session data (except offline session) might be lost as the data format is not guaranteed to be compatible between major versions.
 * On any Infinispan upgrade (major, minor or patch), all session data might be lost as cross-DC communication is guaranteed to work only between identical versions of Infinispan.
 
 ==== Failovers
 
 * A successful failover requires a setup not degraded from previous failures.
-All manual operations like a re-synchronization after a previous failure must be complete to prevent a data loss.
-Customers must use monitoring to ensure degradations are detected and handled in a timely manner.
+All manual operations like a re-synchronization after a previous failure must be complete to preventdata loss.
+Use monitoring to ensure degradations are detected and handled in a timely manner.
 
 ==== Switchovers
 
 * A successful switchover requires a setup not degraded from previous failures.
-All manual operations like a re-synchronization after a previous failure must be complete to prevent a data loss.
-Customers must use monitoring to ensure degradations are detected and handled in a timely manner.
+All manual operations like a re-synchronization after a previous failure must be complete to preventdata loss.
+Use monitoring to ensure degradations are detected and handled in a timely manner.
 
 ==== Out-of-sync datacenters
 
@@ -157,6 +158,7 @@ Synchronous Infinispan replication can lead to deadlocks when entries in both da
 
 Is this setup limited to two datacenters?::
 This setup could be extended to multiple datacenters, and there are no fundamental changes necessary to have, for example, three datacenters. Once more datacenters are added, the overall latency between the datacenters increases, and the likeliness of network failures, and therefore short downtimes, increases as well.
+Therefore, such a deployment is expected to have worse performance and an inferior.
 For now, it has been tested and documented with blueprints only for two datacenters.
 
 Is a synchronous cluster less stable than an asynchronous cluster?::
@@ -181,7 +183,7 @@ They are listed in the order in which they need to be installed.
 
 === Two datacenters with low-latency connection
 
-Ensures that synchronous replication is available for both the database and Infinispan.
+Ensures that synchronous replication is available for both the database and the external Infinispan.
 
 *Blueprint:* Two AWS Availablity Zones within the same AWS Region.
 
@@ -209,7 +211,7 @@ An Infinispan deployment which leverages the Infinispan's Cross-DC functionality
 *Blueprint:* xref::running/infinispan-crossdc-deployment.adoc[Deploy Infinispan using the Infinispan Operator on ROSA, and connect the two datacenters using Infinispan's Gossip Router].
 
 *Not considered:* Direct interconnections between the OpenShift clusters on the network layer.
-It might be considered in the future based on customer or community demand.
+It might be considered in the future.
 
 === Loadbalancer
 
