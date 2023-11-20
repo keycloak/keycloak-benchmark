@@ -1,0 +1,40 @@
+name: Multi-AZ Clusters - Delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix to be used when creating the clusters'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+
+env:
+  CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
+  REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
+
+jobs:
+  cluster1:
+    uses: ./.github/workflows/rosa-cluster-delete.yml
+    with:
+      clusterName: ${{ inputs.clusterPrefix }}-a
+      deleteAll: no
+    secrets: inherit
+
+  cluster2:
+    uses: ./.github/workflows/rosa-cluster-delete.yml
+    with:
+      clusterName: ${{ inputs.clusterPrefix }}-b
+      deleteAll: no
+    secrets: inherit
+
+  delete-aurora:
+    needs:
+      - cluster1
+      - cluster2
+    uses: ./.github/workflows/aurora-cluster-delete.yml
+    with:
+      name: ${{ env.CLUSTER_PREFIX }}
+      region: ${{ env.REGION }}
+    secrets: inherit

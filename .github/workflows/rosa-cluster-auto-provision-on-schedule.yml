@@ -10,7 +10,7 @@ jobs:
     name: ROSA Scheduled Create cluster
     runs-on: ubuntu-latest
     steps:
-      - run: gh workflow run -R keycloak/keycloak-benchmark rosa-cluster-create.yml
+      - run: gh workflow run -R keycloak/keycloak-benchmark rosa-multi-az-cluster-create.yml
         if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

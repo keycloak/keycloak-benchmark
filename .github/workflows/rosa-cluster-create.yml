@@ -1,6 +1,31 @@
 name: ROSA Cluster - Create
 
 on:
+  workflow_call:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+      computeMachineType:
+        description: 'Instance type for the compute nodes'
+        default: m5.xlarge
+        type: string
+      multiAz:
+        description: 'Deploy to multiple availability zones in the region'
+        default: false
+        type: boolean
+      availabilityZones:
+        description: 'Availability zones to deploy to'
+        default: ''
+        type: string
+      replicas:
+        description: 'Number of worker nodes to provision'
+        default: '2'
+        type: string
+      region:
+        description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+
   workflow_dispatch:
     inputs:
       clusterName:
