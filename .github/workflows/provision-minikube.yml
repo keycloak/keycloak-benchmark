@@ -59,90 +59,20 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
           start args: --memory 4096
-      - name: Provision Legacy store on PostgreSQL DB
+      - name: Provision on PostgreSQL DB
         working-directory: provision/minikube
         run: |
           PATH=$PATH:$GITHUB_WORKSPACE/bin
           ./rebuild.sh
-          task KC_DATABASE=postgres KC_STORAGE=
+          task KC_DATABASE=postgres
           kubectl get pods -A
           kubectl get events -A
-      - name: Create Dataset on Postgres Legacy Store
+      - name: Create Dataset on Postgres DB
         working-directory: provision/minikube
         run: |
-          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -a clear-status-completed
-          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
-          task KC_DATABASE=postgres KC_STORAGE= dataset-import -- -a status-completed
-      - name: Provision JPA Map store on PostgreSQL DB
-        working-directory: provision/minikube
-        run: |
-          PATH=$PATH:$GITHUB_WORKSPACE/bin
-          task KC_DATABASE=postgres KC_STORAGE=jpa
-      - name: Create Dataset on Postgres JPA Map Store
-        working-directory: provision/minikube
-        run: |
-          task KC_DATABASE=postgres KC_STORAGE=jpa KC_OTEL=true dataset-import -- -a clear-status-completed
-          task KC_DATABASE=postgres KC_STORAGE=jpa KC_OTEL=true dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
-          task KC_DATABASE=postgres KC_STORAGE=jpa KC_OTEL=true dataset-import -- -a status-completed
-      - name: Provision JPA Map store on Cockroach DB Single Node
-        working-directory: provision/minikube
-        run: |
-          PATH=$PATH:$GITHUB_WORKSPACE/bin
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa
-          kubectl get pods -A
-          kubectl get events -A
-      - name: Create Dataset on Cockroach JPA Map Store
-        working-directory: provision/minikube
-        run: |
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a clear-status-completed
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
-          task KC_DATABASE=cockroach-single KC_STORAGE=jpa dataset-import -- -a status-completed
-      - name: Provision Hot Rod Map store on Infinispan (In-Memory store)
-        working-directory: provision/minikube
-        run: |
-          PATH=$PATH:$GITHUB_WORKSPACE/bin
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod
-          kubectl get pods -A
-          kubectl get events -A
-      - name: Create Dataset on Infinispan Hot Rod Store
-        working-directory: provision/minikube
-        run: |
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a clear-status-completed
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
-          task KC_DATABASE=infinispan KC_STORAGE=hotrod dataset-import -- -a status-completed
-      - name: Provision JPA and Hot Rod store on PostgreSQL and Infinispan (In-Memory store)
-        working-directory: provision/minikube
-        run: |
-          PATH=$PATH:$GITHUB_WORKSPACE/bin
-          task KC_DATABASE=postgres+infinispan KC_STORAGE=jpa+hotrod
-          kubectl get pods -A
-          kubectl get events -A
-      - name: Create Dataset on Infinispan Hot Rod and PostgreSQL JPA Store
-        working-directory: provision/minikube
-        run: |
-          task KC_DATABASE=postgres+infinispan KC_STORAGE=jpa+hotrod dataset-import -- -a clear-status-completed
-          task KC_DATABASE=postgres+infinispan KC_STORAGE=jpa+hotrod dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
-          task KC_DATABASE=postgres+infinispan KC_STORAGE=jpa+hotrod dataset-import -- -a status-completed
-      - name: Provision JPA Map store on CHM (File store)
-        working-directory: provision/minikube
-        run: |
-          PATH=$PATH:$GITHUB_WORKSPACE/bin
-          task KC_DATABASE=none KC_STORAGE=chm
-          kubectl get pods -A
-          kubectl get events -A
-      - name: Create Dataset on CHM Store
-        working-directory: provision/minikube
-        run: |
-          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -a clear-status-completed
-          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
-          task KC_DATABASE=none KC_STORAGE=chm dataset-import -- -a status-completed
-      - name: Provision Cockroach Operator minimally
-        working-directory: provision/minikube
-        run: |
-          # minimal testing for storage cockroach-operator, as GitHub actions doesn't have enough resources for this
-          helm template --debug keycloak --set hostname=minikube.nip.io --set storage=cockroach-operator
-          kubectl get pods -A
-          kubectl get events -A
+          task KC_DATABASE=postgres dataset-import -- -a clear-status-completed
+          task KC_DATABASE=postgres dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=postgres dataset-import -- -a status-completed
       - name: Show logs on failure
         if: ${{ failure() }}
         working-directory: provision/minikube

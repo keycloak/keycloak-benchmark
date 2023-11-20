@@ -20,12 +20,6 @@ spec:
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     vendor: postgres
     url: jdbc:postgresql://postgres:5432/keycloak
-{{ else if eq .Values.database "cockroach-single" }}
-    vendor: postgres
-    url: jdbc:postgresql://cockroach:26257/keycloak?sslmode=disable
-{{ else if eq .Values.database "cockroach-operator" }}
-    vendor: postgres
-    url: jdbc:postgresql://cockroach-public:26257/keycloak?sslcert=%2Fcockroach%2Fcockroach-certs%2Fclient.root.crt&sslkey=%2Fcockroach%2Fcockroach-certs%2Fclient.root.key&sslmode=verify-full&sslrootcert=%2Fcockroach%2Fcockroach-certs%2Fca.crt&user=root
 {{ end }}
     poolMinSize: {{ .Values.dbPoolMinSize }} # <1>
     poolInitialSize: {{ .Values.dbPoolInitialSize }}
@@ -71,27 +65,6 @@ spec:
       value: 'false'
     - name: spi-public-key-cache-infinispan-enabled
       value: 'false'
-{{ end }}
-{{ if eq .Values.storage "jpa+hotrod" }}
-    # in the mixed setup we set storage to jpa and override user sessions, auth sessions, single-use objects, and login failures to use hotrod
-    - name: storage
-      value: jpa
-    - name: storage-area-auth-session
-      value: hotrod
-    - name: storage-area-user-session
-      value: hotrod
-    - name: storage-area-single-use-object
-      value: hotrod
-    - name: storage-area-login-failure
-      value: hotrod
-{{ else if ne .Values.storage "" }}
-    - name: storage
-      value: {{ quote .Values.storage }}
-    # this might eventually be set automatically by the operator
-    # TODO: value should be stored as a secret instead in a production environment
-    # https://github.com/keycloak/keycloak/issues/13377
-    - name: storage-deployment-state-version-seed
-      value: some-secret-seed
 {{ end }}
     - name: log-console-output
       value: json
@@ -198,11 +171,6 @@ spec:
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
-{{ if eq .Values.storage "jpa" }}
-              # avoid a warning when this is not set, see https://github.com/keycloak/keycloak/issues/16616
-              - name: KC_SPI_MAP_STORAGE_JPA_LOCK_TIMEOUT
-                value: "10000"
-{{ end }}
               # tag::keycloak-ispn[]
               - name: JAVA_OPTS_APPEND # <4>
                 value: >
@@ -283,10 +251,6 @@ spec:
                 mountPath: /otel
                 readOnly: true
 {{ end }}
-{{ if eq .Values.database "cockroach-operator" }}
-              - name: client-certs
-                mountPath: /cockroach/cockroach-certs
-{{ end }}
         # tag::keycloak-ispn[]
         volumes:
 {{ if .Values.infinispan.customConfig }}
@@ -305,21 +269,4 @@ spec:
           - name: otel
             persistentVolumeClaim:
               claimName: otel
-{{ end }}
-{{ if eq .Values.database "cockroach-operator" }}
-          - name: client-certs
-            projected:
-              sources:
-                - secret:
-                    name: cockroach-node
-                    items:
-                      - key: ca.crt
-                        path: ca.crt
-                - secret:
-                    name: cockroach-root-jdbc
-                    items:
-                      - key: tls.crt
-                        path: client.root.crt
-                      - key: tls.pk8
-                        path: client.root.key
 {{ end }}

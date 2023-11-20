@@ -8,7 +8,6 @@ vars:
   KC_DB_POOL_INITIAL_SIZE: '{{default "5" .KC_DB_POOL_INITIAL_SIZE}}'
   KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
-  KC_STORAGE: '{{default "" .KC_STORAGE}}'
   KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
   KC_OPERATOR_TAG: '{{default "nightly" .KC_OPERATOR_TAG}}'
   KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
@@ -54,7 +53,6 @@ tasks:
       - echo {{.KC_DB_POOL_INITIAL_SIZE}} > .task/var-KC_DB_POOL_INITIAL_SIZE
       - echo {{.KC_DB_POOL_MAX_SIZE}} > .task/var-KC_DB_POOL_MAX_SIZE
       - echo {{.KC_DB_POOL_MIN_SIZE}} > .task/var-KC_DB_POOL_MIN_SIZE
-      - echo {{.KC_STORAGE}} > .task/var-KC_STORAGE
       - echo {{.KC_DATABASE}} > .task/var-KC_DATABASE
       - echo {{.KC_OPERATOR_TAG}} > .task/var-KC_OPERATOR_TAG
       - echo {{.KC_CONTAINER_IMAGE}} > .task/var-KC_CONTAINER_IMAGE
@@ -85,7 +83,6 @@ tasks:
       - test "{{.KC_DB_POOL_INITIAL_SIZE}}" == "$(cat .task/var-KC_DB_POOL_INITIAL_SIZE)"
       - test "{{.KC_DB_POOL_MAX_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MAX_SIZE)"
       - test "{{.KC_DB_POOL_MIN_SIZE}}" == "$(cat .task/var-KC_DB_POOL_MIN_SIZE)"
-      - test "{{.KC_STORAGE}}" == "$(cat .task/var-KC_STORAGE)"
       - test "{{.KC_DATABASE}}" == "$(cat .task/var-KC_DATABASE)"
       - test "{{.KC_OPERATOR_TAG}}" == "$(cat .task/var-KC_OPERATOR_TAG)"
       - test "{{.KC_CONTAINER_IMAGE}}" == "$(cat .task/var-KC_CONTAINER_IMAGE)"

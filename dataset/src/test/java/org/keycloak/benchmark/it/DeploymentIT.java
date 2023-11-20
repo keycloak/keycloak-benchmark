@@ -84,13 +84,8 @@ public class DeploymentIT {
     }
 
     @Test
-    public void deployWithLegacyStore() throws IOException, ExecutionException, InterruptedException, URISyntaxException {
+    public void deployWithCurrentStore() throws IOException, ExecutionException, InterruptedException, URISyntaxException {
         runTestWithParameter();
-    }
-
-    @Test
-    public void deployWithMapStore() throws IOException, ExecutionException, InterruptedException, URISyntaxException {
-        runTestWithParameter("--storage", "chm");
     }
 
     private void runTestWithParameter(String... args) throws IOException, URISyntaxException, InterruptedException, ExecutionException {

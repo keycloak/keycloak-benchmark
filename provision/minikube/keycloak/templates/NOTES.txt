@@ -16,22 +16,4 @@ Connect to PostgreSQL on {{ .Values.hostname }}:{{ add 30009 (mul .Values.portOf
   password: pass
   JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:{{ add 30009 (mul .Values.portOffset 100) }}/keycloak
 {{ end }}
-{{ else if eq .Values.database "infinispan" -}}
-Connect to Infinispan {{ if .Values.nodePortsEnabled }}on {{ .Values.hostname }}:{{ add 30011 (mul .Values.portOffset 100) }}{{ end }}
-  user: admin
-  password: admin
-  Console URL: https://infinispan.{{ .Values.hostname }}/
-{{ else if eq .Values.database "cockroach-single" -}}
-Connect to CockroachDB {{ if .Values.nodePortsEnabled }}on {{ .Values.hostname }}:{{ add 30010 (mul .Values.portOffset 100) }}{{ end }}
-  user: keycloak
-  password: pass
-  JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:{{ add 30010 (mul .Values.portOffset 100) }}/keycloak
-  Console URL: https://cockroach.{{ .Values.hostname }}/
-{{ else if eq .Values.database "cockroach-operator" -}}
-Connect to CockroachDB {{ if .Values.nodePortsEnabled }}on {{ .Values.hostname }}:{{ add 30013 (mul .Values.portOffset 100) }}
-  JDBC URL: jdbc:postgresql://{{ .Values.hostname }}:{{ add 30013 (mul .Values.portOffset 100) }}/keycloak + TLS files in provision/minikube/crdb/
-  user: root {{ end }}
-  Console URL: https://cockroach.{{ .Values.hostname }}/
-  user: keycloak
-  password: pass
 {{ end -}}

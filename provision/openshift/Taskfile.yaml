@@ -33,8 +33,6 @@ tasks:
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=keycloak
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=infinispan
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=cockroach
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" == "aurora-postgres" ]; then
@@ -100,7 +98,6 @@ tasks:
       - .task/subtask-{{.TASK}}.yaml
       # if keycloak's database deployment changes, this restarts the DB and the Gatling user needs to be re-created
       - .task/status-keycloak-db.json
-      - .task/var-KC_STORAGE
       - .task/var-KC_DATABASE
 
   jaeger:
@@ -239,7 +236,6 @@ tasks:
         --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
         --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
         --set dbUrl={{ .KC_DATABASE_URL }}
-        --set storage={{.KC_STORAGE}}
         --set database={{.KC_DATABASE}}
         --set keycloakImage={{.KC_CONTAINER_IMAGE}}
         --set instances={{ .KC_INSTANCES }}

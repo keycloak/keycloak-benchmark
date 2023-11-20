@@ -6,21 +6,11 @@ MINIKUBE_HOME=$PROJECT_HOME/provision/minikube
 
 echo "INFO: reset the keycloak based on the parametrized input"
 export RESET_KEYCLOAK=${RESET_KEYCLOAK:-true}
-export KEYCLOAK_STORAGE=${KEYCLOAK_STORAGE:-"JPA-Legacy-PostgreSQL"}
+export KEYCLOAK_STORAGE=${KEYCLOAK_STORAGE:-"JPA-PostgreSQL"}
 if $RESET_KEYCLOAK; then
   cd $MINIKUBE_HOME
-  if [ "$KEYCLOAK_STORAGE" = "JPA-Map-PostgreSQL" ]; then
-    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="postgres"
-  elif [ "$KEYCLOAK_STORAGE" = "JPA-Legacy-PostgreSQL" ]; then
+  if [ "$KEYCLOAK_STORAGE" = "JPA-PostgreSQL" ]; then
     task reset-keycloak KC_DATABASE="postgres"
-  elif [ "$KEYCLOAK_STORAGE" = "ConcurrentHashMap-Map" ]; then
-    task reset-keycloak KC_STORAGE="chm"
-  elif [ "$KEYCLOAK_STORAGE" = "JPA-Map-CockroachDB-single" ]; then
-    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach-single"
-  elif [ "$KEYCLOAK_STORAGE" = "JPA-Map-CockroachDB-multi" ]; then
-    task reset-keycloak KC_STORAGE="jpa" KC_DATABASE="cockroach-operator"
-  elif [ "$KEYCLOAK_STORAGE" = "HotRod-Map" ]; then
-    task reset-keycloak KC_STORAGE="hotrod" KC_DATABASE="infinispan"
   else
     echo "Invalid KEYCLOAK_STORAGE: \"$KEYCLOAK_STORAGE\"."
     exit 1

@@ -35,39 +35,6 @@ Caution::
 Having Keycloak running into a "`Sorry, acquisition timeout`" and returning an HTTP 5xx code to the caller is a sensible load shedding mechanism.
 See xref:running/concepts/database-connections.adoc[] for details.
 
-[[retry-serializable]]
-== Keycloak message `RETRY_SERIALIZABLE`
-
-Full message::
-+
-[.wrap]
-----
-org.postgresql.util.PSQLException, ERROR: restart transaction: TransactionRetryWithProtoRefreshError: TransactionRetryError: retry txn (RETRY_SERIALIZABLE - failed preemptive refresh due to a conflict: intent on key /Table/137/... See: https://www.cockroachlabs.com/docs/v22.1/transaction-retry-error-reference.html#retry_serializable
-----
-
-Context::
-This error message can appear when running Keycloak with CockroachDB, both xref:storage/cockroach-single.adoc[single node] or xref:storage/cockroach-operator.adoc[multi node with the operator].
-+
-This might happen during the load test while Keycloak processes requests.
-
-Cause::
-Some transactions are not fully serializable as data has been modified in parallel transactions.
-
-Effect::
-The database rolls back the transaction and asks the caller to repeat the request.
-Some users see error messages.
-
-Remedy::
-* Analyze the request or URL where this happens by looking at the log, and discuss this with engineers.
-* Use the following SQL to find the table that is causing the problems. In the preceding example it would be `137`:
-+
-[source,sql]
-----
-SELECT DISTINCT ti.descriptor_name as table_name, us.table_id
-  FROM  crdb_internal.index_usage_statistics us, crdb_internal.table_indexes ti
-  WHERE us.table_id = ti.descriptor_id ORDER BY us.table_id ASC;
-----
-
 == Keycloak message `prepared transactions are disabled`
 
 Full message::
