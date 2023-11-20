@@ -6,7 +6,7 @@ MINIKUBE_HOME=$PROJECT_HOME/provision/minikube
 
 echo "INFO: reset the keycloak based on the parametrized input"
 export RESET_KEYCLOAK=${RESET_KEYCLOAK:-true}
-export KEYCLOAK_STORAGE=${KEYCLOAK_STORAGE:-"JPA-Legacy-PostgreSQL"}
+export KEYCLOAK_STORAGE=${KEYCLOAK_STORAGE:-"JPA-PostgreSQL"}
 if $RESET_KEYCLOAK; then
   cd $MINIKUBE_HOME
   if [ "$KEYCLOAK_STORAGE" = "JPA-PostgreSQL" ]; then
