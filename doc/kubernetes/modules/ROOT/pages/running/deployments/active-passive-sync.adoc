@@ -168,8 +168,9 @@ But as the secondary site would never be fully up to date with the primary site,
 This would include:
 +
 --
-* Lost logouts (sessions are still logged in the secondary datacenter that logged out in the primary datacenter at the point of failover)
-* Lost changes like users being able to log in with their old passwords (database changes not replicated to secondary datacenter at the point of failover).
+* Lost logouts (sessions are still logged in the secondary datacenter that logged out in the primary datacenter at the point of failover when using an asynchronous Infinispan replication of sessions).
+* Lost changes leading to users being able to log in with their old password (database changes not replicated to secondary datacenter at the point of failover when using an asynchronous database).
+* Invalid caches leading to users being able to log in with their old password (invalidations of caches are not propagated at the point of failover to the secondary datacenter when using an asynchronous Infinispan replication).
 --
 +
 So there is effectively a tradeoff between availability and consistency.
