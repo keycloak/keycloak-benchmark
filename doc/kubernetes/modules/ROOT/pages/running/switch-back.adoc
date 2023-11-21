@@ -3,6 +3,12 @@
 
 include::partial$running/infinispan-attributes.adoc[]
 
+// used by the CLI commands to avoid duplicating the code.
+:stale-site: primary
+:keep-site: secondary
+:keep-site-name: {site-b-cr}
+:stale-site-name: {site-a-cr}
+
 {description}
 
 // Infinispan -> trigger state transfer secondary -> primary (assumes empty caches)
@@ -31,47 +37,6 @@ This assumes a xref:running/deployments/active-passive-sync.adoc[] setup.
 
 For the context of this guide, `{site-a}` is the primary site, recovering back to operation, and `{site-b}` is the secondary site, running in production.
 
-include::partial$running/infinispan-batchcr-intro.adoc[]
-
-The `ConfigMap` with the {ispn} CLI operations are as follows:
-
-.Checks the cross-site status for all caches backing up to `{site-a}`.
-[source,yaml]
-----
-include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-status]
-----
-
-.Starts a cross-site state transfer for all caches backing up to `{site-a}`.
-[source,yaml]
-----
-include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-push-state]
-----
-
-.Checks the cross-site state transfer progress.
-[source,yaml]
-----
-include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-push-state-status]
-----
-
-.Resets the cross-site state transfer progress after its completion.
-[source,yaml]
-----
-include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc-reset-push-state-status]
-----
-
-.Clears the cache data in `{site-a}`.
-[source,yaml]
-----
-include::example$helm/ispn-site-a.yaml[tag=infinispan-crossdc-clear-caches]
-----
-
-[#running-infinispan-batch]
-==== Running {ispn} Batch
-
-include::partial$running/infinispan-running-batch.adoc[]
-
-==== Procedures
-
 After the {ispn} in the primary site is back online and joined the cross-site channel (see xref:running/infinispan-crossdc-deployment.adoc#verifying-the-deployment[verifying the {ispn} deployment]), the state transfer must be manually started from the secondary site.
 
 After clearing the state in the primary site, it transfers the full state from the secondary site to the primary site, and it must be completed before the primary site can start handling incoming requests.
@@ -86,25 +51,17 @@ The first procedure is to delete any stale data from the primary site.
 +
 When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to 0.
 
-. Run the `crossdc-clear-caches` Batch CR (see xref:#running-infinispan-batch[]).
+include::partial$running/infinispan-cli-connect.adoc[]
 
-. Delete all Batch CRs created.
+include::partial$running/infinispan-cli-clear-caches.adoc[]
 
 Now we are ready to transfer the state from the secondary site to the primary site.
 
 . Login into your secondary site.
 
-. Run the `crossdc-push-state-status` Batch CR (see xref:#running-infinispan-batch[]).
+include::partial$running/infinispan-cli-connect.adoc[]
 
-. Check the replication status is `ONLINE` for all caches with `crossdc-status` Batch CR.
-
-. Wait for the state transfer to complete by checking the output of the Batch CR `crossdc-push-state-status`.
-
-. If an error is reported by step 4, try to repeat the operations from step 2.
-
-. Clear the state transfer status with Batch CR `crossdc-reset-push-state-status`
-
-. Delete all Batch CRs created.
+include::partial$running/infinispan-cli-state-transfer.adoc[]
 
 . Login to the primary site.
 
