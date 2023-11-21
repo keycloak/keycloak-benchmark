@@ -16,12 +16,14 @@ Use this setup to be able to fail over automatically in the event of a datacente
 
 Manual interactions are usually required to restore the redundancy after the failover.
 
-=== Deployments
+=== Deployment, data storage and caching
 
 Two independent Keycloak deployments running in different datacenters connected with a low latency network connection.
-Entities like users, realms and clients and also offline sessions are stored in a database which is running synchronously replicated database across the two datacenters. The data is also cached in Keycloak's embedded Infinispan.
+Entities like users, realms and clients and also offline sessions are stored in a database which is running synchronously replicated database across the two datacenters. The data is also cached in Keycloak's embedded Infinispan as local caches.
+When the data is changed in one Keycloak instance, it is updated in the database, and an invalidation message is sent to the other datacenter using the replicated `work` cache.
 
-Session-related data is stored in the embedded Infinispan of Keycloak, and forwarded to the external Infinispan which forwards information to the external Infinispan running synchronously in the other datacenter.
+Session-related data is stored in the replicated caches of the embedded Infinispan of Keycloak, and forwarded to the external Infinispan, which forwards information to the external Infinispan running synchronously in the other datacenter.
+As session data of the external Infinispan is also cached in the embedded Infinispan, invalidation messages of the replicated `work` cache are needed for invalidation.
 
 In the following paragraphs and diagrams, when talking about deploying Infinispan, this always refers to the external Infinispan.
 
