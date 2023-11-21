@@ -1,14 +1,14 @@
 . Trigger the state transfer from the {keep-site} site to the {stale-site} site.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site push-site-state --all-caches --site={stale-site-name}
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-state --all-caches --site={stale-site-name}
 {
   "offlineClientSessions" : "ok",
   "authenticationSessions" : "ok",
@@ -23,15 +23,15 @@ site push-site-state --all-caches --site={stale-site-name}
 
 . Check the replication status is `online` for all caches.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site status --all-caches --site={stale-site-name}
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site status --all-caches --site={stale-site-name}
 {
   "status" : "online"
 }
@@ -39,6 +39,7 @@ site status --all-caches --site={stale-site-name}
 
 . Wait for the state transfer to complete by checking the output of `push-site-status` command for all caches.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site push-site-status --cache=actionTokens
@@ -51,38 +52,30 @@ site push-site-status --cache=sessions
 site push-site-status --cache=work
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=actionTokens
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=authenticationSessions
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=clientSessions
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=loginFailures
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=offlineClientSessions
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=offlineSessions
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=sessions
 {
   "{stale-site-name}" : "OK"
 }
-[{cluster-name}-0-29897@ISPN//containers/default]> site push-site-status --cache=work
 {
   "{stale-site-name}" : "OK"
 }
@@ -92,6 +85,7 @@ Check the table in {xsite-docs}#rest_v2_xsite_state_push_cross-site-operations-r
 +
 If an error is reported, repeat the state transfer for that specific cache.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site push-site-state --cache=<cache-name> --site={stale-site-name}
@@ -99,6 +93,7 @@ site push-site-state --cache=<cache-name> --site={stale-site-name}
 
 . Clear/reset the state transfer status with the following command
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site clear-push-site-status --cache=actionTokens
@@ -111,23 +106,15 @@ site clear-push-site-status --cache=sessions
 site clear-push-site-status --cache=work
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=actionTokens
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=authenticationSessions
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=clientSessions
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=loginFailures
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=offlineClientSessions
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=offlineSessions
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=sessions
 "ok"
-[{cluster-name}-0-29897@ISPN//containers/default]> site clear-push-site-status --cache=work
 "ok"
 ----

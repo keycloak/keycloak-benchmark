@@ -1,15 +1,15 @@
 . Disable the replication from {stale-site} site to the {keep-site} site by running the following command.
 It prevents the clear request to reach the {keep-site} site and delete all the correct cached data.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site take-offline --all-caches --site={keep-site-name}
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site take-offline --all-caches --site={keep-site-name}
 {
   "offlineClientSessions" : "ok",
   "authenticationSessions" : "ok",
@@ -24,15 +24,15 @@ site take-offline --all-caches --site={keep-site-name}
 
 . Check the replication status is `offline`.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site status --all-caches --site={keep-site-name}
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site status --all-caches --site={keep-site-name}
 {
   "status" : "offline"
 }
@@ -44,6 +44,7 @@ WARNING: Make sure the replication is `offline` otherwise the clear data will cl
 
 . Clear all the cached data in {stale-site} site using the following commands:
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 clearcache actionTokens
@@ -56,29 +57,19 @@ clearcache sessions
 clearcache work
 ----
 +
-.Example
-[source,bash,subs="+attributes"]
-----
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache actionTokens
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache authenticationSessions
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache clientSessions
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache loginFailures
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache offlineClientSessions
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache offlineSessions
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache sessions
-[{cluster-name}-0-29897@ISPN//containers/default]> clearcache work
-----
+The commands don't have an output.
+
 . Re-enable the cross-site replication from {stale-site} site to the {keep-site} site.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site bring-online --all-caches --site={keep-site-name}
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site bring-online --all-caches --site={keep-site-name}
 {
   "offlineClientSessions" : "ok",
   "authenticationSessions" : "ok",
@@ -93,15 +84,15 @@ site bring-online --all-caches --site={keep-site-name}
 
 . Check the replication status is `online`.
 +
+.Command:
 [source,bash,subs="+attributes"]
 ----
 site status --all-caches --site={keep-site-name}
 ----
 +
-.Example
+.Output:
 [source,bash,subs="+attributes"]
 ----
-[{cluster-name}-0-29897@ISPN//containers/default]> site status --all-caches --site={keep-site-name}
 {
   "status" : "online"
 }
