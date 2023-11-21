@@ -5,13 +5,13 @@
 
 == Audience
 This guide describes how to allow network traffic between ROSA clusters and a private Aurora DB cluster, so that
-Keycloak can establish a connection with the DB.
+{keycloak} can establish a connection with the DB.
 
 
 == Architecture
 The VPC created for the Aurora DB is not exposed over the internet, therefore it's necessary for us to create a https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html[VPC
 peering connection] between each ROSA cluster's VPC and the Aurora DB VPC. If this connection is not made, it will not
-be possible for your Keycloak deployment to establish a connection with the DB.
+be possible for your {keycloak} deployment to establish a connection with the DB.
 
 IMPORTANT: Multiple ROSA clusters connecting to the same Aurora DB VPC cannot have overlapping machine-cidr ranges as
 will prevent Aurora responses from being routed to the ROSA cluster initiating a request.

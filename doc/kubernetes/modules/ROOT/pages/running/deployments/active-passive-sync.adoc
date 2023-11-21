@@ -1,4 +1,4 @@
-= HA-Keycloak active/passive with synchronous replication
+= HA-{keycloak} active/passive with synchronous replication
 :navtitle: Active/passive with sync replication
 :description: This concept describes a highly available active/passive setup and the behavior to expect.
 
@@ -18,14 +18,14 @@ Manual interactions are usually required to restore the redundancy after the fai
 
 === Deployment, data storage and caching
 
-Two independent Keycloak deployments running in different datacenters connected with a low latency network connection.
-Entities like users, realms and clients and also offline sessions are stored in a database which is running synchronously replicated database across the two datacenters. The data is also cached in Keycloak's embedded Infinispan as local caches.
-When the data is changed in one Keycloak instance, it is updated in the database, and an invalidation message is sent to the other datacenter using the replicated `work` cache.
+Two independent {keycloak} deployments running in different datacenters connected with a low latency network connection.
+Entities like users, realms and clients and also offline sessions are stored in a database which is running synchronously replicated database across the two datacenters. The data is also cached in {keycloak}'s embedded {ispn} as local caches.
+When the data is changed in one {keycloak} instance, it is updated in the database, and an invalidation message is sent to the other datacenter using the replicated `work` cache.
 
-Session-related data is stored in the replicated caches of the embedded Infinispan of Keycloak, and forwarded to the external Infinispan, which forwards information to the external Infinispan running synchronously in the other datacenter.
-As session data of the external Infinispan is also cached in the embedded Infinispan, invalidation messages of the replicated `work` cache are needed for invalidation.
+Session-related data is stored in the replicated caches of the embedded {ispn} of {keycloak}, and forwarded to the external {ispn}, which forwards information to the external {ispn} running synchronously in the other datacenter.
+As session data of the external {ispn} is also cached in the embedded {ispn}, invalidation messages of the replicated `work` cache are needed for invalidation.
 
-In the following paragraphs and diagrams, when talking about deploying Infinispan, this always refers to the external Infinispan.
+In the following paragraphs and diagrams, when talking about deploying {ispn}, this always refers to the external {ispn}.
 
 image::crossdc/active-passive-sync.dio.svg[]
 
@@ -38,7 +38,7 @@ The service will be restored automatically.
 The system is degraded until the failures are detected and the backup cluster is promoted to service requests.
 
 * Once failures occur in the communication between the datacenters, manual steps are necessary to re-synchronize a degraded setup.
-Future versions of Keycloak and Infinispan plan to reduce those manual operations.
+Future versions of {keycloak} and {ispn} plan to reduce those manual operations.
 
 * Degraded setups can lead to service or data loss if additional components fail.
 Monitoring is necessary to detect degraded setups.
@@ -54,27 +54,27 @@ Monitoring is necessary to detect degraded setups.
 | No data loss
 | Seconds to minutes (depending on the database)
 
-| Keycloak node
-| Multiple Keycloak instances run in each datacenter. If one instance fails, it takes a few seconds for the other nodes to notice the change, and some incoming requests might receive an error message or are delayed for some seconds.
+| {keycloak} node
+| Multiple {keycloak} instances run in each datacenter. If one instance fails, it takes a few seconds for the other nodes to notice the change, and some incoming requests might receive an error message or are delayed for some seconds.
 | No data loss
 | Less than one minute
 
-| Infinispan node
-| Multiple Infinispan instances run in each datacenter. If one instance fails, it takes a few seconds for the other nodes to notice the change. Sessions are stored in at least two Infinispan nodes, so a single node failure doesn't lead to data loss.
+| {ispn} node
+| Multiple {ispn} instances run in each datacenter. If one instance fails, it takes a few seconds for the other nodes to notice the change. Sessions are stored in at least two {ispn} nodes, so a single node failure doesn't lead to data loss.
 | No data loss
 | Less than one minute
 
-| Infinispan cluster failure
-| If the Infinispan cluster fails in the active datacenter, Keycloak won't be able to communicate with the external Infinispan, and the Keycloak service will be unavailable.
+| {ispn} cluster failure
+| If the {ispn} cluster fails in the active datacenter, {keycloak} won't be able to communicate with the external {ispn}, and the {keycloak} service will be unavailable.
 Manual switchover to the secondary datacenter is recommended.
 Future versions will detect this situation and do an automatic failover.
 
-When the Infinispan cluster is restored, its data will be out-of-sync with Keycloak.
-Manual operations are required to get Infinispan in the primary datacenter in sync with the secondary datacenter.
+When the {ispn} cluster is restored, its data will be out-of-sync with {keycloak}.
+Manual operations are required to get {ispn} in the primary datacenter in sync with the secondary datacenter.
 | Loss of service
 | Human intervention required
 
-| Connectivity Infinispan
+| Connectivity {ispn}
 | If the connectivity between the two datacenters is lost, session information can't be sent to the other datacenter.
 Incoming requests might receive an error message or are delayed for some seconds.
 The primary site marks the secondary site offline, and will stop sending data to the secondary.
@@ -90,14 +90,14 @@ Manual operations might be necessary depending on the database.
 | Seconds to minutes (depending on the database)
 
 | Primary Datacenter
-| If none of the Keycloak nodes are available, the loadbalancer will detect the outage and redirect the traffic to the secondary site.
+| If none of the {keycloak} nodes are available, the loadbalancer will detect the outage and redirect the traffic to the secondary site.
 Some requests might receive an error message while the loadbalancer hasn't detected the primary datacenter failure.
 The setup will be degraded until the primary site is back up and the session state has been manually synced from the secondary to the primary site.
 | No data loss^3^
 | Less than one minute
 
 | Secondary Datacenter
-| If the secondary datacenter is not available, it will take a moment for the primary Infinispan and database to mark the secondary datacenter offline.
+| If the secondary datacenter is not available, it will take a moment for the primary {ispn} and database to mark the secondary datacenter offline.
 Some requests might receive an error message while the detection takes place.
 Once the secondary datacenter is up again, the session state needs to be manually synced from the primary site to the secondary site.
 | No data loss^3^
@@ -115,7 +115,7 @@ The statement "`No data loss`" depends on the setup not being degraded from prev
 
 ==== Upgrades
 
-* On Keycloak or Infinispan version upgrades ((major, minor and patch), all session data (except offline session) will be lost as neither supports zero downtime upgrades.
+* On {keycloak} or {ispn} version upgrades ((major, minor and patch), all session data (except offline session) will be lost as neither supports zero downtime upgrades.
 
 ==== Failovers
 
@@ -131,31 +131,31 @@ Use monitoring to ensure degradations are detected and handled in a timely manne
 
 ==== Out-of-sync datacenters
 
-* The datacenters can become out of sync when a synchronous Infinispan request fails.
-This is currently difficult to monitor, and it would need a full manual re-sync of Infinispan to recover.
-Monitoring the number of cache entries in both datacenters and Keycloak's log file can show when this would become necessary.
-Future versions of Keycloak and Infinispan plan to automate this.
+* The datacenters can become out of sync when a synchronous {ispn} request fails.
+This is currently difficult to monitor, and it would need a full manual re-sync of {ispn} to recover.
+Monitoring the number of cache entries in both datacenters and {keycloak}'s log file can show when this would become necessary.
+Future versions of {keycloak} and {ispn} plan to automate this.
 
 ==== Manual operations
 
-* Manual operations that re-synchronize the Infinispan state between the datacenters will issue a full state transfer which will put a stress on the system (network, CPU, Java heap in Infinispan and Keycloak).
+* Manual operations that re-synchronize the {ispn} state between the datacenters will issue a full state transfer which will put a stress on the system (network, CPU, Java heap in {ispn} and {keycloak}).
 
 === Questions and answers
 
 Why a synchronous database?::
 A synchronously replicated database ensures that data written in the primary datacenter is always available in the secondary datacenter on failover and no data is lost.
 
-Why a synchronous Infinispan replication?::
-A synchronously replicated Infinispan ensures that sessions created, updated and deleted in the primary datacenter are always available in the secondary datacenter on failover and no data is lost.
+Why a synchronous {ispn} replication?::
+A synchronously replicated {ispn} ensures that sessions created, updated and deleted in the primary datacenter are always available in the secondary datacenter on failover and no data is lost.
 
-Why low-latency between datacenters?::
+Why is a low-latency network between datacenters needed?::
 Synchronous replication defers the response to the caller until the data is received at the secondary datacenter.
-For a synchronous database replication and a synchronous Infinispan replication, a low latency is necessary as each request can have potentially multiple interactions between the datacenters when data is updated which would amplify the latency.
+For a synchronous database replication and a synchronous {ispn} replication, a low latency is necessary as each request can have potentially multiple interactions between the datacenters when data is updated which would amplify the latency.
 
 Why active-passive?::
 Some databases support a single writer instance with a reader instance which is then promoted to be the new writer once the original writer fails.
-In such a setup, it is beneficial for the latency to have the writer instance in the same datacenter as the currently active Keycloak.
-Synchronous Infinispan replication can lead to deadlocks when entries in both datacenters are modified concurrently.
+In such a setup, it is beneficial for the latency to have the writer instance in the same datacenter as the currently active {keycloak}.
+Synchronous {ispn} replication can lead to deadlocks when entries in both datacenters are modified concurrently.
 
 Is this setup limited to two datacenters?::
 This setup could be extended to multiple datacenters, and there are no fundamental changes necessary to have, for example, three datacenters. Once more datacenters are added, the overall latency between the datacenters increases, and the likeliness of network failures, and therefore short downtimes, increases as well.
@@ -168,13 +168,13 @@ But as the secondary site would never be fully up to date with the primary site,
 This would include:
 +
 --
-* Lost logouts (sessions are still logged in the secondary datacenter that logged out in the primary datacenter at the point of failover when using an asynchronous Infinispan replication of sessions).
+* Lost logouts (sessions are still logged in the secondary datacenter that logged out in the primary datacenter at the point of failover when using an asynchronous {ispn} replication of sessions).
 * Lost changes leading to users being able to log in with their old password (database changes not replicated to secondary datacenter at the point of failover when using an asynchronous database).
-* Invalid caches leading to users being able to log in with their old password (invalidations of caches are not propagated at the point of failover to the secondary datacenter when using an asynchronous Infinispan replication).
+* Invalid caches leading to users being able to log in with their old password (invalidations of caches are not propagated at the point of failover to the secondary datacenter when using an asynchronous {ispn} replication).
 --
 +
 So there is effectively a tradeoff between availability and consistency.
-For now, we've considered to rank consistency higher than availability with Keycloak.
+For now, we've considered to rank consistency higher than availability with {keycloak}.
 
 [#building-blocks]
 == Building blocks
@@ -185,14 +185,14 @@ They are listed in the order in which they need to be installed.
 
 === Two datacenters with low-latency connection
 
-Ensures that synchronous replication is available for both the database and the external Infinispan.
+Ensures that synchronous replication is available for both the database and the external {ispn}.
 
 *Blueprint:* Two AWS Availablity Zones within the same AWS Region.
 
 *Not considered:* Two regions on the same or different continents, as it would increase the latency and the likelihood of network failures.
 Synchronous replication of databases as a services with Aurora Regional Deployments on AWS is only available within the same region.
 
-=== Environment for Keycloak and Infinispan
+=== Environment for {keycloak} and {ispn}
 
 Ensures that the instances are deployed and restarted as needed.
 
@@ -206,26 +206,26 @@ A synchronously replicated database across two datacenters.
 
 *Blueprint:* xref::running/aurora-multi-az.adoc[Amazon Aurora PostgreSQL Regional Deployment spanning two availability zones, connected to ROSA]
 
-=== Infinispan
+=== {ispn}
 
-An Infinispan deployment which leverages the Infinispan's Cross-DC functionality.
+An {ispn} deployment which leverages the {ispn}'s Cross-DC functionality.
 
-*Blueprint:* xref::running/infinispan-crossdc-deployment.adoc[Deploy Infinispan using the Infinispan Operator on ROSA, and connect the two datacenters using Infinispan's Gossip Router].
+*Blueprint:* xref::running/infinispan-crossdc-deployment.adoc[Deploy {ispn} using the {ispn} Operator on ROSA, and connect the two datacenters using {ispn}'s Gossip Router].
 
 *Not considered:* Direct interconnections between the OpenShift clusters on the network layer.
 It might be considered in the future.
 
 === Loadbalancer
 
-A loadbalancer which checks the `/health/live` URl of the Keycloak deployment in each datacenter.
+A loadbalancer which checks the `/health/live` URl of the {keycloak} deployment in each datacenter.
 
 *Blueprint:* xref:running/loadbalancing.adoc[].
 
 *Not considered:* AWS Global Accelerator connecting to Red Hat OpenShift Service on AWS (ROSA) as it supports only weighted traffic routing and not active-passive failover.
 To support active-passive failover, additional logic using, for example, AWS CloudWatch and AWS Lambda would be necessary to simulate the active-passive handling by adjusting the weights when the probes fail.
 
-=== Keycloak
+=== {keycloak}
 
-A clustered deployment of Keycloak in each datacenter, connected to an external Infinispan.
+A clustered deployment of {keycloak} in each datacenter, connected to an external {ispn}.
 
-*Blueprint:* xref::running/keycloak-deployment.adoc[Deploy Keycloak using the Keycloak Operator on ROSA], and xref::running/keycloak-with-external-infinispan.adoc[connect it to the external Infinispan] and the Aurora database.
+*Blueprint:* xref::running/keycloak-deployment.adoc[Deploy {keycloak} using the {keycloak} Operator on ROSA], and xref::running/keycloak-with-external-infinispan.adoc[connect it to the external {ispn}] and the Aurora database.

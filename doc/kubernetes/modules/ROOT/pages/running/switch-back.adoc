@@ -11,19 +11,14 @@ include::partial$running/infinispan-attributes.adoc[]
 
 {description}
 
-// Infinispan -> trigger state transfer secondary -> primary (assumes empty caches)
-// Aurora -> switch to primary site?
-// Keycloak -> switch to primary site?
-// Route53 -> switch to primary site
-
 == Audience
 
 This guide contains the procedures required to bring the primary site back to operation when the secondary site is handling all the traffic.
 At the end of the guide, the primary site is online again and handles the traffic.
 
-This is necessary when the primary site has lost its state in Infinispan, a network partition occurred between the primary and the secondary site while the secondary site was active, or the replication was disabled as described in xref:./switch-over.adoc[].
+This is necessary when the primary site has lost its state in {ispn}, a network partition occurred between the primary and the secondary site while the secondary site was active, or the replication was disabled as described in xref:./switch-over.adoc[].
 
-If the data in Infinispan on both sites is still in sync, the procedure for {ispn} can be skipped.
+If the data in {ispn} on both sites is still in sync, the procedure for {ispn} can be skipped.
 
 See xref:running/index.adoc[] for additional guides.
 
@@ -47,9 +42,9 @@ The first procedure is to delete any stale data from the primary site.
 
 . Login to the primary site.
 
-. Shutdown Keycloak. This will clear all Keycloak caches, and it prevents the state of Keycloak from being out-of-sync with Infinispan.
+. Shutdown {keycloak}. This will clear all {keycloak} caches, and it prevents the state of {keycloak} from being out-of-sync with {ispn}.
 +
-When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to 0.
+When deploying {keycloak} using the {keycloak} Operator, change the number of {keycloak} instances in the {keycloak} Custom Resource to 0.
 
 include::partial$running/infinispan-cli-connect.adoc[]
 
@@ -65,9 +60,9 @@ include::partial$running/infinispan-cli-state-transfer.adoc[]
 
 . Login to the primary site.
 
-. Start Keycloak.
+. Start {keycloak}.
 +
-When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to the original value.
+When deploying {keycloak} using the {keycloak} Operator, change the number of {keycloak} instances in the {keycloak} Custom Resource to the original value.
 
 Both {ispn} clusters are in sync and the switchover from secondary back to the primary site can be performed.
 

@@ -1,19 +1,19 @@
 = Configuration of thread pools
 :navtitle: Thread Pools
-:description: This describes the reasoning behind configuring thread pools for Keycloak.
+:description: This describes the reasoning behind configuring thread pools for {keycloak}.
 
 {description}
 
 == Audience
 
-Read this page to understand considerations and best practices on how to configure thread pools connection pools for Keycloak.
+Read this page to understand considerations and best practices on how to configure thread pools connection pools for {keycloak}.
 For a configuration where this is applied, visit xref:running/keycloak-deployment.adoc[].
 
 == Concepts
 
 === Quarkus executor pool
 
-Keycloak requests are handled on the Quarkus executor pool, as well as all liveness and readiness probes.
+{keycloak} requests are handled on the Quarkus executor pool, as well as all liveness and readiness probes.
 
 The Quarkus executor thread pool is configured in https://quarkus.io/guides/all-config#quarkus-core_quarkus.thread-pool.max-threads[`quarkus.thread-pool.max-threads`] and has a maximum size of at least 200 threads.
 Depending on the available CPU cores, it can grow even larger.
@@ -27,7 +27,7 @@ With the number of threads in the executor pool being an order of magnitude larg
 
 === JGroup connection pool
 
-The combined number of executor threads in all Keycloak nodes in the cluster shouldn't exceed the number of threads available in JGroups thread pool to avoid the error described in
+The combined number of executor threads in all {keycloak} nodes in the cluster shouldn't exceed the number of threads available in JGroups thread pool to avoid the error described in
 xref:kubernetes-guide::error-messages.adoc#jgroups-thread-pool-is-full[`org.jgroups.util.ThreadPool: thread pool is full`].
 To see the error the first time it happens, the system property `jgroups.thread_dumps_threshold` needs to be set to `1`, as otherwise the message will appear only after 10000 threads have been rejected.
 
@@ -41,27 +41,27 @@ This is useful to monitor that limiting the Quarkus thread pool size keeps the n
 [#load-shedding]
 === Load Shedding
 
-By default, Keycloak will queue all incoming requests infinitely, even if the request processing stalls.
+By default, {keycloak} will queue all incoming requests infinitely, even if the request processing stalls.
 This will use additional memory in the Pod, can exhaust resources in the load balancers, and the requests will eventually time out on the client side without the client knowing if the request has been processed.
-To limit the number of queued requests in Keycloak, set an additional Quarkus configuration option.
+To limit the number of queued requests in {keycloak}, set an additional Quarkus configuration option.
 
-Configure `quarkus.thread-pool.queue-size` to specify a maximum queue length to allow for effective load shedding once this queue size is exceeded: Keycloak will return HTTP Status code 500 (server error).
-Assuming a Keycloak pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
+Configure `quarkus.thread-pool.queue-size` to specify a maximum queue length to allow for effective load shedding once this queue size is exceeded: {keycloak} will return HTTP Status code 500 (server error).
+Assuming a {keycloak} Pod processes around 200 requests per second, a queue of 1000 would lead to maximum waiting times of around 5 seconds.
 
 When this setting is active, requests that exceed the number of queued requests will return with an HTTP 500 error.
-Keycloak logs the error message in its log.
+{keycloak} logs the error message in its log.
 
-Future version of Keycloak will have better means to handle that: https://github.com/keycloak/keycloak/issues/23340[keycloak#23340].
+Future version of {keycloak} will have better means to handle that: https://github.com/keycloak/keycloak/issues/23340[keycloak#23340].
 
 [#probes]
 === Probes
 
 All health probes, including liveness and readiness probes, are handled in the Quarkus executor worker pool by default.
 Starting with Keyloak 22.0.5, there is a workaround in place to have the liveness probe non-blocking (see: https://github.com/keycloak/keycloak/issues/22109[keycloak#22109]).
-Future version of Keycloak and Quarkus plan to have other probes also being non-blocking.
+Future version of {keycloak} and Quarkus plan to have other probes also being non-blocking.
 
 === OS Resources
 
 In order for Java to create threads, when running on Linux it needs to have file handles available.
-Therefore, the number of open files (as retrieved as `ulimit -n` on Linux) need to provide head-space for Keycloak to increase the number of threads needed.
-Each thread will also consume memory, and the container memory limits need to be set to a value that allows for this or the pod will be killed by Kubernetes.
+Therefore, the number of open files (as retrieved as `ulimit -n` on Linux) need to provide head-space for {keycloak} to increase the number of threads needed.
+Each thread will also consume memory, and the container memory limits need to be set to a value that allows for this or the Pod will be killed by Kubernetes.

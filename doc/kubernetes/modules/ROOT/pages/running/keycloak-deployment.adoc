@@ -1,20 +1,20 @@
-= Keycloak Deployment
-:description: This describes configuration tweaks and changes on how to run a Keycloak Deployment under load.
+= {keycloak} Deployment
+:description: This describes configuration tweaks and changes on how to run a {keycloak} Deployment under load.
 
 {description}
 
 == Audience
 
-This guide describes advanced Keycloak configurations for Kubernetes which are load tested and will recover from single Pod failures.
+This guide describes advanced {keycloak} configurations for Kubernetes which are load tested and will recover from single Pod failures.
 
-While the Helm charts in the Keycloak Benchmark project mix different aspects of production style deployments with instrumentation and monitoring, this documentation focuses on a minimal deployment with optional add-ons which admins can opt in for their own deployments.
+While the Helm charts in the {keycloak} Benchmark project mix different aspects of production style deployments with instrumentation and monitoring, this documentation focuses on a minimal deployment with optional add-ons which admins can opt in for their own deployments.
 
 See xref:running/index.adoc[] for additional guides.
 
 == Prerequisites
 
 * OpenShift or Kubernetes cluster running
-* Understanding of a https://www.keycloak.org/operator/basic-deployment[Basic Keycloak deployment]
+* Understanding of a https://www.keycloak.org/operator/basic-deployment[Basic {keycloak} deployment]
 
 == Procedure
 
@@ -22,22 +22,24 @@ See xref:running/index.adoc[] for additional guides.
 
 . Determine the sizing of the deployment using xref:benchmark-guide::report/rosa-benchmark-key-results.adoc[].
 
-. https://www.keycloak.org/operator/installation[Deploy Keycloak Operator].
+. https://www.keycloak.org/operator/installation[Deploy {keycloak} Operator].
 
-. Deploy the Keycloak CR with the following values with the resource requests and limits calculated in the first step:
+. Deploy the {keycloak} CR with the following values with the resource requests and limits calculated in the first step:
 +
 [source,yaml]
 ----
 include::example$helm/keycloak.yaml[tag=keycloak]
 ----
 <1> The database connection pool initial, max and min size should be identical to allow statement caching for the database.
+Adjust this number to meet your system's needs.
+As most requests won't touch the database due to {keycloak}'s embedded cache, this can server several hundreds of requests per second.
 See xref:./concepts/database-connections.adoc[] for details.
 <2> To be able to analyze the system under load, enable the metrics endpoint.
-The downside of the setting is that the metrics will be available at the external Keycloak endpoint, so you must add a filter so that the endpoint is not available from the outside.
-Use a reverse proxy in front of Keycloak to filter out those URLs.
+The downside of the setting is that the metrics will be available at the external {keycloak} endpoint, so you must add a filter so that the endpoint is not available from the outside.
+Use a reverse proxy in front of {keycloak} to filter out those URLs.
 <3> The internal JGroup thread pools is by default set up for 200 threads maximum.
-The number of all Keycloak threads in the stateful set should not exceed the number of JGroup threads to avoid a JGroup thread pool exhaustion which could stall Keycloak request processing.
-It might be beneficial to limit the number of Keycloak threads even further, as too many concurrent threads will lead to throttling by Kubernetes once the requested CPU limit is reached.
+The number of all {keycloak} threads in the StatefulSet should not exceed the number of JGroup threads to avoid a JGroup thread pool exhaustion which could stall {keycloak} request processing.
+It might be beneficial to limit the number of {keycloak} threads even further, as too many concurrent threads will lead to throttling by Kubernetes once the requested CPU limit is reached.
 See xref:./concepts/threads.adoc[] for details.
 <4> The JVM options set additional parameters:
 * `jgroups.thread_dumps_threshold` ensures that a log message "`thread pool is full`" appears once the JGroup thread pool is full for the first time. See xref:./concepts/threads.adoc[] for details.
@@ -46,12 +48,12 @@ See xref:./concepts/threads.adoc[] for details.
 [NOTE]
 ====
 Previous versions of this documentation recommended to disable the liveness and readiness probes.
-With https://github.com/keycloak/keycloak/issues/22109[keycloak#22109] being available in Keycloak 22.0.5, this is no longer recommended.
+With https://github.com/keycloak/keycloak/issues/22109[keycloak#22109] being available in {keycloak} 22.0.5, this is no longer recommended.
 ====
 
 == Verifying the deployment
 
-Confirm that the Keycloak deployment is ready.
+Confirm that the {keycloak} deployment is ready.
 
 [source,bash]
 ----
@@ -61,13 +63,13 @@ kubectl wait --for=condition=RollingUpdate=False keycloaks.k8s.keycloak.org/keyc
 
 == Optional: Load shedding
 
-Keycloak currently lacks a mechanism for load shedding.
+{keycloak} currently lacks a mechanism for load shedding.
 There are currently different methods in evaluation.
 
-The only way to do this in Keycloak 22 is to specify a Quarkus thread pool queue size. Unfortunately, this can cause side effects to block, for example, the health probes. See https://github.com/keycloak/keycloak/pull/23920[keycloak#23920] for the discussion.
+The only way to do this in {keycloak} 22 is to specify a Quarkus thread pool queue size. Unfortunately, this can cause side effects to block, for example, the health probes. See https://github.com/keycloak/keycloak/pull/23920[keycloak#23920] for the discussion.
 See below if you want to give it a try anyway.
 
-A more sophisticated solution is discussed in https://github.com/keycloak/keycloak/issues/23340[keycloak#23340] which migh arrive for Keycloak 23.
+A more sophisticated solution is discussed in https://github.com/keycloak/keycloak/issues/23340[keycloak#23340] which migh arrive for {keycloak} 23.
 
 .Load shedding with Quarkus thread pool size
 [source,yaml,indent=0]
@@ -75,15 +77,15 @@ A more sophisticated solution is discussed in https://github.com/keycloak/keyclo
             env:
 include::example$helm/keycloak.yaml[tag=keycloak-queue-size]
 ----
-<1> This limits the number of queued Keycloak requests. All exceeding requests are served with an HTTP 500 error and logged.
+<1> This limits the number of queued {keycloak} requests. All exceeding requests are served with an HTTP 500 error and logged.
 See xref:./concepts/threads.adoc#load-shedding[load shedding] for details.
 
 == Optional: Disable sticky sessions
 
-When running on OpenShift and the default passthrough Ingress setup as provided by the Keycloak Operator, the load balancing done by HAProxy is done using sticky sessions based on the source's IP address.
-When running load tests, or when having a reverse proxy in front of HAProxy, you might want to disable this to avoid receiving all requests on a single Keycloak Pod.
+When running on OpenShift and the default passthrough Ingress setup as provided by the {keycloak} Operator, the load balancing done by HAProxy is done using sticky sessions based on the source's IP address.
+When running load tests, or when having a reverse proxy in front of HAProxy, you might want to disable this to avoid receiving all requests on a single {keycloak} Pod.
 
-Add the following supplementary configuration under the `spec` in the Keycloak Custom Resource to disable sticky sessions.
+Add the following supplementary configuration under the `spec` in the {keycloak} Custom Resource to disable sticky sessions.
 
 [source,yaml]
 ----
@@ -92,7 +94,7 @@ spec:
         enabled: true
         annotations:
           # When running load tests, disable sticky sessions on the OpenShift HAProxy router
-          # to avoid receiving all requests on a single Keycloak Pod.
+          # to avoid receiving all requests on a single {keycloak} Pod.
           haproxy.router.openshift.io/balance: roundrobin
           haproxy.router.openshift.io/disable_cookies: 'true'
 ----

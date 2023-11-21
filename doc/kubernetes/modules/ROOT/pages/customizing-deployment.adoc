@@ -103,14 +103,14 @@ Sets the number of Keycloak instances.
 Default value: `1`
 
 KC_CPU_LIMITS::
-Sets CPU limits per Keycloak pod.
+Sets CPU limits per Keycloak Pod.
 +
 Default value: `4`
 +
 The value must adhere to the https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu[Kubernetes CPU units] format.
 
 KC_MEMORY_LIMITS_MB::
-Sets memory limits in MB per Keycloak pod.
+Sets memory limits in MB per Keycloak Pod.
 +
 Default value: `1024`
 
@@ -171,7 +171,7 @@ Default value: `true`
 Available options:
 +
 --
-* `true` -- Keycloak is configured to use a custom configuration file that is mounted to each pod.
+* `true` -- Keycloak is configured to use a custom configuration file that is mounted to each Pod.
 The file can be found here: `link:{github-files}/provision/minikube/keycloak/config/kcb-infinispan-cache-config.xml[kcb-infinispan-cache-config.xml]`.
 * `false` -- use the default Infinispan configuration that is part of the Keycloak distribution.
 --
@@ -216,9 +216,9 @@ NOTE: This option is implemented only for OpenShift deployments.
 
 [[KC_DISABLE_STICKY_SESSION,KC_DISABLE_STICKY_SESSION]]
 KC_DISABLE_STICKY_SESSION::
-Running the Keycloak benchmark from a single machine makes the OpenShift Route to redirect the traffic to the same Keycloak pod.
-The first connection reaches a random Keycloak pod but future connections from the same source IP will be redirected to the pod (sticky session).
-This option disables this behaviour and configure the OpenShift Route to use round-robin between all the available Keycloak pods.
+Running the Keycloak benchmark from a single machine makes the OpenShift Route to redirect the traffic to the same Keycloak Pod.
+The first connection reaches a random Keycloak Pod but future connections from the same source IP will be redirected to the Pod (sticky session).
+This option disables this behaviour and configure the OpenShift Route to use round-robin between all the available Keycloak Pods.
 +
 Default value: `false`
 +

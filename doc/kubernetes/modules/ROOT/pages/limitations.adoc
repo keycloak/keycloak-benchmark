@@ -10,8 +10,8 @@ After that, the containers will complain that they're unable to start more proce
 
 == minikube runtime
 
-When testing the cri-o runtime on a bigger machine, https://github.com/keycloak/keycloak-benchmark/issues/128[starting pods and accessing them via the Kubernetes API and via the web browser was flaky].
-Pods`' liveness probes were failing now and then, and pods restarted.
+When testing the cri-o runtime on a bigger machine, https://github.com/keycloak/keycloak-benchmark/issues/128[starting Pods and accessing them via the Kubernetes API and via the web browser was flaky].
+Pods`' liveness probes were failing now and then, and Pods restarted.
 After some analysis, the reason was still unclear, it might have been related to the limited number of open files.
 
 == minikube persistent store
@@ -21,7 +21,7 @@ Due to that, the PVC sizes will not be checked and one service might fill the di
 
 == Jaeger and sampling of tracing
 
-The data collected for each trace are large and can lead to a fast out-of-memory situation with the Jaeger pod.
+The data collected for each trace are large and can lead to a fast out-of-memory situation with the Jaeger Pod.
 To minimize the amount of data collected, the value `OTEL_TRACES_SAMPLER_ARG` is set a 0.001 to trace only one out of a thousand requests.
 Tracing is disabled by default and can be enabled in Keycloak's helm chart's `values.yaml` file.
 

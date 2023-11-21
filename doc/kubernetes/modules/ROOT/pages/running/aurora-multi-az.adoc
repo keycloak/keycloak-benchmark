@@ -22,8 +22,7 @@ image::aurora/aurora-multi-az.dio.svg[]
 See the https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html[AWS Aurora documentation] for more details on the semantics provided by Aurora DBs.
 
 NOTE: This guide follows AWS best-practices and creates a private Aurora DB that is not exposed over the internet. In order
-to access the DB from a ROSA cluster it's necessary for a xref:running/aurora-peering-connections.adoc[peering-connection]
-to be established.
+to access the DB from a ROSA cluster it's necessary to <<establish-peering-connections-with-rosa-clusters,establish a peering connection>>.
 
 == Procedure
 The following procedure is split into two parts. First, we create an Aurora Multi-AZ DB cluster with the name "keycloak-aurora"
@@ -36,7 +35,7 @@ include::partial$aurora/aurora-multiaz-create-procedure.adoc[]
 
 === Establish Peering Connections with ROSA clusters
 
-The following steps must be repeated for each ROSA cluster which contains a Keycloak deployment.
+The following steps must be repeated for each ROSA cluster which contains a {keycloak} deployment.
 
 include::partial$aurora/aurora-create-peering-connections.adoc[]
 
@@ -44,11 +43,11 @@ include::partial$aurora/aurora-create-peering-connections.adoc[]
 
 include::partial$aurora/aurora-verify-peering-connections.adoc[]
 
-== Deploying Keycloak
+== Deploying {keycloak}
 
 Now that an Aurora DB has been established and linked with all of your ROSA clusters, the next step is to
-xref:running/keycloak-deployment.adoc[Deploy Keycloak] with the JDBC url configured to use the Aurora DB writer
-endpoint. To do this we create a `Keycloak` CR outlined in the xref:running/keycloak-deployment.adoc[] guide, however
+xref:running/keycloak-deployment.adoc[Deploy {keycloak}] with the JDBC url configured to use the Aurora DB writer
+endpoint. To do this we create a `{keycloak}` CR outlined in the xref:running/keycloak-deployment.adoc[] guide, however
 we modify the following elements:
 
 

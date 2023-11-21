@@ -96,7 +96,7 @@ This happens when the thread pool in JGroups runs out of threads.
 For this message to appear with the default JGroups configuration, the system property `jgroups.thread_dumps_threshold` needs to be set to `1`, as otherwise the message will appear only after 10000 threads have been rejected.
 
 Cause::
-Each Keycloak pod has executor threads that run the RESTEasy requests.
+Each Keycloak Pod has executor threads that run the RESTEasy requests.
 While those can request data from the local caches directly (either the primary or the back ones), they need to call remote caches through JGroups.
 While some of these requests might get bundled, each of the Keycloak requests calling out remotely might need to use one JGroups thread.
 

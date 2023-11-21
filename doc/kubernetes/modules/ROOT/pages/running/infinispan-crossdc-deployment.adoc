@@ -1,5 +1,5 @@
-= Infinispan Deployment: Multiple Clusters
-:description: This describes how to deploy Infinispan with cross-site enabled.
+= {ispn} Deployment: Multiple Clusters
+:description: This describes how to deploy {ispn} with cross-site enabled.
 
 include::partial$running/infinispan-attributes.adoc[]
 
@@ -8,7 +8,7 @@ include::partial$running/infinispan-attributes.adoc[]
 == Audience
 
 This guide describes the procedures required to deploy {ispn} in a multiple-cluster environment (cross-site).
-For simplicity, this guide uses the minimum configuration possible that allows {kc} to be used with an external {ispn}.
+For simplicity, this guide uses the minimum configuration possible that allows {keycloak} to be used with an external {ispn}.
 
 This guide assumes two {ocp} clusters named `{site-a}` and `{site-b}`.
 
@@ -16,16 +16,11 @@ See xref:running/index.adoc[] for additional guides.
 
 == Architecture
 
-Using AWS as a cloud provider, the {ocp} clusters could be in different region (multi-region deployment) or in different availability zones in the same region (multi-az deployment).
+This deploys two synchronously replicating {ispn} clusters in two datacenters with a low-latency network connection.
+This could be, for example, two availability zones in one AWS region.
 
-This guide works in both deployment types.
+{keycloak}, loadbalancer and database have been removed from the following diagram for simplicity.
 
-.Multi Region deployment in AWS eu-west-1 and eu-east-1 regions
-image::crossdc/infinispan-crossdc-region.dio.svg[]
-
-TIP: An asynchronous cross-site replication is recommended for multi-region deployment, due to the possibility high latency between regions.
-
-.Multi AZ deployment in AWS eu-west-1a and eu-west-1b zones
 image::crossdc/infinispan-crossdc-az.dio.svg[]
 
 == Prerequisites
@@ -52,17 +47,17 @@ For more details check {operator-docs}#managed-cross-site-connections_cross-site
 .Create the service account in `{site-a}`
 [source,bash,subs="+attributes"]
 ----
-oc create sa -n {ns} {sa}
-oc policy add-role-to-user view -n {ns} -z {sa}
-oc create token -n {ns} {sa} > {site-a}-token.txt
+kubectl create sa -n {ns} {sa}
+kubectl policy add-role-to-user view -n {ns} -z {sa}
+kubectl create token -n {ns} {sa} > {site-a}-token.txt
 ----
 +
 .Create the service account in `{site-b}`
 [source,bash,subs="+attributes"]
 ----
-oc create sa -n {ns} {sa}
-oc policy add-role-to-user view -n {ns} -z {sa}
-oc create token -n {ns} {sa} > {site-b}-token.txt
+kubectl create sa -n {ns} {sa}
+kubectl policy add-role-to-user view -n {ns} -z {sa}
+kubectl create token -n {ns} {sa} > {site-b}-token.txt
 ----
 +
 .. The next step is to deploy the token from `{site-a}` into `{site-b}` and vice-versa
@@ -70,20 +65,20 @@ oc create token -n {ns} {sa} > {site-b}-token.txt
 .Deploy `{site-b}` token into `{site-a}`
 [source,bash,subs="+attributes"]
 ----
-oc create secret generic -n {ns} {sa-secret} \
+kubectl create secret generic -n {ns} {sa-secret} \
   --from-literal=token="$(cat {site-b}-token.txt)"
 ----
 +
 .Deploy `{site-a}` token into `{site-b}`
 [source,bash,subs="+attributes"]
 ----
-oc create secret generic -n {ns} {sa-secret} \
+kubectl create secret generic -n {ns} {sa-secret} \
   --from-literal=token="$(cat {site-a}-token.txt)"
 ----
 
 . Create TLS secrets
 +
-In this guide Infinispan uses an {ocp} Route for the cross-site communication.
+In this guide {ispn} uses an {ocp} Route for the cross-site communication.
 It uses the SNI extension of TLS to direct the traffic to the correct Pods.
 To achieve that, JGroups use TLS sockets, which require a Keystore and Truststore with the correct certificates.
 +
@@ -98,7 +93,7 @@ To upload the Keystore as a Secret, use the following command:
 .Deploy a Keystore
 [source,bash,subs="+attributes"]
 ----
-oc -n {ns} create secret generic {ks-secret} \
+kubectl -n {ns} create secret generic {ks-secret} \
   --from-file=keystore.p12="./certs/keystore.p12" \ # <1>
   --from-literal=password=secret \ #<2>
   --from-literal=type=pkcs12 #<3>
@@ -112,7 +107,7 @@ To upload the Truststore as a Secret, use the following command:
 .Deploy a Truststore
 [source,bash,subs="+attributes"]
 ----
-oc -n {ns} create secret generic {ts-secret} \
+kubectl -n {ns} create secret generic {ts-secret} \
         --from-file=truststore.p12="./certs/truststore.p12" \  # <1>
         --from-literal=password=caSecret \  # <2>
         --from-literal=type=pkcs12  # <3>
@@ -158,9 +153,9 @@ Note the differences in point 4, 11 and 13.
 include::example$helm/ispn-site-b.yaml[tag=infinispan-crossdc]
 ----
 
-. Creating the caches for {kc}.
+. Creating the caches for {keycloak}.
 +
-{kc} requires the following caches to be present: `sessions`, `actionTokens`, `authenticationSessions`, `offlineSessions`, `clientSessions`, `offlineClientSessions`, `loginFailures`, and `work`.
+{keycloak} requires the following caches to be present: `sessions`, `actionTokens`, `authenticationSessions`, `offlineSessions`, `clientSessions`, `offlineClientSessions`, `loginFailures`, and `work`.
 +
 The {ispn} {operator-docs}#creating-caches[Cache CR] allows to deploy the caches in the {ispn} cluster.
 Cross-site needs to be enabled per cache as documented by {xsite-docs}[Cross Site Documentation].
@@ -194,15 +189,15 @@ Confirm that the {ispn} cluster is formed, and the cross-site connection is esta
 .Wait until the {ispn} cluster is formed
 [source,bash,subs="+attributes"]
 ----
-oc wait --for condition=WellFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
+kubectl wait --for condition=WellFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
 ----
 
 .Wait until the {ispn} cross-site connection is established
 [source,bash,subs="+attributes"]
 ----
-oc wait --for condition=CrossSiteViewFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
+kubectl wait --for condition=CrossSiteViewFormed --timeout=300s infinispans.infinispan.org -n {ns} {cluster-name}
 ----
 
 == What's next?
 
-After infinispan is deployed and running, checkout xref:running/keycloak-with-external-infinispan.adoc[] documentation on how to connect your {kc} cluster with the {ispn} cluster.
+After infinispan is deployed and running, checkout xref:running/keycloak-with-external-infinispan.adoc[] documentation on how to connect your {keycloak} cluster with the {ispn} cluster.

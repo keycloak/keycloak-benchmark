@@ -11,11 +11,6 @@ include::partial$running/infinispan-attributes.adoc[]
 
 {description}
 
-// Infinispan -> clear caches on secondary site and perform the state transfer
-// Keycloak -> clear caches (how?)
-// Aurora -> ?
-// Route53 -> no-op
-
 == Audience
 
 This guide describes the procedures required to synchronize the secondary site after a temporary disconnection between sites.
@@ -35,9 +30,9 @@ First procedure is to delete the stale data from the secondary site.
 
 . Login into your secondary site.
 
-. Shutdown Keycloak. This will clear all Keycloak caches, and it prevents the state of Keycloak from being out-of-sync with Infinispan.
+. Shutdown {keycloak}. This will clear all {keycloak} caches, and it prevents the state of {keycloak} from being out-of-sync with {ispn}.
 +
-When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to 0.
+When deploying {keycloak} using the {keycloak} Operator, change the number of {keycloak} instances in the {keycloak} Custom Resource to 0.
 
 include::partial$running/infinispan-cli-connect.adoc[]
 
@@ -51,13 +46,13 @@ include::partial$running/infinispan-cli-connect.adoc[]
 
 include::partial$running/infinispan-cli-state-transfer.adoc[]
 
-As now the state is available in the secondary datacenter, Keycloak can be started again:
+As now the state is available in the secondary datacenter, {keycloak} can be started again:
 
 . Login into your secondary site.
 
-. Startup Keycloak.
+. Startup {keycloak}.
 +
-When deploying Keycloak using the Keycloak Operator, change the number of Keycloak instances in the Keycloak Custom Resource to the original value.
+When deploying {keycloak} using the {keycloak} Operator, change the number of {keycloak} instances in the {keycloak} Custom Resource to the original value.
 
 === AWS Aurora Database
 

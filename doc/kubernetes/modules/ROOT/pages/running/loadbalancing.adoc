@@ -1,14 +1,14 @@
 = AWS Route 53 active/passive loadbalancer
-:description: This guide describes the procedure required to configure DNS based failover for Multi-AZ Keycloak clusters \
+:description: This guide describes the procedure required to configure DNS based failover for Multi-AZ {keycloak} clusters \
 using AWS Route53.
 
 {description}
 
 == Architecture
 
-All Keycloak client requests are routed via a DNS name managed by Route53 records. It's the responsibility of Route53
+All {keycloak} client requests are routed via a DNS name managed by Route53 records. It's the responsibility of Route53
 to ensure that all client requests are routed to the Primary cluster when it's available and healthy, or to the backup
-cluster in the event of the primary availability-zone and/or Keycloak deployment failing.
+cluster in the event of the primary availability-zone and/or {keycloak} deployment failing.
 
 If the primary site fails, the DNS changes will need to propagate to the clients. Depending on the client's settings, this may take some minutes and depends on the client's configuration.
 When using mobile connections, some internet providers might not respect the TTL of the DNS entries, which can lead to an extended time until the clients finally connect to the new site.
@@ -18,17 +18,17 @@ image::route53/route53-multi-az-failover.svg[]
 
 Two Openshift Routes are exposed on both the Primary and Backup ROSA cluster. The first Route utilises the Route53 DNS
 name in order to service client requests, whereas the second Route is used by Route53 to monitor the health of the
-Keycloak cluster.
+{keycloak} cluster.
 
 == Prerequisites
 
-* ROSA based Multi-AZ Keycloak deployment
+* ROSA based Multi-AZ {keycloak} deployment
 * An owned domain for client requests to be routed through
 
 == Procedure
 
 . [[create-hosted-zone]]Create a https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingHostedZone.html[Route53 Hosted Zone] using
-the root domain name that you want all Keycloak clients to connect through.
+the root domain name that you want all {keycloak} clients to connect through.
 +
 Take note of the "Hosted zone ID", as this will be required in later steps.
 
@@ -43,7 +43,7 @@ For both the Primary and Backup cluster, perform the following:
 .Command:
 [source,bash]
 ----
-NODE=$(oc get nodes --selector=node-role.kubernetes.io/worker \
+NODE=$(kubectl get nodes --selector=node-role.kubernetes.io/worker \
   -o jsonpath='{.items[0].metadata.name}'
 )
 aws ec2 describe-instances \
@@ -114,7 +114,7 @@ BACKUP_DOMAIN="backup.${CLIENT_DOMAIN}" #<3>
 createHealthCheck ${PRIMARY_DOMAIN}
 createHealthCheck ${BACKUP_DOMAIN}
 ----
-<1> The domain which Keycloak clients should connect to. This should be the same, or a subdomain, of the root domain
+<1> The domain which {keycloak} clients should connect to. This should be the same, or a subdomain, of the root domain
 used to create the xref:create-hosted-zone[Hosted Zone].
 <2> The subdomain that will be used for health probes on the Primary cluster
 <3> The subdomain that will be used for health probes on the Backup cluster
@@ -217,35 +217,35 @@ aws route53 change-resource-record-sets \
 aws route53 wait resource-record-sets-changed --id /change/C053410633T95FR9WN3YI
 ----
 +
-. Update/Create Keycloak Deployment
+. Update/Create {keycloak} Deployment
 +
 For both the Primary and Backup cluster, perform the following:
 +
 .. Login to the ROSA cluster
 +
-.. Ensure the Keycloak CR has the following configuration
+.. Ensure the {keycloak} CR has the following configuration
 +
 [source,yaml]
 ----
 apiVersion: k8s.keycloak.org/v2alpha1
-kind: Keycloak
+kind: {keycloak}
 metadata:
   name: keycloak
 spec:
   hostname:
     hostname: ${CLIENT_DOMAIN} # <1>
 ----
-<1> The domain clients use to connect to Keycloak
+<1> The domain clients use to connect to {keycloak}
 +
-To ensure that request forwarding works, specify in the Keycloak CR the hostname through
-which clients will access the Keycloak instances. This must be the `$CLIENT_DOMAIN` used in the Route53 configuration.
+To ensure that request forwarding works, specify in the {keycloak} CR the hostname through
+which clients will access the {keycloak} instances. This must be the `$CLIENT_DOMAIN` used in the Route53 configuration.
 +
 .. Create health check Route
 +
 .Command:
 [source,bash]
 ----
-cat <<EOF | oc apply -n $NAMESPACE -f - #<1>
+cat <<EOF | kubectl apply -n $NAMESPACE -f - #<1>
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -265,15 +265,15 @@ spec:
 
 EOF
 ----
-<1> `$NAMESPACE` should be replaced with the namespace of your Keycloak deployment
+<1> `$NAMESPACE` should be replaced with the namespace of your {keycloak} deployment
 <2> `$DOMAIN` should be replaced with either the `PRIMARY_DOMAIN` or `BACKUP_DOMAIN`, if the current
 cluster is the Primary of Backup cluster, respectively.
 
 
 == Verify
 
-Navigate to the chosen CLIENT_DOMAIN in your local browser and login to the Keycloak console.
+Navigate to the chosen CLIENT_DOMAIN in your local browser and login to the {keycloak} console.
 
-To test failover works as expected, login to the Primary cluster and scale the Keycloak deployment to zero pods. This will
-cause the Primary's health checks to fail and Route53 should start routing traffic to the Keycloak pods on the Backup
+To test failover works as expected, login to the Primary cluster and scale the {keycloak} deployment to zero Pods. This will
+cause the Primary's health checks to fail and Route53 should start routing traffic to the {keycloak} Pods on the Backup
 cluster.
