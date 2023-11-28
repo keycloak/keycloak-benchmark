@@ -1,0 +1,69 @@
+name: Multi-AZ Clusters - Create
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix to be used when creating the clusters'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+
+env:
+  CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
+  REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
+
+jobs:
+  cluster1:
+    uses: ./.github/workflows/rosa-cluster-create.yml
+    with:
+      clusterName: ${{ inputs.clusterPrefix }}-a
+      region: ${{ inputs.region }}
+      availabilityZones: ${{ inputs.region }}a
+    secrets: inherit
+
+  cluster2:
+    uses: ./.github/workflows/rosa-cluster-create.yml
+    with:
+      clusterName: ${{ inputs.clusterPrefix }}-b
+      region: ${{ inputs.region }}b
+      availabilityZones: ${{ inputs.region }}b
+    secrets: inherit
+
+  deploy-keycloak:
+    runs-on: ubuntu-latest
+    needs:
+      - cluster1
+      - cluster2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Deploy
+        working-directory: provision/rosa-cross-dc
+        run: task
+        env:
+          AURORA_CLUSTER: ${{ env.CLUSTER_PREFIX }}
+          AURORA_REGION: ${{ env.REGION }}
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+
