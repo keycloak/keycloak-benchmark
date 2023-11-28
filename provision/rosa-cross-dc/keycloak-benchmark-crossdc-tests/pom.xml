@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-benchmark-parent</artifactId>
+        <version>0.10-SNAPSHOT</version>
+        <relativePath>../../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>keycloak-benchmark-crossdc-tests</artifactId>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <!-- Tests are skipped by default. Run with -DcrossDCTests if you want to execute them. -->
+            <id>skip-tests</id>
+            <activation>
+                <property>
+                    <name>!crossDCTests</name>
+                </property>
+            </activation>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemProperties>
+                        <!--suppress UnresolvedMavenProperty -->
+                        <keycloak.dc1.url>${KEYCLOAK_DC1_URL}</keycloak.dc1.url>
+                        <!--suppress UnresolvedMavenProperty -->
+                        <keycloak.dc2.url>${KEYCLOAK_DC2_URL}</keycloak.dc2.url>
+                        <!--suppress UnresolvedMavenProperty -->
+                        <infinispan.dc1.url>${ISPN_DC1_URL}</infinispan.dc1.url>
+                        <!--suppress UnresolvedMavenProperty -->
+                        <infinispan.dc2.url>${ISPN_DC2_URL}</infinispan.dc2.url>
+                        <!--suppress UnresolvedMavenProperty -->
+                        <infinispan.password>${ISPN_PASSWORD}</infinispan.password>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

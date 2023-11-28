@@ -1,0 +1,68 @@
+name: Run CrossDC functional tests on ROSA cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix used when creating the Cross DC clusters'
+        type: string
+
+concurrency:
+  # Only run once for the latest commit per ref and cancel other (previous) runs.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - name: Cache Maven Wrapper
+        uses: actions/cache@v3
+        with:
+          path: |
+            .mvn/wrapper/maven-wrapper.jar
+          key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-wrapper-
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+      - name: Login to OpenShift cluster A
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+      - name: Get DC1 URLs
+        shell: bash
+        run: |
+          KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+          echo "KEYCLOAK_DC1_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
+          ISPN_DC1_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
+          echo "ISPN_DC1_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
+      - name: Login to OpenShift cluster B
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+      - name: Get DC2 URLs
+        shell: bash
+        run: |
+          KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+          echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
+          ISPN_DC2_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
+          echo "ISPN_DC2_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
+      - name: Run CrossDC functional tests
+        working-directory: provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests
+        run: |
+          ./run-crossdc-tests.sh

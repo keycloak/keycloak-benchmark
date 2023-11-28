@@ -11,7 +11,9 @@
 
   <properties>
     <keycloak.version>999.0.0-SNAPSHOT</keycloak.version>
-    <junit.version>4.13.2</junit.version>
+    <junit5.version>5.9.3</junit5.version>
+    <httpclient.version>4.5.14</httpclient.version>
+    <maven.surefire.plugin.version>3.1.2</maven.surefire.plugin.version>
     <maven.compiler.source>11</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.target>11</maven.compiler.target>
@@ -23,6 +25,7 @@
     <module>dataset</module>
     <module>benchmark</module>
     <module>provision/tlsdisableagent/java-instrumentation-tool</module>
+    <module>provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests</module>
   </modules>
 
   <dependencyManagement>
@@ -58,9 +61,20 @@
         <version>${keycloak.version}</version>
       </dependency>
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>${junit.version}</version>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-cli</artifactId>
+        <version>${keycloak.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>${junit5.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${httpclient.version}</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -96,5 +110,15 @@
       </releases>
     </repository>
   </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven.surefire.plugin.version}</version>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
