@@ -5,7 +5,6 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
 fi
 
-CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 KEYCLOAK_MASTER_PASSWORD_SECRET_NAME=${KEYCLOAK_MASTER_PASSWORD_SECRET_NAME:-"keycloak-master-password"}
 # Force eu-central-1 region for secrets manager so we all work with the same secret
 SECRET_MANAGER_REGION="eu-central-1"

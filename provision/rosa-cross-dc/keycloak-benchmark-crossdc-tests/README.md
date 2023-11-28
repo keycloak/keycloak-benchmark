@@ -24,3 +24,12 @@ mvn clean install -DcrossDCTests \
 -Dinfinispan.dc2.url=<ISPN_DC2_URL> -Dkeycloak.dc2.url=<KEYCLOAK_DC2_URL>\
 -Dinfinispan.password=<ISPN_PASSWORD>
 ```
+
+Alternatively could use the `run-crossdc-tests.sh` (located in the Testsuite root) directory to execute the tests when using a ROSA style provisioning setup to fetch the `ISPN_PASSWORD` on the fly, or by setting it manually.
+
+Example usage:
+```
+ISPN_DC1_URL=<ISPN_DC1_URL> ISPN_DC2_URL=<ISPN_DC2_URL> \
+KEYCLOAK_DC1_URL=<KEYCLOAK_DC1_URL> KEYCLOAK_DC2_URL=<KEYCLOAK_DC2_URL> \
+./run-crossdc-tests.sh
+```
