@@ -12,23 +12,23 @@ on:
 
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
-  REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
+  REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
 
 jobs:
   cluster1:
     uses: ./.github/workflows/rosa-cluster-create.yml
     with:
-      clusterName: ${{ inputs.clusterPrefix }}-a
-      region: ${{ inputs.region }}
-      availabilityZones: ${{ inputs.region }}a
+      clusterName: ${{ env.CLUSTER_PREFIX }}-a
+      region: ${{ env.REGION }}
+      availabilityZones: ${{ env.REGION }}a
     secrets: inherit
 
   cluster2:
     uses: ./.github/workflows/rosa-cluster-create.yml
     with:
-      clusterName: ${{ inputs.clusterPrefix }}-b
-      region: ${{ inputs.region }}b
-      availabilityZones: ${{ inputs.region }}b
+      clusterName: ${{ env.CLUSTER_PREFIX }}-b
+      region: ${{ env.REGION }}b
+      availabilityZones: ${{ env.REGION }}b
     secrets: inherit
 
   deploy-keycloak:
