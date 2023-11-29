@@ -39,6 +39,9 @@ spec:
       haproxy.router.openshift.io/balance: roundrobin
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
+  features:
+    enabled:
+      - multi-site # <2>
   # tag::keycloak-ispn[]
   additionalOptions:
 {{- if .Values.infinispan.customConfig }}
@@ -68,7 +71,7 @@ spec:
 {{ end }}
     - name: log-console-output
       value: json
-    - name: metrics-enabled # <2>
+    - name: metrics-enabled # <3>
       value: 'true'
 {{- if .Values.infinispan.remoteStore.enabled }}
     # tag::keycloak-ispn[]
@@ -126,7 +129,7 @@ spec:
 {{ end }}
             env:
         # end::keycloak-ispn[]
-              - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <3>
+              - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <4>
                 value: {{ div 200 .Values.instances | quote }}
               # end::keycloak[]
               # tag::keycloak-queue-size[]
@@ -172,7 +175,7 @@ spec:
                 value: prometheus
 {{ end }}
               # tag::keycloak-ispn[]
-              - name: JAVA_OPTS_APPEND # <4>
+              - name: JAVA_OPTS_APPEND # <5>
                 value: >
 {{- if not (eq (int .Values.heapInitMB) 64) }}
                   -Xms{{ .Values.heapInitMB }}m
@@ -237,7 +240,7 @@ spec:
             # tag::keycloak-ispn[]
             volumeMounts:
 {{ if .Values.infinispan.customConfig }}
-              - name: kcb-infinispan-cache-config # <5>
+              - name: kcb-infinispan-cache-config # <4>
                 mountPath: /opt/keycloak/conf/{{ base .Values.infinispan.configFile }}
                 subPath: {{ base .Values.infinispan.configFile }}
                 readOnly: true
