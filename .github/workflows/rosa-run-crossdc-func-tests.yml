@@ -47,12 +47,10 @@ jobs:
           clusterName: ${{ inputs.clusterPrefix }}-a
       - name: Get DC1 URLs
         shell: bash
-        with:
-          project: ${{ env.PROJECT }}
         run: |
-          KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+          KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
           echo "KEYCLOAK_DC1_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
-          ISPN_DC1_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
+          ISPN_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
           echo "ISPN_DC1_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
       - name: Login to OpenShift cluster B
         uses: ./.github/actions/oc-keycloak-login
@@ -60,12 +58,10 @@ jobs:
           clusterName: ${{ inputs.clusterPrefix }}-b
       - name: Get DC2 URLs
         shell: bash
-        with:
-          project: ${{ env.PROJECT }}
         run: |
-          KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+          KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
           echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
-          ISPN_DC2_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
+          ISPN_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
           echo "ISPN_DC2_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
       - name: Run CrossDC functional tests
         run: |
