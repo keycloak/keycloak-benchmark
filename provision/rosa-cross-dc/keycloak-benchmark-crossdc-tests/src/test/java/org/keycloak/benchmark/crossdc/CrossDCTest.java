@@ -125,7 +125,7 @@ public class CrossDCTest {
             URI uri = new URIBuilder(dc1.getKeycloakServerURL() + "/realms/master/dataset/create-realms")
                     .addParameter("realm-name", dc1.getTestRealm())
                     .addParameter("count", String.valueOf(1))
-                    .addParameter("threads-count", dc1.getTestRealm())
+                    .addParameter("threads-count", String.valueOf(1))
                     .addParameter("clients-per-realm", String.valueOf(CLIENT_COUNT))
                     .addParameter("users-per-realm", String.valueOf(USER_COUNT))
                     .build();
