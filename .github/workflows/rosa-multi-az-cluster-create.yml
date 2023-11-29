@@ -59,6 +59,11 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
+      - name: Scale ROSA clusters
+        run: |
+          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-a --min-replicas 3 scaling
+          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-b --min-replicas 3 scaling
+
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
 
@@ -77,3 +82,12 @@ jobs:
           AURORA_REGION: ${{ env.REGION }}
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_CPU_REQUESTS: 6
+          KC_INSTANCES: 3
+          KC_DISABLE_STICKY_SESSION: true
+          KC_MEMORY_REQUESTS_MB: 4000
+          KC_MEMORY_LIMITS_MB: 4000
+          KC_HEAP_MAX_MB: 2048
+          KC_DB_POOL_INITIAL_SIZE: 30
+          KC_DB_POOL_MAX_SIZE: 30
+          KC_DB_POOL_MIN_SIZE: 30
