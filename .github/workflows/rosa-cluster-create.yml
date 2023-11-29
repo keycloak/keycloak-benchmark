@@ -55,7 +55,8 @@ on:
         description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
 
-concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+concurrency:
+  group: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
 env:
   OPENSHIFT_VERSION: 4.13.10
