@@ -12,11 +12,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PROJECT: runner-keycloak
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -46,6 +47,8 @@ jobs:
           clusterName: ${{ inputs.clusterPrefix }}-a
       - name: Get DC1 URLs
         shell: bash
+        with:
+          project: ${{ env.PROJECT }}
         run: |
           KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
           echo "KEYCLOAK_DC1_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
@@ -57,12 +60,13 @@ jobs:
           clusterName: ${{ inputs.clusterPrefix }}-b
       - name: Get DC2 URLs
         shell: bash
+        with:
+          project: ${{ env.PROJECT }}
         run: |
           KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
           echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
           ISPN_DC2_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
           echo "ISPN_DC2_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
       - name: Run CrossDC functional tests
-        working-directory: provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests
         run: |
-          ./run-crossdc-tests.sh
+          ./provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/run-crossdc-tests.sh

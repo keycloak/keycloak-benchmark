@@ -21,7 +21,7 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
 fi
 
-./mvnw -B clean install -DcrossDCTests \
+./mvnw -B -f provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/pom.xml clean install -DcrossDCTests \
 -Dinfinispan.dc1.url=$ISPN_DC1_URL -Dkeycloak.dc1.url=$KEYCLOAK_DC1_URL \
 -Dinfinispan.dc2.url=$ISPN_DC2_URL -Dkeycloak.dc2.url=$KEYCLOAK_DC2_URL \
 -Dinfinispan.password=$ISPN_PASSWORD
