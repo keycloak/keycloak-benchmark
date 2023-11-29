@@ -24,29 +24,21 @@ jobs:
     steps:
       - run: echo ""
 
-  cluster1:
+  cluster:
     needs: meta
+    strategy:
+      matrix:
+        availabilityZone: [ a, b ]
     uses: ./.github/workflows/rosa-cluster-create.yml
     with:
-      clusterName: ${{ needs.meta.outputs.clusterPrefix }}-a
+      clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
       region: ${{ needs.meta.outputs.region }}
-      availabilityZones: ${{ needs.meta.outputs.region }}a
-    secrets: inherit
-
-  cluster2:
-    needs: meta
-    uses: ./.github/workflows/rosa-cluster-create.yml
-    with:
-      clusterName: ${{ needs.meta.outputs.clusterPrefix }}-b
-      region: ${{ needs.meta.outputs.region }}b
-      availabilityZones: ${{ needs.meta.outputs.region }}b
+      availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
     secrets: inherit
 
   deploy-keycloak:
     runs-on: ubuntu-latest
-    needs:
-      - cluster1
-      - cluster2
+    needs: [cluster]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
