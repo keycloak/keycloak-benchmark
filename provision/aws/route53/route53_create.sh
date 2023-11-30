@@ -20,7 +20,7 @@ function createHealthCheck() {
   --health-check-config '
   {
     "Type": "HTTPS",
-    "ResourcePath": "/health/live",
+    "ResourcePath": "/lb-check",
     "FullyQualifiedDomainName": "'$1'",
     "Port": 443,
     "RequestInterval": 30,
