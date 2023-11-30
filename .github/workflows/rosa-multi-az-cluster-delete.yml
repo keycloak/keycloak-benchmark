@@ -15,6 +15,35 @@ env:
   REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
 
 jobs:
+  route53:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Get Keycloak Domain
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: runner-keycloak
+
+      - name: Delete Route53 Records
+        run: |
+          SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')
+          ./provision/aws/route53/route53_delete.sh
+
   cluster1:
     uses: ./.github/workflows/rosa-cluster-delete.yml
     with:

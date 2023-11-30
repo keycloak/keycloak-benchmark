@@ -39,6 +39,7 @@ jobs:
   deploy-keycloak:
     runs-on: ubuntu-latest
     needs: [cluster]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,6 +66,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      - name: Create Route53 Loadbalancer
+        working-directory: provision/rosa-cross-dc
+        run: |
+          task route53 > route53
+          echo "KC_CLIENT_URL=$(grep -Po 'Client Site URL: \K.*' route53)" >> $GITHUB_ENV
+          echo "KC_HEALTH_URL_CLUSTER_1=$(grep -Po 'Primary Site URL: \K.*' route53)" >> $GITHUB_ENV
+          echo "KC_HEALTH_URL_CLUSTER_2=$(grep -Po 'Backup Site URL: \K.*' route53)" >> $GITHUB_ENV
+        env:
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Deploy
         working-directory: provision/rosa-cross-dc
