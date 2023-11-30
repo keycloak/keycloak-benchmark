@@ -67,6 +67,13 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Monitoring
+        working-directory: provision/rosa-cross-dc
+        run: task monitoring
+        env:
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+
       - name: Create Route53 Loadbalancer
         working-directory: provision/rosa-cross-dc
         run: |
