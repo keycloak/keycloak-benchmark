@@ -22,7 +22,8 @@ on:
         default: 'no'
         type: string
 
-concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+concurrency:
+  group: ${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
 jobs:
 
