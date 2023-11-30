@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Run ROSA Scaling Benchmark
         run: |
-          gh workflow run -R keycloak/keycloak-benchmark rosa-scaling-benchmark.yml
+          gh workflow run -R keycloak/keycloak-benchmark rosa-scaling-benchmark.yml -f clusterName=gh-keycloak-a -f skipCreateDeployment=true -f skipDeleteProject=true
         if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
