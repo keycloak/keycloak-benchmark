@@ -189,6 +189,40 @@ public class CrossDCTest {
         assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc2, "sessions"),"cacheSizes","sessions"));
     }
 
+    @Test
+    public void keycloakEntityReplicationOverCacheTest() throws URISyntaxException, IOException, InterruptedException {
+
+        createEntities("users", "1");
+        createEntities("clients", "1");
+
+        //ToDo Need to add a way to verify the messages in ISPN
+        //ToDo /rest/v2/caches/{name}?action=listen one way is to see if this endpoint gives us the info we need
+
+    }
+    private void createEntities(String entityName, String entityCount) throws URISyntaxException, IOException, InterruptedException {
+
+        URI uri = new URIBuilder((dc1.getDatasetCreateURL()+entityName))
+                .addParameter("count", entityCount)
+                .addParameter("realm-name", dc1.getTestRealm())
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        assertTrue(response.body().contains("Task started successfully"));
+
+        request = HttpRequest.newBuilder()
+                .uri(new URI(dc1.getDatasetStatusURL()))
+                .GET()
+                .build();
+
+        while (!httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body().contains("No task in progress.")) {
+            Thread.sleep(500);
+        }
+    }
+
     private void clearCacheData(String ispnServerRestEndpoint, String cacheName) throws URISyntaxException, IOException, InterruptedException {
 
         URI uri = new URIBuilder(ispnServerRestEndpoint + "/rest/v2/caches/" + cacheName + "/")
@@ -205,6 +239,22 @@ public class CrossDCTest {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(204, response.statusCode());
+    }
+
+    private HttpResponse listenISPNEvents(DatacenterInfo dc, String cacheName) throws URISyntaxException, IOException, InterruptedException {
+
+        URI uri = new URIBuilder(dc.getInfinispanServerURL() + "/rest/v2/caches/" + cacheName + "/")
+                .addParameter("action", "listen")
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
+                .header("Accept","text/plain,application/json")
+                .header("Authorization", getBasicAuthenticationHeader(ISPN_USERNAME, ISPN_PASSWORD))
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response.statusCode());
+        return response;
     }
 
     private HttpResponse getISPNStats(DatacenterInfo dc, String cacheName, String cacheAction) throws URISyntaxException, IOException, InterruptedException {
