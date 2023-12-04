@@ -31,6 +31,7 @@ import org.keycloak.util.JsonSerialization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class CrossDCTest {
     protected static final int CLIENT_COUNT = 1;
@@ -157,6 +158,9 @@ public class CrossDCTest {
         String code = usernamePasswordLogin(dc1, "user-1", "user-1-password");
         Map<String, Object> tokensMap = exchangeCode(dc1, code, "client-0", "client-0-secret");
 
+        //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
+        HttpResponse verifySessionKeyResponseInDC1 = getISPNStats(dc1, "sessions", "keys");
+        assertTrue(verifySessionKeyResponseInDC1.body().toString().contains(code.toString().split("[.]")[1]));
         //Verify session cache size in external ISPN DC1
         HttpResponse ispnDC1Response = getISPNStats(dc1, "sessions", "size");
         assertEquals(200, ispnDC1Response.statusCode());
@@ -164,6 +168,12 @@ public class CrossDCTest {
         //Verify session cache size in embedded ISPN DC1
         assertEquals(1, (Integer) getNestedValue(getEmbeddedISPNstats(dc1, "sessions"),"cacheSizes","sessions"));
 
+        //Making sure the code which is specific to DC1 shouldn't work in DC2
+        exchangeCode(dc2, code, "client-0", "client-0-secret");
+
+        //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
+        HttpResponse verifySessionKeyResponseInDC2 = getISPNStats(dc2, "sessions", "keys");
+        assertTrue(verifySessionKeyResponseInDC2.body().toString().contains(code.toString().split("[.]")[1]));
         //Verify session cache size in external ISPN DC2
         HttpResponse ispnDC2Response = getISPNStats(dc2, "sessions", "size");
         assertEquals(200, ispnDC2Response.statusCode());
@@ -180,6 +190,9 @@ public class CrossDCTest {
         assertEquals(0,Integer.parseInt(ispnDC1ResponseAfterLogout.body().toString()));
         //Verify session cache size in embedded ISPN DC1 post logout
         assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc1, "sessions"),"cacheSizes","sessions"));
+        //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
+        HttpResponse verifySessionKeyResponseInDC1PostLogout = getISPNStats(dc1, "sessions", "keys");
+        assertFalse(verifySessionKeyResponseInDC1PostLogout.body().toString().contains(code.toString().split("[.]")[1]));
 
         //Verify session cache size in external ISPN  DC2 post logout
         HttpResponse ispnDC2ResponseAfterLogout = getISPNStats(dc2, "sessions", "size");
@@ -187,6 +200,9 @@ public class CrossDCTest {
         assertEquals(0,Integer.parseInt(ispnDC2ResponseAfterLogout.body().toString()));
         //Verify session cache size in embedded ISPN DC2
         assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc2, "sessions"),"cacheSizes","sessions"));
+        //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
+        HttpResponse verifySessionKeyResponseInDC2PostLogout = getISPNStats(dc2, "sessions", "keys");
+        assertFalse(verifySessionKeyResponseInDC2PostLogout.body().toString().contains(code.toString().split("[.]")[1]));
     }
 
     @Test
@@ -262,11 +278,8 @@ public class CrossDCTest {
         URI uri = new URIBuilder(dc.getInfinispanServerURL() + "/rest/v2/caches/" + cacheName + "/")
                 .addParameter("action", cacheAction)
                 .build();
-
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9")
                 .header("Authorization", getBasicAuthenticationHeader(ISPN_USERNAME, ISPN_PASSWORD))
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -276,8 +289,11 @@ public class CrossDCTest {
     }
 
     private Map<String, Object> getEmbeddedISPNstats(DatacenterInfo dc, String CacheName) throws URISyntaxException, IOException, InterruptedException {
-
-        URI uri = new URIBuilder(dc.getDatasetCacheStatsURL()).build();
+        String datasetCacheStatsURL = dc.getDatasetCacheStatsURL();
+        if(dc.getInfinispanServerURL().contains("gh-keycloak-b")){
+            datasetCacheStatsURL = dc.getDatasetCacheStatsURL().replace("client","backup");
+        }
+        URI uri = new URIBuilder(datasetCacheStatsURL).build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .GET()
@@ -330,7 +346,12 @@ public class CrossDCTest {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, response.statusCode());
+        if(dc.getInfinispanServerURL().contains("gh-keycloak-a")) {
+            assertEquals(200, response.statusCode());
+        }
+        else if(dc.getInfinispanServerURL().contains("gh-keycloak-a")) {
+            assertEquals(400, response.statusCode());
+        }
 
         return JsonSerialization.readValue(response.body(), Map.class);
     }

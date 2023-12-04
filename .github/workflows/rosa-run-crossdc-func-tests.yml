@@ -60,9 +60,9 @@ jobs:
         shell: bash
         run: |
           KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
-          echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
+          echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC2_URL" >> "$GITHUB_ENV"
           ISPN_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
-          echo "ISPN_DC2_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
+          echo "ISPN_DC2_URL=$ISPN_DC2_URL" >> "$GITHUB_ENV"
       - name: Run CrossDC functional tests
         run: |
           ./provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/run-crossdc-tests.sh
