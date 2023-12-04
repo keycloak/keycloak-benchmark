@@ -42,8 +42,8 @@ public class CrossDCTest {
     protected static final DatacenterInfo dc1, dc2;
 
     static {
-        dc1 = new DatacenterInfo(System.getProperty("keycloak.dc1.url"), "realm-0", System.getProperty("infinispan.dc1.url"));
-        dc2 = new DatacenterInfo(System.getProperty("keycloak.dc2.url"), "realm-0", System.getProperty("infinispan.dc2.url"));
+        dc1 = new DatacenterInfo(System.getProperty("keycloak.dc1.url"), "realm-0", System.getProperty("infinispan.dc1.url"), System.getProperty("load-balancer.url"));
+        dc2 = new DatacenterInfo(System.getProperty("keycloak.dc2.url"), "realm-0", System.getProperty("infinispan.dc2.url"), System.getProperty("load-balancer.url"));
     }
 
     static HttpClient httpClient;
@@ -123,7 +123,7 @@ public class CrossDCTest {
 
         // feed the DB with data if there is no required number of clients and users
         if (!(lastClient.contains("client-" + (CLIENT_COUNT - 1)) && lastUser.contains("user-" + (USER_COUNT - 1)))) {
-            URI uri = new URIBuilder(dc1.getKeycloakServerURL() + "/realms/master/dataset/create-realms")
+            URI uri = new URIBuilder(dc1.getLoadBalancerURL() + "/realms/master/dataset/create-realms")
                     .addParameter("realm-name", dc1.getTestRealm())
                     .addParameter("count", String.valueOf(1))
                     .addParameter("threads-count", String.valueOf(1))
@@ -156,7 +156,11 @@ public class CrossDCTest {
 
         //Login and exchange code in DC1
         String code = usernamePasswordLogin(dc1, "user-1", "user-1-password");
-        Map<String, Object> tokensMap = exchangeCode(dc1, code, "client-0", "client-0-secret");
+        Map<String, Object> tokensMap = exchangeCode(dc1, code, "client-0", "client-0-secret", 200);
+
+        //Making sure the code cannot be reused in any of the DCs
+        exchangeCode(dc2, code, "client-0", "client-0-secret", 400);
+        exchangeCode(dc1, code, "client-0", "client-0-secret", 400);
 
         //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
         HttpResponse verifySessionKeyResponseInDC1 = getISPNStats(dc1, "sessions", "keys");
@@ -167,9 +171,6 @@ public class CrossDCTest {
         assertEquals(1,Integer.parseInt(ispnDC1Response.body().toString()));
         //Verify session cache size in embedded ISPN DC1
         assertEquals(1, (Integer) getNestedValue(getEmbeddedISPNstats(dc1, "sessions"),"cacheSizes","sessions"));
-
-        //Making sure the code which is specific to DC1 shouldn't work in DC2
-        exchangeCode(dc2, code, "client-0", "client-0-secret");
 
         //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
         HttpResponse verifySessionKeyResponseInDC2 = getISPNStats(dc2, "sessions", "keys");
@@ -289,10 +290,7 @@ public class CrossDCTest {
     }
 
     private Map<String, Object> getEmbeddedISPNstats(DatacenterInfo dc, String CacheName) throws URISyntaxException, IOException, InterruptedException {
-        String datasetCacheStatsURL = dc.getDatasetCacheStatsURL();
-        if(dc.getInfinispanServerURL().contains("gh-keycloak-b")){
-            datasetCacheStatsURL = dc.getDatasetCacheStatsURL().replace("client","backup");
-        }
+        String datasetCacheStatsURL = dc.getKeycloakServerURL();
         URI uri = new URIBuilder(datasetCacheStatsURL).build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
@@ -331,7 +329,7 @@ public class CrossDCTest {
         assertEquals(dc.getRedirectURI(), location);
     }
 
-    private Map<String, Object> exchangeCode(DatacenterInfo dc, String code, String clientId, String clientSecret) throws URISyntaxException, IOException, InterruptedException {
+    private Map<String, Object> exchangeCode(DatacenterInfo dc, String code, String clientId, String clientSecret, int expectedReturnCode) throws URISyntaxException, IOException, InterruptedException {
         Map<String, String> formData = new HashMap<>();
         formData.put("grant_type", "authorization_code");
         formData.put("client_id", clientId);
@@ -346,12 +344,7 @@ public class CrossDCTest {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if(dc.getInfinispanServerURL().contains("gh-keycloak-a")) {
-            assertEquals(200, response.statusCode());
-        }
-        else if(dc.getInfinispanServerURL().contains("gh-keycloak-a")) {
-            assertEquals(400, response.statusCode());
-        }
+        assertEquals(expectedReturnCode, response.statusCode());
 
         return JsonSerialization.readValue(response.body(), Map.class);
     }
