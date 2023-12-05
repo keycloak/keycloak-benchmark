@@ -457,3 +457,53 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_1}}" infinispan
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}" oc delete infinispans.infinispan.org -n "{{.OC_NAMESPACE_2}}" infinispan
+
+  crossdc-connect:
+    internal: true
+    desc: "Bring the backup site online"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - NAMESPACE
+    cmds:
+      - task: rosa-oc-login
+
+      - |
+        cat << EOF | kubectl -n {{ .NAMESPACE }} apply -f -
+        apiVersion: infinispan.org/v2alpha1
+        kind: Batch
+        metadata:
+          name: bring-online
+        spec:
+          cluster: infinispan
+          configMap: crossdc-connect
+        EOF
+      - kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/bring-online
+      - defer: |
+          kubectl -n {{ .NAMESPACE }} logs job/bring-online || true
+          kubectl -n {{ .NAMESPACE }} delete Batch/bring-online || true
+
+  crossdc-disconnect:
+    internal: true
+    desc: "Take the backup site offline"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - NAMESPACE
+    cmds:
+      - task: rosa-oc-login
+
+      - |
+        cat << EOF | kubectl -n {{ .NAMESPACE }} apply -f -
+        apiVersion: infinispan.org/v2alpha1
+        kind: Batch
+        metadata:
+          name: take-offline
+        spec:
+          cluster: infinispan
+          configMap: crossdc-disconnect
+        EOF
+      - kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/take-offline
+      - defer: |
+          kubectl -n {{ .NAMESPACE }} logs job/take-offline || true
+          kubectl -n {{ .NAMESPACE }} delete Batch/take-offline || true
