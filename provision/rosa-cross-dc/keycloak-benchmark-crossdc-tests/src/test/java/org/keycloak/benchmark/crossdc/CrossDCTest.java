@@ -170,7 +170,7 @@ public class CrossDCTest {
         assertEquals(200, ispnDC1Response.statusCode());
         assertEquals(1,Integer.parseInt(ispnDC1Response.body().toString()));
         //Verify session cache size in embedded ISPN DC1
-        assertEquals(1, (Integer) getNestedValue(getEmbeddedISPNstats(dc1, "sessions"),"cacheSizes","sessions"));
+        assertEquals(1, (Integer) getNestedValue(getEmbeddedISPNstats(dc1),"cacheSizes","sessions"));
 
         //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
         HttpResponse verifySessionKeyResponseInDC2 = getISPNStats(dc2, "sessions", "keys");
@@ -180,7 +180,7 @@ public class CrossDCTest {
         assertEquals(200, ispnDC2Response.statusCode());
         assertEquals(1,Integer.parseInt(ispnDC2Response.body().toString()));
         //Verify session cache size in embedded ISPN DC2
-        assertEquals(1, (Integer) getNestedValue(getEmbeddedISPNstats(dc2, "sessions"),"cacheSizes","sessions"));
+        assertEquals(1, (Integer) getNestedValue(getEmbeddedISPNstats(dc2),"cacheSizes","sessions"));
 
         //Logout from DC1
         logout(dc1, (String) tokensMap.get("id_token"), "client-0");
@@ -190,7 +190,7 @@ public class CrossDCTest {
         assertEquals(200, ispnDC1ResponseAfterLogout.statusCode());
         assertEquals(0,Integer.parseInt(ispnDC1ResponseAfterLogout.body().toString()));
         //Verify session cache size in embedded ISPN DC1 post logout
-        assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc1, "sessions"),"cacheSizes","sessions"));
+        assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc1),"cacheSizes","sessions"));
         //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
         HttpResponse verifySessionKeyResponseInDC1PostLogout = getISPNStats(dc1, "sessions", "keys");
         assertFalse(verifySessionKeyResponseInDC1PostLogout.body().toString().contains(code.toString().split("[.]")[1]));
@@ -200,7 +200,7 @@ public class CrossDCTest {
         assertEquals(200, ispnDC2ResponseAfterLogout.statusCode());
         assertEquals(0,Integer.parseInt(ispnDC2ResponseAfterLogout.body().toString()));
         //Verify session cache size in embedded ISPN DC2
-        assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc2, "sessions"),"cacheSizes","sessions"));
+        assertEquals(0, (Integer) getNestedValue(getEmbeddedISPNstats(dc2),"cacheSizes","sessions"));
         //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
         HttpResponse verifySessionKeyResponseInDC2PostLogout = getISPNStats(dc2, "sessions", "keys");
         assertFalse(verifySessionKeyResponseInDC2PostLogout.body().toString().contains(code.toString().split("[.]")[1]));
@@ -289,9 +289,8 @@ public class CrossDCTest {
         return response;
     }
 
-    private Map<String, Object> getEmbeddedISPNstats(DatacenterInfo dc, String CacheName) throws URISyntaxException, IOException, InterruptedException {
-        String datasetCacheStatsURL = dc.getKeycloakServerURL();
-        URI uri = new URIBuilder(datasetCacheStatsURL).build();
+    private Map<String, Object> getEmbeddedISPNstats(DatacenterInfo dc) throws URISyntaxException, IOException, InterruptedException {
+        URI uri = new URIBuilder(dc.getDatasetCacheStatsURL()).build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .GET()
@@ -351,7 +350,6 @@ public class CrossDCTest {
 
     private String usernamePasswordLogin(DatacenterInfo dc, String username, String password) throws IOException, URISyntaxException, InterruptedException {
         String formUrl = openLoginForm(dc, "client-0");
-
         Map<String, String> formData = new HashMap<>();
         formData.put("username", username);
         formData.put("password", password);
@@ -363,7 +361,6 @@ public class CrossDCTest {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
         // first redirect
         String location = response.headers().firstValue("Location").orElse(null);
         assertNotNull(location);

@@ -24,7 +24,7 @@ public class DatacenterInfo {
         this.testRealm = testRealm;
         this.loadBalancerURL = loadBalancerURL;
 
-        this.testRealmURL = keycloakServerURL + "/realms/" + testRealm;
+        this.testRealmURL = loadBalancerURL + "/realms/" + testRealm;
         this.loginEndpoint = testRealmURL + "/protocol/openid-connect/auth";
         this.logoutEndpoint = testRealmURL + "/protocol/openid-connect/logout";
         this.tokenEndpoint = testRealmURL + "/protocol/openid-connect/token";
