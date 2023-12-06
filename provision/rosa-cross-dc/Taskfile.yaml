@@ -58,7 +58,7 @@ tasks:
         vars:
             ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - echo "Deploying Aurora Database ({{.AURORA_CLUSTER}}) in region $(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})"
-      - AURORA_REGION="{{ .AURORA_REGION }}" ../aws/rds/aurora_create.sh
+      - AURORA_REGION="{{ .AURORA_REGION }}" AURORA_INSTANCES=2 ../aws/rds/aurora_create.sh
 
   create-global-aurora:
     internal: true
