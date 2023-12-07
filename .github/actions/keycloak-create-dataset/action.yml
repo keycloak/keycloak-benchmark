@@ -38,6 +38,7 @@ runs:
     - id: create_dataset
       shell: bash
       run: |
+        ./dataset-import.sh -a clear-status-completed -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
         ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
         ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
       working-directory: dataset
@@ -46,6 +47,7 @@ runs:
       if: ${{ inputs.createClientForSpecificRealm == 'true' }}
       shell: bash
       run: |
+        ./dataset-import.sh -a clear-status-completed -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
         ./dataset-import.sh -a create-clients -c ${{ inputs.clientsPerRealm }} -n ${{ inputs.realmNameForClients }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
         ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
       working-directory: dataset
