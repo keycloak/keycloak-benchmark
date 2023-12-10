@@ -81,8 +81,8 @@ public class CrossDCTest {
         }
 
         @Override
-        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-            return new java.security.cert.X509Certificate[0];
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
         }
     };
 
@@ -208,12 +208,85 @@ public class CrossDCTest {
 
     @Test
     public void keycloakEntityReplicationOverCacheTest() throws URISyntaxException, IOException, InterruptedException {
+        //ToDo need to extract the user count from a better place than the lastEntityUrl, thus reducing the reliance on dataset provider
+
+        String key = "status";
+        String patternString = "\"" + key + "\":\"([^\"]+)\"";
+        Pattern pattern = Pattern.compile(patternString);
+
+        HttpRequest lastClientDC1Request = HttpRequest.newBuilder()
+                .uri(new URI(dc1.getDatasetLastClientURL()))
+                .GET()
+                .build();
+        int lastClientBeforeCreate = getMatchingRegexFromLastEntityCreated(pattern,
+                httpClient.send(lastClientDC1Request, HttpResponse.BodyHandlers.ofString()).body());
+
+        HttpRequest lastUserDC1Request = HttpRequest.newBuilder()
+                .uri(new URI(dc1.getDatasetLastUserURL()))
+                .GET()
+                .build();
+        int lastUserBeforeCreate = getMatchingRegexFromLastEntityCreated(pattern,
+                httpClient.send(lastUserDC1Request, HttpResponse.BodyHandlers.ofString()).body());
 
         createEntities("users", "1");
         createEntities("clients", "1");
 
-        //ToDo Need to add a way to verify the messages in ISPN
-        //ToDo /rest/v2/caches/{name}?action=listen one way is to see if this endpoint gives us the info we need
+        int lastClientAfterCreateDC1 = getMatchingRegexFromLastEntityCreated(pattern,
+                httpClient.send(lastClientDC1Request, HttpResponse.BodyHandlers.ofString()).body());
+        int lastUserAfterCreateDC1 = getMatchingRegexFromLastEntityCreated(pattern,
+                httpClient.send(lastUserDC1Request, HttpResponse.BodyHandlers.ofString()).body());
+
+        assertTrue(lastClientAfterCreateDC1 == (lastClientBeforeCreate + 1));
+        assertTrue(lastUserAfterCreateDC1 == (lastUserBeforeCreate + 1));
+
+        HttpRequest lastClientDC2Request = HttpRequest.newBuilder()
+                .uri(new URI(dc2.getDatasetLastClientURL()))
+                .GET()
+                .build();
+
+        HttpRequest lastUserDC2Request = HttpRequest.newBuilder()
+                .uri(new URI(dc2.getDatasetLastUserURL()))
+                .GET()
+                .build();
+
+        int lastClientAfterCreateDC2 = getMatchingRegexFromLastEntityCreated(pattern,
+                httpClient.send(lastClientDC2Request, HttpResponse.BodyHandlers.ofString()).body());
+        int lastUserAfterCreateDC2 = getMatchingRegexFromLastEntityCreated(pattern,
+                httpClient.send(lastUserDC2Request, HttpResponse.BodyHandlers.ofString()).body());
+
+        assertEquals(lastClientAfterCreateDC1,lastClientAfterCreateDC2);
+        assertEquals(lastUserAfterCreateDC1,lastUserAfterCreateDC2);
+    }
+
+    @Test
+    public void verifySessionExpiryAcrossDC() {
+
+        //ToDo Initialize the Admin Java Client
+        //Create the Realm Representation
+        //Create a user Session with the default Session Timeout of 30 mins
+        /**
+         * var adminClient = KeycloakBuilder.builder()
+         * 				.serverUrl("http://localhost:8080/auth/")
+         * 				.clientId("admin-cli")
+         * 				.username("keycloak")
+         * 				.password("keycloak")
+         * 				.realm("master")
+         * 				.build();
+         * var realmResource = adminClient.realm("realm-123");
+         * var realmRepresentation = new RealmRepresentation();
+         * realmRepresentation.setId("realm-123");
+         * realmRepresentation.setSessionTimeout(1000);
+         * realmResource.get("realm-123").update(realmRepresentation);
+         */
+        //Verify the session exists in both DCs
+        //Try to refresh the session using the refresh token in both DCs this should succeed
+        //Set the realm configuration for the particular realm for an attribute such as Session Timeout
+        /** realmRepresentation.setId("realm-123");
+         * realmRepresentation.setSessionTimeout(1000);
+         * realmResource.get("realm-123").update(realmRepresentation);
+         */
+        //Verify the session is expired in both DCs
+        //Try to refresh the session using the refresh token in both DCs this should fail
 
     }
     private void createEntities(String entityName, String entityCount) throws URISyntaxException, IOException, InterruptedException {
@@ -307,6 +380,29 @@ public class CrossDCTest {
             value = ((Map) value).get(key);
         }
         return (T) value;
+    }
+
+    public static int getMatchingRegexFromLastEntityCreated(Pattern pattern, String lastEntityJson) {
+        //System.out.println(lastEntityJson);
+        Matcher matcher = pattern.matcher(lastEntityJson);
+        Pattern numberPattern = Pattern.compile("\\d+");
+        int entityNumber = 0;
+        if (matcher.find()) {
+            String value = matcher.group(1);
+            // Extract the number from the value
+            Matcher numberMatcher = numberPattern.matcher(value);
+
+            if (numberMatcher.find()) {
+                entityNumber = Integer.parseInt(numberMatcher.group());
+                //System.out.println("Extracted number: " + entityNumber);
+            } else {
+                System.out.println("No number found in the value.");
+            }
+        } else {
+            System.out.println("Key not found in JSON.");
+        }
+
+        return entityNumber;
     }
     private void logout(DatacenterInfo dc, String idToken, String clientId) throws URISyntaxException, IOException, InterruptedException {
         URI uri = new URIBuilder(new URI(dc.getLogoutEndpoint()))
