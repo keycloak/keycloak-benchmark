@@ -48,8 +48,10 @@ jobs:
       - name: Get DC1 URLs
         shell: bash
         run: |
-          KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+          KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" aws-health-route -o jsonpath='{.items[*].spec.host}')
           echo "KEYCLOAK_DC1_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
+          LOAD_BALANCER_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
+          echo "LOAD_BALANCER_URL=$LOAD_BALANCER_URL" >> "$GITHUB_ENV"
           ISPN_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
           echo "ISPN_DC1_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
       - name: Login to OpenShift cluster B
@@ -59,10 +61,10 @@ jobs:
       - name: Get DC2 URLs
         shell: bash
         run: |
-          KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
-          echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
+          KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" aws-health-route -o jsonpath='{.items[*].spec.host}')
+          echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC2_URL" >> "$GITHUB_ENV"
           ISPN_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
-          echo "ISPN_DC2_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
+          echo "ISPN_DC2_URL=$ISPN_DC2_URL" >> "$GITHUB_ENV"
       - name: Run CrossDC functional tests
         run: |
           ./provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/run-crossdc-tests.sh

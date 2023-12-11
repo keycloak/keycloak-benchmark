@@ -4,6 +4,7 @@ public class DatacenterInfo {
 
     private final String keycloakServerURL;
     private final String infinispanServerURL;
+    private final String loadBalancerURL;
     private final String testRealm;
 
     private final String testRealmURL;
@@ -16,13 +17,14 @@ public class DatacenterInfo {
     private final String datasetLastClientURL;
     private final String datasetLastUserURL;
     private final String datasetCacheStatsURL;
-
-    public DatacenterInfo(String keycloakServerURL, String testRealm, String infinispanServerURL) {
+    private final String datasetCreateURL;
+    public DatacenterInfo(String keycloakServerURL, String testRealm, String infinispanServerURL, String loadBalancerURL) {
         this.keycloakServerURL = keycloakServerURL;
         this.infinispanServerURL = infinispanServerURL;
         this.testRealm = testRealm;
+        this.loadBalancerURL = loadBalancerURL;
 
-        this.testRealmURL = keycloakServerURL + "/realms/" + testRealm;
+        this.testRealmURL = loadBalancerURL + "/realms/" + testRealm;
         this.loginEndpoint = testRealmURL + "/protocol/openid-connect/auth";
         this.logoutEndpoint = testRealmURL + "/protocol/openid-connect/logout";
         this.tokenEndpoint = testRealmURL + "/protocol/openid-connect/token";
@@ -31,11 +33,12 @@ public class DatacenterInfo {
         this.datasetStatusURL = keycloakServerURL + "/realms/master/dataset/status";
         this.datasetLastClientURL = keycloakServerURL + "/realms/master/dataset/last-client?realm-name=" + testRealm;
         this.datasetLastUserURL = keycloakServerURL + "/realms/master/dataset/last-user?realm-name=" + testRealm;
+        this.datasetCreateURL = keycloakServerURL + "/realms/master/dataset/create-";
         this.datasetCacheStatsURL = keycloakServerURL + "/realms/master/cache/sizes";
     }
 
-    public DatacenterInfo(String keycloakServerURL, String infinispanRestEndpointURL) {
-        this(keycloakServerURL, "realm-0", infinispanRestEndpointURL);
+    public DatacenterInfo(String keycloakServerURL, String infinispanRestEndpointURL, String loadBalancerURL) {
+        this(keycloakServerURL, "realm-0", infinispanRestEndpointURL, loadBalancerURL);
     }
 
     public String getKeycloakServerURL() {
@@ -83,5 +86,9 @@ public class DatacenterInfo {
     }
 
     public String getDatasetCacheStatsURL() {return datasetCacheStatsURL;}
+    public String getDatasetCreateURL() {return datasetCreateURL;}
 
+    public String getLoadBalancerURL() {
+        return loadBalancerURL;
+    }
 }
