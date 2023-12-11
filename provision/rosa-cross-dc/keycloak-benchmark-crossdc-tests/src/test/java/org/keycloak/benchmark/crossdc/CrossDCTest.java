@@ -258,37 +258,6 @@ public class CrossDCTest {
         assertEquals(lastUserAfterCreateDC1,lastUserAfterCreateDC2);
     }
 
-    @Test
-    public void verifySessionExpiryAcrossDC() {
-
-        //ToDo Initialize the Admin Java Client
-        //Create the Realm Representation
-        //Create a user Session with the default Session Timeout of 30 mins
-        /**
-         * var adminClient = KeycloakBuilder.builder()
-         * 				.serverUrl("http://localhost:8080/auth/")
-         * 				.clientId("admin-cli")
-         * 				.username("keycloak")
-         * 				.password("keycloak")
-         * 				.realm("master")
-         * 				.build();
-         * var realmResource = adminClient.realm("realm-123");
-         * var realmRepresentation = new RealmRepresentation();
-         * realmRepresentation.setId("realm-123");
-         * realmRepresentation.setSessionTimeout(1000);
-         * realmResource.get("realm-123").update(realmRepresentation);
-         */
-        //Verify the session exists in both DCs
-        //Try to refresh the session using the refresh token in both DCs this should succeed
-        //Set the realm configuration for the particular realm for an attribute such as Session Timeout
-        /** realmRepresentation.setId("realm-123");
-         * realmRepresentation.setSessionTimeout(1000);
-         * realmResource.get("realm-123").update(realmRepresentation);
-         */
-        //Verify the session is expired in both DCs
-        //Try to refresh the session using the refresh token in both DCs this should fail
-
-    }
     private void createEntities(String entityName, String entityCount) throws URISyntaxException, IOException, InterruptedException {
 
         URI uri = new URIBuilder((dc1.getDatasetCreateURL()+entityName))
