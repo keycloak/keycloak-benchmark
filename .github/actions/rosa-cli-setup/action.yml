@@ -39,3 +39,14 @@ runs:
       run: rosa login
       env:
         ROSA_TOKEN: ${{ inputs.rosa-token }}
+
+    - id: mask-secrets
+      name: Mask secrets
+      shell: bash
+      env:
+        SECRET_MANAGER_REGION: "eu-central-1"
+        KEYCLOAK_MASTER_PASSWORD_SECRET_NAME: ${{ env.KEYCLOAK_MASTER_PASSWORD_SECRET_NAME || 'keycloak-master-password' }}
+
+      run: |
+        ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
+        echo "::add-mask::$ADMIN_PASSWORD"

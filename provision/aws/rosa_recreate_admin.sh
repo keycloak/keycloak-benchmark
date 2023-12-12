@@ -12,29 +12,16 @@ fi
 CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; exit 1; fi
 
-if [[ "$RUNNER_DEBUG" == "1" ]]; then
-  # prevent logging the password in debug mode
-  set +x
-fi
 
 KEYCLOAK_MASTER_PASSWORD_SECRET_NAME=${KEYCLOAK_MASTER_PASSWORD_SECRET_NAME:-"keycloak-master-password"}
 # Force eu-central-1 region for secrets manager so we all work with the same secret
 SECRET_MANAGER_REGION="eu-central-1"
-ADMIN_PASSWORD=${ADMIN_PASSWORD:-$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)}
+ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
 
 if [ -z "$ADMIN_PASSWORD" ]; then
-  ./aws_rotate_keycloak_master_password.sh
-  ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
+  echo "Keycloak master password was not found in the secretmanager. Recreate it using ./aws_rotate_keycloak_master_password.sh script."
+  exit 1
 fi
-
-if [ "$GITHUB_ACTIONS" != "" ]; then
-  echo "::add-mask::${ADMIN_PASSWORD}"
-fi
-
-if [[ "$RUNNER_DEBUG" == "1" ]]; then
-  set -x
-fi
-
 CLUSTER_DESCRIPTION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json)
 
 echo $CLUSTER_DESCRIPTION
@@ -57,7 +44,6 @@ echo "New admin user created."
 echo
 echo "     $OC_LOGIN_CMD"
 echo
-
 echo "Waiting for 'oc login' to succeed."
 
 TIMEOUT=$(($(date +%s) + 3600))
