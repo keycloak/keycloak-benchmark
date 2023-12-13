@@ -1,17 +1,22 @@
 #!/bin/bash
 
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
+
 EXIT_CODE=0
 
 for r in $(aws account list-regions --query 'Regions[?RegionOptStatus != `DISABLED`].RegionName' --output text);
 do
-  VPCS=( $(aws ec2 describe-vpcs --region "$r" --query 'Vpcs[?IsDefault == `false`].VpcId' --output text --no-cli-pager 2>/dev/null) )
+  VPCS_JSON=$(aws ec2 describe-vpcs --region "$r" --query 'Vpcs[?IsDefault == `false`]' --output json --no-cli-pager 2>/dev/null)
 
-  if [ ${#VPCS[@]} -gt 0 ]; then
-    echo "$r region contains VPCs that were not cleaned up [${#VPCS[@]}]"
+  VPC_IDS=( $(echo $VPCS_JSON | jq -r '.[].VpcId') )
+  if [ ${#VPC_IDS[@]} -gt 0 ]; then
+    echo "$r region contains VPCs that were not cleaned up [${#VPC_IDS[@]}]"
     echo "--------------------------------------------------------------------"
-    for vpc in "${VPCS[@]}"; do
+    for VPC_ID in "${VPC_IDS[@]}"; do
     echo "---------------------"
-      aws ec2 describe-vpcs --region "$r" --output yaml --query "Vpcs[?VpcId == \`$vpc\`]" --no-cli-pager
+      echo $VPCS_JSON | jq ".[] | select(.VpcId == \"$VPC_ID\")" | yq -P
     echo "---------------------"
     done
     echo "--------------------------------------------------------------------"
