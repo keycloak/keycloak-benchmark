@@ -54,3 +54,20 @@ jobs:
         run: ./provision/aws/route53/route53_delete.sh
         env:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+
+  delete-check:
+    needs: [rosa-delete, aurora-delete, route53-delete]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS CLI
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
+
+      - shell: bash
+        run: ./provision/aws/aws_check_vpcs.sh
