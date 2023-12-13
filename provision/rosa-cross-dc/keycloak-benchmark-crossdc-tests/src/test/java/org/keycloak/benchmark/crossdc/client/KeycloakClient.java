@@ -37,11 +37,10 @@ public class KeycloakClient {
     public KeycloakClient(HttpClient httpClient, String keycloakServerUrl) {
         this.httpClient = httpClient;
         this.keycloakServerUrl = keycloakServerUrl;
-        reconnectAdminClient();
     }
 
     public static int getCurrentlyInitializedAdminClients() {
-        return (int) adminClients.values().stream().filter(adminClient -> adminClient.tokenManager().getAccessToken() != null).count();
+        return adminClients.size();
     }
 
     public static Set<String> removeAdminClientSessions(Set<String> sessionIds) {
@@ -52,6 +51,11 @@ public class KeycloakClient {
 
         sessionIds.removeIf(adminClientSessionIds::contains);
         return sessionIds;
+    }
+
+    public static void cleanAdminClients() {
+        adminClients.values().forEach(Keycloak::close);
+        adminClients.clear();
     }
 
     public void logout(String realmName, String idToken, String clientId) throws URISyntaxException, IOException, InterruptedException {
@@ -220,7 +224,8 @@ public class KeycloakClient {
     }
 
     private Keycloak createAdminClient(KeycloakClient ignored) {
-        return KeycloakBuilder.builder()
+        // Build new admin client
+        Keycloak newAdminClient = KeycloakBuilder.builder()
                 .serverUrl(keycloakServerUrl)
                 .clientId("admin-cli")
                 .username("admin")
@@ -228,14 +233,10 @@ public class KeycloakClient {
                 .realm("master")
                 .resteasyClient(KeycloakUtils.newResteasyClientBuilder().build())
                 .build();
-    }
 
-    public void reconnectAdminClient() {
-        Keycloak adminClient = adminClients.get(this);
-        if (adminClient != null && !adminClient.isClosed()) {
-            adminClient.close();
-        }
+        // Initialize access token so all initialized admin clients have a session in Keycloak
+        newAdminClient.tokenManager().getAccessToken();
 
-        adminClients.put(this, createAdminClient(this));
+        return newAdminClient;
     }
 }

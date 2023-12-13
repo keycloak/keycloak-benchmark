@@ -1,6 +1,7 @@
 package org.keycloak.benchmark.crossdc.client;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -60,7 +61,10 @@ public class ExternalInfinispanClient implements InfinispanClient {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
 
-                return Long.parseLong(response.body()) - KeycloakClient.getCurrentlyInitializedAdminClients();
+                if (cacheName.equals(InfinispanUtils.SESSIONS)) {
+                    return Long.parseLong(response.body()) - KeycloakClient.getCurrentlyInitializedAdminClients();
+                }
+                return Long.parseLong(response.body());
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -118,7 +122,7 @@ public class ExternalInfinispanClient implements InfinispanClient {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
 
-                return KeycloakClient.removeAdminClientSessions(Arrays.stream(response.body().split(","))
+                Set<String> keys = Arrays.stream(response.body().split(","))
                         .map(UUID_REGEX::matcher)
                         .map(m -> {
                             if (m.find()) {
@@ -127,7 +131,13 @@ public class ExternalInfinispanClient implements InfinispanClient {
                                 return null;
                             }
                         }).filter(Objects::nonNull)
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toSet());
+
+                if (cacheName.equals(InfinispanUtils.SESSIONS)) {
+                    return KeycloakClient.removeAdminClientSessions(keys);
+                }
+
+                return keys;
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }

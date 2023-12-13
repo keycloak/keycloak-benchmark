@@ -1,6 +1,7 @@
 package org.keycloak.benchmark.crossdc;
 
 import jakarta.ws.rs.NotFoundException;
+import org.jboss.logging.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.keycloak.admin.client.Keycloak;
@@ -8,6 +9,7 @@ import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
+import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
@@ -21,7 +23,8 @@ import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MA
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
 
 public abstract class AbstractCrossDCTest {
-    static HttpClient HTTP_CLIENT = HttpClientUtils.newHttpClient();
+    private static final Logger LOG = Logger.getLogger(AbstractCrossDCTest.class);
+    protected static HttpClient HTTP_CLIENT = HttpClientUtils.newHttpClient();
     protected static final DatacenterInfo DC_1, DC_2;
     protected static final KeycloakClient LOAD_BALANCER_KEYCLOAK;
     public static String ISPN_USERNAME = System.getProperty("infinispan.username", "developer");;
@@ -31,8 +34,6 @@ public abstract class AbstractCrossDCTest {
     public static final String USERNAME = "cross-dc-test-user";
     public static final String MAIN_PASSWORD = System.getProperty("main.password");
 
-
-
     static {
         DC_1 = new DatacenterInfo(HTTP_CLIENT, System.getProperty("keycloak.dc1.url"), System.getProperty("infinispan.dc1.url"));
         DC_2 = new DatacenterInfo(HTTP_CLIENT, System.getProperty("keycloak.dc2.url"), System.getProperty("infinispan.dc2.url"));
@@ -41,12 +42,15 @@ public abstract class AbstractCrossDCTest {
 
     @BeforeEach
     public void setUpTestEnvironment() {
-        // We need to reconnect admin client before each test as we remove session after each test
-        DC_1.kc().reconnectAdminClient();
-        DC_2.kc().reconnectAdminClient();
-
         Keycloak adminClient = DC_1.kc().adminClient();
-        DC_2.kc().adminClient().realm("master").toRepresentation();
+        LOG.info("Setting up test environment");
+        LOG.info("-------------------------------------------");
+        LOG.info("Status of caches before test:");
+        DISTRIBUTED_CACHES.forEach(cache -> {
+            LOG.infof("External cache %s " + cache + " in DC1: %d - entries [%s]", cache, DC_1.ispn().cache(cache).size(), DC_1.ispn().cache(cache).keys());
+            LOG.infof("External cache %s " + cache + " in DC2: %d - entries [%s]", cache, DC_2.ispn().cache(cache).size(), DC_2.ispn().cache(cache).keys());
+        });
+        LOG.info("-------------------------------------------");
 
         try {
             if (adminClient.realms().realm(REALM_NAME).toRepresentation() != null) {
@@ -98,10 +102,15 @@ public abstract class AbstractCrossDCTest {
         // Logout all users in master realm
         DC_1.kc().adminClient().realm("master").logoutAll();
 
-        DISTRIBUTED_CACHES.forEach(cache -> {
-            DC_1.ispn().cache(cache).clear();
-            DC_2.ispn().cache(cache).clear();
-        });
+        // Clear admin clients
+        KeycloakClient.cleanAdminClients();
+
+        DISTRIBUTED_CACHES.stream()
+                .filter(cache -> !cache.equals(InfinispanUtils.WORK))
+                .forEach(cache -> {
+                    DC_1.ispn().cache(cache).clear();
+                    DC_2.ispn().cache(cache).clear();
+                });
 
         MOCK_COOKIE_MANAGER.getCookieStore().removeAll();
     }
