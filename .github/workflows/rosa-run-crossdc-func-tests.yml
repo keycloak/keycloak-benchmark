@@ -1,6 +1,12 @@
 name: Run CrossDC functional tests on ROSA cluster
 
 on:
+  workflow_call:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix used when creating the Cross DC clusters'
+        type: string
+
   workflow_dispatch:
     inputs:
       clusterPrefix:
@@ -16,7 +22,7 @@ env:
   PROJECT: runner-keycloak
 
 jobs:
-  build:
+  run-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

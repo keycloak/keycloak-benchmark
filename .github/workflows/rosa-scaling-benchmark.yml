@@ -1,6 +1,49 @@
 name: ROSA Cluster - Scaling Benchmark
 
 on:
+  workflow_call:
+    inputs:
+      clusterName:
+        description: 'Name of the cluster'
+        type: string
+        default: 'gh-keycloak'
+      region:
+        description: 'Name of the region where EC2 instances should be installed'
+        type: string
+        default: 'eu-west-1'
+      numberOfEntitiesInRealm:
+        description: 'Number of entities for the scenario in DB'
+        type: number
+        default: 100000
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: number
+        default: 10800
+      numberOfUsersPerSecond:
+        description: 'User logins per second'
+        type: number
+        default: 200
+      numberOfClientsPerSecond:
+        description: 'Client credential grants per second'
+        type: number
+        default: 1000
+      measurement:
+        description: 'Measurement period (seconds)'
+        type: number
+        default: 600
+      skipCreateDeployment:
+        description: 'Skip creating Keycloak deployment'
+        type: boolean
+        default: false
+      skipCreateDataset:
+        description: 'Skip creating dataset'
+        type: boolean
+        default: false
+      skipDeleteProject:
+        description: 'Skip deleting project'
+        type: boolean
+        default: false
+
   workflow_dispatch:
     inputs:
       clusterName:
