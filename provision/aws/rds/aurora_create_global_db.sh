@@ -44,9 +44,6 @@ for (( i = 0 ; i < ${#GLOBAL_REGIONS[@]} ; i++ )) ; do
   # Aurora Global DBs must use one of the memory optimized classes
   export AURORA_INSTANCE_CLASS="db.r5.large"
   export AURORA_REGION=${REGION}
-  export AURORA_VPC_CIDR=$(globalAuroraVpcCidr $i)
-  export AURORA_SUBNET_A_CIDR=$(globalAuroraSubnetA $i)
-  export AURORA_SUBNET_B_CIDR=$(globalAuroraSubnetB $i)
 
   if [ "${REGION}" != "${PRIMARY_REGION}" ]; then
     export AURORA_GLOBAL_CLUSTER_BACKUP=true

@@ -34,7 +34,6 @@ for (( i = ${#GLOBAL_REGIONS[@]} - 1 ; i >= 0 ; i-- )) ; do
   REGION=${GLOBAL_REGIONS[i]}
   export AURORA_CLUSTER=${AURORA_GLOBAL_CLUSTER}-${REGION}
   export AURORA_REGION=${REGION}
-  export AURORA_VPC_CIDR=$(globalAuroraVpcCidr $i)
 
   AURORA_CLUSTER_ARN=$(aws rds describe-db-clusters \
     --query "DBClusters[?DBClusterIdentifier=='${AURORA_CLUSTER}'].DBClusterArn" \

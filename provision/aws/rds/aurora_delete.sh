@@ -8,7 +8,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/aurora_common.sh
 
 AURORA_VPC=$(aws ec2 describe-vpcs \
-  --filters "Name=cidr-block,Values=${AURORA_VPC_CIDR}" "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
+  --filters "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
   --query "Vpcs[*].VpcId" \
   --output text
 )

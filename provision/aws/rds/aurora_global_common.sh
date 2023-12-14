@@ -23,15 +23,3 @@ function globalClusterRegions() {
   done
   echo ${AURORA_GLOBAL_REGIONS}
 }
-
-function globalAuroraVpcCidr() {
-  echo "192.168.$1.0/24"
-}
-
-function globalAuroraSubnetA() {
-  echo "192.168.$1.0/25"
-}
-
-function globalAuroraSubnetB() {
-  echo "192.168.$1.128/25"
-}
