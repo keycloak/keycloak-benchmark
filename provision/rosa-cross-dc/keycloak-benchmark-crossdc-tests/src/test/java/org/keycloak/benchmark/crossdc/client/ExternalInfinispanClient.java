@@ -61,7 +61,7 @@ public class ExternalInfinispanClient implements InfinispanClient {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
 
-                if (cacheName.equals(InfinispanUtils.SESSIONS)) {
+                if (cacheName.equals(InfinispanUtils.SESSIONS) || cacheName.equals(InfinispanUtils.CLIENT_SESSIONS)) {
                     return Long.parseLong(response.body()) - KeycloakClient.getCurrentlyInitializedAdminClients();
                 }
                 return Long.parseLong(response.body());

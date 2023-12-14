@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 public class InfinispanUtils {
 
     public static String SESSIONS = "sessions";
+    public static String CLIENT_SESSIONS = "clientSessions";
     public static String WORK = "work";
 
     public static Set<String> DISTRIBUTED_CACHES = Set.of(
@@ -15,7 +16,7 @@ public class InfinispanUtils {
             "actionTokens",
             "authenticationSessions",
             "offlineSessions",
-            "clientSessions",
+            CLIENT_SESSIONS,
             "offlineClientSessions",
             "loginFailures",
             WORK

@@ -29,6 +29,7 @@ import org.jboss.resteasy.annotations.cache.NoCache;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
+import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
@@ -868,6 +869,28 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     @Path("/authz")
     public AuthorizationProvisioner authz() {
         return new AuthorizationProvisioner(baseSession);
+    }
+
+    @GET
+    @Path("/take-dc-down")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response takeDCDown() {
+        String siteName = baseSession.getProvider(InfinispanConnectionProvider.class).getTopologyInfo().getMySiteName();
+        baseSession.realms().getRealmByName("master").setAttribute("is-site-" + siteName + "-down", true);
+
+        return Response.ok(TaskResponse.statusMessage("Site " + siteName + " was marked as down.")).build();
+    }
+
+    @GET
+    @Path("/take-dc-up")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response takeDCUp() {
+        String siteName = baseSession.getProvider(InfinispanConnectionProvider.class).getTopologyInfo().getMySiteName();
+        baseSession.realms().getRealmByName("master").removeAttribute("is-site-" + siteName + "-down");
+
+        return Response.ok(TaskResponse.statusMessage("Site " + siteName + " was marked as up.")).build();
     }
 
     @Override

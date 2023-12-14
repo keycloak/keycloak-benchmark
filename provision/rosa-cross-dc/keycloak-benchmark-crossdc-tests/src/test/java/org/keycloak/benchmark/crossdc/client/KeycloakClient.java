@@ -5,6 +5,7 @@ import org.jboss.resteasy.spi.NotImplementedYetException;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
+import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
 import org.keycloak.benchmark.crossdc.util.KeycloakUtils;
 import org.keycloak.util.JsonSerialization;
 
@@ -32,11 +33,16 @@ import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getFormDataAsStr
 public class KeycloakClient {
     private final HttpClient httpClient;
     private final String keycloakServerUrl;
+    private final String keycloakDownURL;
+    private final String keycloakUpURL;
     private static final Map<KeycloakClient, Keycloak> adminClients = new ConcurrentHashMap<>();
 
     public KeycloakClient(HttpClient httpClient, String keycloakServerUrl) {
         this.httpClient = httpClient;
         this.keycloakServerUrl = keycloakServerUrl;
+
+        this.keycloakDownURL = keycloakServerUrl + "/realms/master/dataset/take-dc-down";
+        this.keycloakUpURL = keycloakServerUrl + "/realms/master/dataset/take-dc-up";
     }
 
     public static int getCurrentlyInitializedAdminClients() {
@@ -85,6 +91,26 @@ public class KeycloakClient {
         formData.put("client_secret", clientSecret);
         formData.put("redirect_uri", testRealmUrl(realmName) + "/account");
         formData.put("code", code);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .uri(new URI(testRealmUrl(realmName) + "/protocol/openid-connect/token"))
+                .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(expectedReturnCode, response.statusCode());
+
+        return JsonSerialization.readValue(response.body(), Map.class);
+    }
+
+    public Map<String, Object> refreshToken(String realmName, String refreshToken, String clientId, String clientSecret, int expectedReturnCode) throws URISyntaxException, IOException, InterruptedException {
+        Map<String, String> formData = new HashMap<>();
+        formData.put("grant_type", "refresh_token");
+        formData.put("refresh_token", refreshToken);
+        formData.put("client_id", clientId);
+        formData.put("client_secret", clientSecret);
+        formData.put("redirect_uri", testRealmUrl(realmName) + "/account");
 
         HttpRequest request = HttpRequest.newBuilder()
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -168,6 +194,28 @@ public class KeycloakClient {
         }
 
         return null;
+    }
+
+    public void markLBCheckDown() throws URISyntaxException, IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI(keycloakDownURL))
+                .GET()
+                .build();
+
+        HttpClientUtils.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).body();
+    }
+
+    public void markLBCheckUp() throws URISyntaxException, IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI(keycloakUpURL))
+                .GET()
+                .build();
+
+        HttpClientUtils.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).body();
+    }
+
+    public String getKeycloakServerUrl() {
+        return keycloakServerUrl;
     }
 
     public InfinispanClient embeddedIspn() {
