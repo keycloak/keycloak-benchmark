@@ -153,14 +153,14 @@ jobs:
 
       - name: Archive Gatling reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gatling-results
           path: keycloak-benchmark/results
           retention-days: 5
 
       - name: Archive Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: inputs.scenarioName == 'authentication.ClientSecret'
         with:
           name: summary
@@ -168,7 +168,7 @@ jobs:
           retention-days: 5
 
       - name: Archive Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: inputs.scenarioName == 'authentication.AuthorizationCode'
         with:
           name: summary

@@ -334,21 +334,21 @@ jobs:
 
       - name: Archive Gatling reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: gatling-results
           path: ansible/files/benchmark/*/results
           retention-days: 5
 
       - name: Archive Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: summary
           path: ansible/files/benchmark/*/results/*/js/stats.json
           retention-days: 5
 
       - name: Archive Calculated Metrics summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Calculated environment conclusion
           path: |
