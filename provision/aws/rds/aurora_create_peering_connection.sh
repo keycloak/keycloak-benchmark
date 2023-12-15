@@ -17,11 +17,13 @@ ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
 export AWS_REGION=$(echo ${ROSA_CLUSTER} | jq -r .region.id)
 
 AURORA_VPC=$(aws ec2 describe-vpcs \
-  --filters "Name=cidr,Values=${AURORA_VPC_CIDR}" "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
-  --query 'Vpcs[*].VpcId' \
+  --filters "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
+  --query 'Vpcs[0]' \
+  --output json \
   --region ${AURORA_REGION} \
-  --output text
 )
+AURORA_VPC_ID=$(echo ${AURORA_VPC} | jq -r .VpcId)
+AURORA_VPC_CIDR=$(echo ${AURORA_VPC} | jq -r .CidrBlock)
 
 NODE=$(oc get nodes --selector=node-role.kubernetes.io/worker \
   -o jsonpath='{.items[0].metadata.name}'
@@ -36,7 +38,7 @@ ROSA_VPC=$(aws ec2 describe-instances \
 
 # Create and Accept a VPC Peering Connection between Aurora and a ROSA cluster's VPC if it doesn't already exist
 PEERING_CONNECTION_ID=$(aws ec2 describe-vpc-peering-connections \
-  --filter "Name=requester-vpc-info.vpc-id,Values=${ROSA_VPC}" "Name=requester-vpc-info.vpc-id,Values=${AURORA_VPC}" "Name=status-code,Values=active"\
+  --filter "Name=requester-vpc-info.vpc-id,Values=${ROSA_VPC}" "Name=requester-vpc-info.vpc-id,Values=${AURORA_VPC_ID}" "Name=status-code,Values=active"\
   --query "VpcPeeringConnections[*].VpcPeeringConnectionId" \
   --output text
 )
@@ -44,7 +46,7 @@ PEERING_CONNECTION_ID=$(aws ec2 describe-vpc-peering-connections \
 if [ -z "${PEERING_CONNECTION_ID}" ]; then
   PEERING_CONNECTION_ID=$(aws ec2 create-vpc-peering-connection \
     --vpc-id ${ROSA_VPC} \
-    --peer-vpc-id ${AURORA_VPC} \
+    --peer-vpc-id ${AURORA_VPC_ID} \
     --peer-region ${AURORA_REGION} \
     --query VpcPeeringConnection.VpcPeeringConnectionId \
     --output text
@@ -85,7 +87,7 @@ fi
 
 # Update the Aurora Cluster VPC's Route Table
 AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
-  --filters "Name=vpc-id,Values=${AURORA_VPC}" "Name=association.main,Values=true" \
+  --filters "Name=vpc-id,Values=${AURORA_VPC_ID}" "Name=association.main,Values=true" \
   --query "RouteTables[*].RouteTableId" \
   --region ${AURORA_REGION} \
   --output text

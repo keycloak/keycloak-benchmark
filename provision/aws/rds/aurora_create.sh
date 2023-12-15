@@ -18,6 +18,40 @@ if [ -n "${EXISTING_INSTANCES}" ]; then
   exit 0
 fi
 
+REGIONS=$(aws ec2 describe-regions \
+    --query "Regions[*].RegionName" \
+    --output text
+)
+
+EXISTING_AURORA_CIDRS=""
+for REGION in ${REGIONS}; do
+  CIDRS=$(aws ec2 describe-vpcs \
+    --filters Name=tag-key,Values=AuroraCluster \
+    --query "Vpcs[*].CidrBlock" \
+    --region ${REGION} \
+    --output text
+  )
+  if [[ "${EXISTING_AURORA_CIDRS}" != *"${CIDRS}"* ]]; then
+    EXISTING_AURORA_CIDRS+=" ${CIDRS}"
+  fi
+done
+
+if (( $(echo ${EXISTING_AURORA_CIDRS} | wc -l) > 63 )); then
+  echo "Maximum number of unique Aurora CIDRS reached"
+  echo ${EXISTING_AURORA_CIDRS}
+  exit 1
+fi
+
+while true; do
+  AURORA_VPC_RANGE="192.168.$(shuf -i 0-255 -n 1)"
+  AURORA_VPC_CIDR="${AURORA_VPC_RANGE}.0/24"
+  if [[ "${EXISTING_MACHINE_CIDRS}" != *"${AURORA_VPC_CIDR}"* ]]; then
+    break
+  fi
+done
+AURORA_SUBNET_A_CIDR=${AURORA_VPC_RANGE}.0/25 # 0-127
+AURORA_SUBNET_B_CIDR=${AURORA_VPC_RANGE}.128/25 # 128-255
+
 # Create the Aurora VPC
 AURORA_VPC=$(aws ec2 create-vpc \
   --cidr-block ${AURORA_VPC_CIDR} \

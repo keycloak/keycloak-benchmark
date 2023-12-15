@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
@@ -44,6 +45,15 @@ ROSA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
   --output text
 )
 
+AURORA_VPC=$(aws ec2 describe-vpcs \
+  --filters "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
+  --query 'Vpcs[0]' \
+  --output json \
+  --region ${AURORA_REGION}
+)
+AURORA_VPC_ID=$(echo ${AURORA_VPC} | jq -r .VpcId)
+AURORA_VPC_CIDR=$(echo ${AURORA_VPC} | jq -r .CidrBlock)
+
 if [ -n "${ROSA_PUBLIC_ROUTE_TABLE_ID}" ]; then
   aws ec2 delete-route \
     --route-table-id ${ROSA_PUBLIC_ROUTE_TABLE_ID} \
@@ -51,42 +61,33 @@ if [ -n "${ROSA_PUBLIC_ROUTE_TABLE_ID}" ]; then
 fi
 
 # Cleanup Aurora Region
-if [ -n ${AURORA_REGION} ]; then
-  AURORA_VPC=$(aws ec2 describe-vpcs \
-    --filters "Name=cidr,Values=${AURORA_VPC_CIDR}" "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
-    --query 'Vpcs[*].VpcId' \
-    --region ${AURORA_REGION} \
-    --output text
-  )
+# Remove the ROSA route from the Aurora cluster
+AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=${AURORA_VPC_ID}" "Name=association.main,Values=true" \
+  --query "RouteTables[*].RouteTableId" \
+  --region ${AURORA_REGION} \
+  --output text
+)
 
-  # Remove the ROSA route from the Aurora cluster
-  AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
-    --filters "Name=vpc-id,Values=${AURORA_VPC}" "Name=association.main,Values=true" \
-    --query "RouteTables[*].RouteTableId" \
+if [ -n "${AURORA_PUBLIC_ROUTE_TABLE_ID}" ]; then
+  aws ec2 delete-route \
+    --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
+    --destination-cidr-block ${ROSA_MACHINE_CIDR} \
     --region ${AURORA_REGION} \
-    --output text
-  )
+    || true
+fi
 
-  if [ -n "${AURORA_PUBLIC_ROUTE_TABLE_ID}" ]; then
-    aws ec2 delete-route \
-      --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
-      --destination-cidr-block ${ROSA_MACHINE_CIDR} \
-      --region ${AURORA_REGION} \
-      || true
-  fi
-
-  AURORA_SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
-    --filters "Name=vpc-id,Values=${AURORA_VPC}" "Name=group-name,Values=${AURORA_SECURITY_GROUP_NAME}" \
-    --query "SecurityGroups[*].GroupId" \
-    --region ${AURORA_REGION} \
-    --output text
-  )
-  if [ -n "${AURORA_SECURITY_GROUP_ID}" ]; then
-    aws ec2 revoke-security-group-ingress \
-      --group-id ${AURORA_SECURITY_GROUP_ID} \
-      --protocol tcp \
-      --port 5432 \
-      --cidr ${ROSA_MACHINE_CIDR} \
-      --region ${AURORA_REGION}
-  fi
+AURORA_SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
+  --filters "Name=vpc-id,Values=${AURORA_VPC_ID}" "Name=group-name,Values=${AURORA_SECURITY_GROUP_NAME}" \
+  --query "SecurityGroups[*].GroupId" \
+  --region ${AURORA_REGION} \
+  --output text
+)
+if [ -n "${AURORA_SECURITY_GROUP_ID}" ]; then
+  aws ec2 revoke-security-group-ingress \
+    --group-id ${AURORA_SECURITY_GROUP_ID} \
+    --protocol tcp \
+    --port 5432 \
+    --cidr ${ROSA_MACHINE_CIDR} \
+    --region ${AURORA_REGION}
 fi

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
@@ -81,7 +82,7 @@ for REGION in ${REGIONS}; do
 
             KEEP_ALIVE=$(keepAlive ${REGION} ${AURORA_CLUSTER})
             if [ ${KEEP_ALIVE} == "0" ]; then
-                export AWS_REGION=${REGION}
+                export AURORA_REGION=${REGION}
                 export RUNNER_DEBUG=1
                 unset AURORA_SECURITY_GROUP_NAME
                 unset AURORA_SUBNET_GROUP_NAME

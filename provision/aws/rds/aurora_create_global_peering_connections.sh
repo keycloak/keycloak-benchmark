@@ -19,6 +19,5 @@ for (( i = 0 ; i < ${#GLOBAL_REGIONS[@]} ; i++ )) ; do
   REGION=${GLOBAL_REGIONS[i]}
   export AURORA_CLUSTER=${AURORA_GLOBAL_CLUSTER}-${REGION}
   export AURORA_REGION=${REGION}
-  export AURORA_VPC_CIDR=$(globalAuroraVpcCidr $i)
   ${SCRIPT_DIR}/aurora_create_peering_connection.sh || true
 done
