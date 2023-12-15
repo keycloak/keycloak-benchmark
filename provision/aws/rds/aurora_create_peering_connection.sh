@@ -19,6 +19,7 @@ export AWS_REGION=$(echo ${ROSA_CLUSTER} | jq -r .region.id)
 AURORA_VPC=$(aws ec2 describe-vpcs \
   --filters "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
   --query 'Vpcs[0]' \
+  --output json \
   --region ${AURORA_REGION} \
 )
 AURORA_VPC_ID=$(echo ${AURORA_VPC} | jq -r .VpcId)

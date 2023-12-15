@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
@@ -47,6 +48,7 @@ ROSA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
 AURORA_VPC=$(aws ec2 describe-vpcs \
   --filters "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
   --query 'Vpcs[0]' \
+  --output json \
   --region ${AURORA_REGION}
 )
 AURORA_VPC_ID=$(echo ${AURORA_VPC} | jq -r .VpcId)
