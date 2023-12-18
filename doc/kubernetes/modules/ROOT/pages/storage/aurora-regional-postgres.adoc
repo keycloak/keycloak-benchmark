@@ -82,15 +82,27 @@ This will create a pod in the Keycloak deployment namespace and establish a conn
 prompt will appear on initial connection and you should utilise the password defined in the Secret `keycloak-db-secret`.
 Upon exiting the pod shell, the pod will be deleted.
 
-== Disconnecting ROSA cluster from Aurora Cluster
+== Disconnecting ROSA cluster from an individual Aurora Cluster
 
-To remove a Peering Connection between the ROSA and Aurora VPCS, execute `./provision/aws/rds/aurora_delete_peering_connection.sh`
+To remove a Peering Connections between a ROSA cluster and a specific Aurora cluster, execute `./provision/aws/rds/aurora_delete_peering_connection.sh`
 with the following env:
 
 [source]
 ----
 AURORA_CLUSTER= # The name of the Aurora cluster instance
 AURORA_REGION= # The AWS region hosting the Aurora cluster
+CLUSTER_NAME= # The name of the ROSA cluster to remove the peering connection from
+AWS_REGION= # The AWS region hosting the ROSA cluster
+----
+
+== Disconnecting ROSA cluster from all Aurora Clusters
+
+To remove all Peering Connections between the ROSA and Aurora VPCS in a given region, execute `./provision/aws/rds/aurora_delete_peering_connection.sh`
+with the following env:
+
+[source]
+----
+AURORA_REGION= # The AWS region hosting the Aurora clusters
 CLUSTER_NAME= # The name of the ROSA cluster to remove the peering connection from
 AWS_REGION= # The AWS region hosting the ROSA cluster
 ----

@@ -48,6 +48,7 @@ if [ -z "${PEERING_CONNECTION_ID}" ]; then
     --vpc-id ${ROSA_VPC} \
     --peer-vpc-id ${AURORA_VPC_ID} \
     --peer-region ${AURORA_REGION} \
+    --tag-specifications "ResourceType=vpc-peering-connection, Tags=[{Key=AuroraCluster,Value=${AURORA_CLUSTER}}]" \
     --query VpcPeeringConnection.VpcPeeringConnectionId \
     --output text
   )
