@@ -46,6 +46,12 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-logging
+  namespace: openshift-logging
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
