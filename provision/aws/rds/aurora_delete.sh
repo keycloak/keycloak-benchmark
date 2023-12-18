@@ -27,7 +27,7 @@ aws rds delete-db-cluster \
   --skip-final-snapshot \
   || true
 
-for i in $( aws rds describe-db-clusters --output json --region ${AURORA_REGION} | jq -r .DBClusters[0].DBClusterMembers[].DBInstanceIdentifier ); do
+for i in $( aws rds describe-db-clusters --db-cluster-identifier ${AURORA_CLUSTER} --output json --region ${AURORA_REGION} | jq -r .DBClusters[0].DBClusterMembers[].DBInstanceIdentifier ); do
   aws rds wait db-instance-deleted --db-instance-identifier --region ${AURORA_REGION} "${i}"
 done
 
