@@ -2,7 +2,6 @@ package org.keycloak.benchmark.crossdc.util;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-import org.jboss.logging.Logger;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 
 import javax.net.ssl.HostnameVerifier;
@@ -16,8 +15,6 @@ import java.util.Arrays;
 import java.util.Map;
 
 public class KeycloakUtils {
-    private static final Logger LOG = Logger.getLogger(KeycloakUtils.class);
-
     public static ResteasyClientBuilder newResteasyClientBuilder() {
         // Disable PKIX path validation errors when running tests using SSL
         HostnameVerifier hostnameVerifier = new HostnameVerifier() {
