@@ -19,8 +19,8 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
         Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
 
         //Making sure the code cannot be reused in any of the DCs
-        DC_2.kc().exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 400, code);
-        DC_1.kc().exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 400, code);
+        DC_2.kc().exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 400, code, LOAD_BALANCER_KEYCLOAK.getRedirectUri(REALM_NAME));
+        DC_1.kc().exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 400, code, LOAD_BALANCER_KEYCLOAK.getRedirectUri(REALM_NAME));
 
         //Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC1
         String sessionId = code.split("[.]")[1];

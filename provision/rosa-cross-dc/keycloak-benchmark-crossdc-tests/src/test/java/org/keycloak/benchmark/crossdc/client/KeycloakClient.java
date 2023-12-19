@@ -85,11 +85,15 @@ public class KeycloakClient {
     }
 
     public Map<String, Object> exchangeCode(String realmName, String clientId, String clientSecret, int expectedReturnCode, String code) throws URISyntaxException, IOException, InterruptedException {
+        return exchangeCode(realmName, clientId, clientSecret, expectedReturnCode, code, getRedirectUri(realmName));
+    }
+
+    public Map<String, Object> exchangeCode(String realmName, String clientId, String clientSecret, int expectedReturnCode, String code, String redirectUri) throws URISyntaxException, IOException, InterruptedException {
         Map<String, String> formData = new HashMap<>();
         formData.put("grant_type", "authorization_code");
         formData.put("client_id", clientId);
         formData.put("client_secret", clientSecret);
-        formData.put("redirect_uri", testRealmUrl(realmName) + "/account");
+        formData.put("redirect_uri", redirectUri);
         formData.put("code", code);
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -286,5 +290,9 @@ public class KeycloakClient {
         newAdminClient.tokenManager().getAccessToken();
 
         return newAdminClient;
+    }
+
+    public String getRedirectUri(String realmName) {
+        return testRealmUrl(realmName) + "/account";
     }
 }
