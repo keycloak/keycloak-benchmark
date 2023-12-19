@@ -4,13 +4,30 @@ on:
   schedule:
     - cron: '0 5 * * 1-5' # Runs At 05:00 UTC on every day-of-week from Monday through Friday.
 
-jobs:
+env:
+  CLUSTER_PREFIX: gh-keycloak
 
-  checkout:
+jobs:
+  cluster:
     name: ROSA Scheduled Create cluster
-    runs-on: ubuntu-latest
-    steps:
-      - run: gh workflow run -R keycloak/keycloak-benchmark rosa-multi-az-cluster-create.yml
-        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
+    with:
+      clusterPrefix: ${{ env.CLUSTER_PREFIX }}
+    secrets: inherit
+
+  run-functional-tests:
+    needs: cluster
+    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
+    with:
+      clusterPrefix: ${{ env.CLUSTER_PREFIX }}
+    secrets: inherit
+
+  run-scaling-benchmark:
+    needs: run-functional-tests
+    uses: ./.github/workflows/rosa-scaling-benchmark.yml
+    with:
+      clusterName: ${{ env.CLUSTER_PREFIX }}-a
+      skipCreateDeployment: true
+      skipDeleteProject: true
+    secrets: inherit
