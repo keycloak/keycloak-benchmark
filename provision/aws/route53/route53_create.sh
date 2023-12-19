@@ -30,22 +30,20 @@ function createHealthCheck() {
   '
 }
 
-function rosa_vpc() {
+function loadbalancer() {
   export CLUSTER_NAME=$1
   AWS_REGION=$2
 
   bash ${SCRIPT_DIR}/../rosa_oc_login.sh > /dev/null
 
-  NODE=$(oc get nodes --selector=node-role.kubernetes.io/worker \
-  -o jsonpath='{.items[0].metadata.name}'
+  HOSTNAME=$(oc -n openshift-ingress get svc router-default \
+    -o jsonpath='{.status.loadBalancer.ingress[].hostname}'
   )
 
-  aws ec2 describe-instances \
-    --filters "Name=private-dns-name,Values=${NODE}" \
-    --query 'Reservations[*].Instances[*].{VpcId:VpcId}' \
+  aws elbv2 describe-load-balancers \
+    --query "LoadBalancers[?DNSName=='${HOSTNAME}']" \
     --output json \
-    --region ${AWS_REGION} \
-    | jq -r '.[0][0].VpcId'
+    --region ${AWS_REGION}
 }
 
 PRIMARY_CLUSTER=${PRIMARY_CLUSTER:-"gh-keycloak"}
@@ -54,26 +52,14 @@ BACKUP_CLUSTER=${BACKUP_CLUSTER:-${PRIMARY_CLUSTER}}
 PRIMARY_CLUSTER_REGION=$(rosa describe cluster -c ${PRIMARY_CLUSTER} -o json | jq -r .region.id)
 BACKUP_CLUSTER_REGION=$(rosa describe cluster -c ${BACKUP_CLUSTER} -o json | jq -r .region.id)
 
-# Retrieve ROSA cluster VPCs
-PRIMARY_CLUSTER_VPC=$(rosa_vpc ${PRIMARY_CLUSTER} ${PRIMARY_CLUSTER_REGION})
-BACKUP_CLUSTER_VPC=$(rosa_vpc ${BACKUP_CLUSTER} ${BACKUP_CLUSTER_REGION})
-
-# Retrieve Load Balancer for ROSA Clusters
-PRIMARY_LB=$(aws elb describe-load-balancers \
-  --query "LoadBalancerDescriptions[?VPCId=='${PRIMARY_CLUSTER_VPC}']" \
-  --region ${PRIMARY_CLUSTER_REGION} \
-  --output json
-)
+# Retrieve ROSA cluster LoadBalancer
+PRIMARY_LB=$(loadbalancer ${PRIMARY_CLUSTER} ${PRIMARY_CLUSTER_REGION})
 PRIMARY_LB_DNS=$(echo ${PRIMARY_LB} | jq -r ".[0].DNSName")
-PRIMARY_LB_HOSTED_ZONE_ID=$(echo ${PRIMARY_LB} | jq -r ".[0].CanonicalHostedZoneNameID")
+PRIMARY_LB_HOSTED_ZONE_ID=$(echo ${PRIMARY_LB} | jq -r ".[0].CanonicalHostedZoneId")
 
-BACKUP_LB=$(aws elb describe-load-balancers \
-  --query "LoadBalancerDescriptions[?VPCId=='${BACKUP_CLUSTER_VPC}']" \
-  --region ${BACKUP_CLUSTER_REGION} \
-  --output json
-)
+BACKUP_LB=$(loadbalancer ${BACKUP_CLUSTER} ${BACKUP_CLUSTER_REGION})
 BACKUP_LB_DNS=$(echo ${BACKUP_LB} | jq -r ".[0].DNSName")
-BACKUP_LB_HOSTED_ZONE_ID=$(echo ${BACKUP_LB} | jq -r ".[0].CanonicalHostedZoneNameID")
+BACKUP_LB_HOSTED_ZONE_ID=$(echo ${BACKUP_LB} | jq -r ".[0].CanonicalHostedZoneId")
 
 # Retrieve the Hosted Zone associated with our root domain
 HOSTED_ZONE_ID=$(aws route53 list-hosted-zones \
