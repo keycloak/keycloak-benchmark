@@ -20,7 +20,7 @@ public class TestMultiSiteLoadBalancerCheckProvider implements LoadBalancerCheck
         String siteName = session.getProvider(InfinispanConnectionProvider.class).getTopologyInfo().getMySiteName();
         boolean isDown = session.realms().getRealmByName("master").getAttribute("is-site-" + siteName + "-down", false);
 
-        logger.debugf("Site %s is down %s", siteName, isDown);
+        logger.debugf("Site %s is %s", siteName, isDown ? "DOWN" : "UP");
         return isDown;
     }
 
