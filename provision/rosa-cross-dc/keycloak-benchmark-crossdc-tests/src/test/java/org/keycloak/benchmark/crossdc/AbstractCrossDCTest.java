@@ -22,6 +22,7 @@ import java.net.http.HttpClient;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
@@ -39,6 +40,7 @@ public abstract class AbstractCrossDCTest {
     public static final String MAIN_PASSWORD = System.getProperty("main.password");
 
     static {
+        assertNotNull(MAIN_PASSWORD, "Main password must be set");
         DC_1 = new DatacenterInfo(HTTP_CLIENT, System.getProperty("keycloak.dc1.url"), System.getProperty("infinispan.dc1.url"));
         DC_2 = new DatacenterInfo(HTTP_CLIENT, System.getProperty("keycloak.dc2.url"), System.getProperty("infinispan.dc2.url"));
         LOAD_BALANCER_KEYCLOAK = new KeycloakClient(HTTP_CLIENT, System.getProperty("load-balancer.url"));

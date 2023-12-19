@@ -44,6 +44,8 @@ public class KeycloakClient {
     private static final Logger LOG = Logger.getLogger(KeycloakClient.class);
 
     public KeycloakClient(HttpClient httpClient, String keycloakServerUrl) {
+        assertNotNull(keycloakServerUrl, "Keycloak server URL must not be null.");
+
         this.httpClient = httpClient;
         this.keycloakServerUrl = keycloakServerUrl;
 

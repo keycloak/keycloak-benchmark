@@ -4,6 +4,8 @@ import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
 
 import java.net.http.HttpClient;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class DatacenterInfo {
 
     private final String keycloakServerURL;
