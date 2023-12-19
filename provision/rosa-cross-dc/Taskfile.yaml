@@ -16,6 +16,7 @@ vars:
   ANSIBLE_DIR: "{{.ROOT_DIR}}/../../ansible"
   PYTHON_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/python"
   BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
+  ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
   KEYCLOAK_MASTER_PASSWORD:
     sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
 
@@ -60,6 +61,10 @@ tasks:
             ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - echo "Deploying Aurora Database ({{.AURORA_CLUSTER}}) in region $(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})"
       - AURORA_REGION="{{ .AURORA_REGION }}" AURORA_INSTANCES=2 ../aws/rds/aurora_create.sh
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "database_mode"
+          PROP_VALUE: "single"
 
   create-global-aurora:
     internal: true
@@ -81,6 +86,10 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - echo "Deploying Global Aurora Database ({{.AURORA_GLOBAL_CLUSTER}}) in regions {{.AURORA_GLOBAL_REGIONS}}"
       - AURORA_GLOBAL_REGIONS="{{ .AURORA_GLOBAL_REGIONS }}" ../aws/rds/aurora_create_global_db.sh
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "database_mode"
+          PROP_VALUE: "global"
 
   delete-aurora:
     desc: "Deletes Aurora Database"
@@ -217,6 +226,12 @@ tasks:
           OC_NAMESPACE_1: "{{.KC_ISPN_NAMESPACE}}"
           OC_NAMESPACE_2: "{{.KC_ISPN_NAMESPACE}}"
           CROSS_DC_HOT_ROD_PASSWORD: "{{.RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD}}"
+      - task: update-env-configjson-with-ispn-data
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: update-env-configjson-with-ispn-data
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   patch-keycloak-image:
     internal: true
@@ -243,7 +258,6 @@ tasks:
         sh: cat .task/aurora-endpoint-{{.AURORA_CLUSTER}}
       KC_ADMIN_PASSWORD:
         sh: "aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin"
-      KC_DATABASE: "aurora-postgres"
       KC_CUSTOM_INFINISPAN_CONFIG: "true"
       KC_CUSTOM_INFINISPAN_CONFIG_FILE: "config/kcb-infinispan-cache-remote-store-config.xml"
       KC_ISPN_CLUSTER: "infinispan"
@@ -420,6 +434,12 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   undeploy:
     desc: "Undeploy Infinispan and Keycloak in a Cross-Site deployment using ROSA clusters"
@@ -449,6 +469,12 @@ tasks:
       - task: uninstall-infinispan
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
 
   helm-add-repos:
@@ -826,3 +852,52 @@ tasks:
         FAILOVER_MODE="{{.FAILOVER_MODE}}"
         FAILOVER_DELAY="{{.FAILOVER_DELAY}}"
         ./kc-failover.sh
+
+  update-env-configjson-with-ispn-data:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "Updating environment json file with Infinispan data"
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "ispn_deployment"
+          PROP_VALUE:
+            sh: cat "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
+    sources:
+      - "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
+    preconditions:
+      - test -f "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
+
+  update-env-configjson-with-new-values:
+    internal: true
+    requires:
+      vars:
+        - PROP_NAME
+        - PROP_VALUE
+    cmds:
+      - echo "Updating environment json file with {{.PROP_NAME}}"
+      - "jq --arg key '{{.PROP_NAME}}' --arg value '{{ .PROP_VALUE }}' '. + {($key): ($value)}' {{.ENV_DATA_JSON_PATH}} > tmp.json && mv tmp.json {{.ENV_DATA_JSON_PATH}}"
+    preconditions:
+      - test -f "{{.ENV_DATA_JSON_PATH}}"
+
+  create-env-configmap:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "Creating configmap with environment data."
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}} || (kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}})
+    preconditions:
+      - test -f "{{.ENV_DATA_JSON_PATH}}"
+
+  delete-env-configmap:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "Deleting configmap with environment data."
+      - bash -c "kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config || exit 0"

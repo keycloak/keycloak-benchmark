@@ -35,10 +35,15 @@ jobs:
         with:
           project: runner-keycloak
 
+      - name: Set SUBDOMAIN env variable for route53 processing
+        run: |
+          echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
+
       - name: Delete Route53 Records
         run: |
-          SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')
           ./provision/aws/route53/route53_delete.sh
+        env:
+          SUBDOMAIN: ${{ env.SUBDOMAIN }}
 
   cluster1:
     uses: ./.github/workflows/rosa-cluster-delete.yml
