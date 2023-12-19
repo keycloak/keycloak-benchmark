@@ -17,14 +17,14 @@ import org.keycloak.representations.idm.UserRepresentation;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.URIToHostString;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.isPrimaryActive;
 
 public abstract class AbstractCrossDCTest {
     private static final Logger LOG = Logger.getLogger(AbstractCrossDCTest.class);
@@ -45,7 +45,9 @@ public abstract class AbstractCrossDCTest {
     }
 
     @BeforeEach
-    public void setUpTestEnvironment() {
+    public void setUpTestEnvironment() throws UnknownHostException {
+        assertTrue(DC_1.kc().isActive(LOAD_BALANCER_KEYCLOAK));
+
         Keycloak adminClient = DC_1.kc().adminClient();
         LOG.info("Setting up test environment");
         LOG.info("-------------------------------------------");
@@ -123,24 +125,6 @@ public abstract class AbstractCrossDCTest {
 
         DC_1.kc().markLBCheckUp();
         DC_2.kc().markLBCheckUp();
-        waitUntilPrimaryIsUp(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl(), DC_1.getKeycloakServerURL(), DC_2.getKeycloakServerURL());
-    }
-
-    public void waitForFailover(String clientUrl, String primaryUrl, String backupUrl) throws IOException, InterruptedException {
-        clientUrl = URIToHostString(clientUrl);
-        primaryUrl = URIToHostString(primaryUrl);
-        backupUrl = URIToHostString(backupUrl);
-        while (isPrimaryActive(clientUrl, primaryUrl, backupUrl)) {
-            Thread.sleep(5000);
-        }
-    }
-
-    public void waitUntilPrimaryIsUp(String clientUrl, String primaryUrl, String backupUrl) throws IOException, InterruptedException {
-        clientUrl = URIToHostString(clientUrl);
-        primaryUrl = URIToHostString(primaryUrl);
-        backupUrl = URIToHostString(backupUrl);
-        while (!isPrimaryActive(clientUrl, primaryUrl, backupUrl)) {
-            Thread.sleep(5000);
-        }
+        DC_1.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
     }
 }

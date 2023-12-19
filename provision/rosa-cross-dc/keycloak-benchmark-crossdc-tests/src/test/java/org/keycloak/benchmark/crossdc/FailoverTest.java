@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
 public class FailoverTest extends AbstractCrossDCTest {
 
@@ -18,16 +19,16 @@ public class FailoverTest extends AbstractCrossDCTest {
         Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
 
         DC_1.kc().markLBCheckDown();
-        waitForFailover(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl(), DC_1.getKeycloakServerURL(), DC_2.getKeycloakServerURL());
+        DC_2.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
 
         // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
-        Set<String> sessions = DC_2.ispn().cache("sessions").keys();
-        assertTrue(sessions.contains(code.toString().split("[.]")[1]));
+        Set<String> sessions = DC_2.ispn().cache(SESSIONS).keys();
+        assertTrue(sessions.contains(code.split("[.]")[1]));
 
-        tokensMap = DC_2.kc().refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 200);
+        tokensMap = LOAD_BALANCER_KEYCLOAK.refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 200);
 
-        DC_2.kc().logout(REALM_NAME, (String) tokensMap.get("id_token"), CLIENTID);
+        LOAD_BALANCER_KEYCLOAK.logout(REALM_NAME, (String) tokensMap.get("id_token"), CLIENTID);
 
-        DC_2.kc().refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 400);
+        LOAD_BALANCER_KEYCLOAK.refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 400);
     }
 }

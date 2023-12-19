@@ -1,17 +1,20 @@
 package org.keycloak.benchmark.crossdc.client;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.jboss.logging.Logger;
 import org.jboss.resteasy.spi.NotImplementedYetException;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
 import org.keycloak.benchmark.crossdc.util.KeycloakUtils;
+import org.keycloak.common.util.Time;
 import org.keycloak.util.JsonSerialization;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -28,7 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.URIToHostString;
 import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getFormDataAsString;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.pointsToSameIp;
 
 public class KeycloakClient {
     private final HttpClient httpClient;
@@ -36,6 +41,7 @@ public class KeycloakClient {
     private final String keycloakDownURL;
     private final String keycloakUpURL;
     private static final Map<KeycloakClient, Keycloak> adminClients = new ConcurrentHashMap<>();
+    private static final Logger LOG = Logger.getLogger(KeycloakClient.class);
 
     public KeycloakClient(HttpClient httpClient, String keycloakServerUrl) {
         this.httpClient = httpClient;
@@ -216,6 +222,28 @@ public class KeycloakClient {
                 .build();
 
         HttpClientUtils.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).body();
+    }
+
+    public boolean isActive(KeycloakClient loadBalancer) throws UnknownHostException {
+        String loadBalancerHost = URIToHostString(loadBalancer.getKeycloakServerUrl());
+        String thisKeycloakHost = URIToHostString(getKeycloakServerUrl());
+
+        return pointsToSameIp(loadBalancerHost, thisKeycloakHost);
+    }
+
+    public void waitToBeActive(KeycloakClient loadBalancer) throws UnknownHostException, InterruptedException {
+        int startTime = Time.currentTime();
+        int timeLimit = startTime + 600; // 10 minutes
+        LOG.infof("Waiting for Keycloak %d to be active.", keycloakServerUrl);
+        while (!isActive(loadBalancer) && Time.currentTime() <= timeLimit) {
+            Thread.sleep(1000);
+        }
+
+        if (Time.currentTime() > timeLimit) {
+            throw new RuntimeException("Keycloak " + keycloakServerUrl + " did not become active in 10 minutes.");
+        }
+
+        LOG.infof("Keycloak %d is active. Took %d seconds.", keycloakServerUrl, Time.currentTime() - startTime);
     }
 
     public String getKeycloakServerUrl() {

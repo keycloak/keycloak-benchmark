@@ -58,24 +58,14 @@ public class KeycloakUtils {
         return path.substring(path.lastIndexOf('/') + 1);
     }
 
-    public static boolean isPrimaryActive(String clientUrl, String primaryUrl, String backupUrl) throws UnknownHostException {
-        InetAddress[] clientAddresses = InetAddress.getAllByName(clientUrl);
-        Object[] clientIPs = Arrays.stream(clientAddresses).map(InetAddress::getHostAddress).sorted().toArray();
+    public static boolean pointsToSameIp(String firstUrl, String secondUrl) throws UnknownHostException {
+        InetAddress[] firstUrlAddresses = InetAddress.getAllByName(firstUrl);
+        Object[] firstUrlIPs = Arrays.stream(firstUrlAddresses).map(InetAddress::getHostAddress).sorted().toArray();
 
-        InetAddress[] primaryAddresses = InetAddress.getAllByName(primaryUrl);
-        Object[] primaryIPs = Arrays.stream(primaryAddresses).map(InetAddress::getHostAddress).sorted().toArray();
+        InetAddress[] secondUrlAddresses = InetAddress.getAllByName(secondUrl);
+        Object[] secondUrlIPs = Arrays.stream(secondUrlAddresses).map(InetAddress::getHostAddress).sorted().toArray();
 
-        InetAddress[] backupAddresses = InetAddress.getAllByName(backupUrl);
-        Object[] backupIPs = Arrays.stream(backupAddresses).map(InetAddress::getHostAddress).sorted().toArray();
-
-        if (Arrays.equals(clientIPs, primaryIPs) && !Arrays.equals(clientIPs, backupIPs)) {
-            LOG.info("Client's subdomain points to the same IP as the primary subdomain (Primary is UP).");
-            return true;
-        }
-        else {
-            LOG.info("Client's subdomain does not point to the same IP as the primary subdomain (Primary is DOWN).");
-            return false;
-        }
+        return Arrays.equals(firstUrlIPs, secondUrlIPs);
     }
 
     public static String URIToHostString(String uri) {
