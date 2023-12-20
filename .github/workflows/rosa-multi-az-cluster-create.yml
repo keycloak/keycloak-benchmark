@@ -102,19 +102,3 @@ jobs:
           KC_DB_POOL_INITIAL_SIZE: 30
           KC_DB_POOL_MAX_SIZE: 30
           KC_DB_POOL_MIN_SIZE: 30
-
-  run-functional-tests:
-    needs: [ meta, deploy-keycloak ]
-    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
-    with:
-      clusterPrefix: ${{ needs.meta.outputs.clusterPrefix }}
-    secrets: inherit
-
-  run-scaling-benchmark:
-    needs: [ meta, run-functional-tests ]
-    uses: ./.github/workflows/rosa-scaling-benchmark.yml
-    with:
-      clusterName: ${{ needs.meta.outputs.clusterPrefix }}-a
-      skipCreateDeployment: true
-      skipDeleteProject: true
-    secrets: inherit
