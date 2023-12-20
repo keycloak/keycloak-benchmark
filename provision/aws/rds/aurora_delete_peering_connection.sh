@@ -53,6 +53,10 @@ ROSA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
 )
 
 for AURORA_CLUSTER in ${AURORA_CLUSTERS}; do
+
+  # Workaround: Assume that the AURORA_REGION is equal to the region of the ROSA cluster
+  export AURORA_REGION=${AURORA_REGION:-${AWS_REGION}}
+
   AURORA_VPC=$(aws ec2 describe-vpcs \
     --filters "Name=tag:AuroraCluster,Values=${AURORA_CLUSTER}" \
     --query 'Vpcs[0]' \
