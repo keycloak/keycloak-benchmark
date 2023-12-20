@@ -6,7 +6,6 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
 fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source ${SCRIPT_DIR}/aurora_common.sh
 
 ROSA_CLUSTER=$(rosa describe cluster -c ${CLUSTER_NAME} -o json)
 ROSA_MACHINE_CIDR=$(echo ${ROSA_CLUSTER} | jq -r .network.machine_cidr)
@@ -28,13 +27,13 @@ if [ -z "${ROSA_VPC}" ]; then
 fi
 
 # Delete all Peering connections
-PEERING_CONNECTIONS=$(aws ec2 describe-vpc-peering-connections \
+PEERING_CONNECTIONS=$(aws ec2 describe-vpc-peering-connections --output json \
   --filter "Name=requester-vpc-info.vpc-id,Values=${ROSA_VPC}" "Name=status-code,Values=active" "Name=tag-key,Values=AuroraCluster"
 )
 
 # If an Aurora cluster is not explicitly provided, remove all Aurora peering connections
 if [ -z "${AURORA_CLUSTER}" ]; then
-  AURORA_CLUSTERS=$(echo {PEERING_CONNECTIONS} | jq -r '.VpcPeeringConnections[].Tags[] | select(.Key == "AuroraCluster").Value')
+  AURORA_CLUSTERS=$(echo ${PEERING_CONNECTIONS} | jq -r '.VpcPeeringConnections[].Tags[] | select(.Key == "AuroraCluster").Value')
   PEERING_CONNECTION_IDS=$(echo ${PEERING_CONNECTIONS} | jq -r .VpcPeeringConnections[].VpcPeeringConnectionId)
 else
   AURORA_CLUSTERS=${AURORA_CLUSTER}
@@ -89,6 +88,7 @@ for AURORA_CLUSTER in ${AURORA_CLUSTERS}; do
       || true
   fi
 
+  export AURORA_SECURITY_GROUP_NAME=${AURORA_CLUSTER}-security-group
   AURORA_SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
     --filters "Name=vpc-id,Values=${AURORA_VPC_ID}" "Name=group-name,Values=${AURORA_SECURITY_GROUP_NAME}" \
     --query "SecurityGroups[*].GroupId" \
