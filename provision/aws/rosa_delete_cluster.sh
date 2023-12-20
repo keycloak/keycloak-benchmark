@@ -34,5 +34,14 @@ rosa logs uninstall --cluster $CLUSTER_ID --watch --tail=1000000 > "logs/${CLUST
 
 echo "Cluster uninstalled."
 
+# Avoid error message 'Cluster 'xxx' is in 'uninstalling' state.' for the following commands by waiting until it is gone
+n=0
+until [ "$n" -ge 20 ]
+do
+   rosa describe cluster --cluster $CLUSTER_ID || break
+   n=$((n+1))
+   sleep 10
+done
+
 rosa delete operator-roles --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_delete-operator-roles.log" || true
 rosa delete oidc-provider --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_delete-oidc-provider.log"
