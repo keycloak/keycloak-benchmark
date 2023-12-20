@@ -55,7 +55,7 @@ AURORA_SUBNET_B_CIDR=${AURORA_VPC_RANGE}.128/25 # 128-255
 # Create the Aurora VPC
 AURORA_VPC=$(aws ec2 create-vpc \
   --cidr-block ${AURORA_VPC_CIDR} \
-  --tag-specifications "ResourceType=vpc, Tags=[{Key=AuroraCluster,Value=${AURORA_CLUSTER}}]" \
+  --tag-specifications "ResourceType=vpc, Tags=[{Key=AuroraCluster,Value=${AURORA_CLUSTER}},{Key=Name,Value=Aurora Cluster ${AURORA_CLUSTER}}]" \
   --output json \
   | jq -r '.Vpc.VpcId'
 )
