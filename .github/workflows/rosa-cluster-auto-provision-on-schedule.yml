@@ -14,7 +14,7 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
-      clusterPrefix: ${{ env.CLUSTER_PREFIX }}
+      clusterPrefix: gh-keycloak2 # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
     secrets: inherit
 
   run-functional-tests:
