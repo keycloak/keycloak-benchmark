@@ -6,9 +6,12 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 
 public class KeycloakUtils {
@@ -50,5 +53,19 @@ public class KeycloakUtils {
         }
         String path = location.getPath();
         return path.substring(path.lastIndexOf('/') + 1);
+    }
+
+    public static boolean pointsToSameIp(String firstUrl, String secondUrl) throws UnknownHostException {
+        InetAddress[] firstUrlAddresses = InetAddress.getAllByName(firstUrl);
+        Object[] firstUrlIPs = Arrays.stream(firstUrlAddresses).map(InetAddress::getHostAddress).sorted().toArray();
+
+        InetAddress[] secondUrlAddresses = InetAddress.getAllByName(secondUrl);
+        Object[] secondUrlIPs = Arrays.stream(secondUrlAddresses).map(InetAddress::getHostAddress).sorted().toArray();
+
+        return Arrays.equals(firstUrlIPs, secondUrlIPs);
+    }
+
+    public static String URIToHostString(String uri) {
+        return URI.create(uri).getHost().toString();
     }
 }

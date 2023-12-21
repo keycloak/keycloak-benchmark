@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.ISPN_USERNAME;
 import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.MAIN_PASSWORD;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getBasicAuthenticationHeader;
@@ -29,6 +30,7 @@ public class ExternalInfinispanClient implements InfinispanClient {
     Pattern UUID_REGEX = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     public ExternalInfinispanClient(HttpClient httpClient, String infinispanUrl, String username, String password) {
+        assertNotNull(infinispanUrl, "Infinispan URL cannot be null");
         this.httpClient = httpClient;
         this.infinispanUrl = infinispanUrl;
         this.username = username;
@@ -61,7 +63,7 @@ public class ExternalInfinispanClient implements InfinispanClient {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 assertEquals(200, response.statusCode());
 
-                if (cacheName.equals(InfinispanUtils.SESSIONS)) {
+                if (cacheName.equals(InfinispanUtils.SESSIONS) || cacheName.equals(InfinispanUtils.CLIENT_SESSIONS)) {
                     return Long.parseLong(response.body()) - KeycloakClient.getCurrentlyInitializedAdminClients();
                 }
                 return Long.parseLong(response.body());
