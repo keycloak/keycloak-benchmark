@@ -5,8 +5,8 @@ on:
     - cron: '0 5 * * 1-5' # Runs At 05:00 UTC on every day-of-week from Monday through Friday.
   workflow_dispatch:
 
-env:
-  CLUSTER_PREFIX: gh-keycloak2
+# env:
+#   CLUSTER_PREFIX: gh-keycloak2
 
 jobs:
   cluster:
@@ -21,14 +21,14 @@ jobs:
     needs: cluster
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
-      clusterPrefix: ${{ env.CLUSTER_PREFIX }}
+      clusterPrefix: gh-keycloak2 # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
     secrets: inherit
 
   run-scaling-benchmark:
     needs: run-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterName: ${{ env.CLUSTER_PREFIX }}-a
+      clusterName: gh-keycloak2-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
       skipCreateDeployment: true
       skipDeleteProject: true
     secrets: inherit
