@@ -67,6 +67,7 @@ REGIONS=$(aws ec2 describe-regions \
     --output text
 )
 for REGION in ${REGIONS}; do
+    # TODO: this lists instances, not cluster, so it might try to delete the clusters twice
     DB_INSTANCES=$(aws rds describe-db-instances \
         --region ${REGION} \
         --filters Name=engine,Values=${AURORA_ENGINE} \
@@ -81,7 +82,7 @@ for REGION in ${REGIONS}; do
             export AURORA_INSTANCE=$(echo $i | jq -r .DBInstanceIdentifier)
 
             KEEP_ALIVE=$(keepAlive ${REGION} ${AURORA_CLUSTER})
-            if [ ${KEEP_ALIVE} == "0" ]; then
+            if [ "${KEEP_ALIVE}" == "0" ]; then
                 export AURORA_REGION=${REGION}
                 export RUNNER_DEBUG=1
                 unset AURORA_SECURITY_GROUP_NAME
