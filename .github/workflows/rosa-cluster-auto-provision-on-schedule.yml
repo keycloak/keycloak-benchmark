@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 # env:
-#   CLUSTER_PREFIX: gh-keycloak2
+#   CLUSTER_PREFIX: gh-keycloak
 
 jobs:
   cluster:
@@ -14,21 +14,21 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
-      clusterPrefix: gh-keycloak2 # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
     secrets: inherit
 
   run-functional-tests:
     needs: cluster
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
-      clusterPrefix: gh-keycloak2 # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
     secrets: inherit
 
   run-scaling-benchmark:
     needs: run-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterName: gh-keycloak2-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
+      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
       skipCreateDeployment: true
       skipDeleteProject: true
     secrets: inherit
