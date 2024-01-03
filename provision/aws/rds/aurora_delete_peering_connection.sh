@@ -101,6 +101,7 @@ for AURORA_CLUSTER in ${AURORA_CLUSTERS}; do
       --protocol tcp \
       --port 5432 \
       --cidr ${ROSA_MACHINE_CIDR} \
-      --region ${AURORA_REGION}
+      --region ${AURORA_REGION} \
+     || true
   fi
 done
