@@ -362,7 +362,7 @@ tasks:
         - KC_NAMESPACE_PREFIX
     vars:
       NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
-      TIMEOUT: "{{.TIMEOUT | default 300}}"
+      TIMEOUT: "{{.TIMEOUT | default 1200}}"
     cmds:
       - echo "Waiting for Keycloak condition in ROSA cluster {{.ROSA_CLUSTER_NAME}} for {{.TIMEOUT}} seconds"
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=Available --timeout={{.TIMEOUT}}s deployments.apps/keycloak-operator -n "{{.NAMESPACE}}"
@@ -380,7 +380,7 @@ tasks:
         - KC_NAMESPACE_PREFIX
     vars:
       NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
-      TIMEOUT: "{{.TIMEOUT | default 300}}"
+      TIMEOUT: "{{.TIMEOUT | default 1200}}"
     cmds:
       - echo "Waiting for Cryostat condition in ROSA cluster {{.ROSA_CLUSTER_NAME}} for {{.TIMEOUT}} seconds"
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=MainDeploymentProgressing --timeout={{.TIMEOUT}}s cryostats.operator.cryostat.io/cryostat -n "{{.NAMESPACE}}"
