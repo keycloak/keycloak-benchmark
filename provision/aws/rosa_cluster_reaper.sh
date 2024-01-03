@@ -30,5 +30,9 @@ done
 
 echo "Finished reaping all possible clusters at $(date -uIs)"
 
+# This is necessary because of the following Jira: https://issues.redhat.com/browse/OCPBUGS-1838
+echo "Checking for dangling DHCP Options Sets"
+./rosa_clean_aws_dhcp_options.sh
+
 
 
