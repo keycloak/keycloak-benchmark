@@ -37,6 +37,8 @@ jobs:
     strategy:
       matrix:
         availabilityZone: [ a, b ]
+      # It is currently not safe to run the cluster creation in parallel, as both might pick the same CIDR, which then leads to conflicts
+      max-parallel: 1
     uses: ./.github/workflows/rosa-cluster-create.yml
     with:
       clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
