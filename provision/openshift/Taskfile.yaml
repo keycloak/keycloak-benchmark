@@ -150,6 +150,8 @@ tasks:
       - >
         helm -n monitoring upgrade --install grafana grafana/grafana --version 6.55.0 -f grafana.yaml
         --set ingress.hosts[0]=grafana.{{.KC_HOSTNAME_SUFFIX}}
+        --set ingress.annotations."route\.openshift\.io/termination"=edge
+        --set ingress.annotations."route\.openshift\.io/insecureEdgeTerminationPolicy"=Redirect
         --set securityContext.runAsUser=$(cat .task/monitoring-uids)
         --set securityContext.runAsGroup=$(cat .task/monitoring-uids)
         --set securityContext.fsGroup=$(cat .task/monitoring-uids)
