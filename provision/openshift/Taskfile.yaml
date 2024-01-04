@@ -132,9 +132,11 @@ tasks:
       - oc create sa grafana -n monitoring || exit 0
       - oc adm policy add-cluster-role-to-user cluster-monitoring-view -z grafana -n monitoring
       - kubectl get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids
+      - kubectl apply -f grafana-sa-secret.yaml -n monitoring
     sources:
       - .task/subtask-{{.TASK}}.yaml
       - .task/var-KC_HOSTNAME_SUFFIX
+      - grafana-sa-secret.yaml
     generates:
       - .task/monitoring-uids
 
