@@ -164,10 +164,12 @@ tasks:
     vars:
       CROSS_DC_SERVICE_ACCOUNT: '{{.CROSS_DC_SERVICE_ACCOUNT | default "xsite-sa"}}'
     cmds:
+      - mkdir -p .task/tokens
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create sa -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc policy add-role-to-user view -n "{{.NAMESPACE}}" -z "{{.CROSS_DC_SERVICE_ACCOUNT}}" || true
-      - mkdir -p .task/tokens
-      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create token -n "{{.NAMESPACE}}" "{{.CROSS_DC_SERVICE_ACCOUNT}}" > .task/tokens/{{.TOKEN_FILE}}
+      - SA_ACCOUNT={{.CROSS_DC_SERVICE_ACCOUNT}} envsubst < sa-token-secret.yaml > .task/sa-token-secret-{{.ROSA_CLUSTER_NAME}}.yaml
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc create -n "{{.NAMESPACE}}" -f .task/sa-token-secret-{{.ROSA_CLUSTER_NAME}}.yaml || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get secrets -n "{{.NAMESPACE}}" ispn-xsite-sa-token -o jsonpath="{.data.token}" | base64 -d > .task/tokens/{{.TOKEN_FILE}}
     generates:
       - .task/tokens/{{.TOKEN_FILE}}
     preconditions:
