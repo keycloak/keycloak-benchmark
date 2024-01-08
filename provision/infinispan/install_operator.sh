@@ -20,4 +20,8 @@ spec:
   name: infinispan
   source: ${OPERATOR_SOURCE}
   sourceNamespace: ${OPERATOR_SOURCE_NS}
+  config:
+    env:
+      - name: JGROUPS_DIAGNOSTICS
+        value: "true"
 EOF
