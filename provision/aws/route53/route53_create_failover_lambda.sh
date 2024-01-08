@@ -16,6 +16,9 @@ fi
 ALARM_NAME=${HEALTH_CHECK_ID}
 TOPIC_NAME=${HEALTH_CHECK_ID}
 FUNCTION_NAME=${HEALTH_CHECK_ID}
+# CloudWatch Alarms associated with Route53 ought to be created in only us-east-1
+# to keep it simple we are also deploying the Lambda function also in us-east-1 region
+# for more on this, https://stackoverflow.com/questions/44787306/can-a-cloudwatch-event-in-one-region-trigger-a-lambda-in-another-region-of-aws
 ROUTE53_REGION="us-east-1"
 
 export AWS_REGION=${ROUTE53_REGION}
