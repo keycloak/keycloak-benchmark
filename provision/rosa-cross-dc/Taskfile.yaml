@@ -471,6 +471,7 @@ tasks:
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc adm policy add-cluster-role-to-user cluster-monitoring-view -z "{{.SERVICE_ACCOUNT}}" -n "{{.NAMESPACE}}"
       - mkdir -p .task/monitoring
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc apply -f {{.KC_DIR}}/grafana-sa-secret.yaml -n "{{.NAMESPACE}}"
     generates:
       - .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
     status:
@@ -478,6 +479,7 @@ tasks:
       - test -f .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
     sources:
       - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+      - "{{.KC_DIR}}/grafana-sa-secret.yaml"
 
   install-grafana:
     label: "install-grafana-{{.ROSA_CLUSTER_NAME}}"
@@ -498,6 +500,8 @@ tasks:
         KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
         helm -n monitoring upgrade --install grafana grafana/grafana --version {{.GRAFANA_VERSION}} -f "{{.KC_DIR}}/grafana.yaml"
         --set ingress.hosts[0]="grafana.{{.GRAFANA_DOMAIN}}"
+        --set ingress.annotations."route\.openshift\.io/termination"=edge
+        --set ingress.annotations."route\.openshift\.io/insecureEdgeTerminationPolicy"=Redirect
         --set securityContext.runAsUser="{{.MONITORING_UIDS}}"
         --set securityContext.runAsGroup="{{.MONITORING_UIDS}}"
         --set securityContext.fsGroup="{{.MONITORING_UIDS}}"
