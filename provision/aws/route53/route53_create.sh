@@ -148,4 +148,4 @@ echo "Client Site URL: ${CLIENT_DOMAIN}"
 echo "Primary Site URL: ${PRIMARY_DOMAIN}"
 echo "Backup Site URL: ${BACKUP_DOMAIN}"
 
-HEALTH_CHECK_ID=${PRIMARY_HEALTH_ID} ./route53_create_failover_lambda.sh
+HEALTH_CHECK_ID=${PRIMARY_HEALTH_ID} ${SCRIPT_DIR}/route53_create_failover_lambda.sh
