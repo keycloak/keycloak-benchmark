@@ -23,5 +23,7 @@ spec:
   config:
     env:
       - name: JGROUPS_DIAGNOSTICS
+        # Not recommended in production since the port is not secure and allows to
+        # observe and manipulate JGroups protocols/attributes
         value: "true"
 EOF
