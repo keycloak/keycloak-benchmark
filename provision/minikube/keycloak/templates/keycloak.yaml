@@ -189,7 +189,6 @@ spec:
 {{- if not (eq (int .Values.metaspaceMaxMB) 256) }}
                   -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
 {{- end }}
-                  -Djgroups.thread_dumps_threshold=1
 {{- if .Values.jvmDebug }}
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- end }}
