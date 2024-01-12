@@ -1,4 +1,4 @@
-#!/bin/bash +x
+#!/usr/bin/env bash +x
 set -e
 cd $(dirname "${BASH_SOURCE[0]}")
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 set -o pipefail
 # set -x
@@ -30,7 +30,7 @@ function generate_report {
   else
     if ${USE_TEMPLATE}; then
       echo "GENERATING THE HTML REPORT"
-      java -jar gatling-report-${GATLING_REPORT_VERSION}-fat.jar --template $TEMPLATE_PATH $SRC_DIR -o $TARGET_DIR -f  
+      java -jar gatling-report-${GATLING_REPORT_VERSION}-fat.jar --template $TEMPLATE_PATH $SRC_DIR -o $TARGET_DIR -f
     else
       echo "GENERATING THE HTML REPORT"
       java -jar gatling-report-${GATLING_REPORT_VERSION}-fat.jar $SRC_DIR -o $TARGET_DIR -f

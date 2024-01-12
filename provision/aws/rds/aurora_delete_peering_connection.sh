@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then

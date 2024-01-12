@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # don't use 'set -e' here, as we want to cleanup also half-installed EFS setups
 
 if [[ "$RUNNER_DEBUG" == "1" ]]; then

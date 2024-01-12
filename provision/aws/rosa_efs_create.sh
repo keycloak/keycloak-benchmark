@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This automated the setup of EFS as a RWX storage in ROSA. It is based on the following information:
 # * https://access.redhat.com/articles/6966373
 # * https://mobb.ninja/docs/rosa/aws-efs/
