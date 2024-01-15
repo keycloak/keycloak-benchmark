@@ -1,6 +1,10 @@
-#!/usr/bin/env bash +x
+#!/usr/bin/env bash
 set -e
 cd $(dirname "${BASH_SOURCE[0]}")
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 OPERATION=$1
 REGION=$2
