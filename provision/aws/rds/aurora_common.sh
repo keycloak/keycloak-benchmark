@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 export AURORA_CLUSTER=${AURORA_CLUSTER:-"keycloak"}

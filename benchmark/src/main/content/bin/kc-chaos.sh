@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Use this for simulating failures of pods when testing Keycloak's capabilities to recover.
 set -e
 

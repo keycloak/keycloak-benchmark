@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 INSTALL_NAMESPACE=${INSTALL_NAMESPACE:-"openshift-operators"}
 OPERATOR_SOURCE=${OPERATOR_SOURCE:-"community-operators"}

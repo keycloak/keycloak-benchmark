@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Script simulating different xsite failover scenarios
 set -e
 

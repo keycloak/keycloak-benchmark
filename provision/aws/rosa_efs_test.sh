@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test is EFS is configured correctly, see
 # * https://mobb.ninja/docs/rosa/aws-efs/
 set -xeo pipefail
