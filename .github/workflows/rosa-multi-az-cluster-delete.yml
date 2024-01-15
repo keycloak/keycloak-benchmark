@@ -10,10 +10,6 @@ on:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
 
-env:
-  CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
-  REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
-
 jobs:
   route53:
     runs-on: ubuntu-latest
@@ -62,8 +58,8 @@ jobs:
     needs:
       - cluster1
       - cluster2
-    uses: ./.github/workflows/aurora-cluster-delete.yml
+    uses: ./.github/workflows/aurora-delete-database.yml
     with:
-      name: ${{ env.CLUSTER_PREFIX }}
-      region: ${{ env.REGION }}
+      name: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
+      region: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
     secrets: inherit

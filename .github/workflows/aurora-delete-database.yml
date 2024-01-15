@@ -1,6 +1,16 @@
 name: Aurora Delete
 
 on:
+  workflow_call:
+    inputs:
+      name:
+        description: 'The name of the Aurora DB cluster'
+        type: string
+        required: true
+      region:
+        description: 'The AWS region used to host the Aurora DB'
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       name:
