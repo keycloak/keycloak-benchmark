@@ -8,10 +8,15 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/route53_common.sh
 
-if [ -z "${HEALTH_CHECK_ID}" ]; then
-  echo "HEALTH_CHECK_ID variable must be set"
+if [ -z "${DOMAIN}" ]; then
+  echo "DOMAIN variable must be set"
   exit 1
 fi
+
+HEALTH_CHECK_ID=$(aws route53 list-health-checks \
+  --query "HealthChecks[?HealthCheckConfig.FullyQualifiedDomainName=='${DOMAIN}'].Id" \
+  --output text
+)
 
 ALARM_NAME=${HEALTH_CHECK_ID}
 TOPIC_NAME=${HEALTH_CHECK_ID}
@@ -42,6 +47,15 @@ aws cloudwatch put-metric-alarm \
   --period 60 \
   --statistic Minimum \
   --threshold 1.0 \
+  --treat-missing-data notBreaching
+
+# Wait for health check ALARM to pass before creating the Lambda to stop it being triggered immediately if the Alarm is !OK
+ALARM_NAME=${HEALTH_CHECK_ID}
+count=0
+until isAlarmOK ${ALARM_NAME} || (( count++ >= 60 )); do
+  sleep 10
+done
+
 
 # Create the Role used to execute the Lambda
 ROLE_ARN=$(aws iam create-role \

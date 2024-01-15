@@ -5,6 +5,14 @@ if [ -f ./.env ]; then
   source ./.env
 fi
 
+function isAlarmOK() {
+  STATUS=$(aws cloudwatch describe-alarms --alarm-names $1 \
+    --query "MetricAlarms[*].StateValue" \
+    --output text
+  )
+  [[ "${STATUS}" == "OK" ]]
+}
+
 export AWS_PAGER=""
 export ROOT_DOMAIN=${ROOT_DOMAIN:-"keycloak-benchmark.com"}
 

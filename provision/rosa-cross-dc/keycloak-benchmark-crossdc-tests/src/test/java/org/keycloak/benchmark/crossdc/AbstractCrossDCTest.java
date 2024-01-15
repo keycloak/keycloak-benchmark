@@ -1,11 +1,24 @@
 package org.keycloak.benchmark.crossdc;
 
-import jakarta.ws.rs.NotFoundException;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.net.http.HttpClient;
+import java.util.Collections;
+import java.util.List;
+
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
@@ -15,17 +28,7 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
-import java.net.http.HttpClient;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
+import jakarta.ws.rs.NotFoundException;
 
 public abstract class AbstractCrossDCTest {
     private static final Logger LOG = Logger.getLogger(AbstractCrossDCTest.class);
@@ -120,16 +123,26 @@ public abstract class AbstractCrossDCTest {
         KeycloakClient.cleanAdminClients();
 
         DISTRIBUTED_CACHES.stream()
-                .filter(cache -> !cache.equals(InfinispanUtils.WORK))
-                .forEach(cache -> {
-                    DC_1.ispn().cache(cache).clear();
-                    DC_2.ispn().cache(cache).clear();
-                });
+              .filter(cache -> !cache.equals(InfinispanUtils.WORK))
+              .forEach(cache -> {
+                  DC_1.ispn().cache(cache).clear();
+                  DC_2.ispn().cache(cache).clear();
+              });
 
         MOCK_COOKIE_MANAGER.getCookieStore().removeAll();
+        failbackHealthChecks();
+    }
 
+    @AfterAll
+    public static void tearDown() throws URISyntaxException, IOException, InterruptedException {
+        failbackHealthChecks();
+    }
+
+    private static void failbackHealthChecks() throws URISyntaxException, IOException, InterruptedException {
         DC_1.kc().markLBCheckUp();
         DC_2.kc().markLBCheckUp();
+        String domain = DC_1.getKeycloakServerURL().substring("https://".length());
+        AWSClient.updateRoute53HealthCheckPath(domain, "/lb-check");
         DC_1.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
     }
 }

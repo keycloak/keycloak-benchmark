@@ -9,8 +9,14 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/route53_common.sh
 
 if [ -z "${HEALTH_CHECK_ID}" ]; then
-  echo "HEALTH_CHECK_ID variable must be set"
-  exit 1
+  if [ -z "${DOMAIN}" ]; then
+    echo "HEALTH_CHECK_ID or DOMAIN variable must be set"
+    exit 1
+  fi
+  HEALTH_CHECK_ID=$(aws route53 list-health-checks \
+    --query "HealthChecks[?HealthCheckConfig.FullyQualifiedDomainName=='${DOMAIN}'].Id" \
+    --output text
+  )
 fi
 
 ALARM_NAME=${HEALTH_CHECK_ID}
@@ -43,11 +49,11 @@ if [ -n "${POLICY_ARN}" ]; then
 fi
 
 # Remove CloudWatch alarm
-ALARM_ARNS=$(aws cloudwatch describe-alarms \
-  --query "MetricAlarms[?Dimensions[0].Name=='HealthCheckId' && Dimensions[0].Value=='${HEALTH_CHECK_ID}'].AlarmArn" \
+ALARM_NAMES=$(aws cloudwatch describe-alarms \
+  --query "MetricAlarms[?Dimensions[0].Name=='HealthCheckId' && Dimensions[0].Value=='${HEALTH_CHECK_ID}'].AlarmName" \
   --output text
 )
-aws cloudwatch delete-alarms --alarm-names ${ALARM_ARNS}
+aws cloudwatch delete-alarms --alarm-names ${ALARM_NAMES}
 
 # Remove SNS topic and all subscriptions
 TOPIC_ARNS=$(aws sns list-topics \
