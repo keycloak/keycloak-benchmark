@@ -175,8 +175,9 @@ public class KeycloakClient {
                 .GET()
                 .build();
         response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
         // we landed at account page
-        assertTrue(response.body().contains("Web site to manage keycloak"));
+        assertTrue(response.body().contains("Welcome to Keycloak account management"));
         assertEquals(200, response.statusCode());
 
         return code;
