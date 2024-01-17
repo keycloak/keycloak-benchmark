@@ -53,7 +53,7 @@ async def generate_pdf(
 async def generate_grafana_api_token(dashboard_domain, admin_password):
     print(f"CREATE GRAFANA API KEY")
     dttm = get_current_time()
-    url =  f'http://admin:{admin_password}@{dashboard_domain}/api/auth/keys'
+    url =  f'https://admin:{admin_password}@{dashboard_domain}/api/auth/keys'
     reqBody = {'name':f'dashboard_pdf_{dttm}','role':'Editor','secondsToLive':86400}
     auth_token_id = ""
     auth_token = ""
@@ -75,7 +75,7 @@ async def generate_grafana_api_token(dashboard_domain, admin_password):
 
 async def delete_grafana_api_key(dashboard_domain, admin_password, auth_token_id):
     print(f"DELETE GRAFANA API KEY")
-    url =  f'http://admin:{admin_password}@{dashboard_domain}/api/auth/keys/{auth_token_id}'
+    url =  f'https://admin:{admin_password}@{dashboard_domain}/api/auth/keys/{auth_token_id}'
     try:
         response = requests.delete(url)
         response.raise_for_status()
@@ -97,7 +97,7 @@ async def main():
     dttm = get_current_time()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--grafana_domain", help='grafana domain without "http://" ')
+    parser.add_argument("--grafana_domain", help='grafana domain without "https://" ')
     parser.add_argument("--admin_password", help='Grafana Auth Token')
     parser.add_argument("--time_window", help='ex: from=1694700191047&to=1694700510513')
     parser.add_argument("--keycloak_namespace", help='default is runner-keycloak', default="runner-keycloak")
@@ -116,7 +116,7 @@ async def main():
         dashboard_uid = dashboard.split("/")[-1]
 
         #conditionally setting the args in the dashboard urls
-        keycloak_perf_tests_url: str =  f'http://{grafana_domain}/d/{dashboard}?orgId=1&var-namespace={keycloak_namespace}&{time_window}'
+        keycloak_perf_tests_url: str =  f'https://{grafana_domain}/d/{dashboard}?orgId=1&var-namespace={keycloak_namespace}&{time_window}'
 
         if(dashboard_uid == 'authentication-code-slo' or dashboard_uid == 'client-credentials-slo'):
             keycloak_perf_tests_url = keycloak_perf_tests_url+f'&var-pod_name=All'

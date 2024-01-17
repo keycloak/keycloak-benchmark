@@ -85,6 +85,9 @@ spec:
         # end::infinispan-crossdc[]
         discovery:
           launchGossipRouter: {{ .Values.crossdc.local.gossipRouterEnabled }}
+          heartbeats:
+            interval: {{ .Values.crossdc.heartbeats.interval }}
+            timeout: {{ .Values.crossdc.heartbeats.timeout }}
         # tag::infinispan-crossdc[]
         expose:
           type: {{ if .Values.crossdc.route.enabled }}Route{{else}}ClusterIP{{end}} # <5>
@@ -135,6 +138,7 @@ spec:
       mode: "SYNC"
       owners: {{ $config.owners | default $.Values.cacheDefaults.owners | quote }}
       statistics: "true"
+      remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout }}
       stateTransfer:
         chunkSize: 16
       {{ if $.Values.crossdc.enabled }}
@@ -146,6 +150,7 @@ spec:
         {{$.Values.crossdc.remote.name }}: # <2>
           backup:
             strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }} # <3>
+            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout }}
             stateTransfer:
               chunkSize: 16
               {{- if eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC"}}

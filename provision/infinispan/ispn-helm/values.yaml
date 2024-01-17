@@ -10,6 +10,8 @@ cacheDefaults:
   crossSiteMode: SYNC
   # AUTO or MANUAL
   stateTransferMode: AUTO
+  remoteTimeout: 14000
+  xsiteRemoteTimeout: 13000
 caches:
   sessions:
     owners: 2
@@ -39,6 +41,9 @@ crossdc:
         filename: keystore.p12
       truststore:
         filename: truststore.p12
+  heartbeats:
+    interval: 2000
+    timeout: 8000
 logging:
   infinispan: info
   jgroups: info
@@ -47,4 +52,4 @@ metrics:
   histograms: false
 fd:
   interval: 2000
-  timeout: 10000
+  timeout: 15000
