@@ -461,9 +461,8 @@ tasks:
         - NAMESPACE
     cmds:
       - task: rosa-oc-login
-
       - |
-        cat << EOF | kubectl -n {{ .NAMESPACE }} apply -f -
+        cat << EOF | KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} apply -f -
         apiVersion: infinispan.org/v2alpha1
         kind: Batch
         metadata:
@@ -472,10 +471,9 @@ tasks:
           cluster: infinispan
           configMap: crossdc-connect
         EOF
-      - kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/bring-online
-      - defer: |
-          kubectl -n {{ .NAMESPACE }} logs job/bring-online || true
-          kubectl -n {{ .NAMESPACE }} delete Batch/bring-online || true
+      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} delete Batch/bring-online || true
+      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} logs job/bring-online || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/bring-online
 
   crossdc-disconnect:
     internal: true
@@ -488,7 +486,7 @@ tasks:
       - task: rosa-oc-login
 
       - |
-        cat << EOF | kubectl -n {{ .NAMESPACE }} apply -f -
+        cat << EOF | KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} apply -f -
         apiVersion: infinispan.org/v2alpha1
         kind: Batch
         metadata:
@@ -497,7 +495,6 @@ tasks:
           cluster: infinispan
           configMap: crossdc-disconnect
         EOF
-      - kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/take-offline
-      - defer: |
-          kubectl -n {{ .NAMESPACE }} logs job/take-offline || true
-          kubectl -n {{ .NAMESPACE }} delete Batch/take-offline || true
+      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} delete Batch/take-offline || true
+      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} logs job/take-offline || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/take-offline
