@@ -1,4 +1,4 @@
-name: Multi-AZ Clusters - Create and Test
+name: Multi-AZ Clusters - Create and Deploy Keycloak
 
 on:
   workflow_dispatch:
@@ -13,6 +13,12 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      keycloakBranch:
+        description: 'The branch to deploy Keycloak from. If not set nightly image is used'
+        type: string
   workflow_call:
     inputs:
       clusterPrefix:
@@ -25,6 +31,12 @@ on:
         description: 'Check to Create Cluster'
         type: boolean
         default: true
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      keycloakBranch:
+        description: 'The branch to deploy Keycloak from. If not set nightly image is used'
+        type: string
 
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
@@ -124,3 +136,5 @@ jobs:
           KC_DB_POOL_MIN_SIZE: 30
           KC_DATABASE: "aurora-postgres"
           MULTI_AZ: "true"
+          KC_REPOSITORY: ${{ inputs.keycloakRepository }}
+          KC_BRANCH: ${{ inputs.keycloakBranch }}

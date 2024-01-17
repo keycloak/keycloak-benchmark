@@ -38,6 +38,10 @@ spec:
       # to avoid receiving all requests on a single Keycloak Pod.
       haproxy.router.openshift.io/balance: roundrobin
       haproxy.router.openshift.io/disable_cookies: 'true'
+  {{- if .Values.keycloakImage }}
+  image: {{ .Values.keycloakImage }}
+  startOptimized: {{ .Values.startOptimized }}
+  {{- end }}
 {{end}}
   features:
     enabled:
