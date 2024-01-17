@@ -25,6 +25,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set dbPoolMaxSize=30 \
   --set dbPoolMinSize=30 \
   | yq \
+  | sed -E 's|[-A-Za-z0-9+/=]{1000,}|...|g' \
   > ${BUILDDIR}/helm/keycloak.yaml
 
 # Those value match the Keycloak on ROSA Benchmark Key Results example
@@ -41,6 +42,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set infinispan.remoteStore.password=secure_password \
   --set infinispan.site=keycloak \
   | yq \
+  | sed -E 's|[-A-Za-z0-9+/=]{1000,}|...|g' \
   > ${BUILDDIR}/helm/keycloak-ispn.yaml
 
 
