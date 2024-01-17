@@ -6,6 +6,7 @@ vars:
   KC_HOSTNAME_SUFFIX: '{{default "$(kubectl get route/console -n openshift-console -o jsonpath=\u0027{.spec.host}\u0027 | cut -d . -f 2-)" .KC_HOSTNAME_SUFFIX}}'
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
   KC_ADMIN_PASSWORD: '{{default "$(aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin)" .KC_ADMIN_PASSWORD}}'
+  KC_JGROUPS_TLS: '{{default "true" .KC_JGROUPS_TLS}}'
 
 output: prefixed
 
@@ -251,6 +252,7 @@ tasks:
         --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
         --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
+        --set infinispan.jgroupsTls={{ .KC_JGROUPS_TLS }}
         --set infinispan.customConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
         --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
         --set infinispan.remoteStore.enabled=$(cat .task/remote-store-enabled)

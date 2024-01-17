@@ -17,6 +17,7 @@ vars:
   BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
   KEYCLOAK_MASTER_PASSWORD:
     sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
+  KC_JGROUPS_TLS: '{{default "true" .KC_JGROUPS_TLS}}'
 
 dotenv: [ '.env' ]
 
@@ -276,6 +277,7 @@ tasks:
         --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
         --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
+        --set infinispan.jgroupsTls={{ .KC_JGROUPS_TLS }}
         --set infinispan.customConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
         --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
         --set infinispan.remoteStore.enabled=true
