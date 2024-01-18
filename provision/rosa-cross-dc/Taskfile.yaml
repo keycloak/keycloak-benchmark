@@ -9,6 +9,7 @@ vars:
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
   KC_ISPN_NAMESPACE: '{{.KC_NAMESPACE_PREFIX}}keycloak'
   ISPN_DIR: "{{.ROOT_DIR}}/../infinispan"
+  ACCELERATOR_DIR: "{{.ROOT_DIR}}/../aws/global-accelerator"
   ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
   RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
   KC_DIR: "{{.ROOT_DIR}}/../openshift"
@@ -600,6 +601,35 @@ tasks:
       - task: install-grafana-charts
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  global-accelerator-create:
+    desc: "Creates AWS Global Accelerator for active-active replication"
+    dir: "{{.ACCELERATOR_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - ACCELERATOR_NAME
+    cmds:
+      - KEYCLOAK_NAMESPACE="{{.KC_NAMESPACE_PREFIX}}keycloak" ACCELERATOR_NAME={{.ACCELERATOR_NAME}} CLUSTER_1={{.ROSA_CLUSTER_NAME_1}} CLUSTER_2={{.ROSA_CLUSTER_NAME_2}} ./accelerator_multi_az_create.sh
+      - >
+        echo 'WARNING: use the information above to configure your Keycloak deployment!'
+
+  global-accelerator-delete:
+    desc: "Deletes AWS Global Accelerator for active-active replication"
+    dir: "{{.ACCELERATOR_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - ACCELERATOR_NAME
+    cmd: KEYCLOAK_NAMESPACE="{{.KC_NAMESPACE_PREFIX}}keycloak" ACCELERATOR_NAME={{.ACCELERATOR_NAME}} CLUSTER_1={{.ROSA_CLUSTER_NAME_1}} CLUSTER_2={{.ROSA_CLUSTER_NAME_2}} ./accelerator_multi_az_delete.sh
 
   route53:
     desc: "Creates Route53 primary/backup DNS records"
