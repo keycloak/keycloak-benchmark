@@ -658,8 +658,8 @@ tasks:
     cmds:
       - curl -k "https://{{.KC_URL}}/realms/master/dataset/create-realms?realm-name=realm-0&count=1&threads-count={{.THREADS}}&users-per-realm={{.USERS}}&users-per-transaction={{.USERS_PER_TX}}"
 
-  dataset-import-route53:
-    desc: "Triggers the dataset creation task using the Route53 load balancer. It does not wait for completion."
+  dataset-import-external:
+    desc: "Triggers the dataset creation task using the Route53 or Global Accelerator load balancer. It does not wait for completion."
     deps:
       - common:split
       - common:env
@@ -671,7 +671,7 @@ tasks:
       vars:
         KC_URL: "{{.KC_CLIENT_URL}}"
 
-  dataset-import-rosa-cluster:
+  dataset-import-ingress:
     desc: "Triggers the dataset creation task in the ROSA cluster route. It does not wait for completion."
     deps:
       - common:split
@@ -721,21 +721,27 @@ tasks:
     vars:
       SCENARIO: '{{.SCENARIO | default "keycloak.scenario.authentication.AuthorizationCode"}}'
       USERS: "{{.USERS | default 100000}}"
+      USERS_PER_SEC: "{{.USERS_PER_SEC | default 300}}"
+      DURATION: "{{.DURATION | default 600}}"
+      REFRESH_TOKEN_COUNT: "{{.REFRESH_TOKEN_COUNT | default 0}}"
+      REFRESH_TOKEN_PERIOD: "{{.REFRESH_TOKEN_PERIOD | default 0}}"
     cmds:
       - >
         ./benchmark.sh "{{.EC2_REGION}}"
         --scenario="{{.SCENARIO}}"
         --server-url="https://{{.KC_URL}}/"
-        --users-per-sec=300
-        --measurement=600
+        --users-per-sec={{.USERS_PER_SEC}}
+        --measurement={{.DURATION}}
         --realm-name=realm-0
         --logout-percentage=100
         --users-per-realm={{.USERS}}
         --ramp-up=100
         --log-http-on-failure
+        --refresh-token-count={{.REFRESH_TOKEN_COUNT}}
+        --refresh-token-period={{.REFRESH_TOKEN_PERIOD}}
 
-  ec2-run-route53:
-    desc: "Runs a Gatling scenario in EC2 using Route53 load balancer"
+  ec2-run-external:
+    desc: "Runs a Gatling scenario in EC2 using Route53 or Global Accelerator load balancer"
     dir: "{{.ANSIBLE_DIR}}"
     deps:
       - common:split
@@ -749,7 +755,7 @@ tasks:
       vars:
         KC_URL: "{{.KC_CLIENT_URL}}"
 
-  ec2-run-rosa-cluster:
+  ec2-run-ingress:
     desc: "Runs a Gatling scenario in EC2 using ROSA cluster route"
     dir: "{{.ANSIBLE_DIR}}"
     deps:
