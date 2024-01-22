@@ -87,3 +87,22 @@ runs:
         jq --arg testName "${{ inputs.performedTestName }}" --arg key "${{ inputs.calculatedMetricName }}" \
         --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($key):($val|tonumber)}}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
         mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+
+    - id: gatling-report-parse-and-store
+      name: Parses gatling report and stores got information in JSON file.
+      env:
+        HORREUM_OUTPUT_FILE_NAME: ${{ env.HORREUM_OUTPUT_FILE_NAME }}
+      shell: bash
+      # language=bash
+      run: |
+        gatlingReportPath="ansible/files/benchmark/*/results/"
+        gatlingReportDirName=$(ls -lrt $gatlingReportPath | tail -1 | awk '{print $9}')
+        gatlingReportFilePath="$gatlingReportPath$gatlingReportDirName/js/stats.json"
+        statsJson=$(jq '.. | .stats? | select( . != null )' $gatlingReportFilePath | jq -s .)
+        #Storing all information in JSON using jq library
+        jq --arg testName "${{ inputs.performedTestName }}" '.[$testName] += {"statistics":[]}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+        #Putting environment parameters into JSON
+        jq --argjson statsJson "${statsJson}" --arg testName "${{ inputs.performedTestName }}" \
+        '.[$testName].statistics = ($statsJson)' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}

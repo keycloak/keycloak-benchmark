@@ -5,12 +5,16 @@ inputs:
   project:
     description: 'The project namespace.'
     required: true
+  createReportFile:
+    description: 'Should the json be created.'
+    required: true
 
 runs:
   using: composite
   steps:
     - id: prepare-report-file
       name: Create and Prepare Report File
+      if: ${{ inputs.createReportFile == 'true' }}
       shell: bash
       # language=bash
       run: |
@@ -23,7 +27,7 @@ runs:
         echo "HORREUM_OUTPUT_FILE_NAME=$OUTPUT_FILE_NAME" >> $GITHUB_ENV
         jq -n --arg current_date "${cur_date_iso}" --arg id "${uuid}" \
         '{"$schema": "urn:keycloak-benchmark:0.1", "uuid": ($id), "name": "ROSA Scalability Benchmark Run Results",
-        "start_dttm": ($current_date)}' > ${OUTPUT_FILE_NAME}
+        "start": ($current_date), "end": ""}' > ${OUTPUT_FILE_NAME}
         #Reading configmap with environment data
         configJson=$(oc get configmap env-config -n ${{ env.PROJECT }} -o "jsonpath={ .data['environment_data\.json']}'" | rev | cut -d\' -f2- | rev | jq)
         jq '. + {"context":{}}' ${OUTPUT_FILE_NAME} > tmp.json && \
@@ -31,3 +35,16 @@ runs:
         #Putting environment parameters into JSON
         jq --argjson configJson "${configJson}" '.context = ($configJson)' ${OUTPUT_FILE_NAME} > tmp.json && \
         mv tmp.json ${OUTPUT_FILE_NAME}
+
+    - id: finalize-report-file
+      name: Add end time to the report
+      if: ${{ inputs.createReportFile == 'false' }}
+      env:
+        HORREUM_OUTPUT_FILE_NAME: ${{ env.HORREUM_OUTPUT_FILE_NAME }}
+      shell: bash
+      # language=bash
+      run: |
+        cur_date=$(date)
+        cur_date_iso=$(date -d "$cur_date" --iso-8601=seconds)
+        jq --arg current_date "${cur_date_iso}" '.end = ($current_date)' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
