@@ -201,6 +201,9 @@ jobs:
         with:
           region: ${{ inputs.region }}
 
+      - name: Prepare horreum report
+        uses: ./.github/actions/prepare-horreum-report
+
       - name: Run Memory Usage Total Query Before Benchmark
         uses: ./.github/actions/prometheus-run-queries
         with:
@@ -243,8 +246,8 @@ jobs:
         uses: ./.github/actions/prometheus-metrics-calc
         with:
           input: memory_create_sessions
-          performedTestName: 'Memory usage for sessions'
-          calculatedMetricName: 'Active sessions per 500 MB memory' #as a unit for memory calculation is chosen 500MB memory size to find out how much user sessions so much memory can handle.
+          performedTestName: 'memory-usage-test'
+          calculatedMetricName: 'active-sessions-per-500Mb-per-pod' #as a unit for memory calculation is chosen 500MB memory size to find out how much user sessions so much memory can handle.
           criteriaValue: ${{ steps.active_sessions_count.outputs.active_sessions }}
           isvCPU: false
           isMemory: true
@@ -284,8 +287,8 @@ jobs:
         uses: ./.github/actions/prometheus-metrics-calc
         with:
           input: user_logins_vCpu
-          performedTestName: 'CPU usage for user logins'
-          calculatedMetricName: 'User Logins per second per 1vCPU'
+          performedTestName: 'cpu-usage-for-logins-test'
+          calculatedMetricName: 'user-logins-per-sec-per-1vCpu-per-pod'
           criteriaValue: ${{ inputs.numberOfUsersPerSecond }}
           measurementInterval: ${{ inputs.measurement }}
           isvCPU: true
@@ -325,8 +328,8 @@ jobs:
         uses: ./.github/actions/prometheus-metrics-calc
         with:
           input: client_credential_grants_vCpu
-          performedTestName: 'CPU usage for client credential grants'
-          calculatedMetricName: 'Client Credential Grants per second per 1vCPU'
+          performedTestName: 'cpu-usage-for-credential-grants-test'
+          calculatedMetricName: 'credential-grants-per-sec-per-1vCpu'
           criteriaValue: ${{ inputs.numberOfClientsPerSecond }}
           measurementInterval: ${{ inputs.measurement }}
           isvCPU: true

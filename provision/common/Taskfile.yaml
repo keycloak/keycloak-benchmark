@@ -26,6 +26,8 @@ vars:
   KC_REMOTE_STORE_HOST: '{{default "localhost" .KC_REMOTE_STORE_HOST}}'
   KC_REMOTE_STORE_PORT: '{{default "11222" .KC_REMOTE_STORE_PORT}}'
   KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
+  MULTI_AZ: '{{default "false" .MULTI_AZ}}'
+  ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
 
 tasks:
 
@@ -73,6 +75,39 @@ tasks:
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
+      - |
+        jq -n --arg cpu_limit "{{ .KC_CPU_REQUESTS }}" --arg num_of_pods "{{ .KC_INSTANCES }}" \
+          --arg sticky_sessions "{{ .KC_DISABLE_STICKY_SESSION }}" \
+          --arg mem_req_per_pod "{{ .KC_MEMORY_REQUESTS_MB }}" \
+          --arg mem_limit_per_pod "{{ .KC_MEMORY_LIMITS_MB }}" \
+          --arg heap_init "{{ .KC_HEAP_INIT_MB }}" \
+          --arg heap_max "{{ .KC_HEAP_MAX_MB }}" \
+          --arg db_pool_init "{{ .KC_DB_POOL_INITIAL_SIZE }}" \
+          --arg db_pool_max "{{ .KC_DB_POOL_MAX_SIZE }}" \
+          --arg db_pool_min "{{ .KC_DB_POOL_MIN_SIZE }}" \
+          --arg meta_spc_init "{{ .KC_METASPACE_INIT_MB }}" \
+          --arg meta_spc_max "{{ .KC_METASPACE_MAX_MB }}" \
+          --arg database "{{ .KC_DATABASE }}" \
+          --arg is_multi_az "{{ .MULTI_AZ }}" \
+          '. + { "num_of_pods": ($num_of_pods|tonumber), "cpu_limit_per_pod": ($cpu_limit|tonumber),
+                             "sticky_session_disabled": ($sticky_sessions),
+                             "mem_requests_per_pod": ($mem_req_per_pod|tonumber),
+                             "mem_limit_per_pod": ($mem_limit_per_pod|tonumber),
+                             "heap": {
+                               "init": ($heap_init|tonumber),
+                               "max": ($heap_max|tonumber)
+                             },
+                             "db_pool": {
+                               "init": ($db_pool_init|tonumber),
+                               "min": ($db_pool_min|tonumber),
+                               "max": ($db_pool_max)
+                             },
+                             "metaspace": {
+                               "init": ($meta_spc_init|tonumber),
+                               "max": ($meta_spc_max)
+                             },
+                            "is_multi_az": ($is_multi_az),
+                            "keycloak_database": ($database) }' > {{ .ENV_DATA_JSON_PATH }}
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml

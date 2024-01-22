@@ -255,6 +255,8 @@ tasks:
       - task: wait-cluster
         vars:
           NAMESPACE: "{{.OC_NAMESPACE}}"
+      - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_1}}"
+      - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_2}}"
 
   crossdc-single:
     internal: true
@@ -305,6 +307,8 @@ tasks:
       - task: wait-crossdc
         vars:
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_1}}"
+      - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_2}}"
 
   crossdc:
     internal: true
@@ -402,6 +406,8 @@ tasks:
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_1}}"
+      - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_2}}"
 
   delete-infinispan:
     internal: true

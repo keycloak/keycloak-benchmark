@@ -9,6 +9,10 @@ on:
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
+      createCluster:
+        description: 'Property showing if the cluster should be created or only software deployment should be performed.'
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       clusterPrefix:
@@ -17,6 +21,10 @@ on:
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
+      createCluster:
+        description: 'Property showing if the cluster should be created or only software deployment should be performed.'
+        type: boolean
+        default: true
 
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
@@ -33,6 +41,7 @@ jobs:
       - run: echo ""
 
   cluster:
+    if: ${{ inputs.createCluster }}
     needs: meta
     strategy:
       matrix:
@@ -48,6 +57,7 @@ jobs:
 
   deploy-keycloak:
     runs-on: ubuntu-latest
+    if: ${{ (always() && needs.cluster.result == 'skipped' && !inputs.createCluster) || success()}}
     needs: [cluster]
 
     steps:
@@ -112,3 +122,5 @@ jobs:
           KC_DB_POOL_INITIAL_SIZE: 30
           KC_DB_POOL_MAX_SIZE: 30
           KC_DB_POOL_MIN_SIZE: 30
+          KC_DATABASE: "aurora-postgres"
+          MULTI_AZ: "true"
