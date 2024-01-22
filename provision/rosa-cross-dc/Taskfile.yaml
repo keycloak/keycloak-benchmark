@@ -70,7 +70,7 @@ tasks:
       - AURORA_REGION="{{ .AURORA_REGION }}" AURORA_INSTANCES=2 ../aws/rds/aurora_create.sh
       - task: update-env-configjson-with-new-values
         vars:
-          PROP_NAME: "database_mode"
+          PROP_NAME: "databaseMode"
           PROP_VALUE: "single"
 
   create-global-aurora:
@@ -95,7 +95,7 @@ tasks:
       - AURORA_GLOBAL_REGIONS="{{ .AURORA_GLOBAL_REGIONS }}" ../aws/rds/aurora_create_global_db.sh
       - task: update-env-configjson-with-new-values
         vars:
-          PROP_NAME: "database_mode"
+          PROP_NAME: "databaseMode"
           PROP_VALUE: "global"
 
   delete-aurora:
@@ -791,7 +791,7 @@ tasks:
       - echo "Updating environment json file with Infinispan data"
       - task: update-env-configjson-with-new-values
         vars:
-          PROP_NAME: "ispn_deployment"
+          PROP_NAME: "ispnDeployment"
           PROP_VALUE:
             sh: cat "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
     sources:
