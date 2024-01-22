@@ -899,9 +899,11 @@ tasks:
         - ROSA_CLUSTER_NAME
     cmds:
       - echo "Creating configmap with environment data."
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}} || (kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}})
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config --ignore-not-found
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}}
     preconditions:
       - test -f "{{.ENV_DATA_JSON_PATH}}"
+      - test -f "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
 
   delete-env-configmap:
     internal: true
@@ -910,4 +912,6 @@ tasks:
         - ROSA_CLUSTER_NAME
     cmds:
       - echo "Deleting configmap with environment data."
-      - bash -c "kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config || exit 0"
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config --ignore-not-found
+    preconditions:
+      - test -f "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
