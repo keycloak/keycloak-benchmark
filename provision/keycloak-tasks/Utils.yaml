@@ -1,0 +1,227 @@
+# https://taskfile.dev
+version: '3'
+
+tasks:
+
+  no-op:
+    desc: "No-op task"
+    internal: true
+
+  clone-keycloak:
+    desc: "Clone the Keycloak repository"
+    internal: true
+    dir: ".task"
+    requires:
+      vars:
+          - KC_REPOSITORY
+          - KC_BRANCH
+    cmds:
+      - rm -rf "keycloak" || true
+      - git clone --branch "{{.KC_BRANCH}}" "{{.KC_REPOSITORY}}" "keycloak"
+      - git -C "keycloak" checkout "{{.KC_BRANCH}}"
+      - git -C "keycloak" pull
+    generates:
+      - ./keycloak/**/*.*
+    status:
+      - test -d keycloak
+      - test -n "$(ls -A keycloak)"
+      - test "{{.KC_REPOSITORY}}" == "$(git -C keycloak remote get-url origin)"
+      - test "{{.KC_BRANCH}}" == "$(git -C keycloak rev-parse --abbrev-ref HEAD)"
+
+  build-keycloak-dist:
+    desc: "Build the Keycloak distribution and operator"
+    label: "{{.TASK}}-{{.CURRENT_HASH}}"
+    internal: true
+    dir: ".task/keycloak"
+    vars:
+      CURRENT_HASH:
+        sh: git rev-parse HEAD
+    cmd: ./mvnw clean install -DskipTests -Poperator -am -pl quarkus/dist,operator
+    sources:
+      - pom.xml # We are relying on git hash to detect changes (see `label:` above) but we need something as a source for it to work
+    generates:
+      - quarkus/dist/target/keycloak-*.tar.gz
+      - operator/target/keycloak-*.jar
+
+  prepare-keycloak-images-openshift:
+    desc: "Create images for the current build of Keycloak distribution"
+    label: "{{.TASK}}-{{.ROSA_CLUSTER_NAME}}"
+    internal: true
+    requires:
+      task:
+        - build-keycloak-dist
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
+    vars:
+      ARCHIVE_NAME:
+        sh: ls .task/keycloak/quarkus/dist/target/keycloak-*.tar.gz | xargs -n 1 basename
+    cmds:
+      - KUBECONFIG="{{.KUBECONFIG}}" oc create namespace "{{.NAMESPACE}}" || true
+      - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak-build-config || true
+      # Create custom Keycloak resources for both Keycloak and Keycloak operator
+      - >
+        KUBECONFIG="{{.KUBECONFIG}}" helm upgrade --install keycloak-build-config --namespace "{{.NAMESPACE}}"
+        --set "namespace={{.NAMESPACE}}"
+        --set "archiveName={{.ARCHIVE_NAME}}"
+        ./keycloak-image-helm
+
+      # Start Keycloak image build
+      - cp "$(ls .task/keycloak/quarkus/dist/target/keycloak-*.tar.gz)" ".task/keycloak/quarkus/container/"
+      - KUBECONFIG="{{.KUBECONFIG}}" oc start-build -n {{.NAMESPACE}} keycloak --from-dir ".task/keycloak/quarkus/container" --follow
+      - echo "image-registry.openshift-image-registry.svc:5000/{{.NAMESPACE}}/keycloak:latest" > .task/var-CUSTOM_CONTAINER_IMAGE_FILE
+
+      # Start Keycloak operator image build
+      - KUBECONFIG="{{.KUBECONFIG}}" oc start-build -n {{.NAMESPACE}} keycloak-operator --from-dir ".task/keycloak/operator" --follow
+      - echo "image-registry.openshift-image-registry.svc:5000/{{.NAMESPACE}}/keycloak-operator:latest" > .task/var-KC_OPERATOR_CONTAINER_IMAGE
+    sources:
+      - quarkus/dist/target/keycloak-*.tar.gz
+      - operator/target/keycloak-*.jar
+    status:
+      - test -n "$(KUBECONFIG="{{.KUBECONFIG}}" helm list --namespace {{.NAMESPACE}} --filter keycloak-build-config -q)"
+    preconditions:
+      - test -f {{.KUBECONFIG}}
+
+  install-keycloak-operator:
+    desc: "Install the Keycloak operator"
+    internal: true
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+    vars:
+      OPERATOR_IMAGE:
+        sh: cat .task/var-KC_OPERATOR_CONTAINER_IMAGE || echo ""
+      EXTERNAL_OPERATOR_PREFIX: "https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/"
+      CUSTOM_OPERATOR_PREFIX: ".task/keycloak/operator/target/kubernetes/"
+      CURRENT_PREFIX: '{{ ternary .CUSTOM_OPERATOR_PREFIX .EXTERNAL_OPERATOR_PREFIX (hasPrefix "image-registry.openshift-image-registry.svc:5000" .OPERATOR_IMAGE) }}'
+    cmds:
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl create namespace "{{.NAMESPACE}}" || true
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloaks.k8s.keycloak.org-v1.yml
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} delete deployment/keycloak-operator || true
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}kubernetes.yml
+      - task: patch-keycloak-operator-image
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.KUBECONFIG}}"
+    preconditions:
+      - test -f {{.KUBECONFIG}}
+
+  patch-keycloak-operator-image:
+    desc: "Patch the Keycloak operator image"
+    internal: true
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+    vars:
+      OPERATOR_IMAGE:
+        sh: cat .task/var-KC_OPERATOR_CONTAINER_IMAGE 2> /dev/null || echo ""
+    cmds:
+      - |
+        (test -n "{{.OPERATOR_IMAGE}}" && KUBECONFIG="{{.KUBECONFIG}}" kubectl patch deployment keycloak-operator -n {{.NAMESPACE}} --type json -p '[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "{{.OPERATOR_IMAGE}}"}]') || true
+    preconditions:
+      - test -f {{.KUBECONFIG}}
+
+  prepare-custom-images:
+    des: "Prepare custom images for Keycloak and Keycloak operator"
+    internal: true
+    requires:
+      vars:
+        - KC_REPOSITORY
+        - KC_BRANCH
+        - NAMESPACE
+        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: clone-keycloak
+      - task: build-keycloak-dist
+      - task: prepare-keycloak-images-openshift
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.KUBECONFIG}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+
+  install-keycloak:
+    des: "Install Keycloak to the given namespace and cluster"
+    internal: true
+    requires:
+      vars:
+        - KUBECONFIG
+        - NAMESPACE
+        - KC_HOSTNAME_SUFFIX
+        - KC_ADMIN_PASSWORD
+        - ROSA_CLUSTER_NAME
+    vars:
+      CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat .task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
+    cmds:
+      - task: '{{if .KC_REPOSITORY}}prepare-custom-images{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+          NAMESPACE: "{{.NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: install-keycloak-operator
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - >
+        KUBECONFIG="{{.KUBECONFIG}}"
+        helm upgrade --install keycloak --namespace {{.NAMESPACE}}
+        --set hostname={{.KC_HOSTNAME_SUFFIX}}
+        --set keycloakHostname={{.KC_HOSTNAME_OVERRIDE}}
+        --set keycloakHealthHostname={{.KC_HEALTH_HOSTNAME}}
+        --set otel={{.KC_OTEL}}
+        --set otelSamplingPercentage={{.KC_OTEL_SAMPLING_PERCENTAGE}}
+        --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
+        --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
+        --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
+        --set dbUrl={{ .KC_DATABASE_URL }}
+        --set database={{.KC_DATABASE}}
+        --set keycloakImage={{.CURRENT_KC_CONTAINER_IMAGE}}
+        --set instances={{ .KC_INSTANCES }}
+        --set cpuRequests={{ .KC_CPU_REQUESTS }}
+        --set cpuLimits={{ .KC_CPU_LIMITS }}
+        --set memoryRequestsMB={{ .KC_MEMORY_REQUESTS_MB }}
+        --set memoryLimitsMB={{ .KC_MEMORY_LIMITS_MB }}
+        --set heapInitMB={{ .KC_HEAP_INIT_MB }}
+        --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
+        --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
+        --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
+        --set infinispan.jgroupsTls={{ .KC_JGROUPS_TLS }}
+        --set infinispan.customConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
+        --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
+        --set infinispan.remoteStore.enabled=true
+        --set infinispan.remoteStore.host=infinispan.{{.KC_ISPN_NAMESPACE}}.svc
+        --set infinispan.remoteStore.port=11222
+        --set infinispan.remoteStore.username=developer
+        --set infinispan.remoteStore.password={{ .RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD }}
+        --set infinispan.site={{ .ROSA_CLUSTER_NAME }}
+        --set cryostat={{ .KC_CRYOSTAT }}
+        --set sqlpad=false
+        --set environment=openshift
+        --set namespace={{.NAMESPACE}}
+        --set keycloakAdminPassword="{{.KC_ADMIN_PASSWORD}}"
+        --set disableIngressStickySession={{ .KC_DISABLE_STICKY_SESSION }}
+        --set nodePortsEnabled=false
+        ../minikube/keycloak
+    preconditions:
+      - test -f {{.KUBECONFIG}}
+
+  uninstall-keycloak:
+    internal: true
+    requires:
+      vars:
+        - KUBECONFIG
+        - NAMESPACE
+    cmds:
+      - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak || true
+      - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak-build-config || true
+    status:
+      - test -z "$(KUBECONFIG={{.KUBECONFIG}} helm list --namespace {{.NAMESPACE}} --filter keycloak -q)"
+    preconditions:
+      - test -f {{.KUBECONFIG}}
+
+
+

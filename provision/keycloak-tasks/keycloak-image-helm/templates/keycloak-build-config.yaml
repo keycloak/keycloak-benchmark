@@ -1,0 +1,36 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: keycloak
+  namespace: {{ .Values.namespace }}
+  labels:
+    build: keycloak
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: keycloak
+  name: keycloak
+  namespace: {{ .Values.namespace }}
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: keycloak:latest
+  runPolicy: Serial
+  source:
+    binary: {}
+    type: Binary
+  strategy:
+    dockerStrategy:
+      buildArgs:
+        - name: KEYCLOAK_DIST
+          value: "{{ .Values.archiveName | default "keycloak.tar.gz" }}"
+      from:
+        kind: ImageStreamTag
+        name: ubi9:latest
+    type: Docker
