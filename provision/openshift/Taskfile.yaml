@@ -223,12 +223,6 @@ tasks:
       - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
       - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
       - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete deployment/keycloak-operator && kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
-      - >
-        bash -c '
-        if [ "{{.KC_CONTAINER_IMAGE}}" != "" ]; then
-          envsubst < ../minikube/keycloak/operator-patch.yaml > .task/subtask-{{.TASK}}-operator-patchfile.yaml
-          kubectl patch deployment keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak --patch-file .task/subtask-{{.TASK}}-operator-patchfile.yaml
-        fi'
       # TODO: sqlpad is disabled as it runs as root in the container, see https://github.com/sqlpad/sqlpad/issues/1171
       - >
         helm upgrade --install keycloak --namespace {{.KC_NAMESPACE_PREFIX}}keycloak
