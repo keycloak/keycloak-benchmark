@@ -1,0 +1,11 @@
+spec:
+  strategy:
+    rollingUpdate: ~
+    type: Recreate
+  template:
+    spec:
+      containers:
+        - name: keycloak-operator
+          env:
+            - name: OPERATOR_KEYCLOAK_IMAGE
+              value: ${KC_CONTAINER_IMAGE}
