@@ -93,6 +93,9 @@ public abstract class AbstractCrossDCTest {
         UserRepresentation user = new UserRepresentation();
         user.setEnabled(Boolean.TRUE);
         user.setUsername(USERNAME);
+        user.setFirstName(user.getUsername());
+        user.setLastName(user.getUsername());
+        user.setEmail(user.getUsername() + "@email.email");
 
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
