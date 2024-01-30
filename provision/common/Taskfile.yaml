@@ -77,7 +77,9 @@ tasks:
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
       - |
-        jq -n --arg cpu_limit "{{ .KC_CPU_REQUESTS }}" --arg num_of_pods "{{ .KC_INSTANCES }}" \
+        jq -n --arg cpu_requests_per_pod "{{ .KC_CPU_REQUESTS }}" \
+          --arg cpu_limits_per_pod "{{ .KC_CPU_LIMITS }}" \
+          --arg num_of_pods "{{ .KC_INSTANCES }}" \
           --argjson sticky_sessions "{{ .KC_DISABLE_STICKY_SESSION }}" \
           --arg mem_req_per_pod "{{ .KC_MEMORY_REQUESTS_MB }}" \
           --arg mem_limit_per_pod "{{ .KC_MEMORY_LIMITS_MB }}" \
@@ -93,7 +95,8 @@ tasks:
           --arg kc_repo "{{ .KC_REPOSITORY }}" \
           --arg kc_branch "{{ .KC_BRANCH }}" \
           --argjson is_multi_az "{{ .MULTI_AZ }}" \
-          '. + { "numOfPods": ($num_of_pods|tonumber), "cpuLimitPerPod": ($cpu_limit|tonumber),
+          '. + { "numOfPods": ($num_of_pods|tonumber), "cpuRequestsPerPod": ($cpu_requests_per_pod|tonumber),
+                             "cpuLimitsPerPod": (if $cpu_limits_per_pod | length == 0 then null else ($cpu_limits_per_pod | tonumber?) end),
                              "stickySessionDisabled": ($sticky_sessions),
                              "memRequestsPerPod": ($mem_req_per_pod|tonumber),
                              "memLimitPerPod": ($mem_limit_per_pod|tonumber),
