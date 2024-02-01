@@ -46,13 +46,14 @@ spec:
   features:
     enabled:
       - multi-site # <2>
+{{- if .Values.infinispan.customConfig }}
+  cache:
+    configMapFile:
+        name: kcb-infinispan-cache-config
+        key: {{ base .Values.infinispan.configFile }}
+{{- end }}
   # tag::keycloak-ispn[]
   additionalOptions:
-{{- if .Values.infinispan.customConfig }}
-    - name: cache-config-file # <1>
-      value: {{ base .Values.infinispan.configFile }}
-  # end::keycloak-ispn[]
-{{- end }}
 {{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
@@ -258,13 +259,6 @@ spec:
             #       - 'true'
             # tag::keycloak-ispn[]
             volumeMounts:
-{{ if .Values.infinispan.customConfig }}
-              - name: kcb-infinispan-cache-config # <4>
-                mountPath: /opt/keycloak/conf/{{ base .Values.infinispan.configFile }}
-                subPath: {{ base .Values.infinispan.configFile }}
-                readOnly: true
-                # end::keycloak-ispn[]
-{{ end }}
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
                 readOnly: true
@@ -280,15 +274,6 @@ spec:
 {{ end }}
         # tag::keycloak-ispn[]
         volumes:
-{{ if .Values.infinispan.customConfig }}
-          - name: kcb-infinispan-cache-config # <6>
-            configMap:
-              name: kcb-infinispan-cache-config
-              items:
-                - key: {{base .Values.infinispan.configFile}}
-                  path: {{base .Values.infinispan.configFile}}
-            # end::keycloak-ispn[]
-{{ end }}
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
