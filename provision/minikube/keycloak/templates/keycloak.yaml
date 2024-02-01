@@ -95,10 +95,6 @@ spec:
       secret:
         name: remote-store-secret
         key: password
-{{- if .Values.infinispan.site }}
-    - name: spi-connections-infinispan-quarkus-site-name
-      value: {{ .Values.infinispan.site }}
-{{- end }}
     # end::keycloak-ispn[]
 {{- end }}
 {{- if .Values.infinispan.jgroupsTls }}
@@ -221,6 +217,9 @@ spec:
 {{- end }}
 {{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
+{{- end }}
+{{- if .Values.infinispan.site }}
+                  -Djboss.site.name={{.Values.infinispan.site}}
 {{- end }}
 # end::keycloak[]
 # end::keycloak-ispn[]
