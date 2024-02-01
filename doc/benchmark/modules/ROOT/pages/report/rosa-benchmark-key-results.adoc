@@ -1,6 +1,6 @@
 = Keycloak on ROSA Benchmark Key Results
 
-This summarizes a benchmark run with Keycloak 22 performed in July 2023.
+This summarizes a benchmark run with Keycloak 24 performed in Jan 2024.
 Use this as a starting point to calculate the requirements of a Keycloak environment.
 Use them to perform a load testing in your environment.
 
@@ -18,8 +18,8 @@ A full automation is pending to show repeatable results over different releases.
 
 * OpenShift 4.13.x deployed on AWS via ROSA.
 * Machinepool with `m5.4xlarge` instances.
-* Keycloak 22 deployed with Operator and 3 pods.
-* Default user password hashing with PBKDF2 27,500 hash iterations.
+* Keycloak 24 deployed with Operator and 3 pods.
+* Default user password hashing with PBKDF2(SHA512) 210,000 hash iterations.
 * Database seeded with 100,000 users and 100,000 clients.
 * Infinispan caches at default of 10,000 entries, so not all clients and users fit into the cache, and some requests will need to fetch the data from the database.
 * All sessions in distributed caches as per default, with two owners per entries, allowing one failing pod without losing data.
@@ -72,7 +72,7 @@ Observations:
 This assumes that each user connects to only one client.
 Memory requirements increase with the number of client sessions per user session (not tested yet).
 
-* For each 40 user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 300 per second).
+* For each 30 user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 300 per second).
 +
 Keycloak spends most of the CPU time hashing the password provided by the user.
 
@@ -91,14 +91,14 @@ Performance of Keycloak dropped significantly when its Pods were throttled in ou
 Target size:
 
 * 50,000 active user sessions
-* 40 logins per seconds
+* 30 logins per seconds
 * 450 client credential grants per second
 
 Limits calculated:
 
 * CPU requested: 2 vCPU
 +
-(40 logins per second = 1 vCPU, 450 client credential grants per second = 1 vCPU)
+(30 logins per second = 1 vCPU, 450 client credential grants per second = 1 vCPU)
 
 * CPU limit: 6 vCPU
 +
