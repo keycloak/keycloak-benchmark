@@ -47,13 +47,16 @@ spec:
     enabled:
       - multi-site # <2>
 {{- if .Values.infinispan.customConfig }}
+  # tag::keycloak-ispn[]
   cache:
     configMapFile:
-        name: kcb-infinispan-cache-config
-        key: {{ base .Values.infinispan.configFile }}
+        name: kcb-infinispan-cache-config # <1>
+        key: {{ base .Values.infinispan.configFile }} # <1>
+  # end::keycloak-ispn[]
 {{- end }}
   # tag::keycloak-ispn[]
   additionalOptions:
+  # end::keycloak-ispn[]
 {{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
@@ -97,7 +100,7 @@ spec:
         name: remote-store-secret
         key: password
 {{- if .Values.infinispan.site }}
-    - name: spi-connections-infinispan-quarkus-site-name
+    - name: spi-connections-infinispan-quarkus-site-name # <4>
       value: {{ .Values.infinispan.site }}
 {{- end }}
     # end::keycloak-ispn[]
@@ -121,18 +124,14 @@ spec:
   http:
     tlsSecret: keycloak-tls-secret
   instances: {{ .Values.instances }}
-  # tag::keycloak-ispn[]
   unsupported:
     podTemplate:
       # end::keycloak[]
-      # end::keycloak-ispn[]
       metadata:
         annotations:
           checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}-{{ .Values.otelVersion }}
       # tag::keycloak[]
-      # tag::keycloak-ispn[]
       spec:
-      # end::keycloak-ispn[]
         {{ if .Values.otel }}
         initContainers:
           - name: download-otel
@@ -150,14 +149,12 @@ spec:
               - name: otel
                 mountPath: /otel
         {{ end }}
-        # tag::keycloak-ispn[]
         containers:
           -
 {{ if hasPrefix "localhost/" .Values.keycloakImage }}
             imagePullPolicy: Never
 {{ end }}
             env:
-        # end::keycloak-ispn[]
               - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <4>
                 value: {{ div 200 .Values.instances | quote }}
               # end::keycloak[]
@@ -199,7 +196,6 @@ spec:
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
-              # tag::keycloak-ispn[]
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
 {{- if not (eq (int .Values.heapInitMB) 64) }}
@@ -224,7 +220,6 @@ spec:
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
 {{- end }}
 # end::keycloak[]
-# end::keycloak-ispn[]
             ports:
 {{ if .Values.otel }}
               - containerPort: 9464
@@ -258,7 +253,6 @@ spec:
             #   exec:
             #     command:
             #       - 'true'
-            # tag::keycloak-ispn[]
             volumeMounts:
               - name: keycloak-providers
                 mountPath: /opt/keycloak/providers
@@ -273,7 +267,6 @@ spec:
                 mountPath: /otel
                 readOnly: true
 {{ end }}
-        # tag::keycloak-ispn[]
         volumes:
           - name: keycloak-providers
             configMap:
