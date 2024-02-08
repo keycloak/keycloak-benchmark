@@ -17,7 +17,7 @@ tasks:
           - KC_BRANCH
     cmds:
       - rm -rf "keycloak" || true
-      - git clone --branch "{{.KC_BRANCH}}" "{{.KC_REPOSITORY}}" "keycloak"
+      - git clone --branch "{{.KC_BRANCH}}" "{{.KC_REPOSITORY}}" "keycloak" --depth 1
       - git -C "keycloak" checkout "{{.KC_BRANCH}}"
       - git -C "keycloak" pull
     generates:
@@ -30,15 +30,15 @@ tasks:
 
   build-keycloak-dist:
     desc: "Build the Keycloak distribution and operator"
-    label: "{{.TASK}}-{{.CURRENT_HASH}}"
     internal: true
     dir: ".task/keycloak"
-    vars:
-      CURRENT_HASH:
-        sh: git rev-parse HEAD
-    cmd: ./mvnw clean install -DskipTests -Poperator -am -pl quarkus/dist,operator
+    cmds:
+      - ./mvnw clean install -DskipTests -Poperator -am -pl quarkus/dist,operator -Dmaven.build.cache.enabled=true
+      - (git rev-parse HEAD && git diff) | sha256sum > ../status-build-keycloak-dist-source
     sources:
-      - pom.xml # We are relying on git hash to detect changes (see `label:` above) but we need something as a source for it to work
+      - .task/subtask-{{.TASK}}.yaml
+    status:
+      - bash -c 'test "$((git rev-parse HEAD && git diff) | sha256sum)" == "$(cat ../status-build-keycloak-dist-source)"'
     generates:
       - quarkus/dist/target/keycloak-*.tar.gz
       - operator/target/keycloak-*.jar
