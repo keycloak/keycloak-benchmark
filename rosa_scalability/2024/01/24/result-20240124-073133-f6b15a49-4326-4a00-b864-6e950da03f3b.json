@@ -2,38 +2,43 @@
   "$schema": "urn:keycloak-benchmark:0.1",
   "uuid": "f6b15a49-4326-4a00-b864-6e950da03f3b",
   "name": "ROSA Scalability Benchmark Run Results",
-  "start_dttm": "2024-01-24T07:31:33+00:00",
+  "start": "2024-01-24T07:31:33+00:00",
+  "end": "2024-01-24T08:10:51+00:00",
   "context": {
-    "num_of_pods": 3,
-    "cpu_limit_per_pod": 6,
-    "sticky_session_disabled": "true",
-    "mem_requests_per_pod": 4000,
-    "mem_limit_per_pod": 4000,
+    "numOfPods": 3,
+    "cpuRequestsPerPod": 6,
+    "cpuLimitsPerPod": null,
+    "stickySessionDisabled": true,
+    "memRequestsPerPod": 4000,
+    "memLimitPerPod": 4000,
     "heap": {
       "init": 64,
       "max": 2048
     },
-    "db_pool": {
+    "dbPool": {
       "init": 30,
       "min": 30,
-      "max": "30"
+      "max": 30
     },
     "metaspace": {
       "init": 96,
-      "max": "256"
+      "max": 256
     },
-    "is_multi_az": "true",
-    "keycloak_database": "aurora-postgres",
-    "database_mode": "single",
-    "ispn_deployment": "ispn:crossdc"
+    "isMultiAZ": true,
+    "keycloakOperatorTag": "nightly",
+    "keycloakRepository": "",
+    "keycloakBranch": "",
+    "keycloakDatabase": "aurora-postgres",
+    "databaseMode": "single",
+    "ispnDeployment": "ispn:crossdc"
   },
-  "memory-usage-test": {
-    "active-sessions-per-500Mb-per-pod": 149274
+  "memoryUsageTest": {
+    "activeSessionsPer500MbPerPod": 149274
   },
-  "cpu-usage-for-logins-test": {
-    "user-logins-per-sec-per-1vCpu-per-pod": 38
+  "cpuUsageForLoginsTest": {
+    "userLoginsPerSecPer1vCpuPerPod": 38
   },
-  "cpu-usage-for-credential-grants-test": {
-    "credential-grants-per-sec-per-1vCpu": 363
+  "cpuUsageForCredentialGrantsTest": {
+    "credentialGrantsPerSecPer1vCpu": 363
   }
 }
