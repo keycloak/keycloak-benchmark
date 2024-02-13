@@ -283,12 +283,6 @@ tasks:
           KC_CUSTOM_INFINISPAN_CONFIG_FILE: "config/kcb-infinispan-cache-remote-store-config.xml"
           KC_ISPN_CLUSTER: "infinispan"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: wait-cryostat
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: wait-keycloak
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
 
   wait-keycloak:
     desc: "Waits for Keycloak conditions"
@@ -356,6 +350,18 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - task: create-env-configmap
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
