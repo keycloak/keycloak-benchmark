@@ -1,8 +1,8 @@
-{{- if .Values.customImage }}
+{{- if and (.Values.useAWSJDBCWrapper) (not .Values.customImage) }}
 kind: ImageStream
 apiVersion: image.openshift.io/v1
 metadata:
-  name: ubi9
+  name: keycloak
   namespace: {{ .Values.namespace }}
 spec:
   lookupPolicy:
@@ -11,7 +11,7 @@ spec:
     - name: latest
       from:
         kind: DockerImage
-        name: registry.access.redhat.com/ubi9
+        name: quay.io/keycloak/keycloak:nightly
       generation: 2
       importPolicy:
         importMode: Legacy

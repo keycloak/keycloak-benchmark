@@ -1,0 +1,43 @@
+{{- if .Values.useAWSJDBCWrapper }}
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: keycloak-with-aws-jdbc-wrapper
+  namespace: {{ .Values.namespace }}
+  labels:
+    build: keycloak
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: keycloak
+  name: keycloak-with-aws-jdbc-wrapper
+  namespace: {{ .Values.namespace }}
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: keycloak-with-aws-jdbc-wrapper:latest
+  runPolicy: Serial
+  triggers:
+    - type: "ImageChange"
+      imageChange:
+        from:
+          kind: "ImageStreamTag"
+          name: "keycloak:latest"
+  strategy:
+    dockerStrategy:
+      from:
+        kind: "ImageStreamTag"
+        name: "keycloak:latest"
+      forcePull: true
+  source:
+    dockerfile: |
+      FROM keycloak:latest
+      ADD --chmod=0666 {{ .Values.jdbcWrapperURL }} /opt/keycloak/providers/
+      ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
+{{ end }}

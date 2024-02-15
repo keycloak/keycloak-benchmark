@@ -26,7 +26,11 @@ spec:
   db:
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     vendor: postgres
+{{- if .Values.useAWSJDBCWrapper}}
+    url: jdbc:aws-wrapper:postgresql://postgres:5432/keycloak
+{{- else }}
     url: jdbc:postgresql://postgres:5432/keycloak
+{{ end }}
 {{ end }}
     poolMinSize: {{ .Values.dbPoolMinSize }} # <1>
     poolInitialSize: {{ .Values.dbPoolInitialSize }}
@@ -130,6 +134,12 @@ spec:
         name: keycloak-jgroups-pkcs12-password
         key: password
 {{- end }}
+{{ if .Values.useAWSJDBCWrapper }}
+    - name: db-driver
+      value: software.amazon.jdbc.Driver
+    - name: transaction-xa-enabled
+      value: 'false'
+{{ end }}
   http:
     tlsSecret: keycloak-tls-secret
   instances: {{ .Values.instances }}
@@ -244,7 +254,7 @@ spec:
             #       - 'true'
             volumeMounts:
               - name: keycloak-providers
-                mountPath: /opt/keycloak/providers
+                mountPath: /opt/keycloak/providers/mounted-providers
                 readOnly: true
 {{ if .Values.infinispan.jgroupsTls }}
               - name: cache-embedded-mtls-volume
