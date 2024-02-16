@@ -14,6 +14,10 @@ dotenv: ['.env']
 
 includes:
   common: ../common
+  keycloak:
+    taskfile: ../keycloak-tasks/Utils.yaml
+    dir: ../keycloak-tasks/
+    internal: true
 
 tasks:
   default:
@@ -218,12 +222,17 @@ tasks:
       - common:env
       - openshift-env
       - infinispan-remote
+    vars:
+      CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat ../keycloak-tasks/.task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
     cmds:
-      - kubectl create namespace {{.KC_NAMESPACE_PREFIX}}keycloak || true
-      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
-      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
-      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete deployment/keycloak-operator && kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
-      # TODO: sqlpad is disabled as it runs as root in the container, see https://github.com/sqlpad/sqlpad/issues/1171
+      # again
+      - task: '{{if .KC_REPOSITORY}}keycloak:prepare-custom-images{{else}}keycloak:no-op{{end}}'
+        vars:
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+          ROSA_CLUSTER_NAME: "current"
+      - task: keycloak:install-keycloak-operator
+        vars:
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
       - >
         helm upgrade --install keycloak --namespace {{.KC_NAMESPACE_PREFIX}}keycloak
         --set hostname={{.KC_HOSTNAME_SUFFIX}}
@@ -236,7 +245,7 @@ tasks:
         --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
         --set dbUrl={{ .KC_DATABASE_URL }}
         --set database={{.KC_DATABASE}}
-        --set keycloakImage={{.KC_CONTAINER_IMAGE}}
+        --set keycloakImage={{.CURRENT_KC_CONTAINER_IMAGE}}
         --set instances={{ .KC_INSTANCES }}
         --set cpuRequests={{ .KC_CPU_REQUESTS }}
         --set cpuLimits={{ .KC_CPU_LIMITS }}

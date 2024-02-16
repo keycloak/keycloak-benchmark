@@ -16,6 +16,13 @@ spec:
     {{- else }}
     hostname: keycloak-{{ .Values.namespace }}.{{ .Values.hostname }}
     {{- end }}
+  resources:
+    requests:
+      {{ if .Values.cpuRequests }}cpu: "{{ .Values.cpuRequests }}"{{end}}
+      {{ if .Values.memoryRequestsMB }}memory: "{{ .Values.memoryRequestsMB }}M"{{end}}
+    limits:
+      {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
+      {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
   db:
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     vendor: postgres
@@ -126,13 +133,12 @@ spec:
   http:
     tlsSecret: keycloak-tls-secret
   instances: {{ .Values.instances }}
+  # end::keycloak[]
   unsupported:
     podTemplate:
-      # end::keycloak[]
       metadata:
         annotations:
           checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}-{{ .Values.otelVersion }}
-      # tag::keycloak[]
       spec:
         {{ if .Values.otel }}
         initContainers:
@@ -157,7 +163,6 @@ spec:
             imagePullPolicy: Never
 {{ end }}
             env:
-              # end::keycloak[]
               # We want to have an externally provided username and password, therefore, we override those two environment variables
               - name: KEYCLOAK_ADMIN
                 valueFrom:
@@ -171,7 +176,6 @@ spec:
                     name: keycloak-preconfigured-admin
                     key: password
                     optional: false
-                # tag::keycloak[]
 {{ if .Values.otel }}
               # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
               # As a workaround, force downgrade to HTTP/1.1
@@ -198,12 +202,6 @@ spec:
 {{ end }}
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
-{{- if not (eq (int .Values.heapInitMB) 64) }}
-                  -Xms{{ .Values.heapInitMB }}m
-{{- end }}
-{{- if not (eq (int .Values.heapMaxMB) 512) }}
-                  -Xmx{{ .Values.heapMaxMB }}m
-{{- end }}
 {{- if not (eq (int .Values.metaspaceInitMB) 96) }}
                   -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m
 {{- end }}
@@ -219,7 +217,6 @@ spec:
 {{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
 {{- end }}
-# end::keycloak[]
             ports:
 {{ if .Values.otel }}
               - containerPort: 9464
@@ -236,14 +233,6 @@ spec:
                 protocol: TCP
                 name: jvm-debug
 {{ end }}
-# tag::keycloak[]
-            resources:
-              requests:
-                {{ if .Values.cpuRequests }}cpu: "{{ .Values.cpuRequests }}"{{end}}
-                {{ if .Values.memoryRequestsMB }}memory: "{{ .Values.memoryRequestsMB }}M"{{end}}
-              limits:
-                {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
-                {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
             # end::keycloak[]
             # readinessProbe:
             #   exec:
