@@ -139,6 +139,8 @@ spec:
       owners: {{ $config.owners | default $.Values.cacheDefaults.owners | quote }}
       statistics: "true"
       remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout }}
+      locking:
+        acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout }}
       stateTransfer:
         chunkSize: 16
       {{ if $.Values.crossdc.enabled }}
