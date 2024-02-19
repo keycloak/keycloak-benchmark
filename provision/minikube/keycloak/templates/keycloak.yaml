@@ -65,6 +65,10 @@ spec:
         key: {{ base .Values.infinispan.configFile }} # <1>
   # end::keycloak-ispn[]
 {{- end }}
+{{ if .Values.useAWSJDBCWrapper }}
+  transaction:
+    xaEnabled: false
+{{ end }}
   # tag::keycloak-ispn[]
   additionalOptions:
   # end::keycloak-ispn[]
@@ -137,8 +141,6 @@ spec:
 {{ if .Values.useAWSJDBCWrapper }}
     - name: db-driver
       value: software.amazon.jdbc.Driver
-    - name: transaction-xa-enabled
-      value: 'false'
 {{ end }}
   http:
     tlsSecret: keycloak-tls-secret
@@ -253,9 +255,13 @@ spec:
             #     command:
             #       - 'true'
             volumeMounts:
+              {{- range $path, $size := .Files.Glob "providers/**" }}
+              {{- $name := base $path }}
               - name: keycloak-providers
-                mountPath: /opt/keycloak/providers/mounted-providers
+                mountPath: /opt/keycloak/providers/{{ $name }}
+                subPath: {{ $name }}
                 readOnly: true
+              {{- end -}}
 {{ if .Values.infinispan.jgroupsTls }}
               - name: cache-embedded-mtls-volume
                 mountPath: /etc/cache-embedded-mtls
