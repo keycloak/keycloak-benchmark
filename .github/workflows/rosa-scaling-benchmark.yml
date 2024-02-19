@@ -95,9 +95,8 @@ env:
   KC_CPU_REQUESTS: 6
   KC_INSTANCES: 3
   KC_DISABLE_STICKY_SESSION: true
-  KC_MEMORY_REQUESTS_MB: 4000
+  KC_MEMORY_REQUESTS_MB: 3000
   KC_MEMORY_LIMITS_MB: 4000
-  KC_HEAP_MAX_MB: 2048
   KC_DB_POOL_INITIAL_SIZE: 30
   KC_DB_POOL_MAX_SIZE: 30
   KC_DB_POOL_MIN_SIZE: 30
@@ -163,7 +162,6 @@ jobs:
           podCpuRequests: ${{ env.KC_CPU_REQUESTS }}
           podMemoryRequests: ${{ env.KC_MEMORY_REQUESTS_MB }}
           podMemoryLimit: ${{ env.KC_MEMORY_LIMITS_MB }}
-          heapMaxSizeMB: ${{ env.KC_HEAP_MAX_MB }}
 
       - name: Get URLs
         uses: ./.github/actions/get-keycloak-url

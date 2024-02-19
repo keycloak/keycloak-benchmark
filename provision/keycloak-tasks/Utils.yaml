@@ -33,7 +33,7 @@ tasks:
     internal: true
     dir: ".task/keycloak"
     cmds:
-      - ./mvnw clean install -DskipTests -Poperator -am -pl quarkus/dist,operator -Dmaven.build.cache.enabled=true
+      - ./mvnw clean install -DskipTests -Poperator -am -pl quarkus/dist,operator
       - (git rev-parse HEAD && git diff) | sha256sum > ../status-build-keycloak-dist-source
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -185,8 +185,6 @@ tasks:
         --set cpuLimits={{ .KC_CPU_LIMITS }}
         --set memoryRequestsMB={{ .KC_MEMORY_REQUESTS_MB }}
         --set memoryLimitsMB={{ .KC_MEMORY_LIMITS_MB }}
-        --set heapInitMB={{ .KC_HEAP_INIT_MB }}
-        --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
         --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
         --set infinispan.jgroupsTls={{ .KC_JGROUPS_TLS }}

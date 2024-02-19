@@ -22,8 +22,6 @@ inputs:
     description: 'Keycloak pod CPU requests'
   podCpuLimit:
     description: 'Keycloak pod CPU limit'
-  heapMaxSizeMB:
-    description: 'Keycloak server maximum Java heap size (in MB)'
   otel:
     description: 'Enable OpenTelemetry'
     default: 'false'
@@ -56,7 +54,6 @@ runs:
         KC_MEMORY_LIMITS_MB: ${{ inputs.podMemoryLimit }}
         KC_CPU_REQUESTS: ${{ inputs.podCpuRequests }}
         KC_CPU_LIMITS: ${{ inputs.podCpuLimit }}
-        KC_HEAP_MAX_MB: ${{ inputs.heapMaxSizeMB }}
         KC_OTEL: ${{ inputs.otel }}
         KC_DATABASE: ${{ inputs.database }}
         KC_DATABASE_URL: ${{ inputs.databaseUrl }}

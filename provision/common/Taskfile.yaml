@@ -16,8 +16,6 @@ vars:
   KC_CPU_LIMITS: '{{default "" .KC_CPU_LIMITS}}'
   KC_MEMORY_REQUESTS_MB: '{{default "1024" .KC_MEMORY_REQUESTS_MB}}'
   KC_MEMORY_LIMITS_MB: '{{default "1024" .KC_MEMORY_LIMITS_MB}}'
-  KC_HEAP_INIT_MB: '{{default "64" .KC_HEAP_INIT_MB}}'
-  KC_HEAP_MAX_MB: '{{default "512" .KC_HEAP_MAX_MB}}'
   KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
   KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
   KC_CUSTOM_INFINISPAN_CONFIG: '{{default "true" .KC_CUSTOM_INFINISPAN_CONFIG}}'
@@ -64,8 +62,6 @@ tasks:
       - echo {{.KC_CPU_LIMITS}} > .task/var-KC_CPU_LIMITS
       - echo {{.KC_MEMORY_REQUESTS_MB}} > .task/var-KC_MEMORY_REQUESTS_MB
       - echo {{.KC_MEMORY_LIMITS_MB}} > .task/var-KC_MEMORY_LIMITS_MB
-      - echo {{.KC_HEAP_INIT_MB}} > .task/var-KC_HEAP_INIT_MB
-      - echo {{.KC_HEAP_MAX_MB}} > .task/var-KC_HEAP_MAX_MB
       - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
       - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
       - echo {{.KC_CUSTOM_INFINISPAN_CONFIG}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG
@@ -83,8 +79,6 @@ tasks:
           --argjson sticky_sessions "{{ .KC_DISABLE_STICKY_SESSION }}" \
           --arg mem_req_per_pod "{{ .KC_MEMORY_REQUESTS_MB }}" \
           --arg mem_limit_per_pod "{{ .KC_MEMORY_LIMITS_MB }}" \
-          --arg heap_init "{{ .KC_HEAP_INIT_MB }}" \
-          --arg heap_max "{{ .KC_HEAP_MAX_MB }}" \
           --arg db_pool_init "{{ .KC_DB_POOL_INITIAL_SIZE }}" \
           --arg db_pool_max "{{ .KC_DB_POOL_MAX_SIZE }}" \
           --arg db_pool_min "{{ .KC_DB_POOL_MIN_SIZE }}" \
@@ -100,10 +94,6 @@ tasks:
                              "stickySessionDisabled": ($sticky_sessions),
                              "memRequestsPerPod": ($mem_req_per_pod|tonumber),
                              "memLimitPerPod": ($mem_limit_per_pod|tonumber),
-                             "heap": {
-                               "init": ($heap_init|tonumber),
-                               "max": ($heap_max|tonumber)
-                             },
                              "dbPool": {
                                "init": ($db_pool_init|tonumber),
                                "min": ($db_pool_min|tonumber),
@@ -136,8 +126,6 @@ tasks:
       - test "{{.KC_CPU_LIMITS}}" == "$(cat .task/var-KC_CPU_LIMITS)"
       - test "{{.KC_MEMORY_REQUESTS_MB}}" == "$(cat .task/var-KC_MEMORY_REQUESTS_MB)"
       - test "{{.KC_MEMORY_LIMITS_MB}}" == "$(cat .task/var-KC_MEMORY_LIMITS_MB)"
-      - test "{{.KC_HEAP_INIT_MB}}" == "$(cat .task/var-KC_HEAP_INIT_MB)"
-      - test "{{.KC_HEAP_MAX_MB}}" == "$(cat .task/var-KC_HEAP_MAX_MB)"
       - test "{{.KC_METASPACE_INIT_MB}}" == "$(cat .task/var-KC_METASPACE_INIT_MB)"
       - test "{{.KC_METASPACE_MAX_MB}}" == "$(cat .task/var-KC_METASPACE_MAX_MB)"
       - test "{{.KC_CUSTOM_INFINISPAN_CONFIG}}" == "$(cat .task/var-KC_CUSTOM_INFINISPAN_CONFIG)"
