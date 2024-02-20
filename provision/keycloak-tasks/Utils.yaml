@@ -54,8 +54,8 @@ tasks:
       - KUBECONFIG="{{.KUBECONFIG}}" oc create namespace "{{.NAMESPACE}}" || true
       - >
         KUBECONFIG="{{.KUBECONFIG}}" helm upgrade --install keycloak-build-config --namespace "{{.NAMESPACE}}" ./keycloak-image-helm
-        --set "namespace={{.NAMESPACE}}"
-        --set "customImage={{if .KC_REPOSITORY}}true{{else}}false{{end}}"
+        --set namespace={{.NAMESPACE}}
+        --set customImage={{if .KC_REPOSITORY}}true{{else}}false{{end}}
     status:
       - test -n "$(KUBECONFIG="{{.KUBECONFIG}}" helm list --namespace {{.NAMESPACE}} --filter keycloak-build-config -q)"
     preconditions:
@@ -76,17 +76,8 @@ tasks:
       ARCHIVE_NAME:
         sh: ls .task/keycloak/quarkus/dist/target/keycloak-*.tar.gz | xargs -n 1 basename
     cmds:
-      - KUBECONFIG="{{.KUBECONFIG}}" oc create namespace "{{.NAMESPACE}}" || true
-      - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak-build-config || true
-      # Create custom Keycloak resources for both Keycloak and Keycloak operator
-      - >
-        KUBECONFIG="{{.KUBECONFIG}}" helm upgrade --install keycloak-build-config --namespace "{{.NAMESPACE}}"
-        --set "namespace={{.NAMESPACE}}"
-        --set "archiveName={{.ARCHIVE_NAME}}"
-        ./keycloak-image-helm
-
       # Start Keycloak image build
-      - cp "$(ls .task/keycloak/quarkus/dist/target/keycloak-*.tar.gz)" ".task/keycloak/quarkus/container/"
+      - cp "$(ls .task/keycloak/quarkus/dist/target/keycloak-*.tar.gz)" ".task/keycloak/quarkus/container/keycloak.tar.gz"
       - KUBECONFIG="{{.KUBECONFIG}}" oc start-build -n {{.NAMESPACE}} keycloak --from-dir ".task/keycloak/quarkus/container" --follow
       - echo "image-registry.openshift-image-registry.svc:5000/{{.NAMESPACE}}/keycloak:latest" > .task/var-CUSTOM_CONTAINER_IMAGE_FILE
 
