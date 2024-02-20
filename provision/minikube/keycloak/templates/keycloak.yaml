@@ -27,7 +27,7 @@ spec:
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     vendor: postgres
 {{- if .Values.useAWSJDBCWrapper}}
-    url: jdbc:aws-wrapper:postgresql://postgres:5432/keycloak
+    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak
 {{- else }}
     url: jdbc:postgresql://postgres:5432/keycloak
 {{ end }}
