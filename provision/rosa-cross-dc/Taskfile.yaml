@@ -601,6 +601,17 @@ tasks:
       - >
         echo 'WARNING: use the information above to configure your Keycloak deployment!'
 
+  route53-test-primary-used:
+    desc: "Checks if the primary cluster is active and prints it to the console"
+    dir: "{{.ROUTE53_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - KC_CLIENT_URL
+    cmd: (./route53_test_primary_used.sh {{substr 7 999999 .KC_CLIENT_URL}} && echo "Primary cluster is active") || echo "Primary cluster is NOT active"
+
   dataset-import:
     internal: true
     requires:
