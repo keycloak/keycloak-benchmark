@@ -1,4 +1,4 @@
-{{ if eq .Values.database "aurora-postgres" }}
+{{ if and (eq .Values.database "aurora-postgres") (not .Values.useAWSJDBCWrapper) }}
 kind: Service
 apiVersion: v1
 metadata:
