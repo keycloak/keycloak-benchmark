@@ -12,6 +12,9 @@ mkdir -p ${BUILDDIR}/helm
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set hostname=minikube.nip.io \
+  --set keycloakHostname=\<KEYCLOAK_URL_HERE\> \
+  --set dbUrl=\<AWS_AURORA_URL_HERE\> \
+  --set keycloakImage=\<KEYCLOAK_IMAGE_HERE\> \
   --set jvmDebug=false \
   --set cryostat=false \
   --set instances=3 \
@@ -31,6 +34,9 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set hostname=minikube.nip.io \
+  --set keycloakHostname=\<KEYCLOAK_URL_HERE\> \
+  --set dbUrl=\<AWS_AURORA_URL_HERE\> \
+  --set keycloakImage=\<KEYCLOAK_IMAGE_HERE\> \
   --set jvmDebug=false \
   --set cryostat=false \
   --set heapInitMB=64 \

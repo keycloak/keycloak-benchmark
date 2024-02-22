@@ -51,12 +51,12 @@ spec:
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
 {{ if .Values.keycloakImage }}
-  image: {{ .Values.keycloakImage }}
-  startOptimized: {{ .Values.startOptimized }}
+  image: {{ .Values.keycloakImage }} # <2>
+  startOptimized: {{ .Values.startOptimized }} # <2>
 {{ end }}
   features:
     enabled:
-      - multi-site # <2>
+      - multi-site # <3>
 {{- if .Values.infinispan.customConfig }}
   # tag::keycloak-ispn[]
   cache:
@@ -65,14 +65,14 @@ spec:
         key: {{ base .Values.infinispan.configFile }} # <1>
   # end::keycloak-ispn[]
 {{- end }}
-{{ if .Values.useAWSJDBCWrapper }}
+{{- if .Values.useAWSJDBCWrapper }}
   transaction:
-    xaEnabled: false
+    xaEnabled: false # <4>
 {{ end }}
   # tag::keycloak-ispn[]
   additionalOptions:
   # end::keycloak-ispn[]
-{{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
+{{- if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
     - name: storage-hotrod-port
@@ -98,9 +98,9 @@ spec:
     # end::keycloak-queue-size[]
     - name: log-console-output
       value: json
-    - name: metrics-enabled # <3>
+    - name: metrics-enabled # <5>
       value: 'true'
-    - name: http-pool-max-threads # <4>
+    - name: http-pool-max-threads # <6>
       value: {{ div 200 .Values.instances | quote }}
 {{- if .Values.infinispan.remoteStore.enabled }}
     # tag::keycloak-ispn[]
@@ -116,10 +116,10 @@ spec:
       secret:
         name: remote-store-secret
         key: password
-{{- if .Values.infinispan.site }}
+    {{- if .Values.infinispan.site }}
     - name: spi-connections-infinispan-quarkus-site-name # <4>
       value: {{ .Values.infinispan.site }}
-{{- end }}
+    {{ end }}
     # end::keycloak-ispn[]
 {{- end }}
 {{- if .Values.infinispan.jgroupsTls }}
