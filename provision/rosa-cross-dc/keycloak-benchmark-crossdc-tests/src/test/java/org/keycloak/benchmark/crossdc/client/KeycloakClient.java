@@ -115,7 +115,46 @@ public class KeycloakClient {
         return JsonSerialization.readValue(response.body(), Map.class);
     }
 
+    public Map<String, Object> passwordGrant(String realmName, String clientId, String username, String password) throws URISyntaxException, IOException, InterruptedException {
+        Map<String, String> formData = new HashMap<>();
+        formData.put("grant_type", "password");
+        formData.put("username", username);
+        formData.put("password", password);
+        formData.put("client_id", clientId);
+        formData.put("scope", "openid profile");
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .uri(new URI(testRealmUrl(realmName) + "/protocol/openid-connect/token"))
+                .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return JsonSerialization.readValue(response.body(), Map.class);
+    }
+
+    public HttpResponse<String> revokeRefreshToken(String realmName, String clientId, String refreshToken) throws URISyntaxException, IOException, InterruptedException {
+        Map<String, String> formData = new HashMap<>();
+        formData.put("client_id", clientId);
+        formData.put("token", refreshToken);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .uri(new URI(testRealmUrl(realmName) + "/protocol/openid-connect/revoke"))
+                .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     public Map<String, Object> refreshToken(String realmName, String refreshToken, String clientId, String clientSecret, int expectedReturnCode) throws URISyntaxException, IOException, InterruptedException {
+        HttpResponse<String> response = refreshToken(realmName, refreshToken, clientId, clientSecret);
+        assertEquals(expectedReturnCode, response.statusCode());
+
+        return JsonSerialization.readValue(response.body(), Map.class);
+    }
+
+    public HttpResponse<String> refreshToken(String realmName, String refreshToken, String clientId, String clientSecret) throws URISyntaxException, IOException, InterruptedException {
         Map<String, String> formData = new HashMap<>();
         formData.put("grant_type", "refresh_token");
         formData.put("refresh_token", refreshToken);
@@ -129,10 +168,7 @@ public class KeycloakClient {
                 .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(expectedReturnCode, response.statusCode());
-
-        return JsonSerialization.readValue(response.body(), Map.class);
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     public String usernamePasswordLogin(String realmName, String username, String password, String clientId) throws IOException, URISyntaxException, InterruptedException {

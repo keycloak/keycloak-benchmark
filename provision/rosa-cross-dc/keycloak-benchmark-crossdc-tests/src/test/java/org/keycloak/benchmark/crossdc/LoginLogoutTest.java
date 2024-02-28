@@ -4,10 +4,12 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.http.HttpResponse;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
 
@@ -56,5 +58,26 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
         assertEquals(0, DC_2.ispn().cache(SESSIONS).size());
         //Verify session cache size in embedded ISPN DC2
         assertEquals(0, DC_2.kc().embeddedIspn().cache(SESSIONS).size());
+    }
+
+    @Test
+    public void testRefreshTokenRevocation() throws Exception {
+        assertCacheSize(SESSIONS, 0);
+        assertCacheSize(CLIENT_SESSIONS, 0);
+        for (int i = 0; i < 20; i++) {
+            // Create a new user session
+            Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.passwordGrant(REALM_NAME, CLIENTID, USERNAME, MAIN_PASSWORD);
+            assertCacheSize(SESSIONS, 1);
+            assertCacheSize(CLIENT_SESSIONS, 1);
+
+            // Do the token revocation
+            HttpResponse<String> stringHttpResponse = DC_1.kc().revokeRefreshToken(REALM_NAME, CLIENTID, (String) tokensMap.get("refresh_token"));
+            assertEquals(200, stringHttpResponse.statusCode());
+            assertEquals("", stringHttpResponse.body());
+
+            // The revocation should clean all sessions
+            assertCacheSize(SESSIONS, 0);
+            assertCacheSize(CLIENT_SESSIONS, 0);
+        }
     }
 }
