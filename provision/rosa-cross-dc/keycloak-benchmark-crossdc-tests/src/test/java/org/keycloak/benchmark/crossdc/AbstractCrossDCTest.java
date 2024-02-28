@@ -22,6 +22,7 @@ import java.net.http.HttpClient;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
@@ -131,5 +132,15 @@ public abstract class AbstractCrossDCTest {
         DC_1.kc().markLBCheckUp();
         DC_2.kc().markLBCheckUp();
         DC_1.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
+    }
+
+    protected void assertCacheSize(String cache, int size) {
+        // Embedded caches
+        assertEquals(DC_1.kc().embeddedIspn().cache(cache).size(), size, () -> "Embedded cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
+        assertEquals(DC_2.kc().embeddedIspn().cache(cache).size(), size, () -> "Embedded cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
+
+        // External caches
+        assertEquals(DC_1.ispn().cache(cache).size(), size, () -> "External cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
+        assertEquals(DC_2.ispn().cache(cache).size(), size, () -> "External cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
     }
 }
