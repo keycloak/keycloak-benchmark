@@ -95,3 +95,34 @@ Specifically checks for the readiness and rolling update conditions of Keycloak 
 oc wait --for=condition=Ready --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n <NAMESPACE>
 oc wait --for=condition=RollingUpdate=False --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n <NAMESPACE>
 ----
+==== Optional Bash script
+You can utilize the link:../../../../../../provision/rosa-cross-dc/cross-site-health-checks.sh[Cross Site Health Checks] and extend it to perform the necessary checks and integrate this into your monitoring architecture.
+
+To run the script, as a pre-requisite, you need to establish a session from your terminal to the target OCP cluster with a command such as,
+
+[source,bash]
+----
+oc login --token=sha256~masked-key --server=https://api.gh-keycloak-a.masked.openshiftapps.com:6443
+----
+
+To run the script itself once you have an active `oc` session below is an example usage.
+
+[source,bash]
+----
+./cross-site-health-checks.sh -d gh-keycloak-a-gh-keycloak-b-masked.keycloak-benchmark.com \
+-u developer -p masked-password \
+-s gh-keycloak-a.masked.openshiftapps.com \
+-c 3 -n runner-keycloak
+----
+
+Usage of the script with details around the different options
+[source, bash]
+----
+Usage: ./cross-site-health-checks.sh [-d domain] [-u infinispan_user] [-p infinispan_pwd] [-s infinispan_url_suffix] [-c expected_count] [-n namespace]
+  -d domain: Keycloak domain
+  -u infinispan_user: Infinispan user
+  -p infinispan_pwd: Infinispan password
+  -s infinispan_url_suffix: Infinispan URL suffix
+  -c expected_count: Expected Node Count in the Infinispan cluster
+  -n namespace: Kubernetes namespace
+----
