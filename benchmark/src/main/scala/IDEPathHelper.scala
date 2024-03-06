@@ -1,5 +1,5 @@
 
-import io.gatling.commons.util.PathHelper.RichPath
+import io.gatling.shared.util.PathHelper.RichPath
 
 import java.nio.file.{Path, Paths}
 
