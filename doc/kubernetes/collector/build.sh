@@ -43,8 +43,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set cryostat=false \
   --set heapInitMB=64 \
   --set heapMaxMB=512 \
-  --set infinispan.customConfig=true \
-  --set infinispan.configFile=config/kcb-infinispan-cache-remote-store-config.xml \
+  --set infinispan.customConfig=false \
   --set infinispan.remoteStore.enabled=true \
   --set infinispan.remoteStore.host=infinispan.keycloak.svc \
   --set infinispan.remoteStore.password=secure_password \
