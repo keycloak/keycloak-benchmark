@@ -42,7 +42,7 @@ jobs:
             ${{ runner.os }}-maven-wrapper-
       - name: Build
         run:
-          mvn clean install
+          ./mvnw -B clean install
       - name: Set version
         id: get_version
         run: echo VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec) >> $GITHUB_OUTPUT
@@ -55,41 +55,16 @@ jobs:
             git push --delete origin ${{ steps.get_version.outputs.VERSION }}
           fi
       - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          release_name: Keycloak Benchmark ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          prerelease: true
-          body: |
-            Latest version built from the `${{ github.ref_name }}` branch.
-      - name: Publish dataset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dataset/target/keycloak-benchmark-dataset-${{ steps.get_version.outputs.VERSION }}.jar
-          asset_name: keycloak-benchmark-dataset-${{ steps.get_version.outputs.VERSION }}.jar
-          asset_content_type: application/gzip
-      - name: Publish kcb ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.zip
-          asset_name: keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.zip
-          asset_content_type: application/gzip
-      - name: Publish kcb TAR
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.tar.gz
-          asset_name: keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.tar.gz
-          asset_content_type: application/gzip
+        run: >
+          gh release create ${{ steps.get_version.outputs.VERSION }}
+          --target ${{ github.ref }}
+          --title 'Keycloak Benchmark ${{ steps.get_version.outputs.VERSION }}'
+          --notes 'Latest version built from the `${{ github.ref_name }}` branch.'
+          --prerelease
+          ./dataset/target/keycloak-benchmark-dataset-${{ steps.get_version.outputs.VERSION }}.jar
+          ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.zip
+          ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.tar.gz
+
