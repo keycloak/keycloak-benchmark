@@ -24,21 +24,69 @@ cd efs
 echo "Installing EFS CSI driver operator."
 oc apply -f aws-efs-csi-driver-operator.yaml
 
-# We've seen that the 'oc get...' has returned two entries in the past. Let's make sure that everything settled before we retrieve the one pod which is ready
-kubectl wait --for=condition=Available --timeout=300s -n openshift-cloud-credential-operator deployment/cloud-credential-operator
-CCO_POD_NAME=$(oc get po -n openshift-cloud-credential-operator -l app=cloud-credential-operator -o jsonpath='{range .items[*]}{.status.containerStatuses[*].ready.true}{.metadata.name}{ "\n"}{end}')
+cat << EOF > iam-trust.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "${OIDC_PROVIDER}:sub": [
+            "system:serviceaccount:openshift-cluster-csi-drivers:aws-efs-csi-driver-operator",
+            "system:serviceaccount:openshift-cluster-csi-drivers:aws-efs-csi-driver-controller-sa"
+          ]
+        }
+      }
+    }
+  ]
+}
+EOF
 
-oc cp -c cloud-credential-operator openshift-cloud-credential-operator/${CCO_POD_NAME}:/usr/bin/ccoctl ./ccoctl --retries=999
+ROLE_NAME="${CLUSTER_NAME}-aws-efs-csi-operator"
+ROLE_ARN=$(aws iam get-role \
+  --role-name ${ROLE_NAME} \
+  --query "Role.Arn" \
+  --output text \
+  || echo ""
+)
+if [ -z "${ROLE_ARN}" ]; then
+  ROLE_ARN=$(aws iam create-role \
+    --role-name ${ROLE_NAME} \
+    --assume-role-policy-document file://iam-trust.json \
+    --query "Role.Arn" \
+    --output text
+  )
 
-chmod 775 ./ccoctl
+  POLICY_ARN=$(aws iam create-policy \
+    --policy-name "${CLUSTER_NAME}-rosa-efs-csi" \
+    --policy-document file://iam-policy.json \
+    --query 'Policy.Arn' \
+    --output text
+  )
 
-./ccoctl aws create-iam-roles --name=${CLUSTER_NAME} --region=${AWS_REGION} --credentials-requests-dir=credentialRequests/ --identity-provider-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}
-
-# if the CredentialsRequest was processed, manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml file should be created
-# create credentials if present
-if [[ -f manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml ]]; then
-    oc apply -f manifests/openshift-cluster-csi-drivers-aws-efs-cloud-credentials-credentials.yaml
+  aws iam attach-role-policy \
+    --role-name ${ROLE_NAME} \
+    --policy-arn ${POLICY_ARN}
 fi
+
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+ name: aws-efs-cloud-credentials
+ namespace: openshift-cluster-csi-drivers
+stringData:
+  credentials: |-
+    [default]
+    sts_regional_endpoints = regional
+    role_arn = ${ROLE_ARN}
+    web_identity_token_file = /var/run/secrets/openshift/serviceaccount/token
+EOF
 
 oc apply -f efs-csi-aws-com-cluster-csi-driver.yaml
 
@@ -127,12 +175,14 @@ while true; do
     echo -n '.'
 done
 
-for SUBNET in $(aws ec2 describe-subnets \
+SUBNETS=$(aws ec2 describe-subnets \
   --filters Name=vpc-id,Values=$VPC Name=tag:Name,Values='*-private*' \
   --query 'Subnets[*].{SubnetId:SubnetId}' \
   --output json \
   --region $AWS_REGION \
-  | jq -r '.[].SubnetId'); do \
+  | jq -r '.[].SubnetId'
+)
+for SUBNET in ${SUBNETS}; do \
     MOUNT_TARGET=$(aws efs describe-mount-targets --output json --file-system-id $EFS --region $AWS_REGION | jq -r '.MountTargets[] | .MountTargetId')
     if [[ -z "$MOUNT_TARGET" ]]; then
         MOUNT_TARGET=$(aws efs create-mount-target --file-system-id $EFS \

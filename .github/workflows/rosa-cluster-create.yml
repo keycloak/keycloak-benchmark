@@ -8,7 +8,6 @@ on:
         type: string
       computeMachineType:
         description: 'Instance type for the compute nodes'
-        default: m5.xlarge
         type: string
       multiAz:
         description: 'Deploy to multiple availability zones in the region'
@@ -20,7 +19,6 @@ on:
         type: string
       replicas:
         description: 'Number of worker nodes to provision'
-        default: '2'
         type: string
       region:
         description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
@@ -33,23 +31,10 @@ on:
         type: string
       computeMachineType:
         description: 'Instance type for the compute nodes'
-        required: true
-        default: m5.xlarge
-        type: string
-      multiAz:
-        description: 'Deploy to multiple availability zones in the region'
-        required: true
-        default: false
-        type: boolean
-      availabilityZones:
-        description: 'Availability zones to deploy to'
-        required: false
-        default: ''
         type: string
       replicas:
         description: 'Number of worker nodes to provision'
         required: true
-        default: '2'
         type: string
       region:
         description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
@@ -76,6 +61,11 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
       - name: Create ROSA Cluster
         run: ./rosa_create_cluster.sh
         working-directory: provision/aws
@@ -83,9 +73,8 @@ jobs:
           VERSION: ${{ env.OPENSHIFT_VERSION }}
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
-          MULTI_AZ: ${{ inputs.multiAz }}
-          AVAILABILITY_ZONES: ${{ inputs.availabilityZones }}
           REPLICAS: ${{ inputs.replicas }}
+          TF_VAR_rhcs_token: ${{ secrets.ROSA_TOKEN }}
 
       - name: Archive ROSA logs
         uses: actions/upload-artifact@v4
