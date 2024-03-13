@@ -17,7 +17,7 @@ set_environment_variables () {
   USERS_COUNT="100"
   EVENTS_COUNT="100"
   SESSIONS_COUNT="100"
-  HASH_ITERATIONS="27500"
+  HASH_ITERATIONS=""
   if ( minikube version &>/dev/null ); then
     KEYCLOAK_URI="https://keycloak-keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   fi
@@ -78,7 +78,11 @@ set_environment_variables () {
 
 create_realms () {
   echo "Creating $1 realm/s with $2 client/s and $3 user/s with $4 password hash iterations."
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&password-hash-iterations=$4&task-timeout=$5&threads-count=$6"
+  HASH=""
+  if [[ "$4" != "" ]]; then
+    HASH="password-hash-iterations=${4}"
+  fi
+  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&${HASH}&task-timeout=$5&threads-count=$6"
 }
 
 create_clients () {
@@ -193,7 +197,7 @@ main () {
   echo "Action: [$ACTION] "
   case "$ACTION" in
     create-realms)
-      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT $HASH_ITERATIONS $CREATE_TIMEOUT $THREADS
+      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT "$HASH_ITERATIONS" $CREATE_TIMEOUT $THREADS
       exit 0
       ;;
     create-clients)
