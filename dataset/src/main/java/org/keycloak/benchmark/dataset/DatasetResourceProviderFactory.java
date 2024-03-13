@@ -18,20 +18,21 @@
 
 package org.keycloak.benchmark.dataset;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.jboss.logging.Logger;
 import org.keycloak.Config;
+import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.services.resource.RealmResourceProvider;
 import org.keycloak.services.resource.RealmResourceProviderFactory;
+
+import java.lang.invoke.MethodHandles;
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
 public class DatasetResourceProviderFactory implements RealmResourceProviderFactory  {
 
+    private static final Logger logger = Logger.getLogger(MethodHandles.lookup().lookupClass());
     public static final String ID = "dataset";
 
     @Override
@@ -50,6 +51,14 @@ public class DatasetResourceProviderFactory implements RealmResourceProviderFact
 
     @Override
     public void postInit(KeycloakSessionFactory factory) {
+        try (var session = factory.create()) {
+            session.getProvider(InfinispanConnectionProvider.class)
+                    .getCache("work")
+                    .getCacheManager()
+                    .getGlobalComponentRegistry()
+                    .registerComponent(factory, "dataset");
+        }
+        logger.infof("Registered keycloak session factory into Infinispan: " + factory);
     }
 
     @Override
