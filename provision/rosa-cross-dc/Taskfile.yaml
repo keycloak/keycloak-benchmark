@@ -9,14 +9,17 @@ vars:
   KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
   KC_ISPN_NAMESPACE: '{{.KC_NAMESPACE_PREFIX}}keycloak'
   ISPN_DIR: "{{.ROOT_DIR}}/../infinispan"
+  ACCELERATOR_DIR: "{{.ROOT_DIR}}/../aws/global-accelerator"
   ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
   RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
   KC_DIR: "{{.ROOT_DIR}}/../openshift"
   ANSIBLE_DIR: "{{.ROOT_DIR}}/../../ansible"
   PYTHON_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/python"
   BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
+  ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
   KEYCLOAK_MASTER_PASSWORD:
     sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
+  KC_JGROUPS_TLS: '{{default "true" .KC_JGROUPS_TLS}}'
 
 dotenv: [ '.env' ]
 
@@ -27,6 +30,12 @@ includes:
   ispn:
     taskfile: ../infinispan/Utils.yaml
     dir: ../infinispan/
+    internal: true
+  chaos:
+    taskfile: ./Chaos.yaml
+  keycloak:
+    taskfile: ../keycloak-tasks/Utils.yaml
+    dir: ../keycloak-tasks/
     internal: true
 
 tasks:
@@ -59,6 +68,10 @@ tasks:
             ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - echo "Deploying Aurora Database ({{.AURORA_CLUSTER}}) in region $(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})"
       - AURORA_REGION="{{ .AURORA_REGION }}" AURORA_INSTANCES=2 ../aws/rds/aurora_create.sh
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "databaseMode"
+          PROP_VALUE: "single"
 
   create-global-aurora:
     internal: true
@@ -80,6 +93,10 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - echo "Deploying Global Aurora Database ({{.AURORA_GLOBAL_CLUSTER}}) in regions {{.AURORA_GLOBAL_REGIONS}}"
       - AURORA_GLOBAL_REGIONS="{{ .AURORA_GLOBAL_REGIONS }}" ../aws/rds/aurora_create_global_db.sh
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "databaseMode"
+          PROP_VALUE: "global"
 
   delete-aurora:
     desc: "Deletes Aurora Database"
@@ -191,7 +208,10 @@ tasks:
     requires:
       vars:
         - AURORA_CLUSTER
-    cmd: ../aws/rds/aurora_endpoint.sh > .task/aurora-endpoint-{{.AURORA_CLUSTER}}
+        - ROSA_CLUSTER_NAME_1
+    vars:
+      AURORA_REGION: "$(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})"
+    cmd: AURORA_REGION={{.AURORA_REGION}} ../aws/rds/aurora_endpoint.sh > .task/aurora-endpoint-{{.AURORA_CLUSTER}}
     generates:
       - .task/aurora-endpoint-{{.AURORA_CLUSTER}}
 
@@ -216,106 +236,12 @@ tasks:
           OC_NAMESPACE_1: "{{.KC_ISPN_NAMESPACE}}"
           OC_NAMESPACE_2: "{{.KC_ISPN_NAMESPACE}}"
           CROSS_DC_HOT_ROD_PASSWORD: "{{.RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD}}"
-
-  patch-keycloak-image:
-    internal: true
-    requires:
-      vars:
-        - ROSA_CLUSTER_NAME
-    cmds:
-      - envsubst < ../minikube/keycloak/operator-patch.yaml > .task/operator-patchfile-{{.ROSA_CLUSTER_NAME}}.yaml
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc patch deployment keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak --patch-file .task/operator-patchfile-{{.ROSA_CLUSTER_NAME}}.yaml
-    status:
-      - test "{{.KC_CONTAINER_IMAGE}}" == ""
-    preconditions:
-      - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
-
-  install-keycloak:
-    internal: true
-    requires:
-      vars:
-        - ROSA_CLUSTER_NAME
-    vars:
-      KC_HOSTNAME_SUFFIX:
-        sh: cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
-      KC_DATABASE_URL:
-        sh: cat .task/aurora-endpoint-{{.AURORA_CLUSTER}}
-      KC_ADMIN_PASSWORD:
-        sh: "aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin"
-      KC_DATABASE: "aurora-postgres"
-      KC_CUSTOM_INFINISPAN_CONFIG: "true"
-      KC_CUSTOM_INFINISPAN_CONFIG_FILE: "config/kcb-infinispan-cache-remote-store-config.xml"
-      KC_ISPN_CLUSTER: "infinispan"
-    cmds:
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete deployment/keycloak-operator && kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
-      - task: patch-keycloak-image
+      - task: update-env-configjson-with-ispn-data
         vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - >
-        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
-        helm upgrade --install keycloak --namespace {{.KC_NAMESPACE_PREFIX}}keycloak
-        --set hostname={{.KC_HOSTNAME_SUFFIX}}
-        --set keycloakHostname={{.KC_HOSTNAME_OVERRIDE}}
-        --set keycloakHealthHostname={{.KC_HEALTH_HOSTNAME}}
-        --set otel={{.KC_OTEL}}
-        --set otelSamplingPercentage={{.KC_OTEL_SAMPLING_PERCENTAGE}}
-        --set dbPoolInitialSize={{.KC_DB_POOL_INITIAL_SIZE}}
-        --set dbPoolMinSize={{.KC_DB_POOL_MIN_SIZE}}
-        --set dbPoolMaxSize={{.KC_DB_POOL_MAX_SIZE}}
-        --set dbUrl={{ .KC_DATABASE_URL }}
-        --set database={{.KC_DATABASE}}
-        --set keycloakImage={{.KC_CONTAINER_IMAGE}}
-        --set instances={{ .KC_INSTANCES }}
-        --set cpuRequests={{ .KC_CPU_REQUESTS }}
-        --set cpuLimits={{ .KC_CPU_LIMITS }}
-        --set memoryRequestsMB={{ .KC_MEMORY_REQUESTS_MB }}
-        --set memoryLimitsMB={{ .KC_MEMORY_LIMITS_MB }}
-        --set heapInitMB={{ .KC_HEAP_INIT_MB }}
-        --set heapMaxMB={{ .KC_HEAP_MAX_MB }}
-        --set metaspaceInitMB={{ .KC_METASPACE_INIT_MB }}
-        --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
-        --set infinispan.customConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
-        --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
-        --set infinispan.remoteStore.enabled=true
-        --set infinispan.remoteStore.host=infinispan.{{.KC_ISPN_NAMESPACE}}.svc
-        --set infinispan.remoteStore.port=11222
-        --set infinispan.remoteStore.username=developer
-        --set infinispan.remoteStore.password={{ .RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD }}
-        --set infinispan.site={{ .ROSA_CLUSTER_NAME }}
-        --set cryostat={{ .KC_CRYOSTAT }}
-        --set sqlpad=false
-        --set environment=openshift
-        --set namespace={{.KC_NAMESPACE_PREFIX}}keycloak
-        --set keycloakAdminPassword="{{.KC_ADMIN_PASSWORD}}"
-        --set disableIngressStickySession={{ .KC_DISABLE_STICKY_SESSION }}
-        --set nodePortsEnabled=false
-        ../minikube/keycloak
-    sources:
-      - .task/aurora-endpoint-{{.AURORA_CLUSTER}}
-      - "{{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
-      - ../minikube/keycloak/**/*.*
-    status:
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc -n {{.NAMESPACE}} get keycloaks.k8s.keycloak.org keycloak
-      - test "{{.FORCE_KEYCLOAK | default 0}}" == "0"
-    preconditions:
-      - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
-
-  uninstall-keycloak:
-    internal: true
-    requires:
-      vars:
-        - ROSA_CLUSTER_NAME
-    vars:
-      KC_HOSTNAME_SUFFIX:
-        sh: cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
-    cmd: KUBECONFIG={{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}} helm uninstall --namespace {{.KC_NAMESPACE_PREFIX}}keycloak keycloak || true
-    status:
-      - test -z "$(KUBECONFIG={{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}} helm list --namespace {{.KC_NAMESPACE_PREFIX}}keycloak --filter keycloak -q)"
-    preconditions:
-      - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
-      - test -f {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: update-env-configjson-with-ispn-data
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   uninstall-infinispan:
     internal: true
@@ -329,7 +255,6 @@ tasks:
     preconditions:
       - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
 
-
   deploy-keycloak:
     internal: true
     requires:
@@ -341,16 +266,22 @@ tasks:
       - task: create-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-peering-connection
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: install-keycloak
+      - task: keycloak:install-keycloak
         vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_HOSTNAME_OVERRIDE}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_HOSTNAME}}"
-      - task: wait-cryostat
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: wait-keycloak
-        vars:
+          KC_HOSTNAME_SUFFIX:
+            sh: cat {{.ISPN_DIR}}/.task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
+          KC_DATABASE_URL:
+            sh: cat .task/aurora-endpoint-{{.AURORA_CLUSTER}}
+          KC_ADMIN_PASSWORD:
+            sh: "aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin"
+          KC_DATABASE: "aurora-postgres"
+          KC_CUSTOM_INFINISPAN_CONFIG: "true"
+          KC_CUSTOM_INFINISPAN_CONFIG_FILE: "config/kcb-infinispan-cache-remote-store-config.xml"
+          KC_ISPN_CLUSTER: "infinispan"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
 
   wait-keycloak:
@@ -419,6 +350,24 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   undeploy:
     desc: "Undeploy Infinispan and Keycloak in a Cross-Site deployment using ROSA clusters"
@@ -436,19 +385,26 @@ tasks:
       - task: ispn:rosa-oc-login
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-      - task: uninstall-keycloak
+      - task: keycloak:uninstall-keycloak
         vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
-      - task: uninstall-keycloak
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: keycloak:uninstall-keycloak
         vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
       - task: uninstall-infinispan
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - task: uninstall-infinispan
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   helm-add-repos:
     internal: true
@@ -471,6 +427,7 @@ tasks:
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc adm policy add-cluster-role-to-user cluster-monitoring-view -z "{{.SERVICE_ACCOUNT}}" -n "{{.NAMESPACE}}"
       - mkdir -p .task/monitoring
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get project/monitoring -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' |  cut -f1 -d"/" > .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc apply -f {{.KC_DIR}}/grafana-sa-secret.yaml -n "{{.NAMESPACE}}"
     generates:
       - .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
     status:
@@ -478,6 +435,7 @@ tasks:
       - test -f .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}}
     sources:
       - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+      - "{{.KC_DIR}}/grafana-sa-secret.yaml"
 
   install-grafana:
     label: "install-grafana-{{.ROSA_CLUSTER_NAME}}"
@@ -498,6 +456,8 @@ tasks:
         KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
         helm -n monitoring upgrade --install grafana grafana/grafana --version {{.GRAFANA_VERSION}} -f "{{.KC_DIR}}/grafana.yaml"
         --set ingress.hosts[0]="grafana.{{.GRAFANA_DOMAIN}}"
+        --set ingress.annotations."route\.openshift\.io/termination"=edge
+        --set ingress.annotations."route\.openshift\.io/insecureEdgeTerminationPolicy"=Redirect
         --set securityContext.runAsUser="{{.MONITORING_UIDS}}"
         --set securityContext.runAsGroup="{{.MONITORING_UIDS}}"
         --set securityContext.fsGroup="{{.MONITORING_UIDS}}"
@@ -597,6 +557,35 @@ tasks:
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
+  global-accelerator-create:
+    desc: "Creates AWS Global Accelerator for active-active replication"
+    dir: "{{.ACCELERATOR_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - ACCELERATOR_NAME
+    cmds:
+      - KEYCLOAK_NAMESPACE="{{.KC_NAMESPACE_PREFIX}}keycloak" ACCELERATOR_NAME={{.ACCELERATOR_NAME}} CLUSTER_1={{.ROSA_CLUSTER_NAME_1}} CLUSTER_2={{.ROSA_CLUSTER_NAME_2}} ./accelerator_multi_az_create.sh
+      - >
+        echo 'WARNING: use the information above to configure your Keycloak deployment!'
+
+  global-accelerator-delete:
+    desc: "Deletes AWS Global Accelerator for active-active replication"
+    dir: "{{.ACCELERATOR_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - ACCELERATOR_NAME
+    cmd: KEYCLOAK_NAMESPACE="{{.KC_NAMESPACE_PREFIX}}keycloak" ACCELERATOR_NAME={{.ACCELERATOR_NAME}} CLUSTER_1={{.ROSA_CLUSTER_NAME_1}} CLUSTER_2={{.ROSA_CLUSTER_NAME_2}} ./accelerator_multi_az_delete.sh
+
   route53:
     desc: "Creates Route53 primary/backup DNS records"
     dir: "{{.ROUTE53_DIR}}"
@@ -612,6 +601,17 @@ tasks:
       - >
         echo 'WARNING: use the information above to configure your Keycloak deployment!'
 
+  route53-test-primary-used:
+    desc: "Checks if the primary cluster is active and prints it to the console"
+    dir: "{{.ROUTE53_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - KC_CLIENT_URL
+    cmd: (./route53_test_primary_used.sh {{substr 7 999999 .KC_CLIENT_URL}} && echo "Primary cluster is active") || echo "Primary cluster is NOT active"
+
   dataset-import:
     internal: true
     requires:
@@ -624,8 +624,8 @@ tasks:
     cmds:
       - curl -k "https://{{.KC_URL}}/realms/master/dataset/create-realms?realm-name=realm-0&count=1&threads-count={{.THREADS}}&users-per-realm={{.USERS}}&users-per-transaction={{.USERS_PER_TX}}"
 
-  dataset-import-route53:
-    desc: "Triggers the dataset creation task using the Route53 load balancer. It does not wait for completion."
+  dataset-import-external:
+    desc: "Triggers the dataset creation task using the Route53 or Global Accelerator load balancer. It does not wait for completion."
     deps:
       - common:split
       - common:env
@@ -637,7 +637,7 @@ tasks:
       vars:
         KC_URL: "{{.KC_CLIENT_URL}}"
 
-  dataset-import-rosa-cluster:
+  dataset-import-ingress:
     desc: "Triggers the dataset creation task in the ROSA cluster route. It does not wait for completion."
     deps:
       - common:split
@@ -687,21 +687,27 @@ tasks:
     vars:
       SCENARIO: '{{.SCENARIO | default "keycloak.scenario.authentication.AuthorizationCode"}}'
       USERS: "{{.USERS | default 100000}}"
+      USERS_PER_SEC: "{{.USERS_PER_SEC | default 300}}"
+      DURATION: "{{.DURATION | default 600}}"
+      REFRESH_TOKEN_COUNT: "{{.REFRESH_TOKEN_COUNT | default 0}}"
+      REFRESH_TOKEN_PERIOD: "{{.REFRESH_TOKEN_PERIOD | default 0}}"
     cmds:
       - >
         ./benchmark.sh "{{.EC2_REGION}}"
         --scenario="{{.SCENARIO}}"
         --server-url="https://{{.KC_URL}}/"
-        --users-per-sec=300
-        --measurement=600
+        --users-per-sec={{.USERS_PER_SEC}}
+        --measurement={{.DURATION}}
         --realm-name=realm-0
         --logout-percentage=100
         --users-per-realm={{.USERS}}
         --ramp-up=100
         --log-http-on-failure
+        --refresh-token-count={{.REFRESH_TOKEN_COUNT}}
+        --refresh-token-period={{.REFRESH_TOKEN_PERIOD}}
 
-  ec2-run-route53:
-    desc: "Runs a Gatling scenario in EC2 using Route53 load balancer"
+  ec2-run-external:
+    desc: "Runs a Gatling scenario in EC2 using Route53 or Global Accelerator load balancer"
     dir: "{{.ANSIBLE_DIR}}"
     deps:
       - common:split
@@ -715,7 +721,7 @@ tasks:
       vars:
         KC_URL: "{{.KC_CLIENT_URL}}"
 
-  ec2-run-rosa-cluster:
+  ec2-run-ingress:
     desc: "Runs a Gatling scenario in EC2 using ROSA cluster route"
     dir: "{{.ANSIBLE_DIR}}"
     deps:
@@ -792,3 +798,56 @@ tasks:
         FAILOVER_MODE="{{.FAILOVER_MODE}}"
         FAILOVER_DELAY="{{.FAILOVER_DELAY}}"
         ./kc-failover.sh
+
+  update-env-configjson-with-ispn-data:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "Updating environment json file with Infinispan data"
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "ispnDeployment"
+          PROP_VALUE:
+            sh: cat "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
+    sources:
+      - "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
+    preconditions:
+      - test -f "{{.ISPN_DIR}}/.task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME}}"
+
+  update-env-configjson-with-new-values:
+    internal: true
+    requires:
+      vars:
+        - PROP_NAME
+        - PROP_VALUE
+    cmds:
+      - echo "Updating environment json file with {{.PROP_NAME}}"
+      - "jq --arg key '{{.PROP_NAME}}' --arg value '{{ .PROP_VALUE }}' '. + {($key): ($value)}' {{.ENV_DATA_JSON_PATH}} > tmp.json && mv tmp.json {{.ENV_DATA_JSON_PATH}}"
+    preconditions:
+      - test -f "{{.ENV_DATA_JSON_PATH}}"
+
+  create-env-configmap:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "Creating configmap with environment data."
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config --ignore-not-found
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}}
+    preconditions:
+      - test -f "{{.ENV_DATA_JSON_PATH}}"
+      - test -f "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  delete-env-configmap:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "Deleting configmap with environment data."
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config --ignore-not-found
+    preconditions:
+      - test -f "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"

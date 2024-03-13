@@ -79,22 +79,30 @@ runs:
       name: Stores got information in JSON file.
       env:
         CALCULATED_METRIC_VALUE: ${{ env.CALCULATED_METRIC_VALUE }}
-        OUTPUT_FILE_NAME: ${{ env.OUTPUT_FILE_NAME }}
+        HORREUM_OUTPUT_FILE_NAME: ${{ env.HORREUM_OUTPUT_FILE_NAME }}
       shell: bash
       # language=bash
       run: |
-        #Preparing and storing all information in JSON using jq library
-        description="${{ inputs.calculatedMetricName }} per Pod in ${{ inputs.replicas }} Pod cluster"
-        if [[ -z "${OUTPUT_FILE_NAME}" ]]; then
-          output_file_prefix="result-"
-          cur_date_iso=$(date --iso-8601=seconds)
-          cur_date_iso_compressed=$(date '+%Y%m%d-%H%M%S')
-          uuid=$(uuidgen)
-          OUTPUT_FILE_NAME="${output_file_prefix}${cur_date_iso_compressed}-${uuid}.json"
-          echo "OUTPUT_FILE_NAME=$OUTPUT_FILE_NAME" >> $GITHUB_ENV
-          jq -n --arg current_date "${cur_date_iso}" --arg id "${uuid}" \
-          '{"uuid": ($id), "name": "ROSA Scalability Benchmark Run Results", "Execution Date and Time": ($current_date)}' > ${OUTPUT_FILE_NAME}
-        fi
-        jq --arg testName "${{ inputs.performedTestName }}" --arg key "${description}" \
-        --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($key):($val|tonumber)}}' ${OUTPUT_FILE_NAME} > tmp.json && \
-        mv tmp.json ${OUTPUT_FILE_NAME}
+        #Storing all information in JSON using jq library
+        jq --arg testName "${{ inputs.performedTestName }}" --arg key "${{ inputs.calculatedMetricName }}" \
+        --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($key):($val|tonumber)}}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+
+    - id: gatling-report-parse-and-store
+      name: Parses gatling report and stores got information in JSON file.
+      env:
+        HORREUM_OUTPUT_FILE_NAME: ${{ env.HORREUM_OUTPUT_FILE_NAME }}
+      shell: bash
+      # language=bash
+      run: |
+        gatlingReportPath="ansible/files/benchmark/*/results/"
+        gatlingReportDirName=$(ls -lrt $gatlingReportPath | tail -1 | awk '{print $9}')
+        gatlingReportFilePath="$gatlingReportPath$gatlingReportDirName/js/stats.json"
+        statsJson=$(jq '.. | .stats? | select( . != null )' $gatlingReportFilePath | jq -s .)
+        #Storing all information in JSON using jq library
+        jq --arg testName "${{ inputs.performedTestName }}" '.[$testName] += {"statistics":[]}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+        #Putting environment parameters into JSON
+        jq --argjson statsJson "${statsJson}" --arg testName "${{ inputs.performedTestName }}" \
+        '.[$testName].statistics = ($statsJson)' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}

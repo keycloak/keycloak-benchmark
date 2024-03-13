@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euxo pipefail
 cd java-instrumentation-tool
 ../../../mvnw clean package -B

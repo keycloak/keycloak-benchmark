@@ -10,9 +10,16 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KeycloakUtils {
     public static ResteasyClientBuilder newResteasyClientBuilder() {
@@ -67,5 +74,34 @@ public class KeycloakUtils {
 
     public static String URIToHostString(String uri) {
         return URI.create(uri).getHost().toString();
+    }
+
+    /**
+     * Extract login form POST action URL from the provided {@code response}
+     *
+     * @param response the response
+     * @return the url
+     */
+    public static String getLoginFormActionURL(HttpResponse<String> response) {
+        Pattern pattern = Pattern.compile("action=\"([^\"]*)\"");
+        Matcher matcher = pattern.matcher(response.body());
+        assertTrue(matcher.find());
+
+        return matcher.group(1).replaceAll("&amp;", "&");
+    }
+
+    /**
+     * Extracts code from Location header from the given {@code response}
+     *
+     * @param response the response
+     * @return the code
+     */
+    public static String extractCodeFromResponse(HttpResponse<String> response) {
+        String location = response.headers().firstValue("Location").orElse(null);
+        assertEquals(302, response.statusCode());
+        assertNotNull(location);
+
+        assertTrue(location.contains("code="), "Response location should contain 'code=' but was '" + location + "'");
+        return location.substring(location.indexOf("code=") + 5);
     }
 }

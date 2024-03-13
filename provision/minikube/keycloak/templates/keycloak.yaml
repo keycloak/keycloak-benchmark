@@ -16,10 +16,21 @@ spec:
     {{- else }}
     hostname: keycloak-{{ .Values.namespace }}.{{ .Values.hostname }}
     {{- end }}
+  resources:
+    requests:
+      {{ if .Values.cpuRequests }}cpu: "{{ .Values.cpuRequests }}"{{end}}
+      {{ if .Values.memoryRequestsMB }}memory: "{{ .Values.memoryRequestsMB }}M"{{end}}
+    limits:
+      {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
+      {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
   db:
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     vendor: postgres
+{{- if .Values.useAWSJDBCWrapper}}
+    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak
+{{- else }}
     url: jdbc:postgresql://postgres:5432/keycloak
+{{ end }}
 {{ end }}
     poolMinSize: {{ .Values.dbPoolMinSize }} # <1>
     poolInitialSize: {{ .Values.dbPoolInitialSize }}
@@ -39,17 +50,29 @@ spec:
       haproxy.router.openshift.io/balance: roundrobin
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
+{{ if .Values.keycloakImage }}
+  image: {{ .Values.keycloakImage }} # <2>
+  startOptimized: {{ .Values.startOptimized }} # <2>
+{{ end }}
   features:
     enabled:
-      - multi-site # <2>
-  # tag::keycloak-ispn[]
-  additionalOptions:
+      - multi-site # <3>
 {{- if .Values.infinispan.customConfig }}
-    - name: cache-config-file # <1>
-      value: {{ base .Values.infinispan.configFile }}
+  # tag::keycloak-ispn[]
+  cache:
+    configMapFile:
+        name: kcb-infinispan-cache-config # <1>
+        key: {{ base .Values.infinispan.configFile }} # <1>
   # end::keycloak-ispn[]
 {{- end }}
-{{ if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
+{{- if .Values.useAWSJDBCWrapper }}
+  transaction:
+    xaEnabled: false # <4>
+{{ end }}
+  # tag::keycloak-ispn[]
+  additionalOptions:
+  # end::keycloak-ispn[]
+{{- if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
     - name: storage-hotrod-port
@@ -59,7 +82,7 @@ spec:
     - name: storage-hotrod-password
       value: admin
 {{ end }}
-{{ if .Values.disableCaches }}
+{{- if .Values.disableCaches }}
     - name: cache-realm-enabled
       value: 'false'
     - name: cache-user-enabled
@@ -69,10 +92,16 @@ spec:
     - name: spi-public-key-cache-infinispan-enabled
       value: 'false'
 {{ end }}
+    # tag::keycloak-queue-size[]
+    - name: http-max-queued-requests
+      value: "1000"
+    # end::keycloak-queue-size[]
     - name: log-console-output
       value: json
-    - name: metrics-enabled # <3>
+    - name: metrics-enabled # <5>
       value: 'true'
+    - name: http-pool-max-threads # <6>
+      value: {{ div 200 .Values.instances | quote }}
 {{- if .Values.infinispan.remoteStore.enabled }}
     # tag::keycloak-ispn[]
     - name: remote-store-host # <2>
@@ -87,23 +116,42 @@ spec:
       secret:
         name: remote-store-secret
         key: password
+    {{- if .Values.infinispan.site }}
+    - name: spi-connections-infinispan-quarkus-site-name # <4>
+      value: {{ .Values.infinispan.site }}
+    {{ end }}
     # end::keycloak-ispn[]
 {{- end }}
+{{- if .Values.infinispan.jgroupsTls }}
+    - name: cache-embedded-mtls-enabled
+      value: "true"
+    - name: cache-embedded-mtls-key-store-file
+      value: /etc/cache-embedded-mtls/keystore.p12
+    - name: cache-embedded-mtls-key-store-password
+      secret:
+        name: keycloak-jgroups-pkcs12-password
+        key: password
+    - name: cache-embedded-mtls-trust-store-file
+      value: /etc/cache-embedded-mtls/truststore.p12
+    - name: cache-embedded-mtls-trust-store-password
+      secret:
+        name: keycloak-jgroups-pkcs12-password
+        key: password
+{{- end }}
+{{ if .Values.useAWSJDBCWrapper }}
+    - name: db-driver
+      value: software.amazon.jdbc.Driver
+{{ end }}
   http:
     tlsSecret: keycloak-tls-secret
   instances: {{ .Values.instances }}
-  # tag::keycloak-ispn[]
+  # end::keycloak[]
   unsupported:
     podTemplate:
-      # end::keycloak[]
-      # end::keycloak-ispn[]
       metadata:
         annotations:
           checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}-{{ .Values.otelVersion }}
-      # tag::keycloak[]
-      # tag::keycloak-ispn[]
       spec:
-      # end::keycloak-ispn[]
         {{ if .Values.otel }}
         initContainers:
           - name: download-otel
@@ -121,21 +169,12 @@ spec:
               - name: otel
                 mountPath: /otel
         {{ end }}
-        # tag::keycloak-ispn[]
         containers:
           -
 {{ if hasPrefix "localhost/" .Values.keycloakImage }}
             imagePullPolicy: Never
 {{ end }}
             env:
-        # end::keycloak-ispn[]
-              - name: 'QUARKUS_THREAD_POOL_MAX_THREADS' # <4>
-                value: {{ div 200 .Values.instances | quote }}
-              # end::keycloak[]
-              # tag::keycloak-queue-size[]
-              - name: 'QUARKUS_THREAD_POOL_QUEUE_SIZE' # <1>
-                value: '1000'
-              # end::keycloak-queue-size[]
               # We want to have an externally provided username and password, therefore, we override those two environment variables
               - name: KEYCLOAK_ADMIN
                 valueFrom:
@@ -149,7 +188,6 @@ spec:
                     name: keycloak-preconfigured-admin
                     key: password
                     optional: false
-                # tag::keycloak[]
 {{ if .Values.otel }}
               # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
               # As a workaround, force downgrade to HTTP/1.1
@@ -174,22 +212,14 @@ spec:
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
-              # tag::keycloak-ispn[]
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
-{{- if not (eq (int .Values.heapInitMB) 64) }}
-                  -Xms{{ .Values.heapInitMB }}m
-{{- end }}
-{{- if not (eq (int .Values.heapMaxMB) 512) }}
-                  -Xmx{{ .Values.heapMaxMB }}m
-{{- end }}
 {{- if not (eq (int .Values.metaspaceInitMB) 96) }}
                   -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m
 {{- end }}
 {{- if not (eq (int .Values.metaspaceMaxMB) 256) }}
                   -XX:MaxMetaspaceSize={{ .Values.metaspaceMaxMB }}m
 {{- end }}
-                  -Djgroups.thread_dumps_threshold=1
 {{- if .Values.jvmDebug }}
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- end }}
@@ -199,11 +229,6 @@ spec:
 {{- if .Values.cryostat }}
                   -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
 {{- end }}
-{{- if .Values.infinispan.site }}
-                  -Djboss.site.name={{.Values.infinispan.site}}
-{{- end }}
-# end::keycloak[]
-# end::keycloak-ispn[]
             ports:
 {{ if .Values.otel }}
               - containerPort: 9464
@@ -220,14 +245,6 @@ spec:
                 protocol: TCP
                 name: jvm-debug
 {{ end }}
-# tag::keycloak[]
-            resources:
-              requests:
-                {{ if .Values.cpuRequests }}cpu: "{{ .Values.cpuRequests }}"{{end}}
-                {{ if .Values.memoryRequestsMB }}memory: "{{ .Values.memoryRequestsMB }}M"{{end}}
-              limits:
-                {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
-                {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
             # end::keycloak[]
             # readinessProbe:
             #   exec:
@@ -237,34 +254,25 @@ spec:
             #   exec:
             #     command:
             #       - 'true'
-            # tag::keycloak-ispn[]
             volumeMounts:
-{{ if .Values.infinispan.customConfig }}
-              - name: kcb-infinispan-cache-config # <4>
-                mountPath: /opt/keycloak/conf/{{ base .Values.infinispan.configFile }}
-                subPath: {{ base .Values.infinispan.configFile }}
-                readOnly: true
-                # end::keycloak-ispn[]
-{{ end }}
+              {{- range $path, $size := .Files.Glob "providers/**" }}
+              {{- $name := base $path }}
               - name: keycloak-providers
-                mountPath: /opt/keycloak/providers
+                mountPath: /opt/keycloak/providers/{{ $name }}
+                subPath: {{ $name }}
                 readOnly: true
+              {{- end -}}
+{{ if .Values.infinispan.jgroupsTls }}
+              - name: cache-embedded-mtls-volume
+                mountPath: /etc/cache-embedded-mtls
+                readOnly: true
+{{ end }}
 {{ if .Values.otel }}
               - name: otel
                 mountPath: /otel
                 readOnly: true
 {{ end }}
-        # tag::keycloak-ispn[]
         volumes:
-{{ if .Values.infinispan.customConfig }}
-          - name: kcb-infinispan-cache-config # <6>
-            configMap:
-              name: kcb-infinispan-cache-config
-              items:
-                - key: {{base .Values.infinispan.configFile}}
-                  path: {{base .Values.infinispan.configFile}}
-            # end::keycloak-ispn[]
-{{ end }}
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
@@ -272,4 +280,9 @@ spec:
           - name: otel
             persistentVolumeClaim:
               claimName: otel
+{{ end }}
+{{ if .Values.infinispan.jgroupsTls }}
+          - name: cache-embedded-mtls-volume
+            secret:
+              secretName: keycloak-jgroups
 {{ end }}

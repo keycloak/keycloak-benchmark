@@ -70,9 +70,37 @@ For Keycloak deployment, check xref:customizing-deployment.adoc[Keycloak Customi
 Note that not all variable are respected.
 As an example, `KC_ISPN_NAMESPACE` is not possible to change since it is automatically computed by this installation script.
 
+=== Customize Keycloak source
+
+This setup, by default, deploys Keycloak from nightly build.
+To create a deployment for specific Keycloak source code, git repository and branch can be specified.
+This replaces deployments for both Keycloak and Keycloak operator.
+Specify the following variables for using custom source code:
+
+|===
+|Variable |Details
+
+|KC_REPOSITORY
+|Git repository to clone Keycloak source code from.
+Example: https://github.com/keycloak/keycloak.git
+
+Note: SSH repositories may not work in Github Actions as SSH keys may not be configured.
+
+|KC_BRANCH
+|The branch within `KC_REPOSITORY` to use.
+
+|===
+
+=== Using AWS JDBC driver
+
+AWS provides a https://github.com/awslabs/aws-advanced-jdbc-wrapper[JDBC driver wrapper] that is compatible with Aurora PostgreSQL we are using in our setup. This driver provides some additional features when using compatible databases. This wrapper is enabled by default in the Cross-site deployment.
+
+To disable the AWS JDBC driver, set the `KC_USE_AWS_JDBC_WRAPPER` variable to `false`.
+
+To specify the version of the AWS JDBC driver, set the `KC_AWS_JDBC_WRAPPER_URL` variable to the URL of corresponding jar file.
+
 === Warnings / Known issues
 
 * Using `--force` will break the keycloak deployment because it patches the keycloak operator deployment with an incorrect image.
 
 * We know that sometimes during the ROSA cluster creation, few orphaned DHCP options sets are created. We can monitor and clean them up using a bash script, for more info on that see, how to xref:partial$clean-orphan-dhcp-options.adoc[].
-

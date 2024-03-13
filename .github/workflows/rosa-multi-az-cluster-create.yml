@@ -1,4 +1,4 @@
-name: Multi-AZ Clusters - Create and Test
+name: Multi-AZ Clusters - Create and Deploy Keycloak
 
 on:
   workflow_dispatch:
@@ -9,6 +9,16 @@ on:
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
+      createCluster:
+        description: 'Check to Create Cluster.'
+        type: boolean
+        default: true
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      keycloakBranch:
+        description: 'The branch to deploy Keycloak from. If not set nightly image is used'
+        type: string
   workflow_call:
     inputs:
       clusterPrefix:
@@ -16,6 +26,16 @@ on:
         type: string
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      createCluster:
+        description: 'Check to Create Cluster'
+        type: boolean
+        default: true
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      keycloakBranch:
+        description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
 
 env:
@@ -33,6 +53,7 @@ jobs:
       - run: echo ""
 
   cluster:
+    if: ${{ inputs.createCluster }}
     needs: meta
     strategy:
       matrix:
@@ -48,6 +69,7 @@ jobs:
 
   deploy-keycloak:
     runs-on: ubuntu-latest
+    if: ${{ (always() && needs.cluster.result == 'skipped' && !inputs.createCluster) || success()}}
     needs: [cluster]
 
     steps:
@@ -73,7 +95,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
           cache: maven
 
@@ -106,9 +128,12 @@ jobs:
           KC_CPU_REQUESTS: 6
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
-          KC_MEMORY_REQUESTS_MB: 4000
+          KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
-          KC_HEAP_MAX_MB: 2048
           KC_DB_POOL_INITIAL_SIZE: 30
           KC_DB_POOL_MAX_SIZE: 30
           KC_DB_POOL_MIN_SIZE: 30
+          KC_DATABASE: "aurora-postgres"
+          MULTI_AZ: "true"
+          KC_REPOSITORY: ${{ inputs.keycloakRepository }}
+          KC_BRANCH: ${{ inputs.keycloakBranch }}

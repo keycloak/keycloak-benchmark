@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 if [[ "$#" -ne "1" ]]; then
   echo "This describes one ROSA cluster in JSON, but only information that is not security related."

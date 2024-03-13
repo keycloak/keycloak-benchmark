@@ -1,0 +1,20 @@
+{{- if .Values.customImage }}
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: ubi9
+  namespace: {{ .Values.namespace }}
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi9
+      generation: 2
+      importPolicy:
+        importMode: Legacy
+      referencePolicy:
+        type: Source
+{{ end }}

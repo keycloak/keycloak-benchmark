@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 set -o pipefail
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 ### DATASET PROVIDER - KEYCLOAK REST API SERVICE ###
 
@@ -19,8 +23,10 @@ set_environment_variables () {
   fi
   REALM_PREFIX="realm"
   STATUS_TIMEOUT="120"
+  CREATE_TIMEOUT="3600"
+  THREADS="-1"
 
-  while getopts ":a:r:n:c:u:e:o:i:p:l:t:" OPT
+  while getopts ":a:r:n:c:u:e:o:i:p:l:t:C:T:" OPT
   do
     case $OPT in
       a)
@@ -56,6 +62,12 @@ set_environment_variables () {
       t)
         STATUS_TIMEOUT=$OPTARG
         ;;
+      C)
+        CREATE_TIMEOUT=$OPTARG
+        ;;
+      T)
+        THREADS=$OPTARG
+        ;;
       ?)
         echo "Invalid option: $OPT, read the usage carefully -> "
         help
@@ -66,12 +78,12 @@ set_environment_variables () {
 
 create_realms () {
   echo "Creating $1 realm/s with $2 client/s and $3 user/s with $4 password hash iterations."
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&password-hash-iterations=$4"
+  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&password-hash-iterations=$4&task-timeout=$5&threads-count=$6"
 }
 
 create_clients () {
   echo "Creating $1 client/s in realm $2"
-  execute_command "create-clients?count=$1&realm-name=$2"
+  execute_command "create-clients?count=$1&realm-name=$2&task-timeout=$3&threads-count=$4"
 }
 
 create_users () {
@@ -181,11 +193,11 @@ main () {
   echo "Action: [$ACTION] "
   case "$ACTION" in
     create-realms)
-      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT $HASH_ITERATIONS
+      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT $HASH_ITERATIONS $CREATE_TIMEOUT $THREADS
       exit 0
       ;;
     create-clients)
-      create_clients $CLIENTS_COUNT $REALM_NAME
+      create_clients $CLIENTS_COUNT $REALM_NAME $CREATE_TIMEOUT $THREADS
       exit 0
       ;;
     create-users)

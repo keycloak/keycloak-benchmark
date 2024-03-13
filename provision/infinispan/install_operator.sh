@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 INSTALL_NAMESPACE=${INSTALL_NAMESPACE:-"openshift-operators"}
 OPERATOR_SOURCE=${OPERATOR_SOURCE:-"community-operators"}
@@ -20,4 +20,10 @@ spec:
   name: infinispan
   source: ${OPERATOR_SOURCE}
   sourceNamespace: ${OPERATOR_SOURCE_NS}
+  config:
+    env:
+      - name: JGROUPS_DIAGNOSTICS
+        # Not recommended in production since the port is not secure and allows to
+        # observe and manipulate JGroups protocols/attributes
+        value: "true"
 EOF

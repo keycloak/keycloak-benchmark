@@ -23,16 +23,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
 import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.URIToHostString;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.extractCodeFromResponse;
 import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getFormDataAsString;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getLoginFormActionURL;
 import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.pointsToSameIp;
 
 public class KeycloakClient {
@@ -111,12 +110,51 @@ public class KeycloakClient {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        assertEquals(expectedReturnCode, response.statusCode(), "Expected return code was " + expectedReturnCode + " but was " + response.statusCode() + " with response body " + response.body());
+
+        return JsonSerialization.readValue(response.body(), Map.class);
+    }
+
+    public Map<String, Object> passwordGrant(String realmName, String clientId, String username, String password) throws URISyntaxException, IOException, InterruptedException {
+        Map<String, String> formData = new HashMap<>();
+        formData.put("grant_type", "password");
+        formData.put("username", username);
+        formData.put("password", password);
+        formData.put("client_id", clientId);
+        formData.put("scope", "openid profile");
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .uri(new URI(testRealmUrl(realmName) + "/protocol/openid-connect/token"))
+                .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        return JsonSerialization.readValue(response.body(), Map.class);
+    }
+
+    public HttpResponse<String> revokeRefreshToken(String realmName, String clientId, String refreshToken) throws URISyntaxException, IOException, InterruptedException {
+        Map<String, String> formData = new HashMap<>();
+        formData.put("client_id", clientId);
+        formData.put("token", refreshToken);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .uri(new URI(testRealmUrl(realmName) + "/protocol/openid-connect/revoke"))
+                .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
+                .build();
+
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    public Map<String, Object> refreshToken(String realmName, String refreshToken, String clientId, String clientSecret, int expectedReturnCode) throws URISyntaxException, IOException, InterruptedException {
+        HttpResponse<String> response = refreshToken(realmName, refreshToken, clientId, clientSecret);
         assertEquals(expectedReturnCode, response.statusCode());
 
         return JsonSerialization.readValue(response.body(), Map.class);
     }
 
-    public Map<String, Object> refreshToken(String realmName, String refreshToken, String clientId, String clientSecret, int expectedReturnCode) throws URISyntaxException, IOException, InterruptedException {
+    public HttpResponse<String> refreshToken(String realmName, String refreshToken, String clientId, String clientSecret) throws URISyntaxException, IOException, InterruptedException {
         Map<String, String> formData = new HashMap<>();
         formData.put("grant_type", "refresh_token");
         formData.put("refresh_token", refreshToken);
@@ -130,14 +168,14 @@ public class KeycloakClient {
                 .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(expectedReturnCode, response.statusCode());
-
-        return JsonSerialization.readValue(response.body(), Map.class);
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     public String usernamePasswordLogin(String realmName, String username, String password, String clientId) throws IOException, URISyntaxException, InterruptedException {
-        String formUrl = openLoginForm(realmName, clientId);
+        HttpResponse<String> loginFormResponse = openLoginForm(realmName, clientId);
+        assertEquals(200, loginFormResponse.statusCode(), "Failed to open login form for realm " + realmName + " with response body " + loginFormResponse.body());
+        String formUrl = getLoginFormActionURL(loginFormResponse);
+
         Map<String, String> formData = new HashMap<>();
         formData.put("username", username);
         formData.put("password", password);
@@ -148,42 +186,10 @@ public class KeycloakClient {
                 .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        // first redirect
-        String location = response.headers().firstValue("Location").orElse(null);
-        assertNotNull(location);
-        assertEquals(302, response.statusCode());
-
-        // capture code parameter
-        String code = location.substring(location.indexOf("code=") + 5, location.length());
-
-        // follow the redirect
-        request = HttpRequest.newBuilder()
-                .uri(new URI(location))
-                .GET()
-                .build();
-        response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        // second redirect
-        location = response.headers().firstValue("Location").orElse(null);
-        assertNotNull(location);
-        assertEquals(302, response.statusCode());
-
-        // follow the second redirect
-        request = HttpRequest.newBuilder()
-                .uri(new URI(location))
-                .GET()
-                .build();
-        response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        // we landed at account page
-        assertTrue(response.body().contains("Welcome to Keycloak account management"));
-        assertEquals(200, response.statusCode());
-
-        return code;
+        return extractCodeFromResponse(httpClient.send(request, HttpResponse.BodyHandlers.ofString()));
     }
 
-    public String openLoginForm(String realmName, String clientId) throws IOException, InterruptedException, URISyntaxException {
+    public HttpResponse<String> openLoginForm(String realmName, String clientId) throws IOException, InterruptedException, URISyntaxException {
         URI uri = new URIBuilder(testRealmUrl(realmName) + "/protocol/openid-connect/auth")
                 .addParameter("response_type", "code")
                 .addParameter("scope", "openid")
@@ -196,16 +202,7 @@ public class KeycloakClient {
                 .GET()
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        assertEquals(200, response.statusCode(), "Failed to open login form for realm " + realmName + " with response body " + response.body());
-
-        Pattern pattern = Pattern.compile("action=\"([^\"]*)\"");
-        Matcher matcher = pattern.matcher(response.body());
-        if (matcher.find()) {
-            return matcher.group(1).replaceAll("&amp;", "&");
-        }
-
-        return null;
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     public void markLBCheckDown() throws URISyntaxException, IOException, InterruptedException {

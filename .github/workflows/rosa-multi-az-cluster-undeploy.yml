@@ -1,0 +1,83 @@
+name: Multi-AZ Clusters - Undeploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix to be used when cleaning the clusters'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      skipAuroraDeletion:
+        description: 'Skip Aurora database deletion.'
+        type: boolean
+        default: false
+
+env:
+  CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
+  REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
+
+jobs:
+  clear-keycloak-and-infinispan-deployment-with-aurora:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Get Keycloak Domain
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: runner-keycloak
+
+      - name: Undeploy infinispan and keycloak
+        working-directory: provision/rosa-cross-dc
+        run: |
+          task undeploy
+        env:
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+
+      - name: Undeploy aurora database
+        if: ${{ !inputs.skipAuroraDeletion }}
+        working-directory: provision/rosa-cross-dc
+        run: |
+          task delete-aurora
+        env:
+          AURORA_CLUSTER: ${{ env.CLUSTER_PREFIX }}
+          AURORA_REGION: ${{ env.REGION }}
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+
+      - name: Set SUBDOMAIN env variable for route53 processing
+        run: |
+          echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
+
+      - name: Delete Route53 Records
+        run: |
+          ./provision/aws/route53/route53_delete.sh
+        env:
+          SUBDOMAIN: ${{ env.SUBDOMAIN }}

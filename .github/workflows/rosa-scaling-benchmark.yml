@@ -95,9 +95,8 @@ env:
   KC_CPU_REQUESTS: 6
   KC_INSTANCES: 3
   KC_DISABLE_STICKY_SESSION: true
-  KC_MEMORY_REQUESTS_MB: 4000
+  KC_MEMORY_REQUESTS_MB: 3000
   KC_MEMORY_LIMITS_MB: 4000
-  KC_HEAP_MAX_MB: 2048
   KC_DB_POOL_INITIAL_SIZE: 30
   KC_DB_POOL_MAX_SIZE: 30
   KC_DB_POOL_MIN_SIZE: 30
@@ -135,7 +134,7 @@ jobs:
           cache: 'maven'
 
       - name: Cache Maven Wrapper
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .mvn/wrapper/maven-wrapper.jar
@@ -163,7 +162,6 @@ jobs:
           podCpuRequests: ${{ env.KC_CPU_REQUESTS }}
           podMemoryRequests: ${{ env.KC_MEMORY_REQUESTS_MB }}
           podMemoryLimit: ${{ env.KC_MEMORY_LIMITS_MB }}
-          heapMaxSizeMB: ${{ env.KC_HEAP_MAX_MB }}
 
       - name: Get URLs
         uses: ./.github/actions/get-keycloak-url
@@ -200,6 +198,11 @@ jobs:
         uses: ./.github/actions/ec2-create-instances
         with:
           region: ${{ inputs.region }}
+
+      - name: Prepare horreum report
+        uses: ./.github/actions/prepare-horreum-report
+        with:
+          createReportFile: true
 
       - name: Run Memory Usage Total Query Before Benchmark
         uses: ./.github/actions/prometheus-run-queries
@@ -243,8 +246,8 @@ jobs:
         uses: ./.github/actions/prometheus-metrics-calc
         with:
           input: memory_create_sessions
-          performedTestName: 'Memory usage for sessions'
-          calculatedMetricName: 'Active sessions per 500 MB memory' #as a unit for memory calculation is chosen 500MB memory size to find out how much user sessions so much memory can handle.
+          performedTestName: 'memoryUsageTest'
+          calculatedMetricName: 'activeSessionsPer500MbPerPod' #as a unit for memory calculation is chosen 500MB memory size to find out how much user sessions so much memory can handle.
           criteriaValue: ${{ steps.active_sessions_count.outputs.active_sessions }}
           isvCPU: false
           isMemory: true
@@ -284,8 +287,8 @@ jobs:
         uses: ./.github/actions/prometheus-metrics-calc
         with:
           input: user_logins_vCpu
-          performedTestName: 'CPU usage for user logins'
-          calculatedMetricName: 'User Logins per second per 1vCPU'
+          performedTestName: 'cpuUsageForLoginsTest'
+          calculatedMetricName: 'userLoginsPerSecPer1vCpuPerPod'
           criteriaValue: ${{ inputs.numberOfUsersPerSecond }}
           measurementInterval: ${{ inputs.measurement }}
           isvCPU: true
@@ -325,12 +328,17 @@ jobs:
         uses: ./.github/actions/prometheus-metrics-calc
         with:
           input: client_credential_grants_vCpu
-          performedTestName: 'CPU usage for client credential grants'
-          calculatedMetricName: 'Client Credential Grants per second per 1vCPU'
+          performedTestName: 'cpuUsageForCredentialGrantsTest'
+          calculatedMetricName: 'credentialGrantsPerSecPer1vCpu'
           criteriaValue: ${{ inputs.numberOfClientsPerSecond }}
           measurementInterval: ${{ inputs.measurement }}
           isvCPU: true
           isMemory: false
+
+      - name: Finalize horreum report
+        uses: ./.github/actions/prepare-horreum-report
+        with:
+          createReportFile: false
 
       - name: Archive Gatling reports
         if: ${{ always() }}

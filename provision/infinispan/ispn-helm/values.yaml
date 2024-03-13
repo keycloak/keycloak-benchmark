@@ -3,13 +3,16 @@
 # Declare variables to be passed into your templates.
 
 replicas: 3
-defaultImage: quay.io/infinispan/server:14.0.21.Final
+defaultImage: quay.io/infinispan/server:14.0.25.Final
 cacheDefaults:
   owners: 2
   # SYNC or ASYNC
   crossSiteMode: SYNC
   # AUTO or MANUAL
   stateTransferMode: AUTO
+  remoteTimeout: 5000
+  xsiteRemoteTimeout: 4500
+  lockTimeout: 4000
 caches:
   sessions:
     owners: 2
@@ -39,6 +42,9 @@ crossdc:
         filename: keystore.p12
       truststore:
         filename: truststore.p12
+  heartbeats:
+    interval: 2000
+    timeout: 8000
 logging:
   infinispan: info
   jgroups: info
@@ -47,4 +53,4 @@ metrics:
   histograms: false
 fd:
   interval: 2000
-  timeout: 10000
+  timeout: 15000

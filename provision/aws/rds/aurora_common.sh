@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 export AURORA_CLUSTER=${AURORA_CLUSTER:-"keycloak"}
 export AURORA_ENGINE=${AURORA_ENGINE:-"aurora-postgresql"}
-export AURORA_ENGINE_VERSION=${AURORA_ENGINE_VERSION:-"15.3"}
+export AURORA_ENGINE_VERSION=${AURORA_ENGINE_VERSION:-"15.5"}
 export AURORA_INSTANCES=${AURORA_INSTANCES:-"1"}
 export AURORA_INSTANCE_CLASS=${AURORA_INSTANCE_CLASS:-"db.t4g.large"}
 export AURORA_PASSWORD=${AURORA_PASSWORD:-"secret99"}

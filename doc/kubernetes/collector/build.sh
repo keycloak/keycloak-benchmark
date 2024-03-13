@@ -12,6 +12,10 @@ mkdir -p ${BUILDDIR}/helm
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set hostname=minikube.nip.io \
+  --set keycloakHostname=\<KEYCLOAK_URL_HERE\> \
+  --set dbUrl=\<AWS_AURORA_URL_HERE\> \
+  --set keycloakImage=\<KEYCLOAK_IMAGE_HERE\> \
+  --set useAWSJDBCWrapper=true \
   --set jvmDebug=false \
   --set cryostat=false \
   --set instances=3 \
@@ -25,11 +29,16 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set dbPoolMaxSize=30 \
   --set dbPoolMinSize=30 \
   | yq \
+  | sed -E 's|[-A-Za-z0-9+/=]{1000,}|...|g' \
   > ${BUILDDIR}/helm/keycloak.yaml
 
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set hostname=minikube.nip.io \
+  --set keycloakHostname=\<KEYCLOAK_URL_HERE\> \
+  --set dbUrl=\<AWS_AURORA_URL_HERE\> \
+  --set keycloakImage=\<KEYCLOAK_IMAGE_HERE\> \
+  --set useAWSJDBCWrapper=true \
   --set jvmDebug=false \
   --set cryostat=false \
   --set heapInitMB=64 \
@@ -41,6 +50,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set infinispan.remoteStore.password=secure_password \
   --set infinispan.site=keycloak \
   | yq \
+  | sed -E 's|[-A-Za-z0-9+/=]{1000,}|...|g' \
   > ${BUILDDIR}/helm/keycloak-ispn.yaml
 
 

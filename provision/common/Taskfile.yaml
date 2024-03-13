@@ -16,8 +16,6 @@ vars:
   KC_CPU_LIMITS: '{{default "" .KC_CPU_LIMITS}}'
   KC_MEMORY_REQUESTS_MB: '{{default "1024" .KC_MEMORY_REQUESTS_MB}}'
   KC_MEMORY_LIMITS_MB: '{{default "1024" .KC_MEMORY_LIMITS_MB}}'
-  KC_HEAP_INIT_MB: '{{default "64" .KC_HEAP_INIT_MB}}'
-  KC_HEAP_MAX_MB: '{{default "512" .KC_HEAP_MAX_MB}}'
   KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
   KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
   KC_CUSTOM_INFINISPAN_CONFIG: '{{default "true" .KC_CUSTOM_INFINISPAN_CONFIG}}'
@@ -26,7 +24,10 @@ vars:
   KC_REMOTE_STORE_HOST: '{{default "localhost" .KC_REMOTE_STORE_HOST}}'
   KC_REMOTE_STORE_PORT: '{{default "11222" .KC_REMOTE_STORE_PORT}}'
   KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
-
+  MULTI_AZ: '{{default "false" .MULTI_AZ}}'
+  ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
+  KC_REPOSITORY: '{{default "" .KC_REPOSITORY}}'
+  KC_BRANCH: '{{default "" .KC_BRANCH}}'
 tasks:
 
   split:
@@ -61,8 +62,6 @@ tasks:
       - echo {{.KC_CPU_LIMITS}} > .task/var-KC_CPU_LIMITS
       - echo {{.KC_MEMORY_REQUESTS_MB}} > .task/var-KC_MEMORY_REQUESTS_MB
       - echo {{.KC_MEMORY_LIMITS_MB}} > .task/var-KC_MEMORY_LIMITS_MB
-      - echo {{.KC_HEAP_INIT_MB}} > .task/var-KC_HEAP_INIT_MB
-      - echo {{.KC_HEAP_MAX_MB}} > .task/var-KC_HEAP_MAX_MB
       - echo {{.KC_METASPACE_INIT_MB}} > .task/var-KC_METASPACE_INIT_MB
       - echo {{.KC_METASPACE_MAX_MB}} > .task/var-KC_METASPACE_MAX_MB
       - echo {{.KC_CUSTOM_INFINISPAN_CONFIG}} > .task/var-KC_CUSTOM_INFINISPAN_CONFIG
@@ -73,6 +72,42 @@ tasks:
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
+      - |
+        jq -n --arg cpu_requests_per_pod "{{ .KC_CPU_REQUESTS }}" \
+          --arg cpu_limits_per_pod "{{ .KC_CPU_LIMITS }}" \
+          --arg num_of_pods "{{ .KC_INSTANCES }}" \
+          --argjson sticky_sessions "{{ .KC_DISABLE_STICKY_SESSION }}" \
+          --arg mem_req_per_pod "{{ .KC_MEMORY_REQUESTS_MB }}" \
+          --arg mem_limit_per_pod "{{ .KC_MEMORY_LIMITS_MB }}" \
+          --arg db_pool_init "{{ .KC_DB_POOL_INITIAL_SIZE }}" \
+          --arg db_pool_max "{{ .KC_DB_POOL_MAX_SIZE }}" \
+          --arg db_pool_min "{{ .KC_DB_POOL_MIN_SIZE }}" \
+          --arg meta_spc_init "{{ .KC_METASPACE_INIT_MB }}" \
+          --arg meta_spc_max "{{ .KC_METASPACE_MAX_MB }}" \
+          --arg database "{{ .KC_DATABASE }}" \
+          --arg kc_operator_tag "{{ .KC_OPERATOR_TAG }}" \
+          --arg kc_repo "{{ .KC_REPOSITORY }}" \
+          --arg kc_branch "{{ .KC_BRANCH }}" \
+          --argjson is_multi_az "{{ .MULTI_AZ }}" \
+          '. + { "numOfPods": ($num_of_pods|tonumber), "cpuRequestsPerPod": ($cpu_requests_per_pod|tonumber),
+                             "cpuLimitsPerPod": (if ($cpu_limits_per_pod | length) == 0 then null else ($cpu_limits_per_pod | tonumber?) end),
+                             "stickySessionDisabled": ($sticky_sessions),
+                             "memRequestsPerPod": ($mem_req_per_pod|tonumber),
+                             "memLimitPerPod": ($mem_limit_per_pod|tonumber),
+                             "dbPool": {
+                               "init": ($db_pool_init|tonumber),
+                               "min": ($db_pool_min|tonumber),
+                               "max": ($db_pool_max|tonumber)
+                             },
+                             "metaspace": {
+                               "init": ($meta_spc_init|tonumber),
+                               "max": ($meta_spc_max|tonumber)
+                             },
+                            "isMultiAZ": ($is_multi_az),
+                            "keycloakOperatorTag": ($kc_operator_tag),
+                            "keycloakRepository": ($kc_repo),
+                            "keycloakBranch": ($kc_branch),
+                            "keycloakDatabase": ($database) }' > {{ .ENV_DATA_JSON_PATH }}
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -91,8 +126,6 @@ tasks:
       - test "{{.KC_CPU_LIMITS}}" == "$(cat .task/var-KC_CPU_LIMITS)"
       - test "{{.KC_MEMORY_REQUESTS_MB}}" == "$(cat .task/var-KC_MEMORY_REQUESTS_MB)"
       - test "{{.KC_MEMORY_LIMITS_MB}}" == "$(cat .task/var-KC_MEMORY_LIMITS_MB)"
-      - test "{{.KC_HEAP_INIT_MB}}" == "$(cat .task/var-KC_HEAP_INIT_MB)"
-      - test "{{.KC_HEAP_MAX_MB}}" == "$(cat .task/var-KC_HEAP_MAX_MB)"
       - test "{{.KC_METASPACE_INIT_MB}}" == "$(cat .task/var-KC_METASPACE_INIT_MB)"
       - test "{{.KC_METASPACE_MAX_MB}}" == "$(cat .task/var-KC_METASPACE_MAX_MB)"
       - test "{{.KC_CUSTOM_INFINISPAN_CONFIG}}" == "$(cat .task/var-KC_CUSTOM_INFINISPAN_CONFIG)"

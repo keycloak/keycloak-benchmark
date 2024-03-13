@@ -1,0 +1,62 @@
+# This Taskfile is used only for testing purposes of tasks defined in Utils.yaml
+version: '3'
+includes:
+  utils:
+    taskfile: ./Utils.yaml
+    internal: true
+output: prefixed
+
+dotenv: [ '.env' ]
+
+required:
+  - KUBECONFIG
+  - NAMESPACE
+
+vars:
+  KC_REPOSITORY: '{{.KC_REPOSITORY | default ""}}'
+  KC_BRANCH: '{{.KC_BRANCH | default ""}}'
+
+  # To compute Infinispan namespace
+  KC_NAMESPACE_PREFIX: '{{default "$(whoami)-" .KC_NAMESPACE_PREFIX}}'
+  KC_ISPN_NAMESPACE: '{{.KC_NAMESPACE_PREFIX}}keycloak'
+  ISPN_DIR: "{{.ROOT_DIR}}/../infinispan"
+  ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
+  RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
+  KC_DIR: "{{.ROOT_DIR}}/../openshift"
+  ANSIBLE_DIR: "{{.ROOT_DIR}}/../../ansible"
+  PYTHON_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/python"
+  BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
+  KC_ADMIN_PASSWORD:
+    sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
+
+  KB_RETENTION: '{{default "168h" .KB_RETENTION}}'
+  KC_OTEL: '{{default "false" .KC_OTEL}}'
+  KC_CRYOSTAT: '{{default "true" .KC_CRYOSTAT}}'
+  KC_OTEL_SAMPLING_PERCENTAGE: '{{default "0.001" .KC_OTEL_SAMPLING_PERCENTAGE}}'
+  KC_DB_POOL_INITIAL_SIZE: '{{default "5" .KC_DB_POOL_INITIAL_SIZE}}'
+  KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
+  KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
+  KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
+  KC_OPERATOR_TAG: '{{default "nightly" .KC_OPERATOR_TAG}}'
+  KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
+  KC_INSTANCES: '{{default "1" .KC_INSTANCES}}'
+  KC_CPU_REQUESTS: '{{default "0" .KC_CPU_REQUESTS}}'
+  KC_CPU_LIMITS: '{{default "" .KC_CPU_LIMITS}}'
+  KC_MEMORY_REQUESTS_MB: '{{default "1024" .KC_MEMORY_REQUESTS_MB}}'
+  KC_MEMORY_LIMITS_MB: '{{default "1024" .KC_MEMORY_LIMITS_MB}}'
+  KC_METASPACE_INIT_MB: '{{default "96" .KC_METASPACE_INIT_MB}}'
+  KC_METASPACE_MAX_MB: '{{default "256" .KC_METASPACE_MAX_MB}}'
+  KC_CUSTOM_INFINISPAN_CONFIG: '{{default "true" .KC_CUSTOM_INFINISPAN_CONFIG}}'
+  KC_CUSTOM_INFINISPAN_CONFIG_FILE: '{{default "config/kcb-infinispan-cache-config.xml" .KC_CUSTOM_INFINISPAN_CONFIG_FILE}}'
+  KC_REMOTE_STORE: '{{default "false" .KC_REMOTE_STORE}}'
+  KC_REMOTE_STORE_HOST: '{{default "localhost" .KC_REMOTE_STORE_HOST}}'
+  KC_REMOTE_STORE_PORT: '{{default "11222" .KC_REMOTE_STORE_PORT}}'
+  KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
+
+tasks:
+  default:
+    cmds:
+      - task: utils:install-keycloak
+  uninstall:
+    cmds:
+      - task: utils:uninstall-keycloak

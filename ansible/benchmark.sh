@@ -1,6 +1,10 @@
-#!/bin/bash +x
+#!/usr/bin/env bash
 set -e
 cd $(dirname "${BASH_SOURCE[0]}")
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 REGION=$1
 KCB_PARAMS=${@:2}

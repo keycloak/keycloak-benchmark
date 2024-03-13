@@ -27,7 +27,7 @@ KC_CONTAINER_IMAGE=quay.io/keycloak/keycloak:20.0.1
 == Building a custom Keycloak image for minikube
 
 . Check out https://github.com/keycloak/keycloak[Keycloak's Git repository].
-. Build using `mvn clean install -DskipTests` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
+. Build using `mvn clean install -DskipTests -am -pl quarkus/dist` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
 . Configure the Minikube environment to use the locally built image.
 +
 .Example entry in the `.env` file
@@ -66,7 +66,40 @@ task
 == Building a custom Keycloak image for OpenShift
 
 . Check out https://github.com/keycloak/keycloak[Keycloak's Git repository].
-. Build using `mvn clean install -DskipTests` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
+. Build using `mvn clean install -DskipTests -am -pl quarkus/dist` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
+. Build the container using https://docs.openshift.com/container-platform/4.14/cicd/builds/creating-build-inputs.html[OpenShift's binary build].
++
+[source,bash]
+----
+cd quarkus/container
+cp ../dist/target/keycloak-*.tar.gz .
+oc project <namespace>
+# delete build config and imagestream in case they exist from a previous run
+oc delete buildconfig keycloak || true
+oc delete imagestream keycloak || true
+oc new-build --strategy docker --binary --image registry.access.redhat.com/ubi9 --name keycloak --build-arg=KEYCLOAK_DIST=$(ls keycloak-*.tar.gz)
+oc start-build keycloak --from-dir . --follow
+----
++
+. Configure the OpenShift environment to use the custom image.
++
+.Example entry in the `provision/openshift/.env` file
+----
+KC_CONTAINER_IMAGE=image-registry.openshift-image-registry.svc:5000/<namespace>/keycloak:latest
+----
++
+To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
+. Run `task` as usual to deploy the image.
++
+[source]
+----
+task
+----
+
+== Building a custom Keycloak image for generic Kubernetes
+
+. Check out https://github.com/keycloak/keycloak[Keycloak's Git repository].
+. Build using `mvn clean install -DskipTests -am -pl quarkus/dist` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
 . Build the container, either with Podman or with Docker.
 +
 In the following examples, replace `quay.io` and `quay.io/namespace/repository:tag` with the registry and the image name you are using.

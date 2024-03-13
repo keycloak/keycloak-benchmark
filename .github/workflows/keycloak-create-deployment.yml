@@ -28,9 +28,6 @@ on:
       podCpuLimit:
         description: 'Keycloak pod CPU limit'
         type: string
-      heapMaxSizeMB:
-        description: 'Keycloak server maximum Java heap size (in MB)'
-        type: string
       # Hack to workaround the max limit of 10 inputes
       additional_args:
         description: JSON of additional options
@@ -101,7 +98,6 @@ jobs:
           podMemoryLimit: ${{ inputs.podMemoryLimit }}
           podCpuRequests: ${{ inputs.podCpuRequests }}
           podCpuLimit: ${{ inputs.podCpuLimit }}
-          heapMaxSizeMB: ${{ inputs.heapMaxSizeMB }}
           database: ${{ env.DATABASE }}
           databaseUrl: ${{ env.AURORA_URL }}
           kcHostnameOverride: ${{ env.KC_HOSTNAME_OVERRIDE }}

@@ -71,3 +71,20 @@ jobs:
 
       - shell: bash
         run: ./provision/aws/aws_check_vpcs.sh
+
+  accelerator-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS CLI
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
+
+      - name: Delete Global Accelerators
+        if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+        run: ./provision/aws/global-accelerator/accelerator_reaper.sh

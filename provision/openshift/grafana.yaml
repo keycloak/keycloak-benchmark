@@ -41,7 +41,7 @@ datasources:
           tlsSkipVerify: true
           httpMethod: "POST"
         secureJsonData:
-          httpHeaderValue1: Bearer $__file{/run/secrets/kubernetes.io/grafanaserviceaccount/token}
+          httpHeaderValue1: Bearer $__file{/etc/secrets/grafanaserviceaccount/token}
       - name: Jaeger
         uid: PC9A941E8F2E49454
         type: jaeger
@@ -60,15 +60,10 @@ datasources:
             spanStartTimeShift: "-1h"
             spanEndTimeShift: "1h"
 extraSecretMounts:
-- name: grafana-sa-token
-  mountPath: /run/secrets/kubernetes.io/grafanaserviceaccount
+- name: grafana-sa-secret
+  secretName: grafana-sa-secret
+  mountPath: /etc/secrets/grafanaserviceaccount
   readOnly: true
-  projected:
-    defaultMode: 420
-    sources:
-      - serviceAccountToken:
-          expirationSeconds: 86400
-          path: token
 
 serviceAccount:
   create: false
