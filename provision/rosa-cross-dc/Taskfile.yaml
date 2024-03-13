@@ -13,6 +13,7 @@ vars:
   ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
   RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
   KC_DIR: "{{.ROOT_DIR}}/../openshift"
+  DATASET_DIR: "{{.ROOT_DIR}}/../../dataset"
   ANSIBLE_DIR: "{{.ROOT_DIR}}/../../ansible"
   PYTHON_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/python"
   BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
@@ -614,15 +615,21 @@ tasks:
 
   dataset-import:
     internal: true
+    dir: "{{.DATASET_DIR}}"
     requires:
       vars:
         - KC_URL
     vars:
       USERS: "{{.USERS | default 100000}}"
-      USERS_PER_TX: "{{.USERS_PER_TX | default 256}}"
-      THREADS: "{{.THREADS | default 8}}"
+      CLIENTS: "{{.CLIENTS | default 100}}"
+      REALMS: "{{.REALMS | default 1}}"
+      THREADS: "{{.THREADS | default 12}}"
+      WAIT: "{{.WAIT | default false}}"
+      DATASET_TIMEOUT: "{{.DATASET_TIMEOUT | default 3600}}"
     cmds:
-      - curl -k "https://{{.KC_URL}}/realms/master/dataset/create-realms?realm-name=realm-0&count=1&threads-count={{.THREADS}}&users-per-realm={{.USERS}}&users-per-transaction={{.USERS_PER_TX}}"
+      - ./dataset-import.sh -a clear-status-completed -l https://{{.KC_URL}}/realms/master/dataset
+      - ./dataset-import.sh -a create-realms -l https://{{.KC_URL}}/realms/master/dataset -r {{.REALMS}} -c {{.CLIENTS}} -u {{.USERS}} -C {{.DATASET_TIMEOUT}} -T {{.THREADS}}
+      - ({{if eq .WAIT "true"}}./dataset-import.sh -a status-completed -l https://{{.KC_URL}}/realms/master/dataset -t {{.DATASET_TIMEOUT}}{{else}}echo "Skip Waiting"{{end}})
 
   dataset-import-external:
     desc: "Triggers the dataset creation task using the Route53 or Global Accelerator load balancer. It does not wait for completion."
@@ -687,7 +694,7 @@ tasks:
     vars:
       SCENARIO: '{{.SCENARIO | default "keycloak.scenario.authentication.AuthorizationCode"}}'
       USERS: "{{.USERS | default 100000}}"
-      USERS_PER_SEC: "{{.USERS_PER_SEC | default 300}}"
+      USERS_PER_SEC: "{{.USERS_PER_SEC | default 200}}"
       DURATION: "{{.DURATION | default 600}}"
       REFRESH_TOKEN_COUNT: "{{.REFRESH_TOKEN_COUNT | default 0}}"
       REFRESH_TOKEN_PERIOD: "{{.REFRESH_TOKEN_PERIOD | default 0}}"
@@ -698,11 +705,12 @@ tasks:
         --server-url="https://{{.KC_URL}}/"
         --users-per-sec={{.USERS_PER_SEC}}
         --measurement={{.DURATION}}
-        --realm-name=realm-0
-        --logout-percentage=100
+        --realm-name={{.REALM_NAME | default "realm-0"}}
+        --logout-percentage={{.LOGOUT_PERCENTAGE | default "100"}}
         --users-per-realm={{.USERS}}
-        --ramp-up=100
+        --ramp-up=20
         --log-http-on-failure
+        --sla-error-percentage={{.SLA_ERROR_PERCENTAGE | default "0.001"}}
         --refresh-token-count={{.REFRESH_TOKEN_COUNT}}
         --refresh-token-period={{.REFRESH_TOKEN_PERIOD}}
 

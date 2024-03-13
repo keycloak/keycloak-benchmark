@@ -97,10 +97,16 @@ tasks:
         --set crossdc.route.enabled={{.CROSS_DC_EXTERNAL_ROUTER_ENABLED}}
         --set crossdc.route.tls.keystore.secret={{.CROSS_DC_JGRP_KS_SECRET}}
         --set crossdc.route.tls.truststore.secret={{.CROSS_DC_JGRP_TS_SECRET}}
+        --set crossdc.maxRelayNodes={{if eq .CROSS_DC_TX_2PC "true" }}1{{else}}128{{end}}
         --set metrics.histograms={{.CROSS_DC_HISTOGRAMS}}
         --set hotrodPassword={{.CROSS_DC_HOT_ROD_PASSWORD}}
         --set cacheDefaults.crossSiteMode={{.CROSS_DC_MODE}}
         --set cacheDefaults.stateTransferMode={{.CROSS_DC_STATE_TRANSFER_MODE}}
+        --set cacheDefaults.xsiteFailurePolicy={{.CROSS_DC_XSITE_FAIL_POLICY | default "WARN" }}
+        --set cacheDefaults.txMode={{if eq .CROSS_DC_TX_2PC "true" }}NON_XA{{else}}NONE{{end}}
+        --set cacheDefaults.xsiteTwoPhaseCommit={{.CROSS_DC_TX_2PC | default "false" }}
+        --set cacheDefaults.xsiteOfflineMinWait={{.CROSS_DC_OFFLINE_MIN_WAIT | default "30000" }}
+        --set cacheDefaults.xsiteOfflineAfterFailures={{.CROSS_DC_OFFLINE_AFTER_FAILURES | default "-1" }}
         --set image={{.CROSS_DC_IMAGE}}
         --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
         --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}

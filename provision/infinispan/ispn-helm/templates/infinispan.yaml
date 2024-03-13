@@ -91,7 +91,7 @@ spec:
         # tag::infinispan-crossdc[]
         expose:
           type: {{ if .Values.crossdc.route.enabled }}Route{{else}}ClusterIP{{end}} # <5>
-        maxRelayNodes: 128
+        maxRelayNodes: {{ .Values.crossdc.maxRelayNodes }}
         {{ if .Values.crossdc.route.enabled }}
         {{- $_ := .Values.crossdc.route.tls.keystore.secret | required ".Values.crossdc.route.tls.keystore.secret is required." -}}
         {{- $_ := .Values.crossdc.route.tls.truststore.secret | required ".Values.crossdc.route.tls.truststore.secret is required." -}}
@@ -138,26 +138,34 @@ spec:
       mode: "SYNC"
       owners: {{ $config.owners | default $.Values.cacheDefaults.owners | quote }}
       statistics: "true"
-      remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout }}
+      remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout | quote }}
       locking:
-        acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout }}
+        acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout | quote }}
+      transaction:
+        mode: {{ $config.txMode | default $.Values.cacheDefaults.txMode | quote }}
+        locking: {{ $config.txLockMode | default $.Values.cacheDefaults.txLockMode | quote }}
       stateTransfer:
-        chunkSize: 16
+        chunkSize: "16"
       {{ if $.Values.crossdc.enabled }}
       {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
       backups:
         {{- if $config.mergePolicy }}
-        mergePolicy: {{ $config.mergePolicy }} # <1>
+        mergePolicy: {{ $config.mergePolicy  | quote }} # <1>
         {{- end}}
         {{$.Values.crossdc.remote.name }}: # <2>
           backup:
             strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }} # <3>
-            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout }}
+            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout | quote }}
+            failurePolicy: {{ $config.xsiteFailurePolicy | default $.Values.cacheDefaults.xsiteFailurePolicy | quote }}
+            twoPhaseCommit: {{ $config.xsiteTwoPhaseCommit | default $.Values.cacheDefaults.xsiteTwoPhaseCommit | quote }}
             stateTransfer:
-              chunkSize: 16
+              chunkSize: "16"
               {{- if eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC"}}
               mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }} # <4>
               {{- end }}
+            takeOffline:
+              minWait: {{ $config.xsiteOfflineMinWait | default $.Values.cacheDefaults.xsiteOfflineMinWait | quote }}
+              afterFailures: {{ $config.xsiteOfflineAfterFailures | default $.Values.cacheDefaults.xsiteOfflineAfterFailures | quote }}
       {{- end }}
 # end::infinispan-cache-{{ $cache }}[]
 {{end}}
