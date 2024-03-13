@@ -9,6 +9,7 @@ if [ -f ./.env ]; then
   source ./.env
 fi
 
+export AWS_PAGER=""
 AWS_REGION=$(rosa describe cluster --cluster "$CLUSTER_NAME" --output json | jq -r '.region.id')
 echo "AWS_REGION: ${AWS_REGION}"
 
@@ -93,15 +94,16 @@ aws ec2 revoke-security-group-ingress \
  --port 2049 \
  --cidr $CIDR
 
-cd efs
+ROLE_NAME="${CLUSTER_NAME}-aws-efs-csi-operator"
+POLICY_ARN=$(aws iam list-policies \
+  --query "Policies[?PolicyName=='test-rosa-efs-csi'].Arn" \
+  --scope Local \
+  --output text
+)
 
-CCO_POD_NAME=$(oc get po -n openshift-cloud-credential-operator -l app=cloud-credential-operator -o jsonpath='{.items[*].metadata.name}')
-
-oc cp -c cloud-credential-operator openshift-cloud-credential-operator/${CCO_POD_NAME}:/usr/bin/ccoctl ./ccoctl --retries=999
-
-chmod 775 ./ccoctl
-
-./ccoctl aws delete --name=${CLUSTER_NAME} --region=${AWS_REGION}
+aws iam detach-role-policy --policy-arn ${POLICY_ARN} --role-name ${ROLE_NAME} || true
+aws iam delete-policy --policy-arn ${POLICY_ARN} || true
+aws iam delete-role --role-name ${ROLE_NAME} || true
 
 oc delete storageclass efs-sc
 
