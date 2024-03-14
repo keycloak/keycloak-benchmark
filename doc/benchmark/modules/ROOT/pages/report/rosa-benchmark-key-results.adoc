@@ -24,8 +24,6 @@ A full automation is pending to show repeatable results over different releases.
 * Infinispan caches at default of 10,000 entries, so not all clients and users fit into the cache, and some requests will need to fetch the data from the database.
 * All sessions in distributed caches as per default, with two owners per entries, allowing one failing pod without losing data.
 * Database Amazon Aurora PostgreSQL in a multi-AZ setup, with the writer instance in the availability zone of the primary site.
-+
-Using a database with persistent storage will have longer database latencies, which might lead to longer response times; still, the throughput should be similar.
 
 == Installation
 
@@ -72,7 +70,7 @@ Memory requirements increase with the number of client sessions per user session
 * In containers, Keycloak allocates 70% of the memory limit for heap based memory. It will also use approximately 300 MB of non-heap-based memory.
 To calculate the requested memory, use the calculation above. As limit, subtract the non-heap memory from the value above and divide the result by 0.7.
 
-* For each 8 password-based user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 50 password-based user logins per second).
+* For each 8 password-based user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 300 password-based user logins per second).
 +
 Keycloak spends most of the CPU time hashing the password provided by the user, and it is proportional to the number of hash iterations.
 
@@ -96,13 +94,13 @@ Target size:
 
 Limits calculated:
 
-* CPU requested: 4 vCPU
+* CPU requested: 5 vCPU
 +
-(24 logins per second = 3 vCPU, 450 client credential grants per second = 1 vCPU)
+(24 logins per second = 3 vCPU, 450 client credential grants per second = 1 vCPU, 350 refresh token = 1 vCPU)
 
-* CPU limit: 12 vCPU
+* CPU limit: 15 vCPU
 +
-(Allow for three times the CPU requested to handle peaks, startups and failover tasks, and also refresh token handling which we don't have numbers on, yet)
+(Allow for three times the CPU requested to handle peaks, startups and failover tasks)
 
 * Memory requested: 1250 MB
 +
