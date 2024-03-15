@@ -1,0 +1,181 @@
+= Understanding failure detection in Infinispan and JGroups
+:description: This guide describes how JGroups detects failed instances and how to configure it.
+
+{description}
+It explains the configuration attributes available for customization and its trade-off to achieve the desired detection rate.
+
+== Where JGroups is used, and why failure detection is important
+
+{project_name} uses Infinispan to store session related information in distributed caches both within {project_name}, and in external instances of Infinispan.
+{project_name} instances as well as external Infinispan instances form clusters, and the communication between the nodes of a cluster is handled by JGroups.
+The communication between different external Infinispan clusters in a multi-site setup is also handled by JGroups.
+
+Each node in such a cluster is serving session data, which is important for {project_name} to serve requests.
+An unresponsive node leads to blocked requests, and possibly timeouts and errors on the caller's side.
+If a node fails, requests need to be redirected to the remaining nodes, and its data needs to be re-distributed from backup nodes in the cluster.
+
+== Broken TCP connections causing communication failures
+
+A broken TCP connection has a performance impact on the cluster, and it is necessary to detect it, so the connection can be closed and new ones may be established.
+Note that TCP is a blocking/synchronous protocol, and if the connection is not working properly, threads will be blocked in the `Socket::write` operation.
+The kernel parameter `tcp_retries2` configures the amount failed retries until the Kernel force closes the connection.
+Quoting the https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt[Kernel Documentation]:
+
+[quote]
+--
+This value influences the timeout of an alive TCP connection, when RTO retransmissions remain unacknowledged.
+The default value of 15 yields a hypothetical timeout of 924.6 seconds and is a lower bound for the effective timeout.
+--
+
+During this period, the cluster performance is degraded.
+Changing Kernel parameters in an image or container is not desired, but JGroups has attributes that can be configured to detect and force-close these broken connections.
+
+For cross-site network communication, which uses the http://jgroups.org/manual5/index.html#TUNNEL[TUNNEL] protocol in Kubernetes, Infinispan Pod traffic is forwarded through JGroups Gossip Router Pods.
+The timeouts are configured in the `Infinispan CR` YAML file as shown below:
+
+.infinispan.yaml
+[source,yaml]
+----
+  service:
+    type: DataGrid
+    sites:
+      local:
+        discovery:
+          heartbeats:
+            interval: 10000 # <1>
+            timeout: 30000 # <2>
+----
+
+<1> Sends a heartbeat to the Gossip router every `interval` milliseconds.
+<2> Max time in milliseconds with no received message or heartbeat after which the connection to a Gossip router is closed.
+
+NOTE: The values above are the defaults configured by the Infinispan Operator.
+
+Reducing the interval and timeout will increase how fast JGroups detects a broken connection.
+However, it also increases the network usage due to the increase frequency of heartbeats.
+Note that all Infinispan Pods in both clusters will send heartbeats to all the configured Gossip Router Pods.
+
+TIP: The defaults should work for 99% of the use cases.
+
+For intra cluster communication in Infinispan or {project_name} cluster, broken TCP connections are detected and closed by the failure detection.
+See section <<fd>> for more information.
+
+[[fd]]
+== Detecting non-responsive nodes
+
+Nodes in a cluster can fail, and traffic and data need to be redirected once that happens.
+Failure detection in JGroups is provided by the protocol `FD_ALL3` present in the default JGroups configuration shipped with Infinispan.
+
+`FD_ALL3` is a simple heartbeat protocol where every member periodically multicasts a heartbeat.
+When data or a heartbeat from another Pod is received, that Pod is considered alive, otherwise the Pod is considered suspected and may be removed from the group view.
+
+The heartbeat interval and timeout are configured as shown:
+
+[source,xml]
+----
+<infinispan>
+   <jgroups>
+      <stack name="my-tcp" extends="tcp"> <!--1-->
+         <FD_ALL3 stack.combine="COMBINE"
+               interval="8000" <!--2-->
+               timeout="40000"/> <!--3-->
+      </stack>
+   </jgroups>
+
+   <cache-container>
+      <transport stack="my-tcp"/> <!--4-->
+   </cache-container>
+</infinispan>
+----
+
+<1> The custom stack name.
+<2> The interval, in milliseconds, at which a heartbeat is sent to the cluster.
+<3> The timeout, in milliseconds, after which a node is suspected if neither a heartbeat nor data have been received from it.
+<4> The stack name to be used by JGroups.
+
+NOTE: The example above shows the default values.
+
+For a cluster of `M` Pods, each Pod will generate `M-1` heartbeat message at each interval.
+Reducing the `interval` and `timeout` improves the detection speed of the crashed Pod, but has a greater impact in the network with the extra message transmitted around.
+
+If cross-site is enabled, `FD_ALL3` heartbeats also flow to the remote cluster(s).
+The cross-site channel has its own configuration that can be configured independently of the intra-cluster communication.
+
+TIP: The defaults should work for 99% of the use cases.
+
+After a Pod is suspected, a new group view change is triggered without the crashed member.
+This even will close any broken TCP connection with that Pod and unblock possible blocked threads.
+
+== Timeouts for read and write operations
+
+Infinispan has three configurable timeouts that affect the read or write operations, in both {project_name} and Infinispan clusters.
+Those are the lock timeout, remote timeout and cross-site remote timeout.
+
+If the timeouts are aligned with each other and the failure detection timeouts and intervals described above, they allow at least one retry after a connection or node failure.
+This allows providing a valid response to the caller and hiding the error that occurred.
+
+The lock timeout is the waiting time that an operation waits for a lock to be released.
+This should be the smallest of all.
+
+The remote timeout is the time an Infinispan Pod waits for the replies from other Pods in the same cluster.
+It affects both writes, when replicating the data, and reads, where a Pod fetches the data from other Pods if a copy does not exist locally.
+
+Finally, for a multi-site deployment, the cross-site remote timeout is the wait time for the other cluster to acknowledge the update.
+
+Changing these values may have a direct impact on the response time.
+Although during normal operation Infinispan replies in a couple milliseconds, these timeouts may be reached if the workload is higher, a Pod crashes or during a network outage.
+
+Decreasing the timeout reduces the response time; Infinispan will give up sooner but increase the error rate reported to the user.
+Increasing these values may reduce the amount of errors, since it gives more time to Infinispan to go through the workload, but will increase the response time observed by the end user.
+
+To update any timeout value in an Infinispan cluster deployed with the Infinispan Operator, update your `CacheCR` as follows:
+
+[source,yaml,subs=+quotes]
+----
+apiVersion: infinispan.org/v2alpha1
+kind: Cache
+metadata:
+  name: sessions
+spec:
+  clusterName: infinispan
+  name: sessions
+  template: |-
+    distributedCache:
+      mode: "SYNC"
+      owners: 2
+      statistics: "true"
+      *remoteTimeout: "15000"* # <1>
+      locking:
+        *acquireTimeout: "10000"* # <2>
+      backups:
+        cluster-b:
+          backup:
+            strategy: "SYNC"
+            *timeout: "15000"*  # <3>
+----
+
+<1> The timeout value, in milliseconds, waiting for replies from other Pods in the local cluster.
+<2> The timeout value, in milliseconds, waiting for locked locks to be released.
+<3> The timeout value, in milliseconds, waiting for replies from the remote clusters.
+
+NOTE: The example shows the default values.
+Only add the line(s) for the timeout you want to update.
+
+For the Infinispan cluster running in the {project_name} servers, a customized Infinispan XML file is required.
+Change the cache configuration as show and add the attributes (in bold) you want to update:
+
+[source,xml,subs=+quotes]
+----
+<distributed-cache name="sessions" owners="2" statistics="true" *remote-timeout="15000"*> <!--1-->
+    <locking *acquire-timeout="10000"*/> <!--2-->
+    <backups>
+        <backup site="cluster-b" *timeout="15000"*/> <!--3-->
+    </backups>
+</distributed-cache>
+----
+
+<1> The timeout value, in milliseconds, waiting for replies from other Pods in the local cluster.
+<2> The timeout value, in milliseconds, waiting for locked locks to be released.
+<3> The timeout value, in milliseconds, waiting for replies from the remote clusters.
+
+NOTE: The example shows the default values.
