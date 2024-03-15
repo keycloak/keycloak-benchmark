@@ -77,7 +77,6 @@ To create a deployment for specific Keycloak source code, git repository and bra
 This replaces deployments for both Keycloak and Keycloak operator.
 Specify the following variables for using custom source code:
 
-
 |===
 |Variable |Details
 
@@ -99,3 +98,7 @@ AWS provides a https://github.com/awslabs/aws-advanced-jdbc-wrapper[JDBC driver 
 To disable the AWS JDBC driver, set the `KC_USE_AWS_JDBC_WRAPPER` variable to `false`.
 
 To specify the version of the AWS JDBC driver, set the `KC_AWS_JDBC_WRAPPER_URL` variable to the URL of corresponding jar file.
+
+=== Warnings / Known issues
+
+* We know that sometimes during the ROSA cluster creation, few orphaned DHCP options sets are created. We can monitor and clean them up using a bash script, for more info on that see, how to xref:util/clean-orphan-dhcp-options.adoc[].
