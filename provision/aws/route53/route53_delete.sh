@@ -20,6 +20,7 @@ HEALTH_CHECKS=$(aws route53 list-health-checks \
   --output json
 )
 echo ${HEALTH_CHECKS} | jq -c '.[]' | while read HEALTH_CHECK; do
+  HEALTH_CHECK_ID=${HEALTH_CHECK} ${SCRIPT_DIR}/route53_delete_failover_lambda.sh
   aws route53 delete-health-check --health-check-id $(echo ${HEALTH_CHECK} | jq -r .Id)
 done
 

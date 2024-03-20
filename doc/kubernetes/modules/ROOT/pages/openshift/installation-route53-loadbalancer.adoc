@@ -23,6 +23,12 @@ See below for the newly created elements (green) and the updated elements (yello
 
 image::installation-openshift/route-53-configuration.dio.svg[]
 
+To ensure that a failed Primary site cannot be marked healthy without user input, e.g. in the event of an automated ROSA
+cluster restart, we create an AWS SNS topic which fires an event whenever the Primary health check fails. This topic is
+used to trigger an AWS Lambda function which updates the health check to point to a non-existent endpoint `/lb-check-failed-over`.
+In order to failback from the Backup to the Primary cluster, it's necessary for the health check to be manually updated
+back to `/lb-check`.
+
 == Setup new Route 53 failover
 
 === Prerequisites
@@ -95,8 +101,16 @@ This can be confirmed by inspecting the health check https://us-east-1.console.a
 
 . Execute the script from the first step and an exit code of `1` should be returned.
 
-If the `aws-health-route` is recreated on the `PRIMARY_CLUSTER`, the health check will eventually pass and the `client.`
-record will revert to routing requests to the primary cluster.
+=== Testing Failback
+
+To Failback from the Backup to the Primary cluster, it's necessary to perform the following:
+
+. Recreate the `aws-health-route` on the `PRIMARY_CLUSTER`
+
+. Update the `ResourcePath` of the Primary clusters Route53 health check to `/lb-check`.
+
+Once both actions have been taken the health check will eventually pass and the `client.` record will revert to routing
+requests to the primary cluster.
 
 == Remove Route 53 Failover
 

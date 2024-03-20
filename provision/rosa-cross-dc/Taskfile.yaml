@@ -329,6 +329,8 @@ tasks:
         - ROSA_CLUSTER_NAME_1
         - ROSA_CLUSTER_NAME_2
         - AURORA_CLUSTER
+        - KC_HEALTH_URL_CLUSTER_1
+        - KC_HEALTH_URL_CLUSTER_2
     cmds:
       - task: common:datasetprovider
       - task: create-aurora
@@ -349,6 +351,9 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
+      - task: deploy-route53-failover-lambda
+        vars:
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_1}}"
       - task: wait-cryostat
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
@@ -377,6 +382,7 @@ tasks:
       vars:
         - ROSA_CLUSTER_NAME_1
         - ROSA_CLUSTER_NAME_2
+        - KC_HEALTH_URL_CLUSTER_1
     cmds:
       - task: ispn:rosa-oc-login
         vars:
@@ -398,6 +404,10 @@ tasks:
       - task: uninstall-infinispan
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: undeploy-route53-failover-lambda
+      - task: route53-failback
+        vars:
+          WAIT: 0
       - task: delete-env-configmap
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
@@ -797,6 +807,44 @@ tasks:
         FAILOVER_MODE="{{.FAILOVER_MODE}}"
         FAILOVER_DELAY="{{.FAILOVER_DELAY}}"
         ./kc-failover.sh
+
+  deploy-route53-failover-lambda:
+    desc: "Creates Route53 primary failover lambda"
+    dir: "{{.ROUTE53_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - KC_HEALTH_URL_CLUSTER_1
+    cmds:
+      - DOMAIN={{.KC_HEALTH_URL_CLUSTER_1}} ./route53_create_failover_lambda.sh
+
+  undeploy-route53-failover-lambda:
+    desc: "Undeploys the Route53 primary failover lambda"
+    dir: "{{.ROUTE53_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - KC_HEALTH_URL_CLUSTER_1
+    cmds:
+      - DOMAIN={{.KC_HEALTH_URL_CLUSTER_1}} ./route53_delete_failover_lambda.sh
+
+  route53-failback:
+    desc: "Failback from Route53 primary failover lambda"
+    dir: "{{.ROUTE53_DIR}}"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - KC_HEALTH_URL_CLUSTER_1
+    vars:
+      WAIT: "{{ .WAIT | default 0 }}"
+    cmds:
+      - WAIT={{.WAIT}} DOMAIN={{.KC_HEALTH_URL_CLUSTER_1}} ./route53_failback.sh
 
   update-env-configjson-with-ispn-data:
     internal: true
