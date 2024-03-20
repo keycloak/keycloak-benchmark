@@ -35,7 +35,7 @@ spec:
               value: keycloak
             - name: POSTGRESQL_MAX_PREPARED_TRANSACTIONS
               value: '100'
-          image: registry.redhat.io/rhel9/postgresql-13
+          image: registry.redhat.io/rhel9/postgresql-15
 {{ else }}
           env:
             - name: POSTGRES_PASSWORD
@@ -44,7 +44,7 @@ spec:
               value: keycloak
             - name: POSTGRES_DB
               value: keycloak
-          image: postgres:13.2
+          image: postgres:15
           args:
             # default of max_prepared_transactions is 0, and this setting should match the number of active connections
             # so that running Quarkus with JTA and more than one data store can prepare transactions.
