@@ -11,6 +11,9 @@ inputs:
   runMemoryUsageTotal:
     description: 'Identifies if "Memory Usage Total" query should be run.'
     default: 'false'
+  ispnMetrics:
+    description: 'Identifies if ISPN metrics should be retrieved.'
+    default: 'false'
   output:
     description: 'The name of the output to store data in'
     default: 'out'
@@ -50,6 +53,21 @@ runs:
         curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
         'query=sum(container_memory_working_set_bytes{job="kubelet", namespace="${{ inputs.project }}",container="keycloak"})'
         | jq '.data.result[0].value[1]' -r | awk '{print $0/1000/1000}' >> ${{ inputs.output }}       # Converting Bytes to MB before storing to file.
+      env:
+        THANOS_HOST: ${{ env.THANOS_HOST }}
+        OC_TOKEN: ${{ env.OC_TOKEN }}
+
+    - id: ispn-metrics
+      name: ISPN response information
+      if: ${{ inputs.ispnMetrics == 'true' }}
+      shell: bash
+      # language=bash
+      run: |
+        cacheName="sessions"
+        ispnMetric=$(curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        "query=avg(vendor_rpc_manager_average_xsite_replication_time{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='$cacheName'})" \
+        | jq '.data.result[0].value[1]' -r)
+        echo "${cacheName},${ispnMetric}" >> ispn_metrics_file
       env:
         THANOS_HOST: ${{ env.THANOS_HOST }}
         OC_TOKEN: ${{ env.OC_TOKEN }}
