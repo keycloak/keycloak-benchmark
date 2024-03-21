@@ -23,20 +23,6 @@ spec:
     spec:
       containers:
         - imagePullPolicy: Always
-{{ if eq .Values.environment "openshift" }}
-          # Running a different container on OpenShift that doesn't need root support.
-          # As this is pulled from the Red Hat registry, this is not available on minikube
-          env:
-            - name: POSTGRESQL_PASSWORD
-              value: secret99
-            - name: POSTGRESQL_USER
-              value: keycloak
-            - name: POSTGRESQL_DATABASE
-              value: keycloak
-            - name: POSTGRESQL_MAX_PREPARED_TRANSACTIONS
-              value: '100'
-          image: registry.redhat.io/rhel9/postgresql-15
-{{ else }}
           env:
             - name: POSTGRES_PASSWORD
               value: secret99
@@ -45,12 +31,10 @@ spec:
             - name: POSTGRES_DB
               value: keycloak
           image: postgres:15
-          args:
-            # default of max_prepared_transactions is 0, and this setting should match the number of active connections
-            # so that running Quarkus with JTA and more than one data store can prepare transactions.
-            - -c
-            - max_prepared_transactions=100
-{{ end }}
+          volumeMounts:
+            # Using volume mount for PostgreSQL's data folder as it is otherwise not writable
+            - mountPath: /var/lib/postgresql
+              name: cache-volume
           resources:
             requests:
               cpu: "{{ .Values.cpuRequests }}"
@@ -74,6 +58,9 @@ spec:
           ports:
             - containerPort: 5432
               protocol: TCP
+      volumes:
+        - name: cache-volume
+          emptyDir: { }
       restartPolicy: Always
       # The rhel9/postgresql-13 is known to take ~30 seconds to shut down
       # As this is a deployment with ephemeral storage, there is no need to wait as the data will be gone anyway
