@@ -29,7 +29,7 @@ import jakarta.ws.rs.Produces;
 import org.infinispan.Cache;
 import org.infinispan.commons.CacheConfigurationException;
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.annotations.cache.NoCache;
+import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.models.KeycloakSession;

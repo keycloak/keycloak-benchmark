@@ -18,7 +18,6 @@
     <maven.compiler.source>17</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.target>17</maven.compiler.target>
-    <encoding>UTF-8</encoding>
   </properties>
 
   <!-- TODO: Module "gatling" is not yet included as the module. Not sure what are side-effect of this with regards to size to "gatling" JAR and running tests in cloud environments...  -->
@@ -40,6 +39,12 @@
         <groupId>org.keycloak</groupId>
         <artifactId>keycloak-server-spi</artifactId>
         <version>${keycloak.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-quarkus-server</artifactId>
+        <version>${keycloak.version}</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.keycloak</groupId>
@@ -123,6 +128,11 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${maven.surefire.plugin.version}</version>
+        <configuration>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
