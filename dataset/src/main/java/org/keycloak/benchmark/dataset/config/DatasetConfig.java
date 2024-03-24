@@ -151,7 +151,7 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "client-roles-per-user", defaultValue = 4, operations = { CREATE_REALMS, CREATE_USERS })
     private Integer clientRolesPerUser;
 
-    // Password policy with the number of password hash iterations. It is 27500 by default
+    // Password policy with the number of password hash iterations. It is 210000 by default
     @QueryParamIntFill(paramName = "password-hash-iterations", defaultValue = Pbkdf2Sha512PasswordHashProviderFactory.DEFAULT_ITERATIONS, operations = { CREATE_REALMS })
     private Integer passwordHashIterations;
 
