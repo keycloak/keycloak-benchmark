@@ -17,7 +17,6 @@ set_environment_variables () {
   USERS_COUNT="100"
   EVENTS_COUNT="100"
   SESSIONS_COUNT="100"
-  HASH_ITERATIONS=""
   if ( minikube version &>/dev/null ); then
     KEYCLOAK_URI="https://keycloak-keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   fi
@@ -50,9 +49,6 @@ set_environment_variables () {
       o)
         SESSIONS_COUNT=$OPTARG
         ;;
-      i)
-        HASH_ITERATIONS=$OPTARG
-        ;;
       p)
         REALM_PREFIX=$OPTARG
         ;;
@@ -77,12 +73,8 @@ set_environment_variables () {
 }
 
 create_realms () {
-  echo "Creating $1 realm/s with $2 client/s and $3 user/s with $4 password hash iterations."
-  HASH=""
-  if [[ "$4" != "" ]]; then
-    HASH="password-hash-iterations=${4}"
-  fi
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&${HASH}&task-timeout=$5&threads-count=$6"
+  echo "Creating $1 realm/s with $2 client/s and $3 user/s."
+  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&task-timeout=$5&threads-count=$6"
 }
 
 create_clients () {
@@ -179,7 +171,7 @@ check_dataset_status () {
 
 help () {
   echo "Dataset import to the local minikube Keycloak application - usage:"
-  echo "1) create realm/s with clients, users and password hash iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -c 100 -u 100 -i 20000 -l 'https://keycloak.url.com'"
+  echo "1) create realm/s with clients, users - run -a (action) with or without other arguments: -a create-realms -r 10 -c 100 -u 100 -l 'https://keycloak.url.com'"
   echo "2) create clients in specific realm: -a create-clients -c 100 -n realm-0 -l 'https://keycloak.url.com'"
   echo "3) create users in specific realm: -a create-users -u 100 -n realm-0 -l 'https://keycloak.url.com'"
   echo "4) create events in specific realm: -a create-events -e 100 -n realm-0 -l 'https://keycloak.url.com'"
@@ -197,7 +189,7 @@ main () {
   echo "Action: [$ACTION] "
   case "$ACTION" in
     create-realms)
-      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT "$HASH_ITERATIONS" $CREATE_TIMEOUT $THREADS
+      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT $CREATE_TIMEOUT $THREADS
       exit 0
       ;;
     create-clients)

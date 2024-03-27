@@ -913,7 +913,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         realm.setEnabled(true);
         realm.setRegistrationAllowed(true);
         realm.setAccessCodeLifespan(60);
-        realm.setPasswordPolicy(PasswordPolicy.parse(session, "hashIterations(" + config.getPasswordHashIterations() + ")"));
 
         if (config.getEventsEnabled()) {
             realm.setEventsEnabled(true);
