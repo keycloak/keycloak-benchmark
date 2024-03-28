@@ -99,7 +99,7 @@ public class DeploymentIT {
         Process process = startKeycloak(keycloakProvidersFolder, args);
         try {
             waitForKeycloakStart();
-            executeDatasetCommand("create-realms?count=1&clients-per-realm=2&users-per-realm=2&password-hash-iterations=100");
+            executeDatasetCommand("create-realms?count=1&clients-per-realm=2&users-per-realm=2");
             waitForDatasetCompleted();
         } finally {
             stopKeycloak(process);
