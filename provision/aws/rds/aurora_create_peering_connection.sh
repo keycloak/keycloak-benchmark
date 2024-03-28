@@ -64,7 +64,7 @@ aws ec2 accept-vpc-peering-connection \
 
 # Update the ROSA Cluster VPC's Route Table
 ROSA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
-  --filters "Name=vpc-id,Values=${ROSA_VPC}" "Name=association.main,Values=true" \
+  --filters "Name=vpc-id,Values=${ROSA_VPC}" "Name=tag:Name,Values=*public*" \
   --query "RouteTables[*].RouteTableId" \
   --output text
 )

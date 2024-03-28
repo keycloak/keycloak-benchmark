@@ -9,6 +9,8 @@ if [ -f ./.env ]; then
   source ./.env
 fi
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; exit 1; fi
 
@@ -16,32 +18,5 @@ if [ -z "$CLUSTER_NAME" ]; then echo "Variable CLUSTER_NAME needs to be set."; e
 ./rds/aurora_delete_peering_connection.sh || true
 ./rosa_efs_delete.sh || true
 
-function custom_date() {
-    echo "$(date '+%Y%m%d-%H%M%S')"
-}
-
-CLUSTER_ID=$(rosa describe cluster --cluster "$CLUSTER_NAME" | grep -oPm1 "^ID:\s*\K\w+")
-echo "CLUSTER_ID: $CLUSTER_ID"
-
-rosa delete admin --cluster $CLUSTER_ID --yes || true
-
-rosa delete cluster --cluster $CLUSTER_ID --yes
-
-mkdir -p "logs/${CLUSTER_NAME}"
-
-echo "Waiting for cluster uninstallation to finish."
-rosa logs uninstall --cluster $CLUSTER_ID --watch --tail=1000000 > "logs/${CLUSTER_NAME}/$(custom_date)_delete-cluster.log"
-
-echo "Cluster uninstalled."
-
-# Avoid error message 'Cluster 'xxx' is in 'uninstalling' state.' for the following commands by waiting until it is gone
-n=0
-until [ "$n" -ge 20 ]
-do
-   rosa describe cluster --cluster $CLUSTER_ID || break
-   n=$((n+1))
-   sleep 10
-done
-
-rosa delete operator-roles --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_delete-operator-roles.log" || true
-rosa delete oidc-provider --cluster $CLUSTER_ID --mode auto --yes > "logs/${CLUSTER_NAME}/$(custom_date)_delete-oidc-provider.log"
+cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
+./../../../destroy.sh ${CLUSTER_NAME}

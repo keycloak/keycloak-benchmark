@@ -14,6 +14,7 @@ See <<aws-efs-as-readwritemany-storage>> for more information.
 == Prerequisites
 
 . xref:prerequisite/prerequisite-awscli.adoc[]
+. [Install OpenTofu](https://opentofu.org/docs/intro/install/)
 . Perform the steps outlined in the https://console.redhat.com/openshift/create/rosa/getstarted[ROSA installation guide]:
 .. Enable ROSA Service in AWS account
 .. Download and install the ROSA command line tool
@@ -47,8 +48,6 @@ If no `ADMIN_PASSWORD` is provided in the configuration, it reads it from the AW
 `VERSION`:: OpenShift cluster version.
 `REGION`:: AWS region where the cluster should run.
 `COMPUTE_MACHINE_TYPE`:: https://aws.amazon.com/ec2/instance-types/[AWS instance type] for the default OpenShift worker machine pool.
-`MULTI_AZ`:: Boolean parameter to indicate whether the OpenShift cluster should span many Availability Zones within the selected region.
-`AVAILABILITY_ZONES`:: Comma separated list of Availability Zones to use for the cluster. For example, `eu-central-1a,eu-central-1b`.
 `REPLICAS`:: Number of worker nodes.
 If multi-AZ installation is selected, then this needs to be a multiple of the number of AZs available in the region.
 For example, if the region has 3 AZs, then replicas need to be set to some multiple of 3.
