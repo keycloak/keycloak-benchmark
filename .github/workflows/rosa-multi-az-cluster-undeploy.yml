@@ -53,6 +53,10 @@ jobs:
         with:
           project: runner-keycloak
 
+      - name: Get KC Health URL
+        run: |
+          echo "KC_HEALTH_URL_CLUSTER_1=primary.${KEYCLOAK_URL:15}" >> $GITHUB_ENV
+
       - name: Undeploy infinispan and keycloak
         working-directory: provision/rosa-cross-dc
         run: |
@@ -60,6 +64,7 @@ jobs:
         env:
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_HEALTH_URL_CLUSTER_1: ${{ env.KC_HEALTH_URL_CLUSTER_1 }}
 
       - name: Undeploy aurora database
         if: ${{ !inputs.skipAuroraDeletion }}

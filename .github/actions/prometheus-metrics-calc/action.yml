@@ -99,10 +99,17 @@ runs:
         gatlingReportDirName=$(ls -lrt $gatlingReportPath | tail -1 | awk '{print $9}')
         gatlingReportFilePath="$gatlingReportPath$gatlingReportDirName/js/stats.json"
         statsJson=$(jq '.. | .stats? | select( . != null )' $gatlingReportFilePath | jq -s .)
-        #Storing all information in JSON using jq library
-        jq --arg testName "${{ inputs.performedTestName }}" '.[$testName] += {"statistics":[]}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
-        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
         #Putting environment parameters into JSON
         jq --argjson statsJson "${statsJson}" --arg testName "${{ inputs.performedTestName }}" \
-        '.[$testName].statistics = ($statsJson)' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        '.[$testName].statistics |= .+ ($statsJson)' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
         mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+        #Reading ispn metrics file
+        readarray -t lines < ispn_metrics_file
+        for i in "${lines[@]}"
+        do
+            IFS=',' read -ra metric <<< "$i"
+            #Putting metric into JSON
+            jq --arg cacheName "${metric[0]}" --arg val "${metric[1]}" --arg testName "${{ inputs.performedTestName }}" \
+            '.[$testName].ispnStatistics |= .+ {"cacheName": ($cacheName), "averageXsiteReplicationTime":($val|tonumber)}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+            mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+        done
