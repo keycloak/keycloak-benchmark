@@ -13,6 +13,17 @@ cacheDefaults:
   remoteTimeout: 5000
   xsiteRemoteTimeout: 4500
   lockTimeout: 4000
+  # WARN|FAIL|IGNORE. ASYNC only works with WARN|IGNORE
+  xsiteFailurePolicy: WARN
+  # NONE|NON_XA
+  txMode: NONE
+  txLockMode: OPTIMISTIC
+  # If true, then maxRelayNodes must be 1
+  xsiteTwoPhaseCommit: false
+  # Min time to wait
+  xsiteOfflineMinWait: -1
+  # Min consecutive failures
+  xsiteOfflineAfterFailures: -1
 caches:
   sessions:
     owners: 2
@@ -30,6 +41,7 @@ caches:
   work: { }
 crossdc:
   enabled: false
+  maxRelayNodes: 128
   local:
     gossipRouterEnabled: true
   remote:
