@@ -18,7 +18,6 @@
 
 package org.keycloak.benchmark.dataset.config;
 
-import org.keycloak.credential.hash.Pbkdf2Sha512PasswordHashProviderFactory;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_AUTHZ_CLIENT;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
@@ -150,10 +149,6 @@ public class DatasetConfig {
     // Count of client roles assigned to every user. The roles assigned are not random, but depends on the "index" of the current user and total amount of roles available and assigned to each user
     @QueryParamIntFill(paramName = "client-roles-per-user", defaultValue = 4, operations = { CREATE_REALMS, CREATE_USERS })
     private Integer clientRolesPerUser;
-
-    // Password policy with the number of password hash iterations. It is 210000 by default
-    @QueryParamIntFill(paramName = "password-hash-iterations", defaultValue = Pbkdf2Sha512PasswordHashProviderFactory.DEFAULT_ITERATIONS, operations = { CREATE_REALMS })
-    private Integer passwordHashIterations;
 
     // Check if eventStorage will be enabled for newly created realms
     @QueryParamFill(paramName = "events-enabled", defaultValue = "false", operations = { CREATE_REALMS })
@@ -300,10 +295,6 @@ public class DatasetConfig {
 
     public Integer getClientRolesPerUser() {
         return clientRolesPerUser;
-    }
-
-    public Integer getPasswordHashIterations() {
-        return passwordHashIterations;
     }
 
     public Boolean getEventsEnabled() {
