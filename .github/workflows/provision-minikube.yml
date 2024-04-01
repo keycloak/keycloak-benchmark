@@ -71,7 +71,7 @@ jobs:
         working-directory: provision/minikube
         run: |
           task KC_DATABASE=postgres dataset-import -- -a clear-status-completed
-          task KC_DATABASE=postgres dataset-import -- -a create-realms -r 1 -c 5 -u 5 -i 1000
+          task KC_DATABASE=postgres dataset-import -- -a create-realms -r 1 -c 5 -u 5
           task KC_DATABASE=postgres dataset-import -- -a status-completed
       - name: Show logs on failure
         if: ${{ failure() }}
