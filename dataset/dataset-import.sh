@@ -74,7 +74,7 @@ set_environment_variables () {
 
 create_realms () {
   echo "Creating $1 realm/s with $2 client/s and $3 user/s."
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&task-timeout=$5&threads-count=$6"
+  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&task-timeout=$4&threads-count=$5"
 }
 
 create_clients () {
