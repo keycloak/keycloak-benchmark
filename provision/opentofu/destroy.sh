@@ -8,10 +8,11 @@ fi
 WORKSPACE=$1
 echo ${WORKSPACE}
 tofu init
-tofu workspace select ${WORKSPACE}
-tofu state pull
-INPUTS=$(tofu output | sed -n 's/input_//p' | sed 's/ //g' | sed 's/^/-var /' | tr -d '"')
-tofu destroy -auto-approve ${INPUTS} -lock-timeout=15m
-tofu state list
-tofu workspace select default
-tofu workspace delete ${WORKSPACE}
+if tofu workspace select ${WORKSPACE}; then
+  tofu state pull
+  INPUTS=$(tofu output | sed -n 's/input_//p' | sed 's/ //g' | sed 's/^/-var /' | tr -d '"')
+  tofu destroy -auto-approve ${INPUTS} -lock-timeout=15m
+  tofu state list
+  tofu workspace select default
+  tofu workspace delete ${WORKSPACE}
+fi
