@@ -8,7 +8,7 @@ terraform {
     }
     rhcs = {
       source = "terraform-redhat/rhcs"
-      version = "1.6.0-prerelease.1"
+      version = "1.6.0"
     }
     time = {
       source  = "hashicorp/time"
