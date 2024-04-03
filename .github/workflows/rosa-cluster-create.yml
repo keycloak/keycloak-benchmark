@@ -41,7 +41,6 @@ on:
         type: string
 
 env:
-  OPENSHIFT_VERSION: 4.14.5
   REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
 
 jobs:
@@ -70,7 +69,6 @@ jobs:
         run: ./rosa_create_cluster.sh
         working-directory: provision/aws
         env:
-          VERSION: ${{ env.OPENSHIFT_VERSION }}
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
           REPLICAS: ${{ inputs.replicas }}
