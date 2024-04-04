@@ -29,9 +29,12 @@ Prerequisite:
 Verifies the health of the Keycloak application through its load balancer and both primary and backup sites. This ensures that Keycloak is accessible and that the load balancing mechanism is functioning correctly across different geographical or network locations.
 
 This command returns the health status of the Keycloak application's connection to its configured database, thus confirming the reliability of db connections.
+This is only available on the management port, and not available from the external URL.
+In a Kubernetes setup, the sub-status `health/ready` is checked periodically to make the Pod as ready.
+
 [source,bash]
 ----
-curl -s https://keycloak-load-balancer-url/health
+curl -s https://keycloak:managementport/health
 ----
 
 This command verifies the `lb-check` endpoint of the load balancer and ensures the Keycloak application cluster is up and running.
