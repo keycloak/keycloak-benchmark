@@ -94,8 +94,7 @@ health_check() {
     echo
 }
 
-echo "Verify the Keycloak App Health and Load Balancer health check"
-health_check $keycloak_lb_url/health
+echo "Verify the Keycloak Load Balancer health check"
 health_check $keycloak_lb_url/lb-check
 
 echo "Verify the Load Balancer health check on Site A and Site B"
