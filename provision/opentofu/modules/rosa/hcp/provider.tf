@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
-    bucket = "kcb-tf-state"
-    key    = "vpc"
-    region = "eu-west-1"
-    encrypt = true
+    bucket         = "kcb-tf-state"
+    key            = "vpc"
+    region         = "eu-west-1"
+    encrypt        = true
     dynamodb_table = "app-state"
   }
 
@@ -17,7 +17,7 @@ terraform {
       version = "~> 3.2"
     }
     rhcs = {
-      source = "terraform-redhat/rhcs"
+      source  = "terraform-redhat/rhcs"
       version = "1.6.0"
     }
   }
@@ -26,7 +26,7 @@ terraform {
 }
 
 provider "aws" {
-  region = var.region
+  region     = var.region
   # Force set sts_region to preventing hanging on invalid regions
   sts_region = "us-east-1"
 }

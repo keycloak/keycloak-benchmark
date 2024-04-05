@@ -6,6 +6,9 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: string
+      cidr:
+        description: 'ROSA Machine CIDR'
+        type: string
       computeMachineType:
         description: 'Instance type for the compute nodes'
         type: string
@@ -69,6 +72,7 @@ jobs:
         run: ./rosa_create_cluster.sh
         working-directory: provision/aws
         env:
+          CIDR: ${{ inputs.cidr }}
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
           REPLICAS: ${{ inputs.replicas }}

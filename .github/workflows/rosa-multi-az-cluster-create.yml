@@ -49,8 +49,32 @@ jobs:
     outputs:
       clusterPrefix: ${{ env.CLUSTER_PREFIX }}
       region: ${{ env.REGION }}
+      cidrA: ${{ steps.cidr.outputs.CIDR_A }}
+      cidrB: ${{ steps.cidr.outputs.CIDR_B }}
+    concurrency:
+      group: multi-az-meta
     steps:
-      - run: echo ""
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Calculate Cluster CIDR
+        id: cidr
+        run: |
+          set -x
+          CIDRS=$(./rosa_machine_cidr.sh)
+          echo "CIDR_A=$(echo ${CIDRS} | jq -r .cidr_a )" >> ${GITHUB_OUTPUT}
+          echo "CIDR_B=$(echo ${CIDRS} | jq -r .cidr_b )" >> ${GITHUB_OUTPUT}
+        working-directory: provision/aws
+        env:
+          CLUSTER_PREFIX: ${{ env.CLUSTER_PREFIX }}
 
   cluster:
     if: ${{ inputs.createCluster }}
@@ -58,10 +82,9 @@ jobs:
     strategy:
       matrix:
         availabilityZone: [ a, b ]
-      # It is currently not safe to run the cluster creation in parallel, as both might pick the same CIDR, which then leads to conflicts
-      max-parallel: 1
     uses: ./.github/workflows/rosa-cluster-create.yml
     with:
+      cidr: ${{ matrix.availabilityZone == 'a' && needs.meta.outputs.cidrA || needs.meta.outputs.cidrB }}
       clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
       region: ${{ needs.meta.outputs.region }}
       availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
