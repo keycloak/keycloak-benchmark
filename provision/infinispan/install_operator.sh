@@ -3,7 +3,7 @@
 INSTALL_NAMESPACE=${INSTALL_NAMESPACE:-"openshift-operators"}
 OPERATOR_SOURCE=${OPERATOR_SOURCE:-"community-operators"}
 OPERATOR_SOURCE_NS=${OPERATOR_SOURCE_NS:-"openshift-marketplace"}
-OPERATOR_CHANNEL=${OPERATOR_CHANNEL:-"2.3.x"}
+OPERATOR_CHANNEL=${OPERATOR_CHANNEL:-"stable"}
 
 echo "Installing Infinispan operator."
 
