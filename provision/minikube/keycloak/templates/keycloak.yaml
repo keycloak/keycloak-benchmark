@@ -72,6 +72,10 @@ spec:
   # tag::keycloak-ispn[]
   additionalOptions:
   # end::keycloak-ispn[]
+    - name: http-metrics-histograms-enabled
+      value: 'true'
+    - name: http-metrics-slos
+      value: '5,10,25,50,250,500'
 {{- if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
