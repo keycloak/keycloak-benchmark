@@ -118,11 +118,11 @@ if [[ "$KC_WORKAROUND_28638" == "true" ]]; then
     fi
     sleep 1
   done
-
   echo "  adding configmaps permissions to the role"
-  kubectl -n $INSTALL_NAMESPACE get role $keycloakOperatorRole -o json \
-    | jq '.rules += [{"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch"]}]' \
-    | kubectl apply -f -
+  kubectl -n $INSTALL_NAMESPACE patch role $keycloakOperatorRole --type json -p '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch"]}}]'
+
+  echo "  also adding configmaps permissions to the role definition in CSV \"$CSV\""
+  kubectl -n $INSTALL_NAMESPACE patch csv $CSV --type json -p '[{"op":"add","path":"/spec/install/spec/permissions/0/rules/-","value":{"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch"]}}]'
 
   echo "  looking up operator pod"
   operatorPod=$(kubectl -n $INSTALL_NAMESPACE get pods -oname | grep $PRODUCT | head -1)
