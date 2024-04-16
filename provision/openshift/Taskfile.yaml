@@ -230,7 +230,7 @@ tasks:
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
           ROSA_CLUSTER_NAME: "current"
-      - task: keycloak:install-keycloak-operator{{ if .KC_OPERATOR_OLM }}-olm{{ end }}
+      - task: keycloak:install-keycloak-operator{{ if eq .KC_OPERATOR_OLM "true" }}-olm{{ end }}
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
       - >
