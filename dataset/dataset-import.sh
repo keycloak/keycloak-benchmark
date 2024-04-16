@@ -25,7 +25,7 @@ set_environment_variables () {
   CREATE_TIMEOUT="3600"
   THREADS="-1"
 
-  while getopts ":a:r:n:c:u:e:o:i:p:l:t:C:T:" OPT
+  while getopts ":a:r:n:c:u:e:o:g:i:p:l:t:C:T:" OPT
   do
     case $OPT in
       a)
@@ -49,6 +49,12 @@ set_environment_variables () {
       o)
         SESSIONS_COUNT=$OPTARG
         ;;
+      g)
+        HASH_ALGORITHM=$OPTARG
+        ;;
+      i)
+        HASH_ITERATIONS=$OPTARG
+        ;;
       p)
         REALM_PREFIX=$OPTARG
         ;;
@@ -70,11 +76,6 @@ set_environment_variables () {
         exit 1
     esac
   done
-}
-
-create_realms () {
-  echo "Creating $1 realm/s with $2 client/s and $3 user/s."
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&task-timeout=$4&threads-count=$5"
 }
 
 create_clients () {
@@ -189,7 +190,10 @@ main () {
   echo "Action: [$ACTION] "
   case "$ACTION" in
     create-realms)
-      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT $CREATE_TIMEOUT $THREADS
+      if [ -z "$HASH_ALGORITHM" ];  then HA_PARAM=""; HASH_ALGORITHM="default";  else HA_PARAM="&password-hash-algorithm=$HASH_ALGORITHM"; fi
+      if [ -z "$HASH_ITERATIONS" ]; then HI_PARAM=""; HASH_ITERATIONS="default"; else HI_PARAM="&password-hash-iterations=$HASH_ITERATIONS"; fi
+      echo "Creating $REALM_COUNT realms with $CLIENTS_COUNT clients and $USERS_COUNT users with $HASH_ITERATIONS password-hashing iterations using the $HASH_ALGORITHM algorithm."
+      execute_command "create-realms?count=$REALM_COUNT&clients-per-realm=$CLIENTS_COUNT&users-per-realm=$USERS_COUNT$HI_PARAM$HA_PARAM"
       exit 0
       ;;
     create-clients)
