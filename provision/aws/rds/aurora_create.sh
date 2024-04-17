@@ -131,6 +131,8 @@ for i in $( seq ${AURORA_INSTANCES} ); do
     --db-instance-identifier "${AURORA_CLUSTER}-instance-${i}" \
     --db-instance-class ${AURORA_INSTANCE_CLASS} \
     --engine ${AURORA_ENGINE} \
+    --enable-performance-insights \
+    --performance-insights-retention-period 7 \
     --availability-zone "${AZS[$(((i - 1) % ${#AZS[@]}))]}"
 done
 
