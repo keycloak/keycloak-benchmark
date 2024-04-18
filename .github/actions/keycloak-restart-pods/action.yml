@@ -1,0 +1,16 @@
+name: Restart Keycloak Pods
+description: Restart Keycloak Pods and wait
+
+inputs:
+  project:
+    description: OpenShift project where Keycloak is running
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: restart-keycloak-pods
+      shell: bash
+      run: |
+        kubectl delete pods -n "${{ inputs.project }}" -l app=keycloak
+        kubectl wait --for=condition=Ready --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${{ inputs.project }}"
