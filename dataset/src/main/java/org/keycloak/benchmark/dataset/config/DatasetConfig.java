@@ -150,6 +150,14 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "client-roles-per-user", defaultValue = 4, operations = { CREATE_REALMS, CREATE_USERS })
     private Integer clientRolesPerUser;
 
+    // Password policy with the password hash algorithm.
+    @QueryParamFill(paramName = "password-hash-algorithm", operations = { CREATE_REALMS })
+    private String passwordHashAlgorithm;
+
+    // Password policy with the number of password hash iterations.
+    @QueryParamIntFill(paramName = "password-hash-iterations", operations = { CREATE_REALMS })
+    private Integer passwordHashIterations;
+
     // Check if eventStorage will be enabled for newly created realms
     @QueryParamFill(paramName = "events-enabled", defaultValue = "false", operations = { CREATE_REALMS })
     private String eventsEnabled;
@@ -295,6 +303,14 @@ public class DatasetConfig {
 
     public Integer getClientRolesPerUser() {
         return clientRolesPerUser;
+    }
+
+    public String getPasswordHashAlgorithm() {
+        return passwordHashAlgorithm;
+    }
+
+    public Integer getPasswordHashIterations() {
+        return passwordHashIterations;
     }
 
     public Boolean getEventsEnabled() {

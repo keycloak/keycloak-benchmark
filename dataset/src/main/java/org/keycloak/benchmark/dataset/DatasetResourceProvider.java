@@ -913,6 +913,14 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         realm.setEnabled(true);
         realm.setRegistrationAllowed(true);
         realm.setAccessCodeLifespan(60);
+        PasswordPolicy.Builder b = PasswordPolicy.build();
+        if (!config.getPasswordHashAlgorithm().isEmpty()) { // only set if parameter explicitly provided, see QueryParamFill.defaultValue()
+            b.put("hashAlgorithm", config.getPasswordHashAlgorithm());
+        }
+        if (config.getPasswordHashIterations() != -1) { // only set if parameter explicitly provided, see QueryParamIntFill.defaultValue()
+            b.put("hashIterations", config.getPasswordHashIterations().toString());
+        }
+        realm.setPasswordPolicy(b.build(session));
 
         if (config.getEventsEnabled()) {
             realm.setEventsEnabled(true);
