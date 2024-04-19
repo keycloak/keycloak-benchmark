@@ -13,14 +13,13 @@ set_environment_variables () {
   USERS_COUNT="100"
   EVENTS_COUNT="100"
   SESSIONS_COUNT="100"
-  HASH_ITERATIONS="27500"
   if ( minikube version &>/dev/null ); then
     KEYCLOAK_URI="https://keycloak-keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   fi
   REALM_PREFIX="realm"
   STATUS_TIMEOUT="120"
 
-  while getopts ":a:r:n:c:u:e:o:i:p:l:t:" OPT
+  while getopts ":a:r:n:c:u:e:o:g:i:p:l:t:" OPT
   do
     case $OPT in
       a)
@@ -44,6 +43,9 @@ set_environment_variables () {
       o)
         SESSIONS_COUNT=$OPTARG
         ;;
+      g)
+        HASH_ALGORITHM=$OPTARG
+        ;;
       i)
         HASH_ITERATIONS=$OPTARG
         ;;
@@ -62,11 +64,6 @@ set_environment_variables () {
         exit 1
     esac
   done
-}
-
-create_realms () {
-  echo "Creating $1 realm/s with $2 client/s and $3 user/s with $4 password hash iterations."
-  execute_command "create-realms?count=$1&clients-per-realm=$2&users-per-realm=$3&password-hash-iterations=$4"
 }
 
 create_clients () {
@@ -163,7 +160,7 @@ check_dataset_status () {
 
 help () {
   echo "Dataset import to the local minikube Keycloak application - usage:"
-  echo "1) create realm/s with clients, users and password hash iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -c 100 -u 100 -i 20000 -l 'https://keycloak.url.com'"
+  echo "1) create realm/s with clients, users and password hash algorithm & iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -g argon2 -i 5 -c 100 -u 100 -l 'https://keycloak.url.com'"
   echo "2) create clients in specific realm: -a create-clients -c 100 -n realm-0 -l 'https://keycloak.url.com'"
   echo "3) create users in specific realm: -a create-users -u 100 -n realm-0 -l 'https://keycloak.url.com'"
   echo "4) create events in specific realm: -a create-events -e 100 -n realm-0 -l 'https://keycloak.url.com'"
@@ -181,7 +178,10 @@ main () {
   echo "Action: [$ACTION] "
   case "$ACTION" in
     create-realms)
-      create_realms $REALM_COUNT $CLIENTS_COUNT $USERS_COUNT $HASH_ITERATIONS
+      if [ -z "$HASH_ALGORITHM" ];  then HA_PARAM=""; HASH_ALGORITHM="default";  else HA_PARAM="&password-hash-algorithm=$HASH_ALGORITHM"; fi
+      if [ -z "$HASH_ITERATIONS" ]; then HI_PARAM=""; HASH_ITERATIONS="default"; else HI_PARAM="&password-hash-iterations=$HASH_ITERATIONS"; fi
+      echo "Creating $REALM_COUNT realms with $CLIENTS_COUNT clients and $USERS_COUNT users with $HASH_ITERATIONS password-hashing iterations using the $HASH_ALGORITHM algorithm."
+      execute_command "create-realms?count=$REALM_COUNT&clients-per-realm=$CLIENTS_COUNT&users-per-realm=$USERS_COUNT$HI_PARAM$HA_PARAM"
       exit 0
       ;;
     create-clients)

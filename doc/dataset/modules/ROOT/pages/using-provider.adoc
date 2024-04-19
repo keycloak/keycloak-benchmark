@@ -31,7 +31,7 @@ You will see these options:
 
 ----
 Dataset import to the local minikube Keycloak application - usage:
-1) create realm/s with clients, users and password hash iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -c 100 -u 100 -h 20000 -l 'https://keycloak.url.com'
+1) create realm/s with clients, users and password hash algorithm & iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -g argon2 -i 5 -c 100 -u 100 -l 'https://keycloak.url.com'
 2) create clients in specific realm: -a create-clients -c 100 -n realm-0 -l 'https://keycloak.url.com'
 3) create users in specific realm: -a create-users -u 100 -n realm-0 -l 'https://keycloak.url.com'
 4) create events in specific realm: -a create-events -e 100 -n realm-0 -l 'https://keycloak.url.com'
@@ -168,10 +168,16 @@ You can use parameters to remove all realms for example just from `foorealm5` to
 
 For change the parameters, take a look at link:{github-files}/dataset/src/main/java/org/keycloak/benchmark/dataset/config/DatasetConfig.java[DataSetConfig class]
 to see available parameters and default values and which endpoint the particular parameter is applicable.
-For example to create realms with prefix `foo` and with just 1000 hash iterations used for the password policy, you can use these parameters:
+For example to create realms with prefix `foo` and with just 1000 hash iterations (with the default hashing algorithm) used for the password policy you can use these parameters:
 
 ----
 .../realms/master/dataset/create-realms?count=10&realm-prefix=foo&password-hash-iterations=1000
+----
+
+Another example would be, to specify a particular hashing algorithm in combination with the hashing iterations with the below parameters:
+
+----
+.../realms/master/dataset/create-realms?count=10&realm-prefix=foo&password-hash-algorithm=argon2&password-hash-iterations=1000
 ----
 
 The configuration is written to the server log when HTTP endpoint is triggered, so you can monitor the progress and what parameters were effectively applied.
