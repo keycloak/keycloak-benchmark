@@ -106,6 +106,25 @@ tasks:
       - if [ ! -d .task ]; then mkdir .task; fi
       - echo "image-registry.openshift-image-registry.svc:5000/{{.NAMESPACE}}/keycloak-with-aws-jdbc-wrapper:latest" > .task/var-CUSTOM_CONTAINER_IMAGE_FILE
 
+  install-keycloak-operator-olm:
+    desc: "Install the Keycloak operator via the Operator Lifecycle Manager"
+    internal: true
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+    preconditions:
+      - test -f {{.KUBECONFIG}}
+    cmds:
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl create namespace "{{.NAMESPACE}}" || true
+      - INSTALL_NAMESPACE="{{.NAMESPACE}}" ./olm.sh
+    env:
+      CATALOG_SOURCE_NAMESPACE: '{{ default "openshift-marketplace" .KC_OPERATOR_CATALOG_SOURCE_NS }}'
+      CATALOG_SOURCE: '{{ default "community-operators" .KC_OPERATOR_CATALOG_SOURCE }}'
+      PRODUCT: '{{ default "keycloak-operator" .KC_OPERATOR_NAME }}'
+      CHANNEL: '{{ .KC_OPERATOR_CHANNEL }}'
+      VERSION: '{{ .KC_OPERATOR_VERSION }}'
+  
   install-keycloak-operator:
     desc: "Install the Keycloak operator"
     internal: true

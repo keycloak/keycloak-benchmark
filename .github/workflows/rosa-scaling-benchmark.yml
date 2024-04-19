@@ -14,7 +14,7 @@ on:
       numberOfEntitiesInRealm:
         description: 'Number of entities for the scenario in DB'
         type: number
-        default: 100000
+        default: 20000
       maxWaitEntityCreation:
         description: 'Maximum number of seconds to wait for creation of entities'
         type: number
@@ -22,7 +22,7 @@ on:
       numberOfUsersPerSecond:
         description: 'User logins per second'
         type: number
-        default: 40
+        default: 150
       numberOfClientsPerSecond:
         description: 'Client credential grants per second'
         type: number
@@ -57,7 +57,7 @@ on:
       numberOfEntitiesInRealm:
         description: 'Number of entities for the scenario in DB'
         type: number
-        default: 100000
+        default: 20000
       maxWaitEntityCreation:
         description: 'Maximum number of seconds to wait for creation of entities'
         type: number
@@ -65,7 +65,7 @@ on:
       numberOfUsersPerSecond:
         description: 'User logins per second'
         type: number
-        default: 40
+        default: 150
       numberOfClientsPerSecond:
         description: 'Client credential grants per second'
         type: number
@@ -192,6 +192,11 @@ jobs:
         env:
           ROSA_CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           NAMESPACE: ${{ env.PROJECT }}
+
+      - name: Restart Keycloak Pods after dataset creation
+        uses: ./.github/actions/keycloak-restart-pods
+        with:
+          project: ${{ env.PROJECT }}
 
       - name: Create AWS EC2 instances
         id: create_aws_ec2_instances

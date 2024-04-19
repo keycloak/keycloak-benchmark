@@ -36,7 +36,7 @@ for SERVICE in "${!SERVICES[@]}"; do
 
   if [[ "${SERVICE}" == "keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}" || "${SERVICE}" == "${KC_HEALTH_HOSTNAME}" ]]
   then
-    kubectl wait --for=condition=Available --timeout=1200s deployments.apps/keycloak-operator -n "${KC_NAMESPACE_PREFIX}keycloak"
+    kubectl wait --for=condition=Available --timeout=1200s deployments.apps/${KC_OPERATOR_NAME:-keycloak-operator} -n "${KC_NAMESPACE_PREFIX}keycloak"
     kubectl wait --for=condition=Ready --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak"
     kubectl wait --for=condition=RollingUpdate=False --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${KC_NAMESPACE_PREFIX}keycloak"
   fi

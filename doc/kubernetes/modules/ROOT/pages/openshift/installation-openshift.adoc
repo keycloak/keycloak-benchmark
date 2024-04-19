@@ -44,6 +44,30 @@ Cryostat depends on the Cryostat Operator to be installed, which is the default 
 
 To configure the deployment, see xref:customizing-deployment.adoc[] for details.
 
+=== Installing Keycloak from the Operator Hub
+
+By default the operator is installed directly via https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/nightly/kubernetes/kubernetes.yml[`keycloak-k8s-resources`].
+
+To install the operator from the _Operator Hub_ using the _Operator Lifecycle Manager_ set:
+[source,shell]
+----
+KC_OPERATOR_OLM=true
+----
+
+Additionally it is possible to customize the following parameters:
+
+KC_OPERATOR_CATALOG_SOURCE_NS:: Namespace of the OLM catalog source. Defaults to `openshift-marketplace`.
+KC_OPERATOR_CATALOG_SOURCE:: OLM catalog source. Defaults to `community-operators`.
+KC_OPERATOR_NAME:: Name of the Keycloak Operator in the catalog source. Defaults to `keycloak-operator`.
+KC_OPERATOR_CHANNEL:: OLM subscription channel. If not set the default channel of the selected operator will be used.
+KC_OPERATOR_VERSION:: Keycloak Operator version. If not set the current version from the selected channel will be used.
++
+Note that the actual _Cluster Service Version_ used for OLM subscription is set by convention as:
++
+----
+${KC_OPERATOR_NAME}.v${KC_OPERATOR_VERSION}
+----
+
 === Verifying the installation
 
 Run the following script to check if all services are running and receive a list of available URLs:

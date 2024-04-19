@@ -78,7 +78,7 @@ EOF
 }
 
 function create_user {
- kcadm.sh create users -s username=$USER_NAME -s enabled=true -r $REALM_NAME
+ kcadm.sh create users -s username=$USER_NAME -s enabled=true -s firstName=Firstname -s lastName=Lastname -s email=$USER_NAME@keycloak.org -r $REALM_NAME
  kcadm.sh set-password -r $REALM_NAME --username $USER_NAME --new-password $USER_NAME-password
  echo "INFO: Created New user ${USER_NAME} in ${REALM_NAME}"
 }
