@@ -172,7 +172,7 @@ check_dataset_status () {
 
 help () {
   echo "Dataset import to the local minikube Keycloak application - usage:"
-  echo "1) create realm/s with clients, users - run -a (action) with or without other arguments: -a create-realms -r 10 -c 100 -u 100 -l 'https://keycloak.url.com'"
+  echo "1) create realm/s with clients, users and password hash algorithm & iterations - run -a (action) with or without other arguments: -a create-realms -r 10 -g argon2 -i 5 -c 100 -u 100 -l 'https://keycloak.url.com'"
   echo "2) create clients in specific realm: -a create-clients -c 100 -n realm-0 -l 'https://keycloak.url.com'"
   echo "3) create users in specific realm: -a create-users -u 100 -n realm-0 -l 'https://keycloak.url.com'"
   echo "4) create events in specific realm: -a create-events -e 100 -n realm-0 -l 'https://keycloak.url.com'"
