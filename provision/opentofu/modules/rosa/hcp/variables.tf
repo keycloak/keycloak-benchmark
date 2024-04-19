@@ -68,7 +68,7 @@ variable "extra_tags" {
 
 variable "openshift_version" {
   type    = string
-  default = "4.15.5"
+  default = "4.15.8"
 }
 
 variable "instance_type" {
