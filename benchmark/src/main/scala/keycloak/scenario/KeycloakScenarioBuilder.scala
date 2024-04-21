@@ -288,7 +288,7 @@ class KeycloakScenarioBuilder {
     if (isRandom) {
       return randomLogout()
     } else {
-      chainBuilder = chainBuilder.exec(logout)
+      chainBuilder = chainBuilder.exec(logout())
     }
     this
   }
@@ -307,7 +307,7 @@ class KeycloakScenarioBuilder {
   def randomLogout(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .randomSwitch(
-        Config.logoutPercentage -> exec(logout)
+        Config.logoutPercentage -> exec(logout())
       )
     this
   }
