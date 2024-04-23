@@ -124,10 +124,20 @@ if [[ "$KC_WORKAROUND_28638" == "true" ]]; then
   echo "  also adding configmaps permissions to the role definition in CSV \"$CSV\""
   kubectl -n $INSTALL_NAMESPACE patch csv $CSV --type json -p '[{"op":"add","path":"/spec/install/spec/permissions/0/rules/-","value":{"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch"]}}]'
 
-  echo "  looking up operator pod"
-  operatorPod=$(kubectl -n $INSTALL_NAMESPACE get pods -oname | grep $PRODUCT | head -1)
-  echo "  found: $operatorPod, rebooting"
-  kubectl -n $INSTALL_NAMESPACE delete $operatorPod
+  echo "  waiting for operator pod"
+  attempts=30
+  for a in $(seq $attempts); do
+    operatorPod=$(kubectl -n $INSTALL_NAMESPACE get pods -oname | grep $PRODUCT | head -1)
+    if [ ! -z "$operatorPod" ]; then
+      echo "  found: $operatorPod, rebooting"
+      kubectl -n $INSTALL_NAMESPACE delete $operatorPod
+      break;
+    elif [ $a -ge $attempts ]; then
+      echo "  ERROR: Operator pod not found after $attempts attempts."
+      exit 3
+    fi
+    sleep 1
+  done
 
   echo "Workaround applied."
 fi
