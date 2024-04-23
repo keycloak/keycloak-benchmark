@@ -22,7 +22,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 AWS_ACCOUNT=${AWS_ACCOUNT:-$(aws sts get-caller-identity --query "Account" --output text)}
 
-requiredEnv AWS_ACCOUNT CLUSTER_NAME REGION
+requiredEnv AWS_ACCOUNT CLUSTER_NAME REGION CIDR
 
 export CLUSTER_NAME=${CLUSTER_NAME:-$(whoami)}
 
@@ -44,8 +44,10 @@ tofu workspace new ${CLUSTER_NAME} || true
 export TF_WORKSPACE=${CLUSTER_NAME}
 
 TOFU_CMD="tofu apply -auto-approve \
+  -var vpc_cidr=${CIDR} \
   -var cluster_name=${CLUSTER_NAME} \
-  -var region=${REGION}"
+  -var region=${REGION} \
+  -var subnet_cidr_prefix=28"
 
 if [ -n "${COMPUTE_MACHINE_TYPE}" ]; then
   TOFU_CMD+=" -var instance_type=${COMPUTE_MACHINE_TYPE}"

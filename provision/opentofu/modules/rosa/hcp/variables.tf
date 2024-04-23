@@ -11,12 +11,6 @@ variable "region" {
   type        = string
 }
 
-variable "path" {
-  description = "(Optional) The arn path for the account/operator roles as well as their policies."
-  type        = string
-  default     = null
-}
-
 variable "cluster_name" {
   description = "Name of the ROSA hosted control planes cluster to be created."
   type        = string
@@ -54,29 +48,20 @@ variable "subnet_cidr_prefix" {
   default     = 24
 }
 
-variable "private_subnets_only" {
-  description = "Only create private subnets"
-  type        = bool
-  default     = false
-}
-
-variable "extra_tags" {
-  description = "Extra tags to apply to AWS resources"
-  type        = map
-  default     = {}
-}
-
 variable "openshift_version" {
   type    = string
   default = "4.15.8"
+  nullable = false
 }
 
 variable "instance_type" {
-  type    = string
-  default = "m5.4xlarge"
+  type     = string
+  default  = "m5.4xlarge"
+  nullable = false
 }
 
 variable "replicas" {
-  type    = number
-  default = 2
+  type     = number
+  default  = 2
+  nullable = false
 }
