@@ -40,7 +40,7 @@ echo "Installing ROSA cluster ${CLUSTER_NAME}"
 
 cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
 tofu init
-tofu workspace new ${CLUSTER_NAME} || true
+tofu workspace new ${CLUSTER_NAME}-${REGION} || true
 export TF_WORKSPACE=${CLUSTER_NAME}
 
 TOFU_CMD="tofu apply -auto-approve \
