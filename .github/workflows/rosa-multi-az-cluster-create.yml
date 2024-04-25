@@ -82,6 +82,7 @@ jobs:
     strategy:
       matrix:
         availabilityZone: [ a, b ]
+      fail-fast: false
     uses: ./.github/workflows/rosa-cluster-create.yml
     with:
       cidr: ${{ matrix.availabilityZone == 'a' && needs.meta.outputs.cidrA || needs.meta.outputs.cidrB }}
