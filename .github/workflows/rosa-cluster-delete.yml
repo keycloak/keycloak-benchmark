@@ -56,7 +56,9 @@ jobs:
       - name: Delete a ROSA Cluster
         if: ${{ inputs.deleteAll == 'no' }}
         shell: bash
-        run: ./rosa_delete_cluster.sh
+        run: |
+          export REGION=$(rosa describe cluster -c ${CLUSTER_NAME} -o json | jq -r .region.id)
+          ./rosa_delete_cluster.sh
         working-directory: provision/aws
         env:
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
