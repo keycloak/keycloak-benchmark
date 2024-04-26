@@ -57,6 +57,9 @@ spec:
   features:
     enabled:
       - multi-site # <3>
+{{- if .Values.persistentSessions }}
+      - persistent-user-sessions
+{{- end }}
 {{- if .Values.infinispan.customConfig }}
   # tag::keycloak-ispn[]
   cache:
