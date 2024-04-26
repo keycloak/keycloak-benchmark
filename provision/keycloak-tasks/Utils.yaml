@@ -124,7 +124,7 @@ tasks:
       PRODUCT: '{{ default "keycloak-operator" .KC_OPERATOR_NAME }}'
       CHANNEL: '{{ .KC_OPERATOR_CHANNEL }}'
       VERSION: '{{ .KC_OPERATOR_VERSION }}'
-  
+
   install-keycloak-operator:
     desc: "Install the Keycloak operator"
     internal: true
@@ -255,6 +255,7 @@ tasks:
         --set namespace={{.NAMESPACE}}
         --set keycloakAdminPassword="{{.KC_ADMIN_PASSWORD}}"
         --set disableIngressStickySession={{ .KC_DISABLE_STICKY_SESSION }}
+        --set persistentSessions={{ .KC_PERSISTENT_SESSIONS }}
         --set nodePortsEnabled=false
         ../minikube/keycloak
     preconditions:

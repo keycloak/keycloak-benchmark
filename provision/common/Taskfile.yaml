@@ -24,6 +24,7 @@ vars:
   KC_REMOTE_STORE_HOST: '{{default "localhost" .KC_REMOTE_STORE_HOST}}'
   KC_REMOTE_STORE_PORT: '{{default "11222" .KC_REMOTE_STORE_PORT}}'
   KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
+  KC_PERSISTENT_SESSIONS: '{{default "false" .KC_PERSISTENT_SESSIONS}}'
   MULTI_AZ: '{{default "false" .MULTI_AZ}}'
   ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
   KC_REPOSITORY: '{{default "" .KC_REPOSITORY}}'
@@ -70,6 +71,7 @@ tasks:
       - echo {{.KC_REMOTE_STORE_HOST}} > .task/var-KC_REMOTE_STORE_HOST
       - echo {{.KC_REMOTE_STORE_PORT}} > .task/var-KC_REMOTE_STORE_PORT
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
+      - echo {{.KC_PERSISTENT_SESSIONS}} > .task/var-KC_PERSISTENT_SESSIONS
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
       - |
@@ -77,6 +79,7 @@ tasks:
           --arg cpu_limits_per_pod "{{ .KC_CPU_LIMITS }}" \
           --arg num_of_pods "{{ .KC_INSTANCES }}" \
           --argjson sticky_sessions "{{ .KC_DISABLE_STICKY_SESSION }}" \
+          --argjson persistent_sessions "{{ .KC_PERSISTENT_SESSIONS }}" \
           --arg mem_req_per_pod "{{ .KC_MEMORY_REQUESTS_MB }}" \
           --arg mem_limit_per_pod "{{ .KC_MEMORY_LIMITS_MB }}" \
           --arg db_pool_init "{{ .KC_DB_POOL_INITIAL_SIZE }}" \
@@ -134,6 +137,7 @@ tasks:
       - test "{{.KC_REMOTE_STORE_HOST}}" == "$(cat .task/var-KC_REMOTE_STORE_HOST)"
       - test "{{.KC_REMOTE_STORE_PORT}}" == "$(cat .task/var-KC_REMOTE_STORE_PORT)"
       - test "{{.KC_DISABLE_STICKY_SESSION}}" == "$(cat .task/var-KC_DISABLE_STICKY_SESSION)"
+      - test "{{.KC_PERSISTENT_SESSIONS}}" == "$(cat .task/var-KC_PERSISTENT_SESSIONS)"
       - test "{{.KC_HOSTNAME_OVERRIDE}}" == "$(cat .task/var-KC_HOSTNAME_OVERRIDE)"
       - test "{{.KC_HEALTH_HOSTNAME}}" == "$(cat .task/var-KC_HEALTH_HOSTNAME)"
 
