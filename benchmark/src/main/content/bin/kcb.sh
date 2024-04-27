@@ -115,7 +115,7 @@ CLASSPATH_OPTS="$DIRNAME/../lib/*"
 declare -A RESULT_CACHE
 
 rewrite_output() {
-    cat | sed 's|Please open the following file: |Please open the following file://|g' < /dev/stdin
+    sed -u 's|Please open the following file: |Please open the following file://|g' < /dev/stdin
 }
 
 run_benchmark_with_workload() {
