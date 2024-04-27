@@ -24,6 +24,8 @@ for CLUSTER_NAME in $CLUSTERS; do
   else
     echo "keepalive namespace doesn't exist in the cluster $CLUSTER_NAME, deleting it."
     #Delete the Individual Cluster
+    REGION=$(rosa describe cluster -c ${CLUSTER_NAME} -o json | jq -r .region.id)
+    export REGION
     ./rosa_delete_cluster.sh
   fi
 done
