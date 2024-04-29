@@ -88,7 +88,6 @@ jobs:
       cidr: ${{ matrix.availabilityZone == 'a' && needs.meta.outputs.cidrA || needs.meta.outputs.cidrB }}
       clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
       region: ${{ needs.meta.outputs.region }}
-      availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
     secrets: inherit
 
   deploy-keycloak:
