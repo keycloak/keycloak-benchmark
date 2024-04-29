@@ -90,8 +90,8 @@ EOF
 
 oc apply -f efs-csi-aws-com-cluster-csi-driver.yaml
 
-kubectl wait --for=condition=AWSEFSDriverNodeServiceControllerAvailable --timeout=600s clustercsidriver.operator.openshift.io/efs.csi.aws.com
-kubectl wait --for=condition=AWSEFSDriverControllerServiceControllerAvailable --timeout=600s clustercsidriver.operator.openshift.io/efs.csi.aws.com
+kubectl wait --for=condition=AWSEFSDriverNodeServiceControllerAvailable --timeout=900s clustercsidriver.operator.openshift.io/efs.csi.aws.com
+kubectl wait --for=condition=AWSEFSDriverControllerServiceControllerAvailable --timeout=900s clustercsidriver.operator.openshift.io/efs.csi.aws.com
 
 NODE=$(oc get nodes --selector=node-role.kubernetes.io/worker \
   -o jsonpath='{.items[0].metadata.name}')
