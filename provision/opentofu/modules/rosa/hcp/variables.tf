@@ -11,6 +11,11 @@ variable "region" {
   type        = string
 }
 
+variable "availability_zones" {
+  description = "CSV of Availability Zones to create cluster in."
+  type        = string
+}
+
 variable "cluster_name" {
   description = "Name of the ROSA hosted control planes cluster to be created."
   type        = string

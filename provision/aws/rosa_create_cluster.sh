@@ -44,8 +44,11 @@ WORKSPACE=${CLUSTER_NAME}-${REGION}
 tofu workspace new ${WORKSPACE} || true
 export TF_WORKSPACE=${WORKSPACE}
 
+AVAILABILITY_ZONES=${AVAILABILITY_ZONES:-"${REGION}a"}
+
 TOFU_CMD="tofu apply -auto-approve \
   -var vpc_cidr=${CIDR} \
+  -var availability_zones=${AVAILABILITY_ZONES} \
   -var cluster_name=${CLUSTER_NAME} \
   -var region=${REGION} \
   -var subnet_cidr_prefix=28"
