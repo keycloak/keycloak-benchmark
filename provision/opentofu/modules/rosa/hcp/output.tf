@@ -9,6 +9,6 @@ output "input_region" {
 }
 
 output "input_availability_zones" {
-  value       = var.region
+  value       = var.availability_zones
   description = "The Availability Zones AWS resources created in."
 }
