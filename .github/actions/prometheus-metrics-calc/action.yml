@@ -25,6 +25,9 @@ inputs:
     default: '3'
   measurementInterval:
     description: 'A specific time period over which we want to calculate the required metrics.'
+  ispnCacheName:
+    description: 'ISPN cache name for which we need to calculate metrics.'
+    default: 'sessions'
 
 runs:
   using: composite
@@ -88,6 +91,34 @@ runs:
         --arg val ${CALCULATED_METRIC_VALUE} '. + {($testName): {($key):($val|tonumber)}}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
         mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
 
+    - id: calculate-ispn-metric-and-store
+      name: Calculated the ISPN metric and stores it in horreum json file.
+      env:
+        HORREUM_OUTPUT_FILE_NAME: ${{ env.HORREUM_OUTPUT_FILE_NAME }}
+      shell: bash
+      # language=bash
+      run: |
+        #Reading ispn metrics file with xsite reqs data
+        readarray -t lines < "${{ inputs.ispnCacheName}}_ispn_metrics_file_count"
+        num1=${lines[0]}
+        num2=${lines[1]}
+        #calculating the number of xsite requests during the test execution
+        xsite_reqs=$(awk "BEGIN {print ($num2-$num1); exit}")
+        #Reading ispn metrics file with xsite reqs totad duration
+        readarray -t lines1 < "${{ inputs.ispnCacheName}}_ispn_metrics_file_sum"
+        num1=${lines1[0]}
+        num2=${lines1[1]}
+        #calculating the number of xsite requests during the test execution
+        xsite_reqs_total_duration=$(awk "BEGIN {print ($num2-$num1); exit}")
+        #calculating the average duration per request in ms
+        averageXsiteReplicationTimePerReq=$(awk "BEGIN {print int($xsite_reqs_total_duration*1000/$xsite_reqs); exit}")
+        #Putting metric into JSON
+        jq --arg cacheName "${{ inputs.ispnCacheName}}" --arg val "${averageXsiteReplicationTimePerReq}" --arg testName "${{ inputs.performedTestName }}" \
+        '.[$testName].ispnStatistics |= .+ {"cacheName": ($cacheName), "averageXsiteReplicationTime":($val|tonumber)}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
+        mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
+        #Removing ispn metrics file for next execution
+        rm "${{ inputs.ispnCacheName}}_ispn_metrics_file_count"
+
     - id: gatling-report-parse-and-store
       name: Parses gatling report and stores got information in JSON file.
       env:
@@ -103,13 +134,3 @@ runs:
         jq --argjson statsJson "${statsJson}" --arg testName "${{ inputs.performedTestName }}" \
         '.[$testName].statistics |= .+ ($statsJson)' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
         mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
-        #Reading ispn metrics file
-        readarray -t lines < ispn_metrics_file
-        for i in "${lines[@]}"
-        do
-            IFS=',' read -ra metric <<< "$i"
-            #Putting metric into JSON
-            jq --arg cacheName "${metric[0]}" --arg val "${metric[1]}" --arg testName "${{ inputs.performedTestName }}" \
-            '.[$testName].ispnStatistics |= .+ {"cacheName": ($cacheName), "averageXsiteReplicationTime":($val|tonumber)}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
-            mv tmp.json ${HORREUM_OUTPUT_FILE_NAME}
-        done

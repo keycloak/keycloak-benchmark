@@ -11,9 +11,9 @@ inputs:
   runMemoryUsageTotal:
     description: 'Identifies if "Memory Usage Total" query should be run.'
     default: 'false'
-  ispnMetrics:
-    description: 'Identifies if ISPN metrics should be retrieved.'
-    default: 'false'
+  ispnCacheName:
+    description: 'The name of the cache for which metrics should be retrieved.'
+    default: 'sessions'
   output:
     description: 'The name of the output to store data in'
     default: 'out'
@@ -58,16 +58,16 @@ runs:
         OC_TOKEN: ${{ env.OC_TOKEN }}
 
     - id: ispn-metrics
-      name: ISPN response information
-      if: ${{ inputs.ispnMetrics == 'true' }}
+      name: ISPN average xsite repl time
       shell: bash
       # language=bash
       run: |
-        cacheName="sessions"
-        ispnMetric=$(curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
-        "query=avg(vendor_rpc_manager_average_xsite_replication_time{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='$cacheName'})" \
-        | jq '.data.result[0].value[1]' -r)
-        echo "${cacheName},${ispnMetric}" >> ispn_metrics_file
+        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        "query=avg(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'})" \
+        | jq '.data.result[0].value[1]' -r >> "${{ inputs.ispnCacheName}}_ispn_metrics_file_sum"
+        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        "query=avg(vendor_rpc_manager_cross_site_replication_times_seconds_count{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'})" \
+        | jq '.data.result[0].value[1]' -r >> "${{ inputs.ispnCacheName}}_ispn_metrics_file_count"
       env:
         THANOS_HOST: ${{ env.THANOS_HOST }}
         OC_TOKEN: ${{ env.OC_TOKEN }}

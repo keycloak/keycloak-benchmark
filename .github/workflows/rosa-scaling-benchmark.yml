@@ -6,7 +6,7 @@ on:
       clusterName:
         description: 'Name of the cluster'
         type: string
-        default: 'gh-keycloak'
+        default: 'gh-keycloak-a'
       region:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
@@ -238,7 +238,6 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
           runMemoryUsageTotal: true
-          ispnMetrics: true
           output: memory_create_sessions
 
       - name: Calculate number of active sessions
@@ -287,7 +286,6 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
           runCpuSecsUtil: true
-          ispnMetrics: true
           output: user_logins_vCpu
 
       - name: Calculate and Store CPU sec Util For Ran Benchmark
@@ -329,7 +327,6 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
           runCpuSecsUtil: true
-          ispnMetrics: true
           output: client_credential_grants_vCpu
 
       - name: Calculate and Store CPU usage For Ran Benchmark
