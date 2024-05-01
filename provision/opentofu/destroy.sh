@@ -10,8 +10,12 @@ echo ${WORKSPACE}
 tofu init
 if tofu workspace select ${WORKSPACE}; then
   tofu state pull
-  INPUTS=$(tofu output | sed -n 's/input_//p' | sed 's/ //g' | sed 's/^/-var /' | tr -d '"')
-  tofu destroy -auto-approve ${INPUTS} -lock-timeout=15m
+  OUTPUTS=$(tofu output)
+  echo "${OUTPUTS}"
+  INPUTS=$(echo "${OUTPUTS}" | sed -n 's/input_//p' | sed 's/ //g' | sed 's/^/-var /' | tr -d '"')
+  DESTROY_CMD="tofu destroy -auto-approve ${INPUTS} -lock-timeout=15m"
+  echo ${DESTROY_CMD}
+  ${DESTROY_CMD}
   tofu state list
   tofu workspace select default
   tofu workspace delete ${WORKSPACE}
