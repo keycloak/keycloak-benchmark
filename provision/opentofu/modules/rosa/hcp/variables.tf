@@ -9,13 +9,11 @@ variable "region" {
       ROSA with hosted control planes cluster.
   EOT
   type        = string
-  default     = "eu-west-1"
 }
 
 variable "availability_zones" {
   description = "CSV of Availability Zones to create cluster in."
   type        = string
-  default     = "eu-west-1a"
 }
 
 variable "cluster_name" {
