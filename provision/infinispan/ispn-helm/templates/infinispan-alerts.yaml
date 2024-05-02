@@ -1,0 +1,35 @@
+{{ if .Values.acceleratorDNS }}
+apiVersion: monitoring.coreos.com/v1beta1
+kind: AlertmanagerConfig
+metadata:
+  name: example-routing
+spec:
+  route:
+    receiver: default
+    matchers:
+      - matchType: =
+        name: alertname
+        value: SiteOffline
+  receivers:
+    - name: default
+      webhookConfigs:
+        - url: '{{ .Values.alertmanager.webhook.url }}'
+          httpConfig:
+            tlsConfig:
+              insecureSkipVerify: true
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: xsite-status
+spec:
+  groups:
+    - name: xsite-status
+      rules:
+        - alert: SiteOffline
+          expr: 'min by (namespace, site) (vendor_jgroups_site_view_status{namespace="{{.Release.Namespace}}",site="{{ .Values.crossdc.remote.name }}"}) == 0'
+          labels:
+            severity: critical
+            reporter: {{ .Values.crossdc.local.name }}
+            accelerator: {{ .Values.acceleratorDNS }}
+{{ end }}

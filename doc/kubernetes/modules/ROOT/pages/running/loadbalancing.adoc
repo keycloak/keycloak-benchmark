@@ -19,6 +19,10 @@ accelerator to ensure that requests are routed to Keycloak clusters deployed in 
 AWS Global Accelerator prevents clients from erroneously caching IP addresses of failed Keycloak deployments which is
 possible with DNS based failover strategies.
 
+In the event of a Keycloak site failing, the Accelerator ensures that all client requests are routed to the remaining
+healthy site. If both sites are marked as unhealthy, then the Accelerator will "fail-open" and forward requests to a site
+chosen at random.
+
 .AWS Global Accelerator Failover
 image::accelerator/accelerator-multi-az.dio.svg[]
 
@@ -48,12 +52,13 @@ cat <<EOF | kubectl apply -n $NAMESPACE -f - #<1>
   metadata:
     name: accelerator-loadbalancer
     annotations:
+      service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: accelerator=${ACCELERATOR_NAME},site=${CLUSTER_NAME},namespace=${NAMESPACE}# <2>
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/lb-check"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "https"
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"# <2>
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "3"# <3>
-      service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "3"# <4>
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"# <3>
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "3"# <4>
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "3"# <5>
   spec:
     ports:
     - name: https
@@ -69,9 +74,11 @@ cat <<EOF | kubectl apply -n $NAMESPACE -f - #<1>
 EOF
 ----
 <1> `$NAMESPACE` should be replaced with the namespace of your Keycloak deployment
-<2> How frequently the healthcheck probe is executed in seconds
-<3> How many healthchecks must pass for the NLB to be considered healthy
-<4> How many healthchecks must fail for the NLB to be considered unhealthy
+<2> Add additional Tags to the resources created by AWS so that we can retrieve them later. `ACCELERATOR_NAME` should be
+the name of the Global Accelerator created in subsequent steps and `CLUSTER_NAME` should be the name of the current site.
+<3> How frequently the healthcheck probe is executed in seconds
+<4> How many healthchecks must pass for the NLB to be considered healthy
+<5> How many healthchecks must fail for the NLB to be considered unhealthy
 +
 .. Take note of the DNS hostname as this will be required later:
 +

@@ -76,9 +76,10 @@ oc login https://api.**<domain name>**:6443 -u **<username>**
 
 NOTE: The session will expire approximately one a day, and you'll need to re-login.
 
-== Enable user workload monitoring
+== Enable alert routing for user-defined projects
 
-By default, OpenShift doesn't monitor user workloads.
+By default, OpenShift HCP doesn't enable alert routing for user-defined projects.
+
 Apply the following ConfigMap link:{github-files}/provision/openshift/cluster-monitoring-config.yaml[cluster-monitoring-config.yaml] which is located in the `/provision/openshift` folder to OpenShift:
 
 [source,bash]
@@ -93,14 +94,11 @@ After this has been deployed, several new pods spin up in the *openshift-user-wo
 kubectl get pods -n openshift-user-workload-monitoring
 ----
 
-The metrics and targets are then available in the menu entry *Observe* in the OpenShift console.
-
-Additional steps are necessary to enable persistent volumes for the recorded metrics.
+Alerts defined in `PrometheusRule` CR are then available to view in the menu entry *Observe->Alerting* in the OpenShift console.
 
 Further reading:
 
-* https://docs.openshift.com/container-platform/4.12/monitoring/configuring-the-monitoring-stack.html[Configure OpenShift monitoring stack]
-* https://docs.openshift.com/container-platform/4.12/monitoring/enabling-monitoring-for-user-defined-projects.html[Enabling monitoring for user-defined projects]
+* https://docs.openshift.com/rosa/observability/monitoring/enabling-alert-routing-for-user-defined-projects.html[Enabling alert routing for user-defined projects]
 
 [#switching-between-different-kubernetes-clusters]
 == Switching between different Kubernetes clusters

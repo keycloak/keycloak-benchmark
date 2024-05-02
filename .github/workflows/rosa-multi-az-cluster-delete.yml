@@ -11,7 +11,7 @@ on:
         type: string
 
 jobs:
-  route53:
+  loadbalancer:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,12 +40,24 @@ jobs:
           echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
 
       - name: Delete Route53 Records
-        run: |
-          ./provision/aws/route53/route53_delete.sh
+        run: ./provision/aws/route53/route53_delete.sh
         env:
           SUBDOMAIN: ${{ env.SUBDOMAIN }}
 
+      - name: Set ACCELERATOR_DNS env variable for Global Accelerator processing
+        run: |
+          echo "ACCELERATOR_DNS=${KEYCLOAK_URL#"https://"}" >> $GITHUB_ENV
+
+      - name: Delete Global Accelerator
+        run: ./provision/aws/global-accelerator/accelerator_multi_az_delete.sh
+        env:
+          ACCELERATOR_DNS: ${{ env.ACCELERATOR_DNS }}
+          CLUSTER_1: ${{ inputs.clusterPrefix }}-a
+          CLUSTER_2: ${{ inputs.clusterPrefix }}-b
+          KEYCLOAK_NAMESPACE: runner-keycloak
+
   cluster1:
+    needs: loadbalancer
     uses: ./.github/workflows/rosa-cluster-delete.yml
     with:
       clusterName: ${{ inputs.clusterPrefix }}-a
@@ -53,6 +65,7 @@ jobs:
     secrets: inherit
 
   cluster2:
+    needs: loadbalancer
     uses: ./.github/workflows/rosa-cluster-delete.yml
     with:
       clusterName: ${{ inputs.clusterPrefix }}-b

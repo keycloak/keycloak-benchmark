@@ -261,7 +261,6 @@ tasks:
       vars:
         - ROSA_CLUSTER_NAME
         - KC_HOSTNAME_OVERRIDE
-        - KC_HEALTH_HOSTNAME
     cmds:
       - task: create-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-peering-connection
         vars:
@@ -319,8 +318,59 @@ tasks:
     preconditions:
       - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
 
+  active-active:
+    desc: "Deploys Infinispan, Aurora DB and Keycloak in a Active/Active deployment using ROSA clusters"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - AURORA_CLUSTER
+        - ACCELERATOR_DNS
+        - ACCELERATOR_WEBHOOK_URL
+#        - ACCELERATOR_WEBHOOK_USERNAME
+#        - ACCELERATOR_WEBHOOK_PASSWORD
+    cmds:
+      - task: common:datasetprovider
+      - task: create-aurora
+      # Using the CROSS_DC_MODE value to determine which aurora task to run, ASYNC --> global, SYNC --> single
+      # We expect to use ASYNC mode only in a cross region, cross site deployment and SYNC in a single region multi-az deployment.
+      - task: fetch-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-aurora-endpoint
+      - task: deploy-infinispan-crossdc
+        vars:
+          OC_NAMESPACE_1: "{{.KC_ISPN_NAMESPACE}}"
+          OC_NAMESPACE_2: "{{.KC_ISPN_NAMESPACE}}"
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          KC_HOSTNAME_OVERRIDE: "{{.ACCELERATOR_DNS}}"
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          KC_HOSTNAME_OVERRIDE: "{{.ACCELERATOR_DNS}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
   default:
-    desc: "Deploys Infinispan, Aurora DB and Keycloak in a Cross-Site deployment using ROSA clusters"
+    desc: "Deploys Infinispan, Aurora DB and Keycloak in a Active/Passive deployment using ROSA clusters"
     deps:
       - common:split
       - common:env
@@ -374,7 +424,7 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   undeploy:
-    desc: "Undeploy Infinispan and Keycloak in a Cross-Site deployment using ROSA clusters"
+    desc: "Undeploy Infinispan and Keycloak in a Active/Passive deployment"
     deps:
       - common:split
       - common:env
@@ -408,6 +458,43 @@ tasks:
       - task: route53-failback
         vars:
           WAIT: 0
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  undeploy-active-active:
+    desc: "Undeploy Infinispan and Keycloak in a Active/Active deployment"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: uninstall-infinispan
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: uninstall-infinispan
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - task: delete-env-configmap
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
@@ -594,6 +681,11 @@ tasks:
         - ROSA_CLUSTER_NAME_2
         - ACCELERATOR_NAME
     cmd: KEYCLOAK_NAMESPACE="{{.KC_NAMESPACE_PREFIX}}keycloak" ACCELERATOR_NAME={{.ACCELERATOR_NAME}} CLUSTER_1={{.ROSA_CLUSTER_NAME_1}} CLUSTER_2={{.ROSA_CLUSTER_NAME_2}} ./accelerator_multi_az_delete.sh
+
+  global-accelerator-recover:
+    desc: "Recover from Global Accelerator split-brain"
+    cmds:
+      - task: global-accelerator-create
 
   route53:
     desc: "Creates Route53 primary/backup DNS records"

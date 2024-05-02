@@ -16,6 +16,10 @@ on:
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
+      activeActive:
+        description: 'When true deploy an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
       enablePersistentSessions:
         description: 'To enable Persistent user and client sessions to the DB'
         type: boolean
@@ -32,16 +36,20 @@ on:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
       createCluster:
-        description: 'Check to Create Cluster'
+        description: 'Check to Create Cluster.'
         type: boolean
         default: true
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      activeActive:
+        description: 'When true deploy an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
       enablePersistentSessions:
         description: 'To enable Persistent user and client sessions to the DB'
         type: boolean
         default: false
-      keycloakRepository:
-        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
-        type: string
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -109,6 +117,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
         with:
@@ -140,6 +153,7 @@ jobs:
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Create Route53 Loadbalancer
+        if: ${{ !inputs.activeActive }}
         working-directory: provision/rosa-cross-dc
         run: |
           task route53 > route53
@@ -150,10 +164,49 @@ jobs:
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
-      - name: Deploy
+      - name: Deploy Active/Passive
+        if: ${{ !inputs.activeActive }}
         working-directory: provision/rosa-cross-dc
         run: task
         env:
+          AURORA_CLUSTER: ${{ env.CLUSTER_PREFIX }}
+          AURORA_REGION: ${{ env.REGION }}
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_ACTIVE_ACTIVE: ${{ inputs.activeActive }}
+          KC_CPU_REQUESTS: 6
+          KC_INSTANCES: 3
+          KC_DISABLE_STICKY_SESSION: true
+          KC_PERSISTENT_SESSIONS: ${{ env.KC_PERSISTENT_SESSIONS }}
+          KC_MEMORY_REQUESTS_MB: 3000
+          KC_MEMORY_LIMITS_MB: 4000
+          KC_DB_POOL_INITIAL_SIZE: 30
+          KC_DB_POOL_MAX_SIZE: 30
+          KC_DB_POOL_MIN_SIZE: 30
+          KC_DATABASE: "aurora-postgres"
+          MULTI_AZ: "true"
+          KC_REPOSITORY: ${{ inputs.keycloakRepository }}
+          KC_BRANCH: ${{ inputs.keycloakBranch }}
+
+      - name: Create Accelerator Loadbalancer
+        if: ${{ inputs.activeActive }}
+        working-directory: provision/rosa-cross-dc
+        run: |
+          task global-accelerator-create 2>&1 | tee accelerator
+          echo "ACCELERATOR_DNS=$(grep -Po 'ACCELERATOR DNS: \K.*' accelerator)" >> $GITHUB_ENV
+          echo "ACCELERATOR_WEBHOOK=$(grep -Po 'ACCELERATOR WEBHOOK: \K.*' accelerator)" >> $GITHUB_ENV
+        env:
+          ACCELERATOR_NAME: ${{ env.CLUSTER_PREFIX }}
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+
+      - name: Deploy Active/Active
+        if: ${{ inputs.activeActive }}
+        working-directory: provision/rosa-cross-dc
+        run: task active-active
+        env:
+          ACCELERATOR_DNS: ${{ env.ACCELERATOR_DNS }}
+          ACCELERATOR_WEBHOOK_URL: ${{ env.ACCELERATOR_WEBHOOK }}
           AURORA_CLUSTER: ${{ env.CLUSTER_PREFIX }}
           AURORA_REGION: ${{ env.REGION }}
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a

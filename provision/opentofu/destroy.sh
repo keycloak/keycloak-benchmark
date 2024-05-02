@@ -6,7 +6,7 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
 fi
 
 WORKSPACE=$1
-echo ${WORKSPACE}
+echo "Workspace: ${WORKSPACE}"
 tofu init
 if tofu workspace select ${WORKSPACE}; then
   tofu state pull

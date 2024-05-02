@@ -17,7 +17,23 @@ function deleteLoadBalancer() {
   oc delete -n ${NAMESPACE} svc ${SVC_NAME} || true
 }
 
-requiredEnv ACCELERATOR_NAME
+if [ -z "${ACCELERATOR_NAME}" ]; then
+  if [ -z "${ACCELERATOR_DNS}" ]; then
+    echo "ACCELERATOR_NAME or ACCELERATOR_DNS must be set"
+    exit 1
+  fi
+  ACCELERATOR_NAME=$(aws globalaccelerator list-accelerators \
+    --query "Accelerators[?ends_with(DnsName, '${ACCELERATOR_DNS}')].Name" \
+    --output text
+  )
+  if [ -z "${ACCELERATOR_NAME}" ]; then
+    echo "Unable to find Global Accelerator with DnsName '${ACCELERATOR_DNS}'"
+    exit 1
+  fi
+fi
+
+cd ${SCRIPT_DIR}/../../opentofu/modules/aws/accelerator
+bash ${SCRIPT_DIR}/../../opentofu/destroy.sh ${ACCELERATOR_NAME}
 
 DELETE_LB=${DELETE_LB:=true}
 if [ "${DELETE_LB}" = true ]; then
@@ -26,50 +42,3 @@ if [ "${DELETE_LB}" = true ]; then
   deleteLoadBalancer ${CLUSTER_1} ${ACCELERATOR_LB_NAME} ${KEYCLOAK_NAMESPACE}
   deleteLoadBalancer ${CLUSTER_2} ${ACCELERATOR_LB_NAME} ${KEYCLOAK_NAMESPACE}
 fi
-
-ACCELERATOR_ARN=$(aws globalaccelerator list-accelerators \
-  --query "Accelerators[?Name=='${ACCELERATOR_NAME}'].AcceleratorArn" \
-  --output text
-)
-
-if [ -z "${ACCELERATOR_ARN}" ]; then
-  echo "${ACCELERATOR_NAME} not found"
-  exit 0
-fi
-
-aws globalaccelerator update-accelerator \
-  --accelerator-arn ${ACCELERATOR_ARN} \
-  --no-enabled
-
-LISTENER_ARN=$(aws globalaccelerator list-listeners \
-  --accelerator-arn ${ACCELERATOR_ARN} \
-  --query "Listeners[0].ListenerArn" \
-  --output text
-)
-
-if [[ "${LISTENER_ARN}" != "None" ]]; then
-  ENDPOINT_GROUP_ARN=$(aws globalaccelerator list-endpoint-groups \
-    --listener-arn ${LISTENER_ARN} \
-    --query 'EndpointGroups[].EndpointGroupArn' \
-    --output text
-  )
-
-  if [[ -n "${ENDPOINT_GROUP_ARN}" ]]; then
-    aws globalaccelerator delete-endpoint-group \
-      --endpoint-group-arn ${ENDPOINT_GROUP_ARN}
-  fi
-
-  aws globalaccelerator delete-listener \
-    --listener-arn ${LISTENER_ARN}
-fi
-
-count=0
-until acceleratorDisabled ${ACCELERATOR_ARN} || (( count++ >= 300 )); do
-  sleep 1
-done
-
-if [ $count -gt 300 ]; then
-  echo "Timeout waiting for accelerator ${ACCELERATOR_ARN} to be removed"
-  exit 1
-fi
-aws globalaccelerator delete-accelerator --accelerator-arn ${ACCELERATOR_ARN}

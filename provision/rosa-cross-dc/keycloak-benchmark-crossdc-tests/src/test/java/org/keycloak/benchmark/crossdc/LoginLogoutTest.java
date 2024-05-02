@@ -1,19 +1,19 @@
 package org.keycloak.benchmark.crossdc;
 
-import org.jboss.logging.Logger;
-import org.junit.jupiter.api.Test;
-import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.http.HttpResponse;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
+import org.jboss.logging.Logger;
+import org.junit.jupiter.api.Test;
+import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
 
 
 public class LoginLogoutTest extends AbstractCrossDCTest {

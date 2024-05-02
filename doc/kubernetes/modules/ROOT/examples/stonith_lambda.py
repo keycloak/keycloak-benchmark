@@ -1,0 +1,1 @@
+../../../../../provision/opentofu/modules/aws/accelerator/src/stonith_lambda.py

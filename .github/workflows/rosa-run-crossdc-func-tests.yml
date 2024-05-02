@@ -6,12 +6,20 @@ on:
       clusterPrefix:
         description: 'The prefix used when creating the Cross DC clusters'
         type: string
+      activeActive:
+        description: 'Must be true when testing against an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
       clusterPrefix:
         description: 'The prefix used when creating the Cross DC clusters'
         type: string
+      activeActive:
+        description: 'Must be true when testing against an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
 
 concurrency:
   # Only run once for the latest commit per ref and cancel other (previous) runs.
@@ -32,6 +40,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
+
       - name: Cache Maven Wrapper
         uses: actions/cache@v4
         with:
@@ -40,6 +49,7 @@ jobs:
           key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-maven-wrapper-
+
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
         with:
@@ -47,30 +57,26 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
+
       - name: Login to OpenShift cluster A
         uses: ./.github/actions/oc-keycloak-login
         with:
           clusterName: ${{ inputs.clusterPrefix }}-a
-      - name: Get DC1 URLs
+
+      - name: Get DC1 Context
         shell: bash
-        run: |
-          KEYCLOAK_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" aws-health-route -o jsonpath='{.spec.host}')
-          echo "KEYCLOAK_DC1_URL=$KEYCLOAK_DC1_URL" >> "$GITHUB_ENV"
-          LOAD_BALANCER_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
-          echo "LOAD_BALANCER_URL=$LOAD_BALANCER_URL" >> "$GITHUB_ENV"
-          ISPN_DC1_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
-          echo "ISPN_DC1_URL=$ISPN_DC1_URL" >> "$GITHUB_ENV"
+        run: echo "KUBERNETES_1_CONTEXT=$(kubectl config current-context)" >> "$GITHUB_ENV"
+
       - name: Login to OpenShift cluster B
         uses: ./.github/actions/oc-keycloak-login
         with:
           clusterName: ${{ inputs.clusterPrefix }}-b
-      - name: Get DC2 URLs
+
+      - name: Get DC2 Context
         shell: bash
-        run: |
-          KEYCLOAK_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" aws-health-route -o jsonpath='{.spec.host}')
-          echo "KEYCLOAK_DC2_URL=$KEYCLOAK_DC2_URL" >> "$GITHUB_ENV"
-          ISPN_DC2_URL=https://$(kubectl get routes -n "${{ env.PROJECT }}" -l app=infinispan-service-external -o jsonpath='{.items[*].spec.host}')
-          echo "ISPN_DC2_URL=$ISPN_DC2_URL" >> "$GITHUB_ENV"
+        run: echo "KUBERNETES_2_CONTEXT=$(kubectl config current-context)" >> "$GITHUB_ENV"
+
       - name: Run CrossDC functional tests
-        run: |
-          ./provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/run-crossdc-tests.sh
+        run: ./provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/run-crossdc-tests.sh
+        env:
+          ACTIVE_ACTIVE: ${{ inputs.activeActive }}

@@ -1,15 +1,15 @@
 package org.keycloak.benchmark.crossdc;
 
-import org.junit.jupiter.api.Test;
-import org.keycloak.representations.idm.RealmRepresentation;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
+import org.junit.jupiter.api.Test;
+import org.keycloak.representations.idm.RealmRepresentation;
 
 public class SessionExpirationTest extends AbstractCrossDCTest {
 

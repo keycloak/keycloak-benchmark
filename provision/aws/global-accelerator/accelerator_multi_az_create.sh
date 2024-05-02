@@ -27,9 +27,9 @@ function waitForHostname() {
 
 function createLoadBalancer() {
   export CLUSTER_NAME=$1
-  REGION=$2
-  SVC_NAME=$3
-  NAMESPACE=$4
+  SVC_NAME=$2
+  NAMESPACE=$3
+  ACCELERATOR_NAME=$4
 
   bash ${SCRIPT_DIR}/../rosa_oc_login.sh > /dev/null
   oc create namespace ${NAMESPACE}  > /dev/null || true
@@ -39,6 +39,7 @@ function createLoadBalancer() {
   metadata:
     name: ${SVC_NAME}
     annotations:
+      service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: accelerator=${ACCELERATOR_NAME},site=${CLUSTER_NAME},namespace=${NAMESPACE}
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/lb-check"
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "https"
@@ -59,24 +60,9 @@ function createLoadBalancer() {
     type: LoadBalancer
 EOF
   LB_DNS=$(waitForHostname ${SVC_NAME} ${NAMESPACE})
-  LB_ARN=$(aws elbv2 describe-load-balancers \
-    --query "LoadBalancers[?DNSName=='${LB_DNS}'].LoadBalancerArn" \
-    --region ${REGION} \
-    --output text
-  )
-  echo ${LB_ARN}
 }
 
 requiredEnv ACCELERATOR_NAME CLUSTER_1 CLUSTER_2 KEYCLOAK_NAMESPACE
-
-EXISTING_ACCELERATOR=$(aws globalaccelerator list-accelerators \
-  --query "Accelerators[?Name=='${ACCELERATOR_NAME}'].AcceleratorArn" \
-  --output text
-)
-if [ -n "${EXISTING_ACCELERATOR}" ]; then
-  echo "Global Accelerator already exists with name '${ACCELERATOR_NAME}'"
-  exit 1
-fi
 
 CLUSTER_1_REGION=$(rosa describe cluster -c ${CLUSTER_1} -o json | jq -r .region.id)
 CLUSTER_2_REGION=$(rosa describe cluster -c ${CLUSTER_2} -o json | jq -r .region.id)
@@ -86,51 +72,17 @@ if [[ "${CLUSTER_1_REGION}" != "${CLUSTER_2_REGION}" ]]; then
   exit 1
 fi
 
-ENDPOINT_GROUP_REGION=${CLUSTER_1_REGION}
+createLoadBalancer ${CLUSTER_1} ${ACCELERATOR_LB_NAME} ${KEYCLOAK_NAMESPACE} ${ACCELERATOR_NAME}
+createLoadBalancer ${CLUSTER_2} ${ACCELERATOR_LB_NAME} ${KEYCLOAK_NAMESPACE} ${ACCELERATOR_NAME}
 
-CLUSTER_1_ENDPOINT_ARN=$(createLoadBalancer ${CLUSTER_1} ${CLUSTER_1_REGION} ${ACCELERATOR_LB_NAME} ${KEYCLOAK_NAMESPACE})
-CLUSTER_2_ENDPOINT_ARN=$(createLoadBalancer ${CLUSTER_2} ${CLUSTER_2_REGION} ${ACCELERATOR_LB_NAME} ${KEYCLOAK_NAMESPACE})
+TOFU_CMD="tofu apply -auto-approve \
+  -var aws_region=${CLUSTER_1_REGION} \
+  -var lb_service_name="${KEYCLOAK_NAMESPACE}/${ACCELERATOR_LB_NAME}" \
+  -var name=${ACCELERATOR_NAME} \
+  -var site_a=${CLUSTER_1} \
+  -var site_b=${CLUSTER_2}"
 
-ACCELERATOR=$(aws globalaccelerator create-accelerator \
-  --name ${ACCELERATOR_NAME} \
-  --query 'Accelerator' \
-  --ip-address-type DUAL_STACK \
-  --output json
-)
-
-ACCELERATOR_ARN=$(echo ${ACCELERATOR} | jq -r .AcceleratorArn)
-ACCELERATOR_DNS=$(echo ${ACCELERATOR} | jq -r .DnsName)
-ACCELERATOR_DUAL_STACK_DNS=$(echo ${ACCELERATOR} | jq -r .DualStackDnsName)
-
-LISTENER_ARN=$(aws globalaccelerator create-listener \
-  --accelerator-arn ${ACCELERATOR_ARN} \
-  --port-ranges '[{"FromPort":443,"ToPort":443}]' \
-  --protocol TCP \
-  --query 'Listener.ListenerArn' \
-  --output text
-)
-
-ENDPOINTS=$(echo '
-[
-  {
-    "EndpointId": "'${CLUSTER_1_ENDPOINT_ARN}'",
-    "Weight": 50,
-    "ClientIPPreservationEnabled": false
-  },
-  {
-    "EndpointId": "'${CLUSTER_2_ENDPOINT_ARN}'",
-    "Weight": 50,
-    "ClientIPPreservationEnabled": false
-  }
-]' | jq -c .
-)
-
-ENDPOINT_GROUP_ARN=$(aws globalaccelerator create-endpoint-group \
-  --listener-arn ${LISTENER_ARN} \
-  --traffic-dial-percentage 100 \
-  --endpoint-configurations ${ENDPOINTS} \
-  --endpoint-group-region ${ENDPOINT_GROUP_REGION}
-)
-
-echo "ACCELERATOR DNS: ${ACCELERATOR_DNS}"
-echo "ACCELERATOR DUAL_STACK DNS: ${ACCELERATOR_DUAL_STACK_DNS}"
+cd ${SCRIPT_DIR}/../../opentofu/modules/aws/accelerator
+source ${SCRIPT_DIR}/../../opentofu/create.sh ${ACCELERATOR_NAME} "${TOFU_CMD}"
+echo "ACCELERATOR DNS: $(tofu output -json | jq -r .dns_name.value)"
+echo "ACCELERATOR WEBHOOK: $(tofu output -json | jq -r .webhook_url.value)"

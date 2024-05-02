@@ -1,12 +1,12 @@
 package org.keycloak.benchmark.crossdc;
 
-import org.junit.jupiter.api.Test;
-import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.idm.UserRepresentation;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getCreatedId;
+
+import org.junit.jupiter.api.Test;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.UserRepresentation;
 
 public class EntityReplicationTest extends AbstractCrossDCTest {
 
