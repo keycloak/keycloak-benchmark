@@ -922,7 +922,7 @@
               }
             ]
           },
-          "unit": "none"
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -964,7 +964,7 @@
           "refId": "A"
         }
       ],
-      "title": "Number of put operations in last 2 minutes",
+      "title": "Number of put operations",
       "type": "timeseries"
     },
     {
@@ -1306,6 +1306,7 @@
             }
           },
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1319,7 +1320,7 @@
               }
             ]
           },
-          "unit": "ms"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -1353,8 +1354,8 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum by (pod, site) (vendor_rpc_manager_average_xsite_replication_time{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"})",
-          "legendFormat": "{{pod}} -> {{site}}",
+          "expr": "rate(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m]) / rate(vendor_rpc_manager_cross_site_replication_times_seconds_count{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m])",
+          "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
         }
