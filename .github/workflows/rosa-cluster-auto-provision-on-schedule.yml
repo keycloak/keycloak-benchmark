@@ -9,7 +9,7 @@ on:
 #   CLUSTER_PREFIX: gh-keycloak
 
 jobs:
-  cluster:
+  cluster-deploy:
     name: ROSA Scheduled Create cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
@@ -18,7 +18,7 @@ jobs:
     secrets: inherit
 
   run-functional-tests:
-    needs: cluster
+    needs: cluster-deploy
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
@@ -29,6 +29,32 @@ jobs:
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
-      skipCreateDeployment: true
-      skipDeleteProject: true
+    secrets: inherit
+
+  cluster-undeploy:
+    needs: run-scaling-benchmark
+    name: ROSA Scheduled Create cluster
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      skipAuroraDeletion: true
+    secrets: inherit
+
+  cluster-deploy-with-persistent-sessions:
+    needs: cluster-undeploy
+    name: ROSA Scheduled Create cluster with Persistent Sessions
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      enablePersistentSessions: true
+      createCluster: false
+    secrets: inherit
+
+  run-scaling-benchmark-with-peristent-sessions:
+    needs: cluster-deploy-with-persistent-sessions
+    uses: ./.github/workflows/rosa-scaling-benchmark.yml
+    with:
+      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
     secrets: inherit

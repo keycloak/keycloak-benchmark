@@ -16,6 +16,10 @@ on:
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
+      enablePersistentSessions:
+        description: 'To enable Persistent user and client sessions to the DB'
+        type: boolean
+        default: false
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -31,6 +35,10 @@ on:
         description: 'Check to Create Cluster'
         type: boolean
         default: true
+      enablePersistentSessions:
+        description: 'To enable Persistent user and client sessions to the DB'
+        type: boolean
+        default: false
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -41,6 +49,7 @@ on:
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
   REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
+  KC_PERSISTENT_SESSIONS: ${{ inputs.enablePersistentSessions }}
 
 jobs:
   # Workaround required for passing env variables to reusable workflow declarations as ${{ env.* }} is not available
@@ -152,7 +161,7 @@ jobs:
           KC_CPU_REQUESTS: 6
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
-          KC_PERSISTENT_SESSIONS: false
+          KC_PERSISTENT_SESSIONS: ${{ env.KC_PERSISTENT_SESSIONS }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
           KC_DB_POOL_INITIAL_SIZE: 30
