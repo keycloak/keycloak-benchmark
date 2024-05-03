@@ -4,9 +4,10 @@ cluster_size: 1
 
 cidr_ip: "{{ control_host_ip.stdout }}/32"
 
-ami_name: RHEL-8.8.0_HVM-20230503-x86_64-54-Hourly2-GP2
+# aws ec2 describe-images --owners self amazon --filters "Name=architecture,Values=arm64" "Name=virtualization-type,Values=hvm"  --region eu-west-1
+ami_name: RHEL-9.3.0_HVM-20231101-arm64-5-Hourly2-GP2
 
-instance_type: t3.micro
+instance_type: t4g.micro
 instance_volume_size: 20
 instance_device: /dev/sda1
 
