@@ -194,10 +194,11 @@ jobs:
           ROSA_CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           NAMESPACE: ${{ env.PROJECT }}
 
-      - name: Restart Keycloak Pods after dataset creation
-        uses: ./.github/actions/keycloak-restart-pods
-        with:
-          project: ${{ env.PROJECT }}
+#      Disabled until this bug is resolved: https://github.com/keycloak/keycloak-benchmark/issues/799
+#      - name: Restart Keycloak Pods after dataset creation
+#        uses: ./.github/actions/keycloak-restart-pods
+#        with:
+#          project: ${{ env.PROJECT }}
 
       - name: Create AWS EC2 instances
         id: create_aws_ec2_instances
