@@ -31,16 +31,8 @@ on:
         description: 'Measurement period (seconds)'
         type: number
         default: 600
-      skipCreateDeployment:
-        description: 'Skip creating Keycloak deployment'
-        type: boolean
-        default: false
       skipCreateDataset:
         description: 'Skip creating dataset'
-        type: boolean
-        default: false
-      skipDeleteProject:
-        description: 'Skip deleting project'
         type: boolean
         default: false
 
@@ -74,16 +66,8 @@ on:
         description: 'Measurement period (seconds)'
         type: number
         default: 600
-      skipCreateDeployment:
-        description: 'Skip creating Keycloak deployment'
-        type: boolean
-        default: false
       skipCreateDataset:
         description: 'Skip creating dataset'
-        type: boolean
-        default: false
-      skipDeleteProject:
-        description: 'Skip deleting project'
         type: boolean
         default: false
 
@@ -92,15 +76,6 @@ concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', git
 env:
   PROJECT_PREFIX: runner- # same as default
   PROJECT: runner-keycloak
-  KC_CPU_REQUESTS: 6
-  KC_INSTANCES: 3
-  KC_DISABLE_STICKY_SESSION: true
-  KC_PERSISTENT_SESSIONS: false
-  KC_MEMORY_REQUESTS_MB: 3000
-  KC_MEMORY_LIMITS_MB: 4000
-  KC_DB_POOL_INITIAL_SIZE: 30
-  KC_DB_POOL_MAX_SIZE: 30
-  KC_DB_POOL_MIN_SIZE: 30
   ANSIBLE_CUSTOM_VARS_ARG: '-e @env_rosa_benchmark.yml'
 
 jobs:
@@ -148,21 +123,6 @@ jobs:
           ./mvnw -B clean package -DskipTests -pl benchmark
           tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
           mv keycloak-benchmark-* keycloak-benchmark
-
-      - name: Allow cluster to scale
-        if: ${{ !inputs.skipCreateDeployment }}
-        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 3 scaling
-
-      - name: Create Keycloak deployment
-        if: ${{ !inputs.skipCreateDeployment }}
-        uses: ./.github/actions/keycloak-create-deployment
-        with:
-          projectPrefix: ${{ env.PROJECT_PREFIX }}
-          disableStickySessions: ${{ !env.KC_DISABLE_STICKY_SESSION }}
-          replicas: ${{ env.KC_INSTANCES }}
-          podCpuRequests: ${{ env.KC_CPU_REQUESTS }}
-          podMemoryRequests: ${{ env.KC_MEMORY_REQUESTS_MB }}
-          podMemoryLimit: ${{ env.KC_MEMORY_LIMITS_MB }}
 
       - name: Get URLs
         uses: ./.github/actions/get-keycloak-url
@@ -347,25 +307,30 @@ jobs:
         with:
           createReportFile: false
 
+      - name: Generate timestamp for archive name
+        run: |
+          cur_epoch_time=$(date +%s)
+          echo "ARCHIVE_EPOCH=$cur_epoch_time" >> $GITHUB_ENV
+
       - name: Archive Gatling reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: gatling-results
+          name: gatling-results-${{ env.ARCHIVE_EPOCH }}
           path: ansible/files/benchmark/*/results
           retention-days: 5
 
       - name: Archive Summary
         uses: actions/upload-artifact@v4
         with:
-          name: summary
+          name: summary-${{ env.ARCHIVE_EPOCH }}
           path: ansible/files/benchmark/*/results/*/js/stats.json
           retention-days: 5
 
       - name: Archive Calculated Metrics summary
         uses: actions/upload-artifact@v4
         with:
-          name: Calculated environment conclusion
+          name: final-report-json-${{ env.ARCHIVE_EPOCH }}
           path: |
             result-*.json
           retention-days: 5
@@ -375,16 +340,6 @@ jobs:
         uses: ./.github/actions/ec2-delete-instances
         with:
           region: ${{ inputs.region }}
-
-      - name: Delete Keycloak deployment
-        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
-        uses: ./.github/actions/keycloak-delete-deployment
-        with:
-          project: ${{ env.PROJECT }}
-
-      - name: Scale down the cluster
-        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
-        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 scaling
 
   archive:
     name: Commit results to Git repository
@@ -402,7 +357,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: Calculated environment conclusion
+          name: final-report-json-${{ env.ARCHIVE_EPOCH }}
 
       - name: Commit result-summary
         shell: bash
