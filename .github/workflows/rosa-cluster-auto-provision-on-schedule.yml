@@ -9,7 +9,7 @@ on:
 #   CLUSTER_PREFIX: gh-keycloak
 
 jobs:
-  cluster-deploy:
+  cluster-create-keycloak-deploy:
     name: ROSA Scheduled Create cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
@@ -18,7 +18,7 @@ jobs:
     secrets: inherit
 
   run-functional-tests:
-    needs: cluster-deploy
+    needs: cluster-create-keycloak-deploy
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
@@ -31,9 +31,9 @@ jobs:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
     secrets: inherit
 
-  cluster-undeploy:
+  keycloak-undeploy:
     needs: run-scaling-benchmark
-    name: ROSA Scheduled Create cluster
+    name: Undeploy Keycloak deployment on the multi-az cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
     with:
@@ -41,8 +41,8 @@ jobs:
       skipAuroraDeletion: true
     secrets: inherit
 
-  cluster-deploy-with-persistent-sessions:
-    needs: cluster-undeploy
+  keycloak-deploy-with-persistent-sessions:
+    needs: keycloak-undeploy
     name: ROSA Scheduled Create cluster with Persistent Sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
@@ -53,7 +53,7 @@ jobs:
     secrets: inherit
 
   run-scaling-benchmark-with-peristent-sessions:
-    needs: cluster-deploy-with-persistent-sessions
+    needs: keycloak-deploy-with-persistent-sessions
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
