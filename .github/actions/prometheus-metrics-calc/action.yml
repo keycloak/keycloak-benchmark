@@ -111,7 +111,11 @@ runs:
         #calculating the number of xsite requests during the test execution
         xsite_reqs_total_duration=$(awk "BEGIN {print ($num2-$num1); exit}")
         #calculating the average duration per request in ms
-        averageXsiteReplicationTimePerReq=$(awk "BEGIN {print int($xsite_reqs_total_duration*1000/$xsite_reqs); exit}")
+        if [[ $xsite_reqs -gt 0 ]]; then
+          averageXsiteReplicationTimePerReq=$(awk "BEGIN {print int($xsite_reqs_total_duration*1000/$xsite_reqs); exit}")
+        else
+          averageXsiteReplicationTimePerReq=""
+        fi
         #Putting metric into JSON
         jq --arg cacheName "${{ inputs.ispnCacheName}}" --arg val "${averageXsiteReplicationTimePerReq}" --arg testName "${{ inputs.performedTestName }}" \
         '.[$testName].ispnStatistics |= .+ {"cacheName": ($cacheName), "averageXsiteReplicationTime":($val|tonumber)}' ${HORREUM_OUTPUT_FILE_NAME} > tmp.json && \
