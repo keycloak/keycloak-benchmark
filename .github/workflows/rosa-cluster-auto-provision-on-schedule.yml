@@ -29,6 +29,7 @@ jobs:
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
+      outputArchiveSuffix: 'default'
     secrets: inherit
 
   keycloak-undeploy:
@@ -57,4 +58,5 @@ jobs:
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
+      outputArchiveSuffix: 'persistent-sessions'
     secrets: inherit
