@@ -35,6 +35,10 @@ on:
         description: 'Skip creating dataset'
         type: boolean
         default: false
+      outputArchiveSuffix:
+        description: 'Suffix for the output archive'
+        type: string
+        default: ''
 
   workflow_dispatch:
     inputs:
@@ -70,6 +74,10 @@ on:
         description: 'Skip creating dataset'
         type: boolean
         default: false
+      outputArchiveSuffix:
+        description: 'Suffix for the output archive'
+        type: string
+        default: '1'
 
 concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
 
@@ -307,30 +315,25 @@ jobs:
         with:
           createReportFile: false
 
-      - name: Generate timestamp for archive name
-        run: |
-          cur_epoch_time=$(date +%s)
-          echo "ARCHIVE_EPOCH=$cur_epoch_time" >> $GITHUB_ENV
-
       - name: Archive Gatling reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: gatling-results-${{ env.ARCHIVE_EPOCH }}
+          name: gatling-results-${{ inputs.outputArchiveSuffix }}
           path: ansible/files/benchmark/*/results
           retention-days: 5
 
       - name: Archive Summary
         uses: actions/upload-artifact@v4
         with:
-          name: summary-${{ env.ARCHIVE_EPOCH }}
+          name: summary-${{ inputs.outputArchiveSuffix }}
           path: ansible/files/benchmark/*/results/*/js/stats.json
           retention-days: 5
 
       - name: Archive Calculated Metrics summary
         uses: actions/upload-artifact@v4
         with:
-          name: final-report-json-${{ env.ARCHIVE_EPOCH }}
+          name: final-report-json-${{ inputs.outputArchiveSuffix }}
           path: |
             result-*.json
           retention-days: 5
@@ -357,7 +360,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: final-report-json-${{ env.ARCHIVE_EPOCH }}
+          name: final-report-json-${{ inputs.outputArchiveSuffix }}
 
       - name: Commit result-summary
         shell: bash
