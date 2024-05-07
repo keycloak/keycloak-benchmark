@@ -20,7 +20,7 @@ tasks:
       - mkdir -p .task/kubecfg
       - echo {{.INTERNAL_ROSA_ID}} > ".task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" CLUSTER_NAME="{{.ROSA_CLUSTER_NAME}}" ../aws/rosa_oc_login.sh
-      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc get route/console -n openshift-console -o jsonpath={.spec.host} | cut -d . -f 2- > ".task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl get ingresses.config/cluster -o jsonpath='{.spec.domain}' > ".task/kubecfg/ocp-prefix-{{.ROSA_CLUSTER_NAME}}"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc config view --minify -o jsonpath='{.clusters[0].cluster.server}' | sed 's|^http[s]://||g' > .task/kubecfg/api-{{.ROSA_CLUSTER_NAME}}
     generates:
       - .task/kubecfg/id-{{.ROSA_CLUSTER_NAME}}
