@@ -22,8 +22,6 @@ data:
       cacheContainer:
         metrics:
           namesAsTags: true
-          gauges: true
-          histograms: {{ .Values.metrics.histograms }}
       server:
         endpoints:
           - securityRealm: default
@@ -57,7 +55,7 @@ spec:
     type: Route
   configMapName: "cluster-config"
   image: {{ .Values.image | default .Values.defaultImage }}
-  version: 14.0.27
+  version: 15.0.3
   configListener:
     enabled: false
   container:
