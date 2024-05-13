@@ -82,7 +82,7 @@ jobs:
         if: always()
         run: |
           mkdir -p provision/aws/logs
-          rosa logs install --debug -c ${{ inputs.clusterName }} > provision/aws/logs/rosa-logs-${{ inputs.clusterName }}
+          rosa logs install --debug -c ${{ inputs.clusterName }} 2>&1 | tee provision/aws/logs/rosa-logs-${{ inputs.clusterName }}
 
       - name: Archive ROSA logs
         uses: actions/upload-artifact@v4
