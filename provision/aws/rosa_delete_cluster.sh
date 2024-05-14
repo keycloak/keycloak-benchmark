@@ -23,11 +23,22 @@ if [ -z "$REGION" ]; then echo "Variable REGION needs to be set."; exit 1; fi
 ./rds/aurora_delete_peering_connection.sh || true
 ./rosa_efs_delete.sh || true
 
-cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
-WORKSPACE=${CLUSTER_NAME}-${REGION}
-./../../../destroy.sh ${WORKSPACE}
-
+#Creating Logs directory for each cluster
 LOG_DIR="${SCRIPT_DIR}/logs/${CLUSTER_NAME}"
 mkdir -p ${LOG_DIR}
 cd ${LOG_DIR}
-rosa logs uninstall --debug -c ${CLUSTER_NAME} > "$(custom_date)_delete-cluster.log"
+echo "Starting to watch cluster uninstall logs."
+rosa logs uninstall -c ${CLUSTER_NAME} --watch --debug 2>&1 | tee "$(custom_date)_delete-cluster.log" &
+LOGS_SAVING_PROC_ID=$!
+
+cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
+WORKSPACE=${CLUSTER_NAME}-${REGION}
+./../../../destroy.sh ${WORKSPACE} &
+DESTROY_PROC_ID=$!
+
+timeout 30m bash -c 'wait $DESTROY_PROC_ID $LOGS_SAVING_PROC_ID'
+if [[ $? -eq 124 ]]; then
+    echo "Timeout occurred after 30 minutes."
+else
+    echo "Cluster is uninstalled and Logs are saved successfuly."
+fi

@@ -19,4 +19,5 @@ if tofu workspace select ${WORKSPACE}; then
   tofu state list
   tofu workspace select default
   tofu workspace delete ${WORKSPACE}
+  echo "Workspace ${WORKSPACE} is deleted."
 fi
