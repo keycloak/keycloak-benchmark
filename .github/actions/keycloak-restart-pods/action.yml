@@ -11,6 +11,5 @@ runs:
   steps:
     - id: restart-keycloak-pods
       shell: bash
-      run: |
-        kubectl delete pods -n "${{ inputs.project }}" -l app=keycloak
-        kubectl wait --for=condition=Ready --timeout=1200s keycloaks.k8s.keycloak.org/keycloak -n "${{ inputs.project }}"
+      working-directory: benchmark/src/main/content/bin
+      run: ./kc-rolling-restart.sh
