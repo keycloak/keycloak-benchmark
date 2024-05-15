@@ -28,17 +28,15 @@ LOG_DIR="${SCRIPT_DIR}/logs/${CLUSTER_NAME}"
 mkdir -p ${LOG_DIR}
 cd ${LOG_DIR}
 echo "Starting to watch cluster uninstall logs."
-rosa logs uninstall -c ${CLUSTER_NAME} --watch --debug 2>&1 | tee "$(custom_date)_delete-cluster.log" &
-LOGS_SAVING_PROC_ID=$!
+timeout -k 30m 30m bash -c "rosa logs uninstall -c ${CLUSTER_NAME} --watch --debug &> $(custom_date)_delete-cluster.log" &
 
 cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
 WORKSPACE=${CLUSTER_NAME}-${REGION}
-./../../../destroy.sh ${WORKSPACE} &
+timeout -k 30m 30m bash -c "./../../../destroy.sh ${WORKSPACE}" &
 DESTROY_PROC_ID=$!
 
-timeout 30m bash -c 'wait $DESTROY_PROC_ID $LOGS_SAVING_PROC_ID'
-if [[ $? -eq 124 ]]; then
-    echo "Timeout occurred after 30 minutes."
+if wait "${DESTROY_PROC_ID}"; then
+    echo "Cluster uninstalled successfully."
 else
-    echo "Cluster is uninstalled and Logs are saved successfuly."
+    echo "Timeout encountered deleting cluster"
 fi
