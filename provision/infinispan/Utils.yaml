@@ -104,6 +104,7 @@ tasks:
         --set image={{.CROSS_DC_IMAGE}}
         --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
         --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}
+        {{if eq .KC_PERSISTENT_SESSIONS "true"}}--values ispn-helm/persistent-session-caches.yaml{{end}}
         ./ispn-helm
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
