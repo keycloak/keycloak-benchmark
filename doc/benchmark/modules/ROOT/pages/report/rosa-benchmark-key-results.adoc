@@ -1,26 +1,23 @@
 = Keycloak on ROSA Benchmark Key Results
 
-This summarizes a benchmark run with Keycloak 24 performed in Jan 2024.
+This summarizes a benchmark run with Keycloak 25 release candidate build performed in May 2024.
 Use this as a starting point to calculate the requirements of a Keycloak environment.
 Use them to perform a load testing in your environment.
 
 [WARNING]
 ====
-Collecting the CPU usage for refreshing a token is currently performed manually and is expected to be automated in the near future (https://github.com/keycloak/keycloak-benchmark/issues/517[keycloak/keycloak-benchmark#517], https://github.com/keycloak/keycloak-benchmark/issues/518[keycloak/keycloak-benchmark#518]).
+Collecting the CPU usage for refreshing a token is currently performed manually and is expected to be automated in the near future (https://github.com/keycloak/keycloak-benchmark/issues/517[keycloak/keycloak-benchmark#517]).
 ====
-
-== Data collection
-
-These are rough estimates from looking at Grafana dashboards.
-A full automation is pending to show repeatable results over different releases.
 
 == Setup
 
-* OpenShift 4.14.x deployed on AWS via ROSA with two AWS availability zones in AWS one region.
+This setup is run https://github.com/keycloak/keycloak-benchmark/blob/main/.github/workflows/rosa-cluster-auto-provision-on-schedule.yml[daily on a GitHub action schedule]:
+
+* OpenShift 4.15.x deployed on AWS via ROSA with two AWS availability zones in AWS one region.
 * Machinepool with `m5.4xlarge` instances.
-* Keycloak 24 deployed with Operator and 3 pods in each site as an active/passive setup, and Infinispan connecting the two sites.
-* Default user password hashing with PBKDF2(SHA512) 210,000 hash iterations https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2[as recommended by OWASP].
-* Database seeded with 20,000 users and 20,000 clients.
+* Keycloak 25 release candidate build deployed with Operator and 3 pods in each site as an active/passive setup, and Infinispan connecting the two sites.
+* Default user password hashing with Argon2 and 5 hash iterations and minimum memory size 7 MiB https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id[as recommended by OWASP].
+* Database seeded with 100,000 users and 100,000 clients.
 * Infinispan caches at default of 10,000 entries, so not all clients and users fit into the cache, and some requests will need to fetch the data from the database.
 * All sessions in distributed caches as per default, with two owners per entries, allowing one failing pod without losing data.
 * Database Amazon Aurora PostgreSQL in a multi-AZ setup, with the writer instance in the availability zone of the primary site.
@@ -43,73 +40,10 @@ KC_DB_POOL_MAX_SIZE=30
 KC_DB_POOL_MIN_SIZE=30
 ----
 
-== Performance results
+== Results
 
-[WARNING]
-====
-* Performance will be lowered when scaling to more Pods (due to additional overhead) and using a cross-datacenter setup (due to additional traffic and operations).
-
-* Increased cache sizes can improve the performance when Keycloak instances run for a longer time. Still, those caches need to be filled when an instance is restarted.
-
-* Use these values as a starting point and perform your own load tests before going into production.
-====
-
-Summary:
-
-* The used CPU scales linearly with the number of requests up to the tested limit below.
-* The used memory scales linearly with the number of active sessions up to the tested limit below.
-
-Observations:
-
-* The base memory usage for an inactive Pod is 1000 MB of RAM.
-
-* For each 100,000 active user sessions, add 500 MB per Pod in a three-node cluster (tested with up to 200,000 sessions).
-+
-This assumes that each user connects to only one client.
-Memory requirements increase with the number of client sessions per user session (not tested yet).
-
-* In containers, Keycloak allocates 70% of the memory limit for heap based memory. It will also use approximately 300 MB of non-heap-based memory.
-To calculate the requested memory, use the calculation above. As limit, subtract the non-heap memory from the value above and divide the result by 0.7.
-
-* For each 8 password-based user logins per second, 1 vCPU per Pod in a three-node cluster (tested with up to 300 password-based user logins per second).
-+
-Keycloak spends most of the CPU time hashing the password provided by the user, and it is proportional to the number of hash iterations.
-
-* For each 450 client credential grants per second, 1 vCPU per Pod in a three-node cluster (tested with up to 2000 per second).
-+
-Most CPU time goes into creating new TLS connections, as each client runs only a single request.
-
-* For each 350 refresh token requests per second, 1 vCPU per Pod in a three-node cluster (tested with up to 435 refresh token requests per second).
-
-* Leave 200% extra head-room for CPU usage to handle spikes in the load.
-This ensures a fast startup of the node, and sufficient capacity to handle failover tasks like, for example, re-balancing Infinispan caches, when one node fails.
-Performance of Keycloak dropped significantly when its Pods were throttled in our tests.
-
-=== Calculation example
-
-Target size:
-
-* 50,000 active user sessions
-* 24 logins per seconds
-* 450 client credential grants per second
-
-Limits calculated:
-
-* CPU requested: 5 vCPU
-+
-(24 logins per second = 3 vCPU, 450 client credential grants per second = 1 vCPU, 350 refresh token = 1 vCPU)
-
-* CPU limit: 15 vCPU
-+
-(Allow for three times the CPU requested to handle peaks, startups and failover tasks)
-
-* Memory requested: 1250 MB
-+
-(1000 MB base memory plus 250 MB RAM for 50,000 active sessions)
-
-* Memory limit: 1360 MB
-+
-(1250 MB expected memory usage minus 300 non-heap-usage, divided by 0.7)
+Refer to https://www.keycloak.org/high-availability/concepts-memory-and-cpu-sizing[concepts-memory-and-cpu-sizing] in main Keycloak docs for results on the latest release, calculation example, observations and recommendations.
+Updated information about the upcoming release are available https://github.com/keycloak/keycloak/blob/main/docs/guides/high-availability/concepts-memory-and-cpu-sizing.adoc[in the main branch of the GitHub repository].
 
 == Tests performed
 
@@ -134,9 +68,9 @@ task monitoring
 +
 [source,bash]
 ----
-task dataset-import -- -a create-realms -u 20000
+task dataset-import -- -a create-realms -u 100000
 # wait for first task to complete
-task dataset-import -- -a create-clients -c 20000 -n realm-0
+task dataset-import -- -a create-clients -c 100000 -n realm-0
 ----
 . Prepare environment for running the benchmark via Ansible
 +
@@ -173,7 +107,7 @@ cd ../../ansible
 --ramp-up=20 \
 --logout-percentage=0 \
 --measurement=600 \
---users-per-realm=20000 \
+--users-per-realm=100000 \
 --log-http-on-failure
 ----
 
@@ -189,7 +123,7 @@ cd ../../ansible
 --ramp-up=20 \
 --logout-percentage=100 \
 --measurement=600 \
---users-per-realm=20000 \
+--users-per-realm=100000 \
 --log-http-on-failure
 ----
 
@@ -207,7 +141,7 @@ Use the previous test to deduct the CPU usage of logins only to get the CPU usag
 --logout-percentage=100 \
 --refresh-token-count=10 \
 --measurement=600 \
---users-per-realm=20000 \
+--users-per-realm=100000 \
 --log-http-on-failure
 ----
 
@@ -223,6 +157,6 @@ Use the previous test to deduct the CPU usage of logins only to get the CPU usag
 --ramp-up=20 \
 --logout-percentage=100 \
 --measurement=600 \
---users-per-realm=20000 \
+--users-per-realm=100000 \
 --log-http-on-failure
 ----
