@@ -119,8 +119,8 @@ jobs:
 
       - name: Scale ROSA clusters
         run: |
-          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-a --min-replicas 3 --max-replicas 10 scaling
-          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-b --min-replicas 3 --max-replicas 10 scaling
+          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-a --min-replicas 3 --max-replicas 10 --autorepair scaling
+          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-b --min-replicas 3 --max-replicas 10 --autorepair scaling
 
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
