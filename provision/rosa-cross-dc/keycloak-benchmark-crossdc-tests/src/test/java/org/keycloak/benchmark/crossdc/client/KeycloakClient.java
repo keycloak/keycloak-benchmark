@@ -249,15 +249,15 @@ public class KeycloakClient {
         return keycloakServerUrl;
     }
 
-    public InfinispanClient embeddedIspn() {
-        return new InfinispanClient() {
+    public InfinispanClient<InfinispanClient.Cache> embeddedIspn() {
+        return new InfinispanClient<>() {
             @Override
             public Cache cache(String name) {
                 return new Cache() {
                     @Override
                     public long size() {
                         try {
-                            return ((Integer) getNestedValue(getEmbeddedISPNstats(),"cacheSizes", "sessions")).longValue() - KeycloakClient.getCurrentlyInitializedAdminClients();
+                            return ((Integer) getNestedValue(getEmbeddedISPNstats(),"cacheSizes", name)).longValue() - KeycloakClient.getCurrentlyInitializedAdminClients();
                         } catch (URISyntaxException | IOException | InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -269,7 +269,19 @@ public class KeycloakClient {
                     }
 
                     @Override
-                    public boolean contains(String key) {
+                    public boolean contains(String key) throws URISyntaxException, IOException, InterruptedException {
+                        URI uri = new URIBuilder( testRealmUrl("master") + "/cache/" + name + "/contains/" + key).build();
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(uri)
+                                .GET()
+                                .build();
+
+                        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                        return Boolean.parseBoolean(response.body());
+                    }
+
+                    @Override
+                    public boolean remove(String key) {
                         throw new NotImplementedYetException("This is not yet implemented :/");
                     }
 

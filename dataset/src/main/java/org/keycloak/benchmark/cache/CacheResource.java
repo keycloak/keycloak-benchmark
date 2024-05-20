@@ -84,4 +84,12 @@ public class CacheResource {
             return false;
         }
     }
+
+    @GET
+    @Path("/size")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public int size() {
+        return cache.size();
+    }
 }

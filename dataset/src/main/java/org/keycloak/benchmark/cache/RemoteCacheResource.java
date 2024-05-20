@@ -20,13 +20,16 @@ package org.keycloak.benchmark.cache;
 
 import java.util.UUID;
 
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 
+import jakarta.ws.rs.QueryParam;
 import org.infinispan.Cache;
+import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.commons.CacheConfigurationException;
 import org.jboss.logging.Logger;
@@ -93,5 +96,31 @@ public class RemoteCacheResource {
         } else {
             return false;
         }
+    }
+
+    @GET
+    @Path("/remove/{id}")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public boolean remove(@PathParam("id") String id, @QueryParam("skipListeners") @DefaultValue("false") boolean skipListeners) {
+        if (decorateCacheForRemovalAndSkipListenersIfTrue(skipListeners).remove(id) != null) {
+            return true;
+        } else if (id.length() == 36) {
+            try {
+                UUID uuid = UUID.fromString(id);
+                return decorateCacheForRemovalAndSkipListenersIfTrue(skipListeners).remove(uuid) != null;
+            } catch (IllegalArgumentException iae) {
+                logger.warnf("Given string %s not an UUID", id);
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public RemoteCache decorateCacheForRemovalAndSkipListenersIfTrue(boolean skipListeners) {
+        return skipListeners
+                ? remoteCache.withFlags(Flag.SKIP_LISTENER_NOTIFICATION, Flag.FORCE_RETURN_VALUE)
+                : remoteCache.withFlags(Flag.FORCE_RETURN_VALUE);
     }
 }

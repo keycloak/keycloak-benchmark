@@ -1,17 +1,6 @@
 package org.keycloak.benchmark.crossdc;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
-import java.net.http.HttpClient;
-import java.util.Collections;
-import java.util.List;
-
+import jakarta.ws.rs.NotFoundException;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -28,8 +17,6 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
-import jakarta.ws.rs.NotFoundException;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
@@ -41,7 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
 public abstract class AbstractCrossDCTest {
     private static final Logger LOG = Logger.getLogger(AbstractCrossDCTest.class);
@@ -119,6 +108,9 @@ public abstract class AbstractCrossDCTest {
         user.setCredentials(Collections.singletonList(credential));
 
         realmResource.users().create(user).close();
+
+        assertCacheSize(SESSIONS, 0);
+        assertCacheSize(CLIENT_SESSIONS, 0);
     }
 
     @AfterEach
@@ -161,11 +153,11 @@ public abstract class AbstractCrossDCTest {
 
     protected void assertCacheSize(String cache, int size) {
         // Embedded caches
-        assertEquals(DC_1.kc().embeddedIspn().cache(cache).size(), size, () -> "Embedded cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
-        assertEquals(DC_2.kc().embeddedIspn().cache(cache).size(), size, () -> "Embedded cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
+        assertEquals(size, DC_1.kc().embeddedIspn().cache(cache).size(), () -> "Embedded cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
+        assertEquals(size, DC_2.kc().embeddedIspn().cache(cache).size(), () -> "Embedded cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
 
         // External caches
-        assertEquals(DC_1.ispn().cache(cache).size(), size, () -> "External cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
-        assertEquals(DC_2.ispn().cache(cache).size(), size, () -> "External cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
+        assertEquals(size, DC_1.ispn().cache(cache).size(), () -> "External cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
+        assertEquals(size, DC_2.ispn().cache(cache).size(), () -> "External cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
     }
 }

@@ -1,6 +1,7 @@
 package org.keycloak.benchmark.crossdc;
 
 import org.junit.jupiter.api.Test;
+import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -8,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
@@ -79,5 +81,71 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
             assertCacheSize(SESSIONS, 0);
             assertCacheSize(CLIENT_SESSIONS, 0);
         }
+    }
+
+    @Test
+    public void testRemoteStoreDiscrepancyMissingSessionInPrimaryRemoteISPN() throws URISyntaxException, IOException, InterruptedException {
+        // Create a new user session
+        Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.passwordGrant(REALM_NAME, CLIENTID, USERNAME, MAIN_PASSWORD);
+
+        // Make sure all ISPNs can see the entry in the cache
+        assertTrue(DC_1.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_1.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+
+        // Remove the session from the remote store in DC1 only
+        try (var close = InfinispanUtils.withBackupDisabled(DC_1.ispn().cache(SESSIONS), DC_2.ispn().siteName())) {
+            assertFalse(DC_1.ispn().cache(SESSIONS).isBackupOnline(DC_2.ispn().siteName()));
+            DC_1.ispn().cache(SESSIONS).remove((String) tokensMap.get("session_state"));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        assertTrue(DC_1.ispn().cache(SESSIONS).isBackupOnline(DC_2.ispn().siteName()));
+
+        assertTrue(DC_1.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_1.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+
+        LOAD_BALANCER_KEYCLOAK.logout(REALM_NAME, (String) tokensMap.get("id_token"), CLIENTID);
+
+        assertFalse(DC_1.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_1.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_2.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+    }
+
+    @Test
+    public void testRemoteStoreDiscrepancyMissingSessionInBackupRemoteISPN() throws URISyntaxException, IOException, InterruptedException {
+        // Create a new user session
+        Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.passwordGrant(REALM_NAME, CLIENTID, USERNAME, MAIN_PASSWORD);
+
+        // Make sure all ISPNs can see the entry in the cache
+        assertTrue(DC_1.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_1.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+
+        // Remove the session from the remote store in DC1 only
+        try (var close = InfinispanUtils.withBackupDisabled(DC_2.ispn().cache(SESSIONS), DC_1.ispn().siteName())) {
+            assertFalse(DC_2.ispn().cache(SESSIONS).isBackupOnline(DC_1.ispn().siteName()));
+            DC_2.ispn().cache(SESSIONS).remove((String) tokensMap.get("session_state"));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        assertTrue(DC_2.ispn().cache(SESSIONS).isBackupOnline(DC_1.ispn().siteName()));
+
+        assertTrue(DC_1.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_1.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertTrue(DC_2.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+
+        LOAD_BALANCER_KEYCLOAK.logout(REALM_NAME, (String) tokensMap.get("id_token"), CLIENTID);
+
+        assertFalse(DC_1.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_1.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_2.kc().embeddedIspn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
+        assertFalse(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
     }
 }

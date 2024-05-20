@@ -29,6 +29,7 @@ import jakarta.ws.rs.Produces;
 
 import org.infinispan.Cache;
 import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.context.Flag;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
