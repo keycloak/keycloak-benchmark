@@ -54,6 +54,7 @@ jobs:
         run: ./provision/aws/route53/route53_delete.sh
         env:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+          REAPER: TRUE
 
   delete-check:
     needs: [rosa-delete, aurora-delete, route53-delete]

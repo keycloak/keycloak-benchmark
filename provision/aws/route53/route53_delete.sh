@@ -9,7 +9,12 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/route53_common.sh
 
 if [ -z "${SUBDOMAIN}" ]; then
-  echo "'SUBDOMAIN' env not set, removing all Route 53 records and health checks associated with *.${ROOT_DOMAIN}"
+  if [ "${REAPER^^}" != "TRUE" ]; then
+    echo "'SUBDOMAIN' env must be set"
+    exit 1
+  else
+    echo "'SUBDOMAIN' not set, removing all Route 53 records and health checks associated with *.${ROOT_DOMAIN}"
+  fi
 fi
 
 DOMAIN="${SUBDOMAIN}.${ROOT_DOMAIN}"
