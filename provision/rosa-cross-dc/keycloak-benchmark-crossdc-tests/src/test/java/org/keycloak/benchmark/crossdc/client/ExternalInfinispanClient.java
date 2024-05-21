@@ -150,12 +150,13 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
                     .build();
 
 
-            HttpResponse<String> response = null;
+            HttpResponse<String> response;
             try {
                 response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            assertEquals(200, response.statusCode());
             return Boolean.parseBoolean(response.body());
         }
 

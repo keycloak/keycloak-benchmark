@@ -37,7 +37,7 @@ public abstract class AbstractCrossDCTest {
     protected static HttpClient HTTP_CLIENT = HttpClientUtils.newHttpClient();
     protected static final DatacenterInfo DC_1, DC_2;
     protected static final KeycloakClient LOAD_BALANCER_KEYCLOAK;
-    public static String ISPN_USERNAME = System.getProperty("infinispan.username", "developer");;
+    public static String ISPN_USERNAME = System.getProperty("infinispan.username", "developer");
     public static final String REALM_NAME = "cross-dc-test-realm";
     public static final String CLIENTID = "cross-dc-test-client";
     public static final String CLIENT_SECRET = "cross-dc-test-client-secret";
@@ -109,8 +109,21 @@ public abstract class AbstractCrossDCTest {
 
         realmResource.users().create(user).close();
 
+        clearCache(DC_1, SESSIONS);
+        clearCache(DC_1, CLIENT_SESSIONS);
+        clearCache(DC_2, SESSIONS);
+        clearCache(DC_2, CLIENT_SESSIONS);
         assertCacheSize(SESSIONS, 0);
         assertCacheSize(CLIENT_SESSIONS, 0);
+    }
+
+    private void clearCache(DatacenterInfo dc, String cache) {
+        dc.kc().embeddedIspn().cache(cache).clear();
+        dc.ispn().cache(cache).clear();
+        if (cache.equals(SESSIONS) || cache.equals(CLIENT_SESSIONS)) {
+            // those sessions will have been invalidated
+            KeycloakClient.cleanAdminClients();
+        }
     }
 
     @AfterEach

@@ -265,7 +265,18 @@ public class KeycloakClient {
 
                     @Override
                     public void clear() {
-                        throw new NotImplementedYetException("This is not yet implemented :/");
+                        try {
+                            URI uri = new URIBuilder(testRealmUrl("master") + "/cache/" + name + "/clear").build();
+                            HttpRequest request = HttpRequest.newBuilder()
+                                    .uri(uri)
+                                    .GET()
+                                    .build();
+
+                            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                            assertEquals(200, response.statusCode());
+                        } catch (URISyntaxException | IOException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
 
                     @Override
@@ -282,7 +293,27 @@ public class KeycloakClient {
 
                     @Override
                     public boolean remove(String key) {
-                        throw new NotImplementedYetException("This is not yet implemented :/");
+                        URI uri = null;
+                        try {
+                            uri = new URIBuilder( testRealmUrl("master") + "/cache/" + name + "/remove/" + key + "?skipListeners=true").build();
+                        } catch (URISyntaxException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(uri)
+                                .GET()
+                                .build();
+
+
+                        HttpResponse<String> response;
+                        try {
+                            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                        } catch (IOException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        assertEquals(200, response.statusCode());
+                        return Boolean.parseBoolean(response.body());
                     }
 
                     @Override
