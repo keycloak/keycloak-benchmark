@@ -22,7 +22,11 @@ Both Infinispan and Keycloak are deployed in the same namespace.
 
 . Check out the Git repository from https://github.com/keycloak/keycloak-benchmark/.
 
+. Create a Route53 entry as described in xref:./installation-route53-loadbalancer.adoc[].
+
 . Change to the folder `link:{github-files}/provision/rosa-cross-dc/[provision/rosa-cross-dc]`.
+
+. Provide the <<required-variables>> in the `.env` file in the folder.
 
 . Run the `task` command to provision all containers on both OpenShift clusters (check below the required variables).
 
@@ -40,6 +44,7 @@ task: Available tasks for this project:
 WARNING: The `undeploy` task does not remove the Aurora DB and it needs to be manually remove.
 Check scripts in directory `link:{github-files}/provision/aws/rds/[provision/aws/rds]`.
 
+[#required-variables]
 === Required variables
 
 |===
@@ -56,6 +61,16 @@ Check scripts in directory `link:{github-files}/provision/aws/rds/[provision/aws
 
 |ROSA_CLUSTER_NAME_2
 |The name of the other ROSA cluster.
+
+|KC_CLIENT_URL
+|URL as provided by xref:./installation-route53-loadbalancer.adoc[]
+
+|KC_HEALTH_URL_CLUSTER_1
+|URL as provided by xref:./installation-route53-loadbalancer.adoc[]
+
+|KC_HEALTH_URL_CLUSTER_2
+|URL as provided by xref:./installation-route53-loadbalancer.adoc[]
+
 |===
 
 === Customize Aurora DB, Keycloak or Infinispan deployments.
