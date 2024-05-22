@@ -1,5 +1,7 @@
 package org.keycloak.benchmark.crossdc.util;
 
+import org.keycloak.benchmark.crossdc.client.InfinispanClient;
+
 import java.util.Base64;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +44,16 @@ public class InfinispanUtils {
         Object value = map;
         for (String key : keys) {
             value = ((Map) value).get(key);
+            if (value == null) {
+                return null;
+            }
         }
         return (T) value;
+    }
+
+    public static AutoCloseable withBackupDisabled(InfinispanClient.ExternalCache ispnCache, String backupSiteName) {
+        ispnCache.takeOffline(backupSiteName);
+
+        return () -> ispnCache.bringOnline(backupSiteName);
     }
 }

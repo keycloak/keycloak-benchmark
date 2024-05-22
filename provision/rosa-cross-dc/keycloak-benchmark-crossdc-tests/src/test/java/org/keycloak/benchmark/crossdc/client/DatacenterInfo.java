@@ -14,7 +14,7 @@ public class DatacenterInfo {
 
     public DatacenterInfo(HttpClient httpClient, String keycloakServerURL, String infinispanServerURL) {
         this.keycloak = new KeycloakClient(httpClient, keycloakServerURL);
-        this.infinispan = new ExternalInfinispanClient(httpClient, infinispanServerURL, AbstractCrossDCTest.ISPN_USERNAME, AbstractCrossDCTest.MAIN_PASSWORD);
+        this.infinispan = new ExternalInfinispanClient(httpClient, infinispanServerURL, AbstractCrossDCTest.ISPN_USERNAME, AbstractCrossDCTest.MAIN_PASSWORD, keycloakServerURL);
 
         this.keycloakServerURL = keycloakServerURL;
         this.infinispanServerURL = infinispanServerURL;

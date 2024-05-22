@@ -29,6 +29,7 @@ import jakarta.ws.rs.Produces;
 
 import org.infinispan.Cache;
 import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.context.Flag;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
@@ -112,7 +113,7 @@ public class CacheResourceProvider implements RealmResourceProvider {
 
     @Path("/{cache}")
     public CacheResource getCacheResource(@PathParam("cache") String cacheName) {
-        return new CacheResource(session, cacheName);
+        return new EmbeddedCacheResource(session, cacheName);
     }
 
     @Override

@@ -249,15 +249,15 @@ public class KeycloakClient {
         return keycloakServerUrl;
     }
 
-    public InfinispanClient embeddedIspn() {
-        return new InfinispanClient() {
+    public InfinispanClient<InfinispanClient.Cache> embeddedIspn() {
+        return new InfinispanClient<>() {
             @Override
             public Cache cache(String name) {
                 return new Cache() {
                     @Override
                     public long size() {
                         try {
-                            return ((Integer) getNestedValue(getEmbeddedISPNstats(),"cacheSizes", "sessions")).longValue() - KeycloakClient.getCurrentlyInitializedAdminClients();
+                            return ((Integer) getNestedValue(getEmbeddedISPNstats(),"cacheSizes", name)).longValue() - KeycloakClient.getCurrentlyInitializedAdminClients();
                         } catch (URISyntaxException | IOException | InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -265,12 +265,55 @@ public class KeycloakClient {
 
                     @Override
                     public void clear() {
-                        throw new NotImplementedYetException("This is not yet implemented :/");
+                        try {
+                            URI uri = new URIBuilder(testRealmUrl("master") + "/cache/" + name + "/clear").build();
+                            HttpRequest request = HttpRequest.newBuilder()
+                                    .uri(uri)
+                                    .GET()
+                                    .build();
+
+                            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                            assertEquals(200, response.statusCode());
+                        } catch (URISyntaxException | IOException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
 
                     @Override
-                    public boolean contains(String key) {
-                        throw new NotImplementedYetException("This is not yet implemented :/");
+                    public boolean contains(String key) throws URISyntaxException, IOException, InterruptedException {
+                        URI uri = new URIBuilder( testRealmUrl("master") + "/cache/" + name + "/contains/" + key).build();
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(uri)
+                                .GET()
+                                .build();
+
+                        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                        return Boolean.parseBoolean(response.body());
+                    }
+
+                    @Override
+                    public boolean remove(String key) {
+                        URI uri = null;
+                        try {
+                            uri = new URIBuilder( testRealmUrl("master") + "/cache/" + name + "/remove/" + key + "?skipListeners=true").build();
+                        } catch (URISyntaxException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(uri)
+                                .GET()
+                                .build();
+
+
+                        HttpResponse<String> response;
+                        try {
+                            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                        } catch (IOException | InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        assertEquals(200, response.statusCode());
+                        return Boolean.parseBoolean(response.body());
                     }
 
                     @Override

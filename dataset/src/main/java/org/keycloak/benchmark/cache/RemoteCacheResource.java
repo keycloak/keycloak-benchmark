@@ -18,29 +18,21 @@
 
 package org.keycloak.benchmark.cache;
 
-import java.util.UUID;
-
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-
 import org.infinispan.Cache;
+import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.commons.CacheConfigurationException;
+import org.infinispan.commons.api.BasicCache;
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.reactive.NoCache;
-import org.keycloak.benchmark.dataset.TaskResponse;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.connections.infinispan.InfinispanUtil;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.utils.MediaType;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
-public class RemoteCacheResource {
+public class RemoteCacheResource extends CacheResource {
 
     protected static final Logger logger = Logger.getLogger(RemoteCacheResource.class);
 
@@ -65,33 +57,15 @@ public class RemoteCacheResource {
     }
 
 
-    @GET
-    @Path("/clear")
-    @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
-    public TaskResponse clear() {
-        remoteCache.clear();
-        logger.infof("Remote cache %s cleared successfully", remoteCache.getName());
-        return TaskResponse.statusMessage("Remote cache " + remoteCache.getName() + " cleared successfully");
+    @Override
+    public BasicCache<Object, Object> getCache() {
+        return remoteCache;
     }
 
-    @GET
-    @Path("/contains/{id}")
-    @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
-    public boolean contains(@PathParam("id") String id) {
-        if (remoteCache.containsKey(id)) {
-            return true;
-        } else if (id.length() == 36) {
-            try {
-                UUID uuid = UUID.fromString(id);
-                return remoteCache.containsKey(uuid);
-            } catch (IllegalArgumentException iae) {
-                logger.warnf("Given string %s not an UUID", id);
-                return false;
-            }
-        } else {
-            return false;
-        }
+    @Override
+    protected BasicCache<Object, Object> decorateCacheForRemovalAndSkipListenersIfTrue(boolean skipListeners) {
+        return skipListeners
+                ? remoteCache.withFlags(Flag.SKIP_LISTENER_NOTIFICATION, Flag.FORCE_RETURN_VALUE)
+                : remoteCache.withFlags(Flag.FORCE_RETURN_VALUE);
     }
 }
