@@ -113,7 +113,7 @@ public class CacheResourceProvider implements RealmResourceProvider {
 
     @Path("/{cache}")
     public CacheResource getCacheResource(@PathParam("cache") String cacheName) {
-        return new CacheResource(session, cacheName);
+        return new EmbeddedCacheResource(session, cacheName);
     }
 
     @Override

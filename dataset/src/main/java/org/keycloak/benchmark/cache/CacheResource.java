@@ -18,43 +18,29 @@
 
 package org.keycloak.benchmark.cache;
 
-import java.util.UUID;
-
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-
 import jakarta.ws.rs.QueryParam;
-import org.infinispan.Cache;
-import org.infinispan.commons.CacheConfigurationException;
+import org.infinispan.commons.api.BasicCache;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
-import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
-import org.keycloak.models.KeycloakSession;
 import org.keycloak.utils.MediaType;
+
+import java.util.UUID;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
-public class CacheResource {
+public abstract class CacheResource {
 
     protected static final Logger logger = Logger.getLogger(CacheResource.class);
 
-    private final Cache<Object, Object> cache;
 
-    public CacheResource(KeycloakSession session, String cacheName) {
-        InfinispanConnectionProvider provider = session.getProvider(InfinispanConnectionProvider.class);
-        try {
-            this.cache = provider.getCache(cacheName);
-        } catch (CacheConfigurationException cce) {
-            logger.error(cce.getMessage());
-            throw new NotFoundException("Cache does not exists");
-        }
-    }
+    public abstract BasicCache<Object, Object> getCache();
 
 
     @GET
@@ -62,9 +48,9 @@ public class CacheResource {
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
     public TaskResponse clear() {
-        cache.clear();
-        logger.infof("Cache %s cleared successfully", cache.getName());
-        return TaskResponse.statusMessage("Cache " + cache.getName() + " cleared successfully");
+        getCache().clear();
+        logger.infof("Cache %s cleared successfully", getCache().getName());
+        return TaskResponse.statusMessage("Cache " + getCache().getName() + " cleared successfully");
     }
 
     @GET
@@ -72,12 +58,12 @@ public class CacheResource {
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
     public boolean contains(@PathParam("id") String id) {
-        if (cache.containsKey(id)) {
+        if (getCache().containsKey(id)) {
             return true;
         } else if (id.length() == 36) {
             try {
                 UUID uuid = UUID.fromString(id);
-                return cache.containsKey(uuid);
+                return getCache().containsKey(uuid);
             } catch (IllegalArgumentException iae) {
                 logger.warnf("Given string %s not an UUID", id);
                 return false;
@@ -86,6 +72,16 @@ public class CacheResource {
             return false;
         }
     }
+
+    @GET
+    @Path("/size")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public int size() {
+        return getCache().size();
+    }
+
+    protected abstract BasicCache<Object, Object> decorateCacheForRemovalAndSkipListenersIfTrue(boolean skipListeners);
 
     @GET
     @Path("/remove/{id}")
@@ -105,18 +101,5 @@ public class CacheResource {
         } else {
             return false;
         }
-    }
-
-    public Cache decorateCacheForRemovalAndSkipListenersIfTrue(boolean skipListeners) {
-        return skipListeners
-                ? cache.getAdvancedCache().withFlags(org.infinispan.context.Flag.SKIP_CACHE_STORE)
-                : cache.getAdvancedCache();
-    }
-    @GET
-    @Path("/size")
-    @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
-    public int size() {
-        return cache.size();
     }
 }

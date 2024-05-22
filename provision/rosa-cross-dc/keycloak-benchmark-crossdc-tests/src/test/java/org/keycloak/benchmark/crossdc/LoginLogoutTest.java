@@ -99,7 +99,7 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
         assertTrue(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
 
         // Remove the session from the remote store in DC1 only
-        try (var close = InfinispanUtils.withBackupDisabled(DC_1.ispn().cache(SESSIONS), DC_2.ispn().siteName())) {
+        try (var ignored = InfinispanUtils.withBackupDisabled(DC_1.ispn().cache(SESSIONS), DC_2.ispn().siteName())) {
             assertFalse(DC_1.ispn().cache(SESSIONS).isBackupOnline(DC_2.ispn().siteName()));
             DC_1.ispn().cache(SESSIONS).remove((String) tokensMap.get("session_state"));
         } catch (Exception e) {
@@ -132,7 +132,7 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
         assertTrue(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
 
         // Remove the session from the remote store in DC2 only
-        try (var close = InfinispanUtils.withBackupDisabled(DC_2.ispn().cache(SESSIONS), DC_1.ispn().siteName())) {
+        try (var ignored = InfinispanUtils.withBackupDisabled(DC_2.ispn().cache(SESSIONS), DC_1.ispn().siteName())) {
             assertFalse(DC_2.ispn().cache(SESSIONS).isBackupOnline(DC_1.ispn().siteName()));
             DC_2.ispn().cache(SESSIONS).remove((String) tokensMap.get("session_state"));
         } catch (Exception e) {
@@ -166,7 +166,7 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
         assertTrue(DC_2.ispn().cache(SESSIONS).contains((String) tokensMap.get("session_state")));
 
         // Remove the session from the remote store in DC1 only
-        try (var close = InfinispanUtils.withBackupDisabled(DC_1.ispn().cache(SESSIONS), DC_2.ispn().siteName())) {
+        try (var ignored = InfinispanUtils.withBackupDisabled(DC_1.ispn().cache(SESSIONS), DC_2.ispn().siteName())) {
             assertFalse(DC_1.ispn().cache(SESSIONS).isBackupOnline(DC_2.ispn().siteName()));
             DC_1.ispn().cache(SESSIONS).remove((String) tokensMap.get("session_state"));
         } catch (Exception e) {
@@ -175,7 +175,7 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
         assertTrue(DC_1.ispn().cache(SESSIONS).isBackupOnline(DC_2.ispn().siteName()));
 
         // Remove the session from the remote store in DC2 only
-        try (var close = InfinispanUtils.withBackupDisabled(DC_2.ispn().cache(SESSIONS), DC_1.ispn().siteName())) {
+        try (var ignored = InfinispanUtils.withBackupDisabled(DC_2.ispn().cache(SESSIONS), DC_1.ispn().siteName())) {
             assertFalse(DC_2.ispn().cache(SESSIONS).isBackupOnline(DC_1.ispn().siteName()));
             DC_2.ispn().cache(SESSIONS).remove((String) tokensMap.get("session_state"));
         } catch (Exception e) {
