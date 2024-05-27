@@ -160,7 +160,9 @@ tasks:
         - KUBECONFIG
     vars:
       OPERATOR_IMAGE:
-        sh: cat .task/var-KC_OPERATOR_CONTAINER_IMAGE 2> /dev/null || echo ""
+        # workaround for image pointing to the wrong place, hard-setting to "quay.io/keycloak/keycloak-operator:nightly" instead - revert to empty string once this is fixed
+        # https://github.com/keycloak/keycloak-benchmark/issues/831
+        sh: cat .task/var-KC_OPERATOR_CONTAINER_IMAGE 2> /dev/null || echo "quay.io/keycloak/keycloak-operator:nightly"
     cmds:
       - |
         (test -n "{{.OPERATOR_IMAGE}}" && KUBECONFIG="{{.KUBECONFIG}}" kubectl patch deployment keycloak-operator -n {{.NAMESPACE}} --type json -p '[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "{{.OPERATOR_IMAGE}}"}]') || true
