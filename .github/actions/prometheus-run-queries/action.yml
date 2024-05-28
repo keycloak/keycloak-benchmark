@@ -63,10 +63,10 @@ runs:
       # language=bash
       run: |
         curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
-        "query=avg(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'})" \
+        "query=round(avg(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'}))" \
         | jq '.data.result[0].value[1]' -r >> "${{ inputs.ispnCacheName}}_ispn_metrics_file_sum"
         curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
-        "query=avg(vendor_rpc_manager_cross_site_replication_times_seconds_count{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'})" \
+        "query=round(avg(vendor_rpc_manager_cross_site_replication_times_seconds_count{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'}))" \
         | jq '.data.result[0].value[1]' -r >> "${{ inputs.ispnCacheName}}_ispn_metrics_file_count"
       env:
         THANOS_HOST: ${{ env.THANOS_HOST }}
