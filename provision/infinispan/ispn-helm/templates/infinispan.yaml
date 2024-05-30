@@ -143,6 +143,10 @@ spec:
       remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout }}
       locking:
         acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout }}
+      {{- if and $config.memory $config.memory.maxCount }}
+      memory:
+        maxCount: {{ $config.memory.maxCount }}
+      {{- end }}
       stateTransfer:
         chunkSize: 16
       {{ if $.Values.crossdc.enabled }}
