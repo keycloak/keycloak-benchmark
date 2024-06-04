@@ -219,6 +219,7 @@ spec:
               - name: OTEL_METRICS_EXPORTER
                 value: prometheus
 {{ end }}
+              # JMX is disabled as it breaks Quarkus configuration. Issue is tracked in https://github.com/keycloak/keycloak-benchmark/issues/840
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
 {{- if not (eq (int .Values.metaspaceInitMB) 96) }}
@@ -234,8 +235,6 @@ spec:
                   -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
 {{- end }}
 {{- if .Values.cryostat }}
-                  {{ /* JMX is disabled as it breaks Quarkus configuration. Issue is tracked in https://github.com/keycloak/keycloak-benchmark/issues/840 */ }}
-                  {{ /* -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false */ }}
 {{- end }}
             ports:
 {{ if .Values.otel }}
