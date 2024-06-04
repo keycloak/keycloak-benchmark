@@ -66,6 +66,7 @@ tasks:
       - echo {{.KC_NAMESPACE_PREFIX}} > .task/var-KC_NAMESPACE_PREFIX
       - echo {{.KC_ADMIN_PASSWORD}} > .task/var-KC_ADMIN_PASSWORD
       - echo {{.KC_ISPN_NAMESPACE}} > .task/var-KC_ISPN_NAMESPACE
+      - echo {{.KC_DATABASE_URL}} > .task/var-KC_DATABASE_URL
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -106,6 +107,8 @@ tasks:
       # if keycloak's database deployment changes, this restarts the DB and the Gatling user needs to be re-created
       - .task/status-keycloak-db.json
       - .task/var-KC_DATABASE
+      - .task/var-KC_HOSTNAME_SUFFIX
+      - .task/var-KC_DATABASE_URL
 
   jaeger:
     deps:
