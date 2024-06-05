@@ -23,6 +23,20 @@ if [ -z "$REGION" ]; then echo "Variable REGION needs to be set."; exit 1; fi
 ./rds/aurora_delete_peering_connection.sh || true
 ./rosa_efs_delete.sh || true
 
+# Explicitly delete OSD Network Verifier that's sometimes created as it prevents VPC being deleted
+OSD_VERIFIER_SG=$(aws ec2 describe-security-groups \
+  --filters Name=tag:Name,Values=osd-network-verifier \
+  --filters Name=tag:cluster,Values=${CLUSTER_NAME} \
+  --query 'SecurityGroups[*].GroupId' \
+  --region ${REGION} \
+  --output text)
+if [ -n "${OSD_VERIFIER_SG}" ]; then
+  aws ec2 delete-security-group \
+    --group-id ${OSD_VERIFIER_SG} \
+    --region ${REGION} \
+    --no-cli-pager || true
+fi
+
 #Creating Logs directory for each cluster
 LOG_DIR="${SCRIPT_DIR}/logs/${CLUSTER_NAME}"
 mkdir -p ${LOG_DIR}
