@@ -1,0 +1,51 @@
+name: Keycloak - Delete namespace on OpenShift Multi-AZ clusters
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: OpenShift cluster prefix for a multi-AZ deployment
+        required: true
+      project:
+        description: OpenShift project where Keycloak is running
+        required: true
+
+jobs:
+  run:
+    name: Delete Keycloak Namespaces
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster A
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - id: delete-openshift-namespace-cluster-a
+        shell: bash
+        working-directory: provision/openshift
+        env:
+          PROJECT: ${{ inputs.project }}
+        run: ./delete-namespace.sh
+
+      - name: Login to OpenShift cluster B
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - id: delete-openshift-namespace-cluster-b
+        shell: bash
+        working-directory: provision/openshift
+        env:
+          PROJECT: ${{ inputs.project }}
+        run: ./delete-namespace.sh
