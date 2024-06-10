@@ -21,16 +21,6 @@ public class DatacenterInfo implements AutoCloseable {
     private final OpenShiftClient oc;
 
     public DatacenterInfo(HttpClient httpClient, int index, boolean activePassive) {
-//        oc = new KubernetesClientBuilder()
-//              .withConfig(
-//                    new ConfigBuilder()
-//                          .withMasterUrl(PropertyUtils.getRequired(String.format("kubernetes.api-url.%d", index)))
-//                          .withUsername(PropertyUtils.getRequired("kubernetes.username"))
-//                          .withPassword(PropertyUtils.getRequired("kubernetes.password"))
-//                          .build()
-//              )
-//              .build()
-//              .adapt(OpenShiftClient.class);
         oc = new KubernetesClientBuilder()
               .withConfig(
                     Config.autoConfigure(PropertyUtils.getRequired(String.format("kubernetes.%d.context", index)))

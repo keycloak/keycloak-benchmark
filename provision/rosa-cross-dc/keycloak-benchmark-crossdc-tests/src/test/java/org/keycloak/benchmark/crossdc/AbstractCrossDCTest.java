@@ -162,6 +162,8 @@ public abstract class AbstractCrossDCTest {
     @AfterAll
     public void tearDown() throws URISyntaxException, IOException, InterruptedException {
         failbackLoadBalancers();
+        DC_1.close();
+        DC_2.close();
     }
 
     protected void failbackLoadBalancers() throws URISyntaxException, IOException, InterruptedException {
