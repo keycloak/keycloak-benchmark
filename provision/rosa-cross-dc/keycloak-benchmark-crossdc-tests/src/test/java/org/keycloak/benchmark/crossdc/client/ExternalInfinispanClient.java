@@ -1,8 +1,11 @@
 package org.keycloak.benchmark.crossdc.client;
 
-import org.apache.http.client.utils.URIBuilder;
-import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
-import org.keycloak.util.JsonSerialization;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.ISPN_USERNAME;
+import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.MAIN_PASSWORD;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getBasicAuthenticationHeader;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
 
 import java.io.IOException;
 import java.net.URI;
@@ -11,18 +14,16 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.ISPN_USERNAME;
-import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.MAIN_PASSWORD;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getBasicAuthenticationHeader;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
+import org.apache.http.client.utils.URIBuilder;
+import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
+import org.keycloak.util.JsonSerialization;
 
 public class ExternalInfinispanClient implements InfinispanClient<InfinispanClient.ExternalCache> {
     private final HttpClient httpClient;
@@ -42,7 +43,7 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
         this.password = password;
         this.keycloakServerURL = keycloakServerURL;
 
-        HttpResponse<String> stringHttpResponse = sendRequestWithAction(infinispanUrl + "/rest/v2/cache-managers/default", "GET", null);
+        HttpResponse<String> stringHttpResponse = sendRequestWithAction(infinispanUrl + "/rest/v2/cache-managers/default", "GET");
         assertEquals(200, stringHttpResponse.statusCode());
 
         Map<String, Object> returnedValues;
@@ -213,12 +214,16 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
 
         @Override
         public boolean isBackupOnline(String backupSiteName) throws IOException {
-            String response = sendRequestWithAction(infinispanUrl + "/rest/v2/caches/" + cacheName + "/x-site/backups/", "GET", null).body();
+            String response = sendRequestWithAction(infinispanUrl + "/rest/v2/caches/" + cacheName + "/x-site/backups/", "GET").body();
             Map<String, Object> returnedValues = JsonSerialization.readValue(response, Map.class);
 
             String status = getNestedValue(returnedValues, backupSiteName, "status");
             return "online".equals(status);
         }
+    }
+
+    private HttpResponse<String> sendRequestWithAction(String url, String method) {
+        return sendRequestWithAction(url, method, null);
     }
 
     private HttpResponse<String> sendRequestWithAction(String url, String method, String action) {
@@ -253,5 +258,17 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
     @Override
     public ExternalCache cache(String name) {
         return new ExternalCache(name);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getSiteView() {
+        HttpResponse<String> response = sendRequestWithAction(infinispanUrl + "/rest/v2/container", "GET");
+        assertEquals(200, response.statusCode());
+        try {
+            Map<String, Object> info = JsonSerialization.readValue(response.body(), Map.class);
+            return (List<String>) info.get("sites_view");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -9,16 +9,8 @@ if [ -f ./.env ]; then
   source ./.env
 fi
 
-function requiredEnv() {
-  for ENV in $@; do
-      if [ -z "${!ENV}" ]; then
-        echo "${ENV} variable must be set"
-        exit 1
-      fi
-  done
-}
-
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source ${SCRIPT_DIR}/rosa_common.sh
 
 AWS_ACCOUNT=${AWS_ACCOUNT:-$(aws sts get-caller-identity --query "Account" --output text)}
 
@@ -43,10 +35,7 @@ else
   echo "Installing ROSA cluster ${CLUSTER_NAME}"
 
   cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
-  tofu init
   WORKSPACE=${CLUSTER_NAME}-${REGION}
-  tofu workspace new ${WORKSPACE} || true
-  export TF_WORKSPACE=${WORKSPACE}
 
   AVAILABILITY_ZONES=${AVAILABILITY_ZONES:-"${REGION}a"}
 
@@ -69,9 +58,7 @@ else
     TOFU_CMD+=" -var replicas=${REPLICAS}"
   fi
 
-  echo ${TOFU_CMD}
-  ${TOFU_CMD}
-
+  bash ${SCRIPT_DIR}/../opentofu/create.sh ${WORKSPACE} "${TOFU_CMD}"
 fi
 
 SCALING_MACHINE_POOL=$(rosa list machinepools -c "${CLUSTER_NAME}" -o json | jq -r '.[] | select(.id == "scaling") | .id')
@@ -90,5 +77,10 @@ cd ${SCRIPT_DIR}
 ./rosa_install_cryotstat_operator.sh
 
 ./rosa_install_openshift_logging.sh
+
+echo "Enabling user alert routing."
+oc apply -f ${SCRIPT_DIR}/../openshift/cluster-monitoring-config.yaml
+waitFor openshift-user-workload-monitoring statefulset alertmanager-user-workload
+oc -n openshift-user-workload-monitoring rollout status --watch --timeout=2m statefulset.apps/alertmanager-user-workload
 
 echo "Cluster ${CLUSTER_NAME} is ready."

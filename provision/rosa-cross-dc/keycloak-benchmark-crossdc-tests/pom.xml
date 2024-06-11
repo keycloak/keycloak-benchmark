@@ -17,6 +17,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aws.java.sdk.version>2.20.43</aws.java.sdk.version>
+        <fabric8.version>6.13.0</fabric8.version>
     </properties>
 
     <dependencies>
@@ -61,6 +62,33 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>globalaccelerator</artifactId>
+            <version>${aws.java.sdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>elasticloadbalancingv2</artifactId>
+            <version>${aws.java.sdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>openshift-client</artifactId>
+            <version>${fabric8.version}</version>
+        </dependency>
     </dependencies>
 
     <profiles>
@@ -76,6 +104,23 @@
                 <maven.test.skip>true</maven.test.skip>
             </properties>
         </profile>
+        <profile>
+            <id>active-active</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <deployment.type>active-active</deployment.type>
+                            </systemPropertyVariables>
+                            <excludedGroups>active-passive</excludedGroups>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -84,20 +129,16 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <excludedGroups>active-active</excludedGroups>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <deployment.type>active-passive</deployment.type>
                         <!--suppress UnresolvedMavenProperty -->
-                        <load-balancer.url>${LOAD_BALANCER_URL}</load-balancer.url>
+                        <deployment.namespace>${DEPLOYMENT_NAMESPACE}</deployment.namespace>
                         <!--suppress UnresolvedMavenProperty -->
-                        <keycloak.dc1.url>${KEYCLOAK_DC1_URL}</keycloak.dc1.url>
+                        <kubernetes.1.context>${KUBERNETES_1_CONTEXT}</kubernetes.1.context>
                         <!--suppress UnresolvedMavenProperty -->
-                        <keycloak.dc2.url>${KEYCLOAK_DC2_URL}</keycloak.dc2.url>
-                        <!--suppress UnresolvedMavenProperty -->
-                        <infinispan.dc1.url>${ISPN_DC1_URL}</infinispan.dc1.url>
-                        <!--suppress UnresolvedMavenProperty -->
-                        <infinispan.dc2.url>${ISPN_DC2_URL}</infinispan.dc2.url>
-                        <!--suppress UnresolvedMavenProperty -->
-                        <infinispan.password>${ISPN_PASSWORD}</infinispan.password>
+                        <kubernetes.2.context>${KUBERNETES_2_CONTEXT}</kubernetes.2.context>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

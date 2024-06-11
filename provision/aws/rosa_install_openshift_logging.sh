@@ -6,19 +6,8 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
   set -x
 fi
 
-# Wait for k8s resource to exist. See: https://github.com/kubernetes/kubernetes/issues/83242
-waitFor() {
-  xtrace=$(set +o|grep xtrace); set +x
-  local ns=${1?namespace is required}; shift
-  local type=${1?type is required}; shift
-
-  echo "Waiting for $type $*"
-  until oc -n "$ns" get "$type" "$@" -o=jsonpath='{.items[0].metadata.name}' >/dev/null 2>&1; do
-    echo "Waiting for $type $*"
-    sleep 1
-  done
-  eval "$xtrace"
-}
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source ${SCRIPT_DIR}/rosa_common.sh
 
 echo "Installing openshift operator."
 

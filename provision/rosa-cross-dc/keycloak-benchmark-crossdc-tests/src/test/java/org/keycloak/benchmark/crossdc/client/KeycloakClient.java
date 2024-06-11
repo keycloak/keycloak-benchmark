@@ -39,14 +39,17 @@ public class KeycloakClient {
     private final String keycloakServerUrl;
     private final String keycloakDownURL;
     private final String keycloakUpURL;
+
+    private final boolean activePassive;
     private static final Map<KeycloakClient, Keycloak> adminClients = new ConcurrentHashMap<>();
     private static final Logger LOG = Logger.getLogger(KeycloakClient.class);
 
-    public KeycloakClient(HttpClient httpClient, String keycloakServerUrl) {
+    public KeycloakClient(HttpClient httpClient, String keycloakServerUrl, boolean activePassive) {
         assertNotNull(keycloakServerUrl, "Keycloak server URL must not be null.");
 
         this.httpClient = httpClient;
         this.keycloakServerUrl = keycloakServerUrl;
+        this.activePassive = activePassive;
 
         this.keycloakDownURL = keycloakServerUrl + "/realms/master/dataset/take-dc-down";
         this.keycloakUpURL = keycloakServerUrl + "/realms/master/dataset/take-dc-up";
@@ -223,7 +226,10 @@ public class KeycloakClient {
         HttpClientUtils.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).body();
     }
 
+
     public boolean isActive(KeycloakClient loadBalancer) throws UnknownHostException {
+        if (!activePassive) return true;
+
         String loadBalancerHost = URIToHostString(loadBalancer.getKeycloakServerUrl());
         String thisKeycloakHost = URIToHostString(getKeycloakServerUrl());
 
@@ -231,6 +237,8 @@ public class KeycloakClient {
     }
 
     public void waitToBeActive(KeycloakClient loadBalancer) throws UnknownHostException, InterruptedException {
+        if (!activePassive) return;
+
         int startTime = Time.currentTime();
         int timeLimit = startTime + 600; // 10 minutes
         LOG.infof("Waiting for Keycloak %d to be active.", keycloakServerUrl);

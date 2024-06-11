@@ -296,3 +296,12 @@ tasks:
       - .task/remote-store-host
       - .task/remote-store-username
       - .task/remote-store-password
+
+  user-alert-routing:
+    deps:
+      - common:split
+      - common:env
+    cmds:
+      - kubectl apply -f cluster-monitoring-config.yaml
+    sources:
+      - cluster-monitoring-config.yaml

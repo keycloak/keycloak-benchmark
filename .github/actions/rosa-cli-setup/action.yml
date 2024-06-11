@@ -50,3 +50,4 @@ runs:
       run: |
         ADMIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
         echo "::add-mask::$ADMIN_PASSWORD"
+        echo "KEYCLOAK_ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> $GITHUB_ENV

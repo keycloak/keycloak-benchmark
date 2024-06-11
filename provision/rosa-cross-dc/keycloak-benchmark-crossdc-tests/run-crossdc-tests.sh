@@ -11,8 +11,15 @@ SECRET_MANAGER_REGION="eu-central-1"
 
 MAIN_PASSWORD=$(aws secretsmanager get-secret-value --region $SECRET_MANAGER_REGION --secret-id $KEYCLOAK_MASTER_PASSWORD_SECRET_NAME --query SecretString --output text --no-cli-pager)
 
-./mvnw -B -f provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/pom.xml clean install -DcrossDCTests \
--Dload-balancer.url=$LOAD_BALANCER_URL \
--Dinfinispan.dc1.url=$ISPN_DC1_URL -Dkeycloak.dc1.url=$KEYCLOAK_DC1_URL \
--Dinfinispan.dc2.url=$ISPN_DC2_URL -Dkeycloak.dc2.url=$KEYCLOAK_DC2_URL \
--Dmain.password=$MAIN_PASSWORD
+MVN_CMD="./mvnw -B -f provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/pom.xml clean install -DcrossDCTests \
+     -Ddeployment.namespace=${DEPLOYMENT_NAMESPACE} \
+     -Dkubernetes.1.context=${KUBERNETES_1_CONTEXT} \
+     -Dkubernetes.2.context=${KUBERNETES_2_CONTEXT} \
+     -Dmain.password=${MAIN_PASSWORD}"
+
+if [ "${ACTIVE_ACTIVE}" == "true" ]; then
+  MVN_CMD+=" -Pactive-active"
+fi
+
+echo ${MVN_CMD}
+${MVN_CMD}

@@ -23,17 +23,26 @@ From the Testsuite root directory run the below command to run the tests
 
 ----
 mvn clean install -DcrossDCTests \
-  -Dinfinispan.dc1.url=<ISPN_DC1_URL> -Dkeycloak.dc1.url=<KEYCLOAK_DC1_URL> \
-  -Dinfinispan.dc2.url=<ISPN_DC2_URL> -Dkeycloak.dc2.url=<KEYCLOAK_DC2_URL> \
-  -Dinfinispan.password=<ISPN_PASSWORD>
+  -Dmain.password=<PASSWORD> \#<1>
+  -Ddeployment.type=active-active|active-passive \#<2>
+  -Ddeployment.namespace=runner-keycloak \#<3>
+  -Dkubernetes.1.context=<CONTEXT_1> \#<4>
+  -Dkubernetes.2.context=<CONTEXT_1> #<5>
 ----
+<1> The main password of the Keycloak deployment
+<2> The type of deployment to be tests, it can be either "active-active" or "active-passive". If omitted, defaults to "active-passive".
+<3> The namespace containing the Keycloak deployment in the Kubernetes clusters specified in 4 & 5.
+<4> The Kubeconfig context of cluster 1
+<5> The Kubeconfig context of cluster 2
 
-Alternatively could use the `run-crossdc-tests.sh` (located in the Testsuite root) directory to execute the tests when using a ROSA style provisioning setup to fetch the `ISPN_PASSWORD` on the fly, or by setting it manually.
+Alternatively you can use the `run-crossdc-tests.sh` (located in the Testsuite root) directory to execute the tests when
+using a ROSA style provisioning setup to fetch the `MAIN_PASSWORD` on the fly.
 
 Example usage:
-
 ----
-ISPN_DC1_URL=<ISPN_DC1_URL> ISPN_DC2_URL=<ISPN_DC2_URL> \
-KEYCLOAK_DC1_URL=<KEYCLOAK_DC1_URL> KEYCLOAK_DC2_URL=<KEYCLOAK_DC2_URL> \
+ACTIVE_ACTIVE=true|false \
+DEPLOYMENT_NAMESPACE=runner-keycloak \
+KUBERNETES_1_CONTEXT=<CONTEXT_1> \
+KUBERNETES_2_CONTEXT=<CONTEXT_2> \
 ./run-crossdc-tests.sh
 ----
