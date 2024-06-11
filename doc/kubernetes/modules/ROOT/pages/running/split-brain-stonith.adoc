@@ -24,6 +24,7 @@ a given time.
 == Prerequisites
 
 * ROSA HCP based Multi-AZ Keycloak deployment
+* AWS CLI Installed
 * AWS Global Accelerator Loadbalancer
 
 == Procedure
@@ -46,6 +47,20 @@ data:
 EOF
 kubectl -n openshift-user-workload-monitoring rollout status --watch statefulset.apps/alertmanager-user-workload
 ----
++
+. [[aws-secret]]Decide upon a username/password combination which will be used to authenticate the Lambda webhook and create an AWS Secret storing the password
++
+.Command:
+[source,bash]
+----
+aws secretsmanager create-secret \
+  --name webhook-password \ # <1>
+  --secret-string changeme \ # <2>
+  --region eu-west-1 # <3>
+----
+<1> The name of the secret
+<2> The password to be used for authentication
+<3> The AWS region that hosts the secret
 +
 . Create the Role used to execute the Lambda.
 +
@@ -76,6 +91,34 @@ ROLE_ARN=$(aws iam create-role \
 <1> A name of your choice to associate with the Lambda and related resources
 <2> The AWS Region hosting your Kubernetes clusters
 +
+. Create and attach the 'LambdaSecretManager' Policy so that the Lambda can access AWS Secrets
++
+.Command:
+[source,bash]
+----
+POLICY_ARN=$(aws iam create-policy \
+  --policy-name LambdaSecretManager \
+  --policy-document \
+  '{
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "secretsmanager:GetSecretValue"
+              ],
+              "Resource": "*"
+          }
+      ]
+  }' \
+  --query 'Policy.Arn' \
+  --output text
+)
+aws iam attach-role-policy \
+  --role-name ${FUNCTION_NAME} \
+  --policy-arn ${POLICY_ARN}
+----
++
 . Attach the `ElasticLoadBalancingReadOnly` policy so that the Lambda can query the provisioned Network Load Balancers
 +
 .Command:
@@ -104,11 +147,18 @@ aws iam attach-role-policy \
 LAMBDA_ZIP=/tmp/lambda.zip
 cat << EOF > /tmp/lambda.py
 
-include::example$stonith_lambda.py[]
+include::example$stonith_lambda.py[tag=stonith-start]
+    expected_user = 'keycloak' # <1>
+    secret_name = 'webhook-password' # <2>
+    secret_region = 'eu-west-1' # <3>
+include::example$stonith_lambda.py[tag=stonith-end]
 
 EOF
 zip -FS --junk-paths ${LAMBDA_ZIP} /tmp/lambda.py
 ----
+<1> The username required to authenticate Lambda requests
+<2> The AWS secret containing the password <<aws-secret,defined earlier>>
+<3> The AWS region which stores the password secret
 +
 . Create the Lambda function.
 +
@@ -148,9 +198,51 @@ aws lambda add-permission \
   --principal "*" \
   --statement-id FunctionURLAllowPublicAccess \
   --function-url-auth-type NONE \
-  --region eu-west-1 #<1>
+  --region eu-west-1 # <1>
 ----
 <1> The AWS Region hosting your Kubernetes clusters
++
+. Retieve the Lambda Function URL
++
+.Command:
+[source,bash]
+----
+aws lambda get-function-url-config \
+  --function-name ${FUNCTION_NAME} \
+  --query "FunctionUrl" \
+  --region eu-west-1 \#<1>
+  --output text
+----
+<1> The AWS region where the Lambda was created
++
+.Output:
+[source,bash]
+----
+https://tjqr2vgc664b6noj6vugprakoq0oausj.lambda-url.eu-west-1.on.aws
+----
+. In each Kubernetes cluster, configure Prometheus Alert routing to trigger the Lambda on split-brain
+.Command:
+[source,bash]
+----
+ACCELERATOR_NAME= # <1>
+NAMESPACE= # <2>
+LOCAL_SITE= # <3>
+REMOTE_SITE= # <4>
+
+kubectl apply -n ${NAMESPACE} -f - << EOF
+include::example$helm/ispn-site-a.yaml[tag=stonith-secret]
+---
+include::example$helm/ispn-site-a.yaml[tag=stonith-alert-manager-config]
+---
+include::example$helm/ispn-site-a.yaml[tag=stonith-prometheus-rule]
+----
+<1> The username required to authenticate Lambda requests
+<2> The password required to authenticate Lambda requests
+<3> The Lambda Function URL
+<4> The namespace value should be the namespace hosting the Infinispan CR and the site should be the remote site defined
+by `spec.service.sites.locations[0].name` in your Infinispan CR
+<5> The name of your local site defined by `spec.service.sites.local.name` in your Infinispan CR
+<6> The DNS of your Global Accelerator
 
 == Verify
 

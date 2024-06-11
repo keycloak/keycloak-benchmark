@@ -75,6 +75,25 @@ module "lambda_function" {
   ]
   number_of_policies = 2
 
+  attach_policy_jsons = true
+  policy_jsons = [
+    <<-EOT
+      {
+          "Version": "2012-10-17",
+          "Statement": [
+              {
+                  "Action": [
+                      "secretsmanager:GetSecretValue"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": ["*"]
+              }
+          ]
+      }
+    EOT
+  ]
+  number_of_policy_jsons = 1
+
   tags = {
     accelerator = var.name
   }
