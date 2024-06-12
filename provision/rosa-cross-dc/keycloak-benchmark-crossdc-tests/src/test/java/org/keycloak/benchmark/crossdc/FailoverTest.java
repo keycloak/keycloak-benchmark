@@ -25,6 +25,7 @@ public class FailoverTest extends AbstractCrossDCTest {
 
     @Override
     protected void failbackLoadBalancers() throws URISyntaxException, IOException, InterruptedException {
+        super.failbackLoadBalancers();
         if (activePassive) {
             String domain = DC_1.getKeycloakServerURL().substring("https://".length());
             AWSClient.updateRoute53HealthCheckPath(domain, "/lb-check");
@@ -38,7 +39,6 @@ public class FailoverTest extends AbstractCrossDCTest {
             // Assert that both sites are part of the Accelerator EndpointGroup
             waitForAcceleratorEndpointCount(2);
         }
-        super.failbackLoadBalancers();
     }
 
     @Test

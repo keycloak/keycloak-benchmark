@@ -35,7 +35,7 @@ public class DatacenterInfo implements AutoCloseable {
             this.keycloakServerURL = "https://" + oc.routes()
                   .inNamespace(namespace)
                   .withName("aws-health-route")
-                  .item()
+                  .get()
                   .getSpec()
                   .getHost();
         } else {
