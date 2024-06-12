@@ -2,6 +2,7 @@ package org.keycloak.benchmark.crossdc.client;
 
 import java.net.http.HttpClient;
 
+import org.jboss.logging.Logger;
 import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
 import org.keycloak.benchmark.crossdc.util.PropertyUtils;
 
@@ -10,6 +11,8 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 public class DatacenterInfo implements AutoCloseable {
+
+    private static final Logger LOG = Logger.getLogger(DatacenterInfo.class);
 
     private final String namespace;
     private final String keycloakServerURL;
@@ -49,6 +52,8 @@ public class DatacenterInfo implements AutoCloseable {
                   .get(0)
                   .getHostname();
         }
+
+        LOG.infof("Keycloak server URL index %d: %s", index, keycloakServerURL);
         this.loadbalancerURL = getRouteHost("keycloak");
 
         this.keycloak = new KeycloakClient(httpClient, keycloakServerURL, activePassive);

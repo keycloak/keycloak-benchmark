@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.globalaccelerator.model.EndpointConfigura
 import software.amazon.awssdk.services.globalaccelerator.model.EndpointDescription;
 import software.amazon.awssdk.services.globalaccelerator.model.EndpointGroup;
 import software.amazon.awssdk.services.route53.Route53Client;
+import software.amazon.awssdk.services.route53.model.GetHealthCheckRequest;
 import software.amazon.awssdk.services.route53.model.HealthCheck;
 import software.amazon.awssdk.services.route53.model.UpdateHealthCheckRequest;
 import software.amazon.awssdk.utils.builder.SdkBuilder;
@@ -32,34 +33,56 @@ public class AWSClient {
 
    private static final Logger LOG = Logger.getLogger(AWSClient.class);
 
-   public static void updateRoute53HealthCheckPath(String domainName, String path) {
+   public static String getHealthCheckId(String domainName) {
       try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
-           Route53Client route53 = Route53Client.builder().httpClient(httpClient).build();
-           CloudWatchClient cloudWatch = CloudWatchClient.builder().region(Region.US_EAST_1).httpClient(httpClient).build()) {
+          Route53Client route53 = Route53Client.builder().httpClient(httpClient).build()) {
+          for (HealthCheck hc : route53.listHealthChecks(SdkBuilder::build).healthChecks()) {
+             if (domainName.equals(hc.healthCheckConfig().fullyQualifiedDomainName())) {
+                LOG.infof("Found Route53 HealthCheck '%s' for Domain='%s'", hc.id(), domainName);
+                return hc.id();
+             }
+          }
+      }
+      return null;
+   }
 
-         String healthCheckId = null;
-         for (HealthCheck hc : route53.listHealthChecks(SdkBuilder::build).healthChecks()) {
-            if (domainName.equals(hc.healthCheckConfig().fullyQualifiedDomainName())) {
-               healthCheckId = hc.id();
-               break;
-            }
-         }
-         LOG.infof("Updating Route53 HealthCheck '%s' for Domain='%s' to path='%s'", healthCheckId, domainName, path);
+   public static void updateRoute53HealthCheckPath(String healthCheckId, String path) {
+      try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
+            Route53Client route53 = Route53Client.builder().httpClient(httpClient).build()) {
+
+         LOG.infof("Updating Route53 HealthCheck '%s' to path='%s'", healthCheckId, path);
          route53.updateHealthCheck(
                UpdateHealthCheckRequest.builder()
                      .healthCheckId(healthCheckId)
                      .resourcePath(path)
                      .build()
          );
+      }
+   }
 
-         // Wait for the HealthCheck Alarm to be in the OK state
-         LOG.infof("Waiting for CloudWatch Alarm '%s' to be in state OK", healthCheckId);
+   public static String getRoute53HealthCheckPath(String healthCheckId) {
+        try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
+                Route53Client route53 = Route53Client.builder().httpClient(httpClient).build()) {
+
+             return route53.getHealthCheck(
+                 GetHealthCheckRequest.builder()
+                         .healthCheckId(healthCheckId)
+                         .build()
+             ).healthCheck().healthCheckConfig().resourcePath();
+        }
+   }
+
+   public static void waitForTheHealthCheckToBeInState(String healthCheckId, StateValue stateValue) {
+      try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
+           CloudWatchClient cloudWatch = CloudWatchClient.builder().region(Region.US_EAST_1).httpClient(httpClient).build()) {
+         LOG.infof("Waiting for CloudWatch Alarm '%s' to be in state %s", healthCheckId, stateValue);
          cloudWatch.waiter().waitUntilAlarmExists(
                DescribeAlarmsRequest.builder()
                      .alarmNames(healthCheckId)
-                     .stateValue(StateValue.OK)
+                     .stateValue(stateValue)
                      .build(),
                WaiterOverrideConfiguration.builder()
+                     .maxAttempts(150) // by default this is 40 and it seems it takes precedence before 10 minutes
                      .waitTimeout(Duration.ofMinutes(10))
                      .build()
          );

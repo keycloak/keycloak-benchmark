@@ -18,6 +18,7 @@ import org.keycloak.benchmark.crossdc.junit.tags.ActiveActive;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
+import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 public class FailoverTest extends AbstractCrossDCTest {
 
@@ -28,8 +29,14 @@ public class FailoverTest extends AbstractCrossDCTest {
         super.failbackLoadBalancers();
         if (activePassive) {
             String domain = DC_1.getKeycloakServerURL().substring("https://".length());
-            AWSClient.updateRoute53HealthCheckPath(domain, "/lb-check");
+            String healthCheckId = AWSClient.getHealthCheckId(domain);
+            AWSClient.updateRoute53HealthCheckPath(healthCheckId, "/lb-check");
+            AWSClient.waitForTheHealthCheckToBeInState(healthCheckId, StateValue.OK);
             DC_1.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
+
+            // Assert that the health check path was updated
+            String route53HealthCheckPath = AWSClient.getRoute53HealthCheckPath(healthCheckId);
+            assertTrue(route53HealthCheckPath.endsWith("/lb-check"), "Health check path was supposed to end with /lb-check but was " + route53HealthCheckPath);
         } else {
             // Heal split-brain if previously initiated
             scaleUpGossipRouter(DC_1);
@@ -49,6 +56,16 @@ public class FailoverTest extends AbstractCrossDCTest {
         Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
 
         DC_1.kc().markLBCheckDown();
+
+        // It seems in some cases the alarm is triggered later than the actual failover happens and the test passes
+        //  so quickly that the alarm is still on OK state in the failbackLoadBalancers method which is causing failures
+        //  in the following tests, therefore we will wait for the health check to be in ALARM state before proceeding
+        String healthCheckId = AWSClient.getHealthCheckId(DC_1.getKeycloakServerURL().substring("https://".length()));
+        AWSClient.waitForTheHealthCheckToBeInState(healthCheckId, StateValue.ALARM);
+        String route53HealthCheckPath = AWSClient.getRoute53HealthCheckPath(healthCheckId);
+
+        // Check the failover lambda was executed and the health check path was updated to a non-existing url
+        assertTrue(route53HealthCheckPath.endsWith("/lb-check-failed-over"), "Health check path was supposed to end with /lb-check-failed-over but was " + route53HealthCheckPath);
         DC_2.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
 
         // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
