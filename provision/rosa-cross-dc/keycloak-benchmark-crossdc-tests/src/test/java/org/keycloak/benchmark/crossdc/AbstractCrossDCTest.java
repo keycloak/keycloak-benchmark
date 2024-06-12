@@ -53,7 +53,7 @@ public abstract class AbstractCrossDCTest {
 
     public AbstractCrossDCTest() {
         var httpClient = HttpClientUtils.newHttpClient();
-        this.activePassive = !System.getProperty("deployment.type", "").equals(ActivePassive.TAG);
+        this.activePassive = System.getProperty("deployment.type", ActivePassive.TAG).equals(ActivePassive.TAG);
         this.DC_1 = new DatacenterInfo(httpClient, 1, activePassive);
         this.DC_2 = new DatacenterInfo(httpClient, 2, activePassive);
         this.LOAD_BALANCER_KEYCLOAK = new KeycloakClient(httpClient, DC_1.getLoadbalancerURL(), activePassive);
