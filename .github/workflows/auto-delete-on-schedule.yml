@@ -86,5 +86,10 @@ jobs:
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
 
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
       - name: Delete Global Accelerators
         run: ./provision/aws/global-accelerator/accelerator_reaper.sh
