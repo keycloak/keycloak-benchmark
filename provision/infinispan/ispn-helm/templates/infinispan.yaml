@@ -141,6 +141,8 @@ spec:
       owners: {{ $config.owners | default $.Values.cacheDefaults.owners | quote }}
       statistics: "true"
       remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout }}
+      encoding:
+        media-type: "application/x-protostream"
       locking:
         acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout }}
       {{- if and $config.memory $config.memory.maxCount }}
