@@ -29,6 +29,7 @@ import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
+import org.keycloak.benchmark.dataset.organization.OrganizationProvisioner;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
@@ -871,6 +872,11 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         return new AuthorizationProvisioner(baseSession);
     }
 
+    @Path("/orgs")
+    public OrganizationProvisioner orgs() {
+        return new OrganizationProvisioner(baseSession);
+    }
+
     @GET
     @Path("/take-dc-down")
     @NoCache
@@ -1103,7 +1109,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             int groupIndexStartForCurrentUser = (i * config.getGroupsPerUser());
             for (int j = groupIndexStartForCurrentUser ; j < groupIndexStartForCurrentUser + config.getGroupsPerUser() ; j++) {
                 int groupIndex = j % context.getGroups().size();
-                user.joinGroup(context.getGroups().get(groupIndex));
+                GroupModel group = context.getGroups().get(groupIndex);
+                user.joinGroup(session.groups().getGroupById(realm, group.getId()));
 
                 logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
             }

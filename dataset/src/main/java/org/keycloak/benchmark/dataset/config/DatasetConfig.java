@@ -22,6 +22,7 @@ import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_AUTH
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_ORGS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
@@ -63,7 +64,7 @@ public class DatasetConfig {
     private Integer start;
 
     // Count of entities to be created. Entity is realm, client or user based on the operation
-    @QueryParamIntFill(paramName = "count", required = true, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, CREATE_AUTHZ_CLIENT })
+    @QueryParamIntFill(paramName = "count", required = true, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer count;
 
     // Prefix for realm roles to create in every realm (in case of CREATE_REALMS) or to assign to users (in case of CREATE_USERS)
@@ -86,7 +87,7 @@ public class DatasetConfig {
     private Integer clientsPerTransaction;
 
     // default number of entries created per DB transaction
-    @QueryParamIntFill(paramName = "entries-per-transaction", defaultValue = 10, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_AUTHZ_CLIENT })
+    @QueryParamIntFill(paramName = "entries-per-transaction", defaultValue = 10, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer entriesPerTransaction;
 
     // Prefix of clientRoles to be created (in case of CREATE_REALMS and CREATE_CLIENTS). In case of CREATE_USERS it is used to find the clientRoles, which will be assigned to users
@@ -164,7 +165,7 @@ public class DatasetConfig {
 
     // Transaction timeout used for transactions for creating objects
     @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
-            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT })
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer transactionTimeoutInSeconds;
 
     // Count of users created in every transaction
@@ -173,13 +174,13 @@ public class DatasetConfig {
 
     // Count of worker threads concurrently creating entities
     @QueryParamIntFill(paramName = "threads-count", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
-            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT })
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer threadsCount;
 
     // Timeout for the whole task. If timeout expires, then the existing task may not be terminated immediatelly. However it will be permitted to start another task
     // (EG. Send another HTTP request for creating realms), which can cause conflicts
     @QueryParamIntFill(paramName = "task-timeout", defaultValue = 3600, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
-            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT })
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer taskTimeout;
 
     // The client id of a client to which data is going to be provisioned
@@ -201,6 +202,24 @@ public class DatasetConfig {
     // The number of users per user policy. If greater than 1, an aggregated policy is created with the given number of user policies
     @QueryParamIntFill(paramName = "users-per-user-policy", defaultValue = 1, operations = CREATE_AUTHZ_CLIENT)
     private int usersPerUserPolicy;
+
+    @QueryParamFill(paramName = "name", operations = { CREATE_ORGS })
+    private String name;
+
+    @QueryParamFill(paramName = "domains", operations = { CREATE_ORGS })
+    private String domains;
+
+    @QueryParamIntFill(paramName = "domains-count", operations = { CREATE_ORGS })
+    private int domainsCount;
+
+    @QueryParamFill(paramName = "org-prefix", defaultValue = "org-", operations = { CREATE_ORGS })
+    private String orgPrefix;
+
+    @QueryParamIntFill(paramName = "unmanaged-members-count", operations = CREATE_ORGS)
+    private int unManagedMembersCount;
+
+    @QueryParamIntFill(paramName = "identity-providers-count", operations = CREATE_ORGS)
+    private int identityProvidersCount;
 
     // String representation of this configuration (cached here to not be computed in runtime)
     private String toString = "DatasetConfig []";
@@ -379,5 +398,29 @@ public class DatasetConfig {
     @Override
     public String toString() {
         return toString;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDomains() {
+        return domains;
+    }
+
+    public int getDomainsCount() {
+        return domainsCount;
+    }
+
+    public String getOrgPrefix() {
+        return orgPrefix;
+    }
+
+    public int getUnManagedMembersCount() {
+        return unManagedMembersCount;
+    }
+
+    public int getIdentityProvidersCount() {
+        return identityProvidersCount;
     }
 }

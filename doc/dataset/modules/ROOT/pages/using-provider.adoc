@@ -253,6 +253,69 @@ To see the last created user in a given realm
 .../realms/master/dataset/last-user?realm-name=realm5
 ----
 
+=== Provisioning organizations
+
+Before provisioning organizations, make sure to manually create or provision a realm. For example,
+provision a `realm-0` realm as follows:
+
+----
+.../realms/master/dataset/create-realms?count=1&users-per-realm=5000
+----
+
+As a result, you have a realm `realm-0` with 5k users in it.
+
+This is the request to create 1000 organizations in a realm with prefix `org-`:
+
+----
+.../realms/realm-0/dataset/orgs/create?count=1000
+----
+
+Alternatively, you can create a single organization with a given name:
+
+----
+realms/realm-0/dataset/orgs/create?name=myorg.com&domains=myorg.com,myorg.org,myorg.net&count=1
+----
+
+You can also specify how many members (managed and unmanaged) and how many identity providers should be
+linked to each organization created:
+
+----
+.../realms/realm-0/dataset/orgs/create?count=1000&unmanaged-members-count=500&identity-providers-count=10
+----
+
+As a result, 1k organizations with the following configuration:
+
+* 500 unmanaged members
+* 10 identity providers
+
+You can also provision data to a specific organization. For instance, to provision
+more identity providers to a specific organization:
+
+----
+.../realms/realm-0/dataset/orgs/org-0/identity-providers/create?count=1000
+----
+
+Or to provision more unmanaged members to a specific organization:
+
+----
+.../realms/realm-0/dataset/orgs/org-0/members/create-unmanaged?count=100
+----
+
+Or to provision more managed members to a specific organization:
+
+----
+.../realms/realm-0/dataset/orgs/org-0/members/create-managed?count=100
+----
+
+When provisioning members make sure you have created enough users in the realm. For managed members, you also need at least
+a single identity provider linked to an organization.
+
+If you want to remove an organization:
+
+----
+.../realms/realm-0/dataset/orgs/org-0/remove
+----
+
 == Further reading
 
 * xref:clearing-caches.adoc[]
