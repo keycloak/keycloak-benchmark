@@ -1,0 +1,61 @@
+= {project_name} JVM Options
+:description: This documentation covers the information about the JVM Options for tuning the performance of {project_name}.
+
+{description}
+
+== Why JVM Heap tuning is relevant to performance of {project_name}
+
+{project_name}, being a Java-based application, relies on the JVM for memory management. Proper heap sizing ensures that the application has enough memory to handle its operations without encountering memory-related issues. Efficient garbage collection (GC) is a significant factor in this process. If the heap is too small, the GC will run frequently, increasing CPU usage and potentially causing pauses. Conversely, an overly large heap can result in longer GC pauses. By tuning the heap size appropriately, the time spent in garbage collection is minimized, enhancing overall application throughput.
+
+Furthermore, adequate heap tuning helps prevent out-of-memory (OOM) errors,
+contributing to the stability and reliability of {project_name}.
+It also improves latency and response times, which are crucial for authentication and authorization tasks.
+Proper memory management enables the application to scale effectively,
+handling increased loads without performance degradation.
+Additionally, optimized heap settings ensure efficient resource utilization,
+preventing both under utilization and overconsumption of system resources.
+
+=== Set up the JVM Options
+We can set the JVM options in the deployment where the specific variables such as JVM_OPTS/JAVA_OPTS_KC_HEAP could be overridden, and the special flags are enabled.  Remember, if you have multiple containers/ servers, make sure the configuration is applied in a consistent manner to all the Keycloak JVMs.
+
+We can also verify the configuration if it's applied by running the below command on the Keycloak server node, which prints the VM.flags that are applied to the specific JVM.
+
+[source,bash]
+----
+jcmd 1 VM.flags
+----
+
+=== Standard JVM Options
+
+-XX:MetaspaceSize:: Set the initial metaspace size.
+-XX:MaxMetaspaceSize:: Set the maximum metaspace size.
+
+=== JAVA_OPTS_KC_HEAP
+==== Container-specific workload JVM Heap Options
+
+-XX:MaxRAMPercentage:: Set the maximum percentage of the system's physical memory that the JVM can use.
+-XX:MinRAMPercentage:: Set the minimum percentage of the system's physical memory that the JVM can use.
+-XX:InitialRAMPercentage:: Set the initial percentage of the system's physical memory allocated to the JVM.
+
+==== Non-Container specific workload JVM Heap Options
+-Xms:: Set the initial heap size for the JVM.
+-Xmx:: Set the maximum heap size for the JVM.
+
+==== Garbage Collection Tuning Options
+-XX:+UseG1GC:: Enables the G1 garbage collector.
+-Xlog:gc:file="path/to/file":: We can set this to generate GC logs which then could be collected to perform GC log analysis.
+-XX:MaxGCPauseMillis:: Set the target for maximum GC pause time.
+
+==== Performance Tuning Options
+-XX:MinHeapFreeRatio:: Set the minimum percentage of free heap space to maintain before expanding the heap.
+-XX:MaxHeapFreeRatio:: Set the maximum percentage of free heap space to maintain before shrinking the heap.
+-XX:GCTimeRatio:: Set the desired ratio of garbage collection time to application time.
+-XX:AdaptiveSizePolicyWeight:: Adjusts the weight of the adaptive size policy decisions in the JVM.
+-XX:ConcGCThreads:: Specify the number of threads used for concurrent garbage collection.
+-XX:CICompilerCount:: Set the number of compiler threads for just-in-time (JIT) compilation.
+
+==== Additional JVM Options for analysis
+-XX:+ExitOnOutOfMemoryError:: Exits on OutOfMemoryError.
+-XX:FlightRecorderOptions=stackdepth=512:: Set the Java Flight recorder depth configuration for a JFR that could be recorded for heap analysis.
+
+
