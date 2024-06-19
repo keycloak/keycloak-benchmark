@@ -85,6 +85,7 @@ jobs:
     secrets: inherit
 
   run-scaling-benchmark-active-active:
+    needs: keycloak-deploy-active-active
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
