@@ -1,274 +1,226 @@
 package org.keycloak.benchmark.crossdc.client;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.ISPN_USERNAME;
-import static org.keycloak.benchmark.crossdc.AbstractCrossDCTest.MAIN_PASSWORD;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getBasicAuthenticationHeader;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
+import org.infinispan.client.hotrod.Flag;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.configuration.ClientIntelligence;
+import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
+import org.infinispan.client.rest.RestCacheClient;
+import org.infinispan.client.rest.RestClient;
+import org.infinispan.client.rest.RestResponse;
+import org.infinispan.client.rest.configuration.RestClientConfigurationBuilder;
+import org.infinispan.commons.dataconversion.internal.Json;
+import org.infinispan.commons.util.concurrent.CompletionStages;
+import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
+import org.keycloak.marshalling.KeycloakModelSchema;
 
-import java.io.IOException;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
+import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.Arrays;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.apache.http.client.utils.URIBuilder;
-import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
-import org.keycloak.util.JsonSerialization;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ExternalInfinispanClient implements InfinispanClient<InfinispanClient.ExternalCache> {
-    private final HttpClient httpClient;
-    private final String infinispanUrl;
-    private final String username;
-    private final String password;
-    private final String keycloakServerURL;
+    private final RestClient restClient;
+    private final RemoteCacheManager hotRodClient;
     private final String siteName;
 
-    Pattern UUID_REGEX = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+    public ExternalInfinispanClient(String infinispanUrl, String username, String password) {
+        var uri = URI.create(Objects.requireNonNull(infinispanUrl));
+        var host = uri.getHost();
+        var port = uri.getPort() == -1 ? 443 : uri.getPort();
+        var sslContext = createSSLContext();
+        restClient = createRestClient(host, port, username, password, sslContext);
+        hotRodClient = createHotRodClient(host, port, username, password, sslContext);
+        siteName = serverInfo(restClient).at("local_site").asString();
+    }
 
-    public ExternalInfinispanClient(HttpClient httpClient, String infinispanUrl, String username, String password, String keycloakServerURL) {
-        assertNotNull(infinispanUrl, "Infinispan URL cannot be null");
-        this.httpClient = httpClient;
-        this.infinispanUrl = infinispanUrl;
-        this.username = username;
-        this.password = password;
-        this.keycloakServerURL = keycloakServerURL;
+    private static RemoteCacheManager createHotRodClient(String host, int port, String username, String password, SSLContext sslContext) {
+        var builder = new ConfigurationBuilder();
+        builder.addServer().host(host).port(port);
+        builder.clientIntelligence(ClientIntelligence.BASIC);
+        builder.security().authentication().username(username).password(password);
+        builder.security().ssl().enable().sslContext(sslContext).hostnameValidation(false);
+        builder.addContextInitializer(KeycloakModelSchema.INSTANCE);
+        return new RemoteCacheManager(builder.build());
+    }
 
-        HttpResponse<String> stringHttpResponse = sendRequestWithAction(infinispanUrl + "/rest/v2/cache-managers/default", "GET");
-        assertEquals(200, stringHttpResponse.statusCode());
+    private static RestClient createRestClient(String host, int port, String username, String password, SSLContext sslContext) {
+        var builder = new RestClientConfigurationBuilder();
+        builder.addServer().host(host).port(port);
+        builder.security().authentication().username(Objects.requireNonNull(username)).password(Objects.requireNonNull(password));
+        builder.security().ssl().sslContext(sslContext).trustManagers(new TrustManager[]{TRUST_ALL_MANAGER}).hostnameVerifier(ACCEPT_ALL_HOSTNAME_VERIFIER);
+        return RestClient.forConfiguration(builder.build());
+    }
 
-        Map<String, Object> returnedValues;
+    private static SSLContext createSSLContext() {
         try {
-            returnedValues = JsonSerialization.readValue(stringHttpResponse.body(), Map.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            var trustManagers = new TrustManager[]{TRUST_ALL_MANAGER};
+            var sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustManagers, null);
+            return sslContext;
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new IllegalStateException(e);
         }
+    }
 
-        this.siteName = (String) returnedValues.get("local_site");
+    private static Json serverInfo(RestClient client) {
+        try (var rsp = awaitAndCheckOkStatus(client.container().info())) {
+            return Json.read(rsp.body());
+        }
+    }
+
+    private static RestResponse awaitAndCheckOkStatus(CompletionStage<RestResponse> future) {
+        var rsp = CompletionStages.join(future);
+        assertEquals(RestResponse.OK, rsp.status());
+        return rsp;
     }
 
     public String siteName() {
         return siteName;
     }
 
-    public class ExternalCache implements InfinispanClient.ExternalCache {
+    public static class ExternalCache implements InfinispanClient.ExternalCache {
 
-        private final String cacheName;
+        private final RestCacheClient cacheRestClient;
+        private final RemoteCache<Object, Object> cacheHotRodClient;
 
-        private ExternalCache(String cacheName) {
-            this.cacheName = cacheName;
+        private ExternalCache(RestCacheClient cacheRestClient, RemoteCache<Object, Object> cacheHotRodClient) {
+            this.cacheRestClient = cacheRestClient;
+            this.cacheHotRodClient = cacheHotRodClient;
         }
 
         @Override
         public long size() {
-            URI uri = null;
-            try {
-                uri = new URIBuilder(infinispanUrl + "/rest/v2/caches/" + cacheName + "/")
-                        .addParameter("action", "size")
-                        .build();
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .header("Authorization", getBasicAuthenticationHeader(ISPN_USERNAME, MAIN_PASSWORD))
-                    .build();
-            try {
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                assertEquals(200, response.statusCode());
-
-                if (cacheName.equals(InfinispanUtils.SESSIONS) || cacheName.equals(InfinispanUtils.CLIENT_SESSIONS)) {
-                    return Long.parseLong(response.body()) - KeycloakClient.getCurrentlyInitializedAdminClients();
+            var size = cacheHotRodClient.size();
+            if (InfinispanUtils.SESSIONS.equals(cacheRestClient.name()) || InfinispanUtils.CLIENT_SESSIONS.equals(cacheRestClient.name())) {
+                size -= KeycloakClient.getCurrentlyInitializedAdminClients();
                 }
-                return Long.parseLong(response.body());
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            return size;
         }
 
         @Override
         public void clear() {
-            URI uri = null;
-            try {
-                uri = new URIBuilder(infinispanUrl + "/rest/v2/caches/" + cacheName + "/")
-                        .addParameter("action","clear")
-                        .build();
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9")
-                    .header("Authorization", getBasicAuthenticationHeader(username, password))
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
-
-            HttpResponse<String> response = null;
-            try {
-                response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException("Exception thrown for cache " + cacheName, e);
-            }
-
-            assertEquals(204, response.statusCode());
+            cacheHotRodClient.clear();
         }
 
         @Override
-        public boolean contains(String key) throws URISyntaxException, IOException, InterruptedException {
-            URI uri = new URIBuilder( keycloakServerURL + "/realms/master/remote-cache/" + cacheName + "/contains/" + key).build();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return Boolean.parseBoolean(response.body());
+        public boolean contains(String key) {
+            assertEquals(InfinispanUtils.SESSIONS, cacheHotRodClient.getName());
+            return cacheHotRodClient.containsKey(key);
         }
 
         @Override
         public boolean remove(String key) {
-            URI uri = null;
-            try {
-                uri = new URIBuilder( keycloakServerURL + "/realms/master/remote-cache/" + cacheName + "/remove/" + key + "?skipListeners=true").build();
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .GET()
-                    .build();
-
-
-            HttpResponse<String> response;
-            try {
-                response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            assertEquals(200, response.statusCode());
-            return Boolean.parseBoolean(response.body());
+            cacheHotRodClient.withFlags(Flag.SKIP_LISTENER_NOTIFICATION).remove(key);
+            return true;
         }
 
         @Override
         public Set<String> keys() {
-            URI uri = null;
-            try {
-                uri = new URIBuilder(infinispanUrl + "/rest/v2/caches/" + cacheName + "/")
-                        .addParameter("action", "keys")
-                        .build();
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .header("Authorization", getBasicAuthenticationHeader(ISPN_USERNAME, MAIN_PASSWORD))
-                    .build();
-            try {
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                assertEquals(200, response.statusCode());
-
-                Set<String> keys = Arrays.stream(response.body().split(","))
-                        .map(UUID_REGEX::matcher)
-                        .map(m -> {
-                            if (m.find()) {
-                                return m.group();
-                            } else {
-                                return null;
-                            }
-                        }).filter(Objects::nonNull)
-                        .collect(Collectors.toSet());
-
-                if (cacheName.equals(InfinispanUtils.SESSIONS)) {
-                    return KeycloakClient.removeAdminClientSessions(keys);
-                }
-
-                return keys;
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            var keySet = cacheHotRodClient.keySet().stream().map(String::valueOf).collect(Collectors.toSet());
+            return InfinispanUtils.SESSIONS.equals(cacheHotRodClient.getName()) ?
+                    KeycloakClient.removeAdminClientSessions(keySet) :
+                    keySet;
         }
 
         @Override
         public void takeOffline(String backupSiteName) {
-            HttpResponse<String> stringHttpResponse = sendRequestWithAction(infinispanUrl + "/rest/v2/caches/" + cacheName + "/x-site/backups/" + backupSiteName, "POST", "take-offline");
-            assertEquals(200, stringHttpResponse.statusCode());
+            awaitAndCheckOkStatus(cacheRestClient.takeSiteOffline(backupSiteName)).close();
         }
 
         @Override
         public void bringOnline(String backupSiteName) {
-            HttpResponse<String> stringHttpResponse = sendRequestWithAction(infinispanUrl + "/rest/v2/caches/" + cacheName + "/x-site/backups/" + backupSiteName, "POST", "bring-online");
-            assertEquals(200, stringHttpResponse.statusCode());
+            awaitAndCheckOkStatus(cacheRestClient.bringSiteOnline(backupSiteName)).close();
         }
 
         @Override
-        public boolean isBackupOnline(String backupSiteName) throws IOException {
-            String response = sendRequestWithAction(infinispanUrl + "/rest/v2/caches/" + cacheName + "/x-site/backups/", "GET").body();
-            Map<String, Object> returnedValues = JsonSerialization.readValue(response, Map.class);
-
-            String status = getNestedValue(returnedValues, backupSiteName, "status");
-            return "online".equals(status);
-        }
-    }
-
-    private HttpResponse<String> sendRequestWithAction(String url, String method) {
-        return sendRequestWithAction(url, method, null);
-    }
-
-    private HttpResponse<String> sendRequestWithAction(String url, String method, String action) {
-        URI uri = null;
-        try {
-            var uriBuilder = new URIBuilder(url);
-
-            if (action != null) {
-                uriBuilder.addParameter("action", action);
+        public boolean isBackupOnline(String backupSiteName) {
+            try (var rsp = awaitAndCheckOkStatus(cacheRestClient.xsiteBackups())) {
+                var status = Json.read(rsp.body()).at(backupSiteName).at("status").asString();
+                return "online".equals(status);
             }
-
-            uri = uriBuilder.build();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-
-        var builder = HttpRequest.newBuilder().uri(uri);
-
-        if (method.equals("POST")) {
-            builder = builder.method("POST", HttpRequest.BodyPublishers.noBody());
-        }
-
-        HttpRequest request = builder.header("Authorization", getBasicAuthenticationHeader(ISPN_USERNAME, MAIN_PASSWORD))
-                .build();
-        try {
-            return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 
     @Override
     public ExternalCache cache(String name) {
-        return new ExternalCache(name);
+        return new ExternalCache(restClient.cache(name), hotRodClient.getCache(name));
     }
 
-    @SuppressWarnings("unchecked")
-    public List<String> getSiteView() {
-        HttpResponse<String> response = sendRequestWithAction(infinispanUrl + "/rest/v2/container", "GET");
-        assertEquals(200, response.statusCode());
+    @Override
+    public void close() {
+        hotRodClient.close();
         try {
-            Map<String, Object> info = JsonSerialization.readValue(response.body(), Map.class);
-            return (List<String>) info.get("sites_view");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            restClient.close();
+        } catch (Exception e) {
+            //ignored
         }
+
     }
+
+    public List<String> getSiteView() {
+        return serverInfo(restClient)
+                .at("sites_view")
+                .asJsonList().stream()
+                .map(Json::asString)
+                .toList();
+    }
+
+    public static final X509ExtendedTrustManager TRUST_ALL_MANAGER = new X509ExtendedTrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+
+    private static final HostnameVerifier ACCEPT_ALL_HOSTNAME_VERIFIER = new HostnameVerifier() {
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    };
 }

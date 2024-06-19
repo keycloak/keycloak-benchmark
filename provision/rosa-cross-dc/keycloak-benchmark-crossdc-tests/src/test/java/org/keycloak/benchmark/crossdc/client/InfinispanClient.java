@@ -24,4 +24,8 @@ public interface InfinispanClient<T extends InfinispanClient.Cache> {
     }
 
     T cache(String name);
+
+    default void close() {
+
+    }
 }

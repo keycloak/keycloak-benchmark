@@ -22,7 +22,6 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
     protected static final Logger LOG = Logger.getLogger(LoginLogoutTest.class);
 
     @Test
-    @Disabled
     public void loginLogoutTest() throws URISyntaxException, IOException, InterruptedException {
         //Login and exchange code in DC1
         String code = LOAD_BALANCER_KEYCLOAK.usernamePasswordLogin(REALM_NAME, USERNAME, MAIN_PASSWORD, CLIENTID);

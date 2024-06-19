@@ -57,7 +57,7 @@ public class DatacenterInfo implements AutoCloseable {
         this.loadbalancerURL = getRouteHost("keycloak");
 
         this.keycloak = new KeycloakClient(httpClient, keycloakServerURL, activePassive);
-        this.infinispan = new ExternalInfinispanClient(httpClient, infinispanServerURL, AbstractCrossDCTest.ISPN_USERNAME, AbstractCrossDCTest.MAIN_PASSWORD, keycloakServerURL);
+        this.infinispan = new ExternalInfinispanClient(infinispanServerURL, AbstractCrossDCTest.ISPN_USERNAME, AbstractCrossDCTest.MAIN_PASSWORD);
     }
 
     private String getRouteHost(String app) {
@@ -75,6 +75,7 @@ public class DatacenterInfo implements AutoCloseable {
 
     @Override
     public void close() {
+        infinispan.close();
         this.oc.close();
     }
 
