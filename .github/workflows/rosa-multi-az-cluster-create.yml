@@ -24,6 +24,10 @@ on:
         description: 'To enable Persistent user and client sessions to the DB'
         type: boolean
         default: false
+      enableExternalInfinispanFeature:
+        description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
+        type: boolean
+        default: false
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -50,6 +54,10 @@ on:
         description: 'To enable Persistent user and client sessions to the DB'
         type: boolean
         default: false
+      enableExternalInfinispanFeature:
+        description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
+        type: boolean
+        default: false
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -58,6 +66,7 @@ env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
   REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
   KC_PERSISTENT_SESSIONS: ${{ inputs.enablePersistentSessions }}
+  KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
 
 jobs:
   # Workaround required for passing env variables to reusable workflow declarations as ${{ env.* }} is not available
@@ -178,6 +187,7 @@ jobs:
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
           KC_PERSISTENT_SESSIONS: ${{ env.KC_PERSISTENT_SESSIONS }}
+          KC_EXTERNAL_INFINISPAN: ${{ env.KC_EXTERNAL_INFINISPAN }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
           KC_DB_POOL_INITIAL_SIZE: 30
@@ -217,6 +227,7 @@ jobs:
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
           KC_PERSISTENT_SESSIONS: ${{ env.KC_PERSISTENT_SESSIONS }}
+          KC_EXTERNAL_INFINISPAN: ${{ env.KC_EXTERNAL_INFINISPAN }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
           KC_DB_POOL_INITIAL_SIZE: 30
