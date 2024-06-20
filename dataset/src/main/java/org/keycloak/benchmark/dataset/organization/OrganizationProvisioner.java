@@ -121,11 +121,9 @@ public class OrganizationProvisioner extends AbstractOrganizationProvisioner {
                                     createOrganization(config.getOrgPrefix() + j, s, config);
                                 }
 
-                                logger.infof("Created organizations in realm %s from %d to %d", getRealmName(), orgStartIndex, endIndex);
+                                int createdCount = endIndex - orgStartIndex;
 
-                                if (((endIndex - startIndex) / config.getEntriesPerTransaction()) % 20 == 0) {
-                                    logger.infof("Created %d organizations in realm %s", count, getRealmName());
-                                }
+                                logger.infof("Created %d organizations in realm %s from %d to %d", createdCount, getRealmName(), orgStartIndex, endIndex);
                             });
                         }
                     } else {
@@ -135,9 +133,9 @@ public class OrganizationProvisioner extends AbstractOrganizationProvisioner {
 
                 executor.waitForAllToFinish();
                 success();
-                logger.infof("Created %d organizations in realm %s", count, getRealmName());
             } catch (Exception e) {
                 cleanup(executor);
+                logger.error("Failed to provision organizations", e);
             }
         };
     }
@@ -151,7 +149,7 @@ public class OrganizationProvisioner extends AbstractOrganizationProvisioner {
             return;
         }
 
-        OrganizationModel organization = orgProvider.create(name);
+        OrganizationModel organization = orgProvider.create(name, name);
         int domainsCount = config.getDomainsCount();
         String domains = Optional.ofNullable(config.getDomains()).filter(StringUtil::isNotBlank).orElse(name);
 

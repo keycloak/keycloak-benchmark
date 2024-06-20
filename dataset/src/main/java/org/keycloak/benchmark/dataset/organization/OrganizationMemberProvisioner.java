@@ -110,9 +110,7 @@ public class OrganizationMemberProvisioner extends AbstractOrganizationProvision
         OrganizationModel organization = provider.getById(orgId);
         session.users().searchForUserStream(realm, Map.of(UserModel.INCLUDE_SERVICE_ACCOUNT, Boolean.FALSE.toString()))
                 .filter((u) -> provider.getByMember(u) == null)
-                .takeWhile(userModel -> {
-                    return latch.getCount() > 0;
-                })
+                .takeWhile(userModel -> latch.getCount() > 0)
                 .forEach(userModel -> {
                     provider.addMember(organization, userModel);
                     latch.countDown();

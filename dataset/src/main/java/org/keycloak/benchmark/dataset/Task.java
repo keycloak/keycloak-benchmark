@@ -18,6 +18,7 @@
 
 package org.keycloak.benchmark.dataset;
 
+import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -90,7 +91,14 @@ public class Task {
 
     @Override
     public String toString() {
-        return String.format("%s, started: %s", taskMessage, new Date(startTimeMs));
+        boolean running = endTimeMs == null;
+        Long endTimeMs = this.endTimeMs;
+
+        if (running) {
+            endTimeMs = Time.currentTimeMillis();
+        }
+
+        return String.format("%s, running: %s, time: %ss, started: %s, ended: %s", taskMessage, running, Duration.ofMillis(endTimeMs - startTimeMs).toSeconds(), new Date(startTimeMs), new Date(endTimeMs));
     }
 
     public Boolean isSuccess() {
