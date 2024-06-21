@@ -93,6 +93,7 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
             client.setSecret("secret");
             client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
             client.setPublicClient(false);
+            client.addRedirectUri("http://localhost:8180/realms/" + realm.getName() + "/broker/*");
         }
 
         long count = latch.getCount();
@@ -115,20 +116,19 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
                 identityProvider.setEnabled(true);
                 HashMap<String, String> idpConfig = new HashMap<>();
                 identityProvider.setConfig(idpConfig);
-                idpConfig.put("issuer", "http://localhost:8180/realms/" + config.getRealmName());
-                idpConfig.put("jwksUrl", "http://localhost:8180/realms/realm-0/protocol/openid-connect/certs");
-                idpConfig.put("logoutUrl", "http://localhost:8180/realms/realm-0/protocol/openid-connect/auth");
-                idpConfig.put("metadataDescriptorUrl", "http://localhost:8180/realms/realm-0/.well-known/openid-configuration");
-                idpConfig.put("tokenUrl", "http://localhost:8180/realms/realm-0/protocol/openid-connect/token");
-                idpConfig.put("authorizationUrl", "http://localhost:8180/realms/realm-0/protocol/openid-connect/auth");
+                idpConfig.put("issuer", "http://localhost:8180/realms/" + realm.getName());
+                idpConfig.put("jwksUrl", "http://localhost:8180/realms/" + realm.getName() + "/protocol/openid-connect/certs");
+                idpConfig.put("logoutUrl", "http://localhost:8180/realms/" + realm.getName() + "/protocol/openid-connect/auth");
+                idpConfig.put("metadataDescriptorUrl", "http://localhost:8180/realms/" + realm.getName() + "/.well-known/openid-configuration");
+                idpConfig.put("tokenUrl", "http://localhost:8180/realms/" + realm.getName() + "/protocol/openid-connect/token");
+                idpConfig.put("authorizationUrl", "http://localhost:8180/realms/" + realm.getName() + "/protocol/openid-connect/auth");
                 idpConfig.put("useJwksUrl", "true");
-                idpConfig.put("userInfoUrl", "http://localhost:8180/realms/realm-0/protocol/openid-connect/userinfo");
+                idpConfig.put("userInfoUrl", "http://localhost:8180/realms/" + realm.getName() + "/protocol/openid-connect/userinfo");
                 idpConfig.put("validateSignature", "true");
                 idpConfig.put("clientId", "org-broker-client");
                 idpConfig.put("clientSecret", "secret");
                 idpConfig.put("clientAuthMethod", "client_secret_post");
                 realm.addIdentityProvider(identityProvider);
-                client.addRedirectUri("http://localhost:8180/realms/" + config.getRealmName() + "/broker/" + identityProvider.getAlias() + "/endpoint");
             }
 
             if (provider.addIdentityProvider(organization, identityProvider)) {
