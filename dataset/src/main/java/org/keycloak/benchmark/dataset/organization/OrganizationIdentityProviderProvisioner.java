@@ -20,6 +20,7 @@ package org.keycloak.benchmark.dataset.organization;
 
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -86,19 +87,10 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
         OrganizationModel organization = provider.getById(orgId);
         int startIndex = getLastIndex(session, organization.getName());
         RealmModel realm = session.getContext().getRealm();
-        ClientModel client = realm.getClientByClientId("org-broker-client");
-
-        if (client == null) {
-            client = realm.addClient("org-broker-client");
-            client.setSecret("secret");
-            client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
-            client.setPublicClient(false);
-            client.addRedirectUri("http://localhost:8180/realms/" + realm.getName() + "/broker/*");
-        }
 
         long count = latch.getCount();
 
-        for (int i = startIndex; i < count; i++) {
+        for (int i = startIndex; i < startIndex + count; i++) {
             String idpAlias = "idp-" + organization.getName() + "-" + i;
 
             IdentityProviderModel identityProvider = realm.getIdentityProviderByAlias(idpAlias);
@@ -129,6 +121,8 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
                 idpConfig.put("clientSecret", "secret");
                 idpConfig.put("clientAuthMethod", "client_secret_post");
                 realm.addIdentityProvider(identityProvider);
+                AtomicInteger lastIndex = (AtomicInteger) session.getAttribute("idpLastIndex");
+                lastIndex.incrementAndGet();
             }
 
             if (provider.addIdentityProvider(organization, identityProvider)) {
@@ -138,7 +132,14 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
     }
 
     private int getLastIndex(KeycloakSession session, String orgName) {
-        RealmModel realm = session.getContext().getRealm();
-        return ConfigUtil.findFreeEntityIndex(index -> realm.getIdentityProvidersStream().anyMatch(idp -> idp.getAlias().equals("idp-" + orgName + "-" + index)));
+        AtomicInteger lastIndex = (AtomicInteger) session.getAttribute("idpLastIndex");
+
+        if (lastIndex == null) {
+            RealmModel realm = session.getContext().getRealm();
+            lastIndex = new AtomicInteger(ConfigUtil.findFreeEntityIndex(index -> realm.getIdentityProvidersStream().anyMatch(idp -> idp.getAlias().equals("idp-" + orgName + "-" + index))));
+            session.setAttribute("idpLastIndex", lastIndex);
+        }
+
+        return lastIndex.get();
     }
 }
