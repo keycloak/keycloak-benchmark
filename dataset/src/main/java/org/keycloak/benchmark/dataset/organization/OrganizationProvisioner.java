@@ -38,6 +38,7 @@ import org.keycloak.benchmark.dataset.ExecutorHelper;
 import org.keycloak.benchmark.dataset.TaskResponse;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
@@ -45,6 +46,7 @@ import org.keycloak.models.OrganizationDomainModel;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.organization.OrganizationProvider;
+import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.utils.StringUtil;
 
 public class OrganizationProvisioner extends AbstractOrganizationProvisioner {
@@ -109,6 +111,17 @@ public class OrganizationProvisioner extends AbstractOrganizationProvisioner {
                 Integer count = config.getCount();
 
                 executor.addTask(() -> runJobInTransactionWithTimeout(session -> {
+                    RealmModel realm = getRealm(session);
+                    ClientModel client = realm.getClientByClientId("org-broker-client");
+
+                    if (client == null) {
+                        client = realm.addClient("org-broker-client");
+                        client.setSecret("secret");
+                        client.setProtocol(OIDCLoginProtocol.LOGIN_PROTOCOL);
+                        client.setPublicClient(false);
+                        client.addRedirectUri("http://localhost:8180/realms/" + realm.getName() + "/broker/*");
+                    }
+
                     int startIndex = getLastIndex(session);
 
                     if (isBlank(config.getName())) {
