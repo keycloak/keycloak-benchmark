@@ -13,6 +13,10 @@ on:
         description: 'Skip Aurora database deletion.'
         type: boolean
         default: false
+      activeActive:
+        description: 'When true undeploy an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       clusterPrefix:
@@ -23,6 +27,10 @@ on:
         type: string
       skipAuroraDeletion:
         description: 'Skip Aurora database deletion.'
+        type: boolean
+        default: false
+      activeActive:
+        description: 'When true undeploy an Active/Active Keycloak deployment'
         type: boolean
         default: false
 
@@ -55,6 +63,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
       - name: Login to OpenShift cluster
         uses: ./.github/actions/oc-keycloak-login
         with:
@@ -66,10 +79,12 @@ jobs:
           project: runner-keycloak
 
       - name: Get KC Health URL
+        if: ${{ !inputs.activeActive }}
         run: |
           echo "KC_HEALTH_URL_CLUSTER_1=primary.${KEYCLOAK_URL:15}" >> $GITHUB_ENV
 
-      - name: Undeploy infinispan and keycloak
+      - name: Undeploy Active/Passive infinispan and keycloak
+        if: ${{ !inputs.activeActive }}
         working-directory: provision/rosa-cross-dc
         run: |
           task undeploy
@@ -77,6 +92,15 @@ jobs:
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
           KC_HEALTH_URL_CLUSTER_1: ${{ env.KC_HEALTH_URL_CLUSTER_1 }}
+
+      - name: Undeploy Active/Active infinispan and keycloak
+        if: ${{ inputs.activeActive }}
+        working-directory: provision/rosa-cross-dc
+        run: |
+          task undeploy-active-active
+        env:
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Undeploy aurora database
         if: ${{ !inputs.skipAuroraDeletion }}
@@ -90,11 +114,27 @@ jobs:
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Set SUBDOMAIN env variable for route53 processing
+        if: ${{ !inputs.activeActive }}
         run: |
           echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
 
       - name: Delete Route53 Records
+        if: ${{ !inputs.activeActive }}
         run: |
           ./provision/aws/route53/route53_delete.sh
         env:
           SUBDOMAIN: ${{ env.SUBDOMAIN }}
+
+      - name: Set ACCELERATOR_DNS env variable for Global Accelerator processing
+        if: ${{ inputs.activeActive }}
+        run: |
+          echo "ACCELERATOR_DNS=${KEYCLOAK_URL#"https://"}" >> $GITHUB_ENV
+
+      - name: Delete Global Accelerator
+        if: ${{ inputs.activeActive }}
+        run: ./provision/aws/global-accelerator/accelerator_multi_az_delete.sh
+        env:
+          ACCELERATOR_DNS: ${{ env.ACCELERATOR_DNS }}
+          CLUSTER_1: ${{ inputs.clusterPrefix }}-a
+          CLUSTER_2: ${{ inputs.clusterPrefix }}-b
+          KEYCLOAK_NAMESPACE: runner-keycloak
