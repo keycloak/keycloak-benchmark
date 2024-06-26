@@ -9,7 +9,7 @@ vars:
   KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
   KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
-  KC_OPERATOR_TAG: '{{default "24.0.1" .KC_OPERATOR_TAG}}'
+  KC_OPERATOR_TAG: '{{default "24.0.5" .KC_OPERATOR_TAG}}'
   KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
   KC_INSTANCES: '{{default "1" .KC_INSTANCES}}'
   KC_CPU_REQUESTS: '{{default "0" .KC_CPU_REQUESTS}}'
@@ -189,7 +189,7 @@ tasks:
       - mkdir -p keycloak-cli
       - rm -f keycloak-cli/*.zip
       - >
-        curl -L -f https://github.com/keycloak/keycloak/releases/download/24.0.1/keycloak-24.0.1.zip -o keycloak-cli/keycloak.zip
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/24.0.5/keycloak-24.0.5.zip -o keycloak-cli/keycloak.zip
     status:
       - find keycloak-cli/keycloak.zip -mtime +1 -exec false {} +
     sources:
@@ -202,11 +202,11 @@ tasks:
     dir: ..
     cmds:
       # remove temporary folders to be extra safe
-      - rm -rf keycloak-cli/keycloak-24.0.1
+      - rm -rf keycloak-cli/keycloak-24.0.5
       - rm -rf keycloak-cli/keycloak
       - unzip -o -q keycloak-cli/keycloak.zip -d keycloak-cli
       # the output folder depends on the version we're about to unpack
-      - mv keycloak-cli/keycloak-24.0.1 keycloak-cli/keycloak
+      - mv keycloak-cli/keycloak-24.0.5 keycloak-cli/keycloak
     sources:
       - keycloak-cli/keycloak.zip
       - minikube/.task/subtask-{{.TASK}}.yaml
