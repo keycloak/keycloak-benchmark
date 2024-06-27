@@ -60,7 +60,8 @@ public abstract class AbstractCrossDCTest {
     }
 
     @BeforeEach
-    public void setUpTestEnvironment() throws UnknownHostException {
+    public void setUpTestEnvironment() throws URISyntaxException, IOException, InterruptedException, UnknownHostException {
+        failbackLoadBalancers();
         assertTrue(DC_1.kc().isActive(LOAD_BALANCER_KEYCLOAK));
 
         Keycloak adminClient = DC_1.kc().adminClient();
