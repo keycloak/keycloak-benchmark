@@ -24,18 +24,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
 import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
+import org.keycloak.benchmark.crossdc.util.K8sUtils;
 import org.keycloak.benchmark.crossdc.util.PropertyUtils;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jakarta.ws.rs.NotFoundException;
+import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractCrossDCTest {
@@ -180,6 +184,14 @@ public abstract class AbstractCrossDCTest {
         // External caches
         assertEquals(size, DC_1.ispn().cache(cache).size(), () -> "External cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
         assertEquals(size, DC_2.ispn().cache(cache).size(), () -> "External cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
+    }
+
+    protected void waitForAcceleratorEndpointCount(int count) {
+        eventually(
+              () -> String.format("Expected the Accelerator EndpointGroup size to be %d", count),
+              () -> AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size() == count,
+              2, TimeUnit.MINUTES
+        );
     }
 
     protected void eventually(Supplier<String> messageSupplier, Supplier<Boolean> condition) {

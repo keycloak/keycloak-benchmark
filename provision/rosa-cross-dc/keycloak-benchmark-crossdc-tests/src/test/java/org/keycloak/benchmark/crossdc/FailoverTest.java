@@ -6,18 +6,20 @@ import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.infinispan.commons.util.ByRef;
 import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
 import org.keycloak.benchmark.crossdc.junit.tags.ActiveActive;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
+import org.keycloak.benchmark.crossdc.util.K8sUtils;
 
-import io.fabric8.kubernetes.client.KubernetesClient;
 import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 public class FailoverTest extends AbstractCrossDCTest {
@@ -39,8 +41,8 @@ public class FailoverTest extends AbstractCrossDCTest {
             assertTrue(route53HealthCheckPath.endsWith("/lb-check"), "Health check path was supposed to end with /lb-check but was " + route53HealthCheckPath);
         } else {
             // Heal split-brain if previously initiated
-            scaleUpGossipRouter(DC_1);
-            scaleUpGossipRouter(DC_2);
+            scaleGossipRouter(DC_1, 1);
+            scaleGossipRouter(DC_2, 1);
             // Wait for JGroups site view to contain both sites
             AWSClient.acceleratorFallback(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl());
             // Assert that both sites are part of the Accelerator EndpointGroup
@@ -81,26 +83,36 @@ public class FailoverTest extends AbstractCrossDCTest {
 
     @Test
     @ActiveActive
-    public void ensureAcceleratorUpdatedOnSplitBrainTest() throws Exception {
+    public void ensureAcceleratorUpdatedOnSplitBrainTest() {
+        var startTime = Instant.now();
+        var acceleratorMeta = AWSClient.getAcceleratorMeta(DC_1.getLoadbalancerURL());
+        var region = acceleratorMeta.endpointGroup().endpointGroupRegion();
+
+        // Assert that the Lambda has not been executed
+        assertEquals(0, AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime));
+
         // Assert that both sites are part of the Accelerator EndpointGroup
         assertEquals(2, AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size());
 
         // Trigger a split-brain by scaling down the GossipRouter in both sites
-        scaleDownGossipRouter(DC_1);
-        scaleDownGossipRouter(DC_2);
+        scaleGossipRouter(DC_1, 0);
+        scaleGossipRouter(DC_2, 0);
 
         // Wait for both sites to detect split-brain
         waitForSitesViewCount(1);
 
         // Assert that the AWS Lambda was executed and that only one site LB remains in the Accelerator EndpointGroup
         waitForAcceleratorEndpointCount(1);
-    }
 
-    private void waitForAcceleratorEndpointCount(int count) {
+        // Assert that the Lambda has been triggered by both sites
+        ByRef.Integer count = new ByRef.Integer(0);
         eventually(
-              () -> String.format("Expected the Accelerator EndpointGroup size to be %d", count),
-              () -> AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size() == count,
-              2, TimeUnit.MINUTES
+              () -> String.format("Expected %d Lambda invocations, got %d", 2, count.get()),
+              () -> {
+                  count.set(AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime));
+                  return count.get() == 2;
+              },
+              10, TimeUnit.MINUTES
         );
     }
 
@@ -110,29 +122,9 @@ public class FailoverTest extends AbstractCrossDCTest {
         eventually(msg, () -> DC_2.ispn().getSiteView().size() == count);
     }
 
-    private void scaleDownGossipRouter(DatacenterInfo datacenter) throws InterruptedException {
+    protected void scaleGossipRouter(DatacenterInfo datacenter, int replicas) {
         var oc = datacenter.oc();
-        scaleDeployment(oc, "infinispan-operator-controller-manager", OPERATORS_NS, 0);
-        scaleDeployment(oc, "infinispan-router", datacenter.namespace(), 0);
-    }
-
-    private void scaleUpGossipRouter(DatacenterInfo datacenter) throws InterruptedException {
-        var oc = datacenter.oc();
-        scaleDeployment(oc, "infinispan-operator-controller-manager", OPERATORS_NS, 1);
-        scaleDeployment(oc, "infinispan-router", datacenter.namespace(), 1);
-    }
-
-    private void scaleDeployment(KubernetesClient k8s, String name, String namespace, int replicas) throws InterruptedException {
-        k8s.apps()
-              .deployments()
-              .inNamespace(namespace)
-              .withName(name)
-              .scale(replicas);
-
-        k8s.apps()
-              .deployments()
-              .inNamespace(namespace)
-              .withName(name)
-              .waitUntilReady(30, TimeUnit.SECONDS);
+        K8sUtils.scaleDeployment(oc, "infinispan-operator-controller-manager", "openshift-operators", replicas);
+        K8sUtils.scaleDeployment(oc, "infinispan-router", datacenter.namespace(), replicas);
     }
 }
