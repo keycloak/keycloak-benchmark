@@ -30,11 +30,11 @@ module "global_accelerator" {
           {
             client_ip_preservation_enabled = false
             endpoint_id                    = data.aws_lb.site_a.arn
-            weight                         = 50
+            weight                         = 128
           }, {
             client_ip_preservation_enabled = false
             endpoint_id                    = data.aws_lb.site_b.arn
-            weight                         = 50
+            weight                         = 128
           }
         ]
       }

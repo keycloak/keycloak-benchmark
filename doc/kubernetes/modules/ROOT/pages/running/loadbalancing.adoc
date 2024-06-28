@@ -28,7 +28,8 @@ image::accelerator/accelerator-multi-az.dio.svg[]
 
 An AWS Network Load Balancer (NLB) is created on both ROSA clusters in order to make the Keycloak
 pods available as Endpoints to an AWS Global Accelerator instance. Each cluster endpoint is assigned a weight of
-50 to ensure that accelerator traffic is routed equally to both availability-zones when both clusters are healthy.
+128 (half of the maximum weight 255) to ensure that accelerator traffic is routed equally to both availability-zones
+when both clusters are healthy.
 
 == Prerequisites
 
@@ -196,12 +197,12 @@ CLUSTER_2_ENDPOINT_ARN=$(aws elbv2 describe-load-balancers \
 ENDPOINTS='[
   {
     "EndpointId": "'${CLUSTER_1_ENDPOINT_ARN}'",
-    "Weight": 50,
+    "Weight": 128,
     "ClientIPPreservationEnabled": false
   },
   {
     "EndpointId": "'${CLUSTER_2_ENDPOINT_ARN}'",
-    "Weight": 50,
+    "Weight": 128,
     "ClientIPPreservationEnabled": false
   }
 ]'
@@ -226,13 +227,13 @@ aws globalaccelerator create-endpoint-group \
         "EndpointDescriptions": [
             {
                 "EndpointId": "arn:aws:elasticloadbalancing:eu-west-1:606671647913:loadbalancer/net/abab80a363ce8479ea9c4349d116bce2/6b65e8b4272fa4b5",
-                "Weight": 50,
+                "Weight": 128,
                 "HealthState": "HEALTHY",
                 "ClientIPPreservationEnabled": false
             },
             {
                 "EndpointId": "arn:aws:elasticloadbalancing:eu-west-1:606671647913:loadbalancer/net/a1c76566e3c334e4ab7b762d9f8dcbcf/985941f9c8d108d4",
-                "Weight": 50,
+                "Weight": 128,
                 "HealthState": "HEALTHY",
                 "ClientIPPreservationEnabled": false
             }
