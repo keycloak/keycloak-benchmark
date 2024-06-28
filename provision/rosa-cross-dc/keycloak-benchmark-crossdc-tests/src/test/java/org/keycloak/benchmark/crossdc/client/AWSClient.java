@@ -1,16 +1,12 @@
 package org.keycloak.benchmark.crossdc.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
 
@@ -20,8 +16,11 @@ import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.DescribeAlarmsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricDataRequest;
-import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.Metric;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDataQuery;
+import software.amazon.awssdk.services.cloudwatch.model.MetricStat;
 import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 import software.amazon.awssdk.services.cloudwatch.model.Statistic;
 import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
@@ -44,34 +43,50 @@ public class AWSClient {
 
    private static final Logger LOG = Logger.getLogger(AWSClient.class);
 
-   public static int getLambdaInvocationCount(String name, String region, Instant startTime) {
+   public static long getLambdaInvocationCount(String name, String region, Instant startTime) {
       try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
            CloudWatchClient cloudWatch = CloudWatchClient.builder()
                  .region(Region.of(region))
                  .httpClient(httpClient)
                  .build()) {
 
-         var metricDataRsp = cloudWatch.getMetricData(mdq -> mdq.metricDataQueries(
-                           q -> q.id("invocations")
-                                 .metricStat(
-                                       ms -> ms.metric(m ->
-                                                   m.namespace("AWS/Lambda")
-                                                         .metricName("Invocations")
-                                                         .dimensions(d -> d.name("FunctionName").value(name))
-                                             )
-                                             .period(1)
-                                             .stat(Statistic.SUM.toString())
-                                 )
-                     )
-                     .startTime(startTime)
-                     .endTime(Instant.now())
-         );
+         var metric = Metric.builder()
+               .namespace("AWS/Lambda")
+               .metricName("Invocations")
+               .dimensions(
+                     Dimension.builder()
+                           .name("FunctionName")
+                           .value(name)
+                           .build()
+               )
+               .build();
 
-         var metricsDataResults = metricDataRsp.metricDataResults();
+         var metricStat = MetricStat.builder()
+               .metric(metric)
+               .period(1)
+               .stat(Statistic.SUM.toString())
+               .build();
+
+         var metricQuery = MetricDataQuery.builder()
+               .id("invocations")
+               .metricStat(metricStat)
+               .build();
+
+         var metricDataReq = GetMetricDataRequest.builder()
+               .metricDataQueries(metricQuery)
+               .startTime(startTime)
+               .endTime(Instant.now())
+               .build();
+
+         var metricsDataResults = cloudWatch.getMetricData(metricDataReq).metricDataResults();
          assertEquals(metricsDataResults.size(), 1);
+
          var metrics = metricsDataResults.get(0).values();
          System.out.println(metrics);
-         return metrics.isEmpty() ? 0 : metrics.get(0).intValue();
+         return metrics
+               .stream()
+               .collect(Collectors.summarizingInt(Double::intValue))
+               .getSum();
       }
    }
 
@@ -240,5 +255,6 @@ public class AWSClient {
       }
    }
 
-   public record AcceleratorMetadata(String name, EndpointGroup endpointGroup) {}
+   public record AcceleratorMetadata(String name, EndpointGroup endpointGroup) {
+   }
 }

@@ -22,6 +22,7 @@ public class DatacenterInfo implements AutoCloseable {
     private final KeycloakClient keycloak;
     private final ExternalInfinispanClient infinispan;
     private final OpenShiftClient oc;
+    private final PrometheusClient prometheus;
 
     public DatacenterInfo(HttpClient httpClient, int index, boolean activePassive) {
         oc = new KubernetesClientBuilder()
@@ -58,6 +59,7 @@ public class DatacenterInfo implements AutoCloseable {
 
         this.keycloak = new KeycloakClient(httpClient, keycloakServerURL, activePassive);
         this.infinispan = new ExternalInfinispanClient(infinispanServerURL, AbstractCrossDCTest.ISPN_USERNAME, AbstractCrossDCTest.MAIN_PASSWORD);
+        this.prometheus = new PrometheusClient(this);
     }
 
     private String getRouteHost(String app) {
@@ -105,5 +107,9 @@ public class DatacenterInfo implements AutoCloseable {
 
     public String namespace() {
         return namespace;
+    }
+
+    public PrometheusClient prometheus() {
+        return prometheus;
     }
 }

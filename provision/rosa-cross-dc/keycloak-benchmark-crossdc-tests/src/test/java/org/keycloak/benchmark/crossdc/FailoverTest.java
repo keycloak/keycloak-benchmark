@@ -1,6 +1,7 @@
 package org.keycloak.benchmark.crossdc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
 
@@ -16,6 +17,7 @@ import org.infinispan.commons.util.ByRef;
 import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
+import org.keycloak.benchmark.crossdc.client.PrometheusClient;
 import org.keycloak.benchmark.crossdc.junit.tags.ActiveActive;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.K8sUtils;
@@ -23,6 +25,8 @@ import org.keycloak.benchmark.crossdc.util.K8sUtils;
 import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 public class FailoverTest extends AbstractCrossDCTest {
+
+    static final String SITE_OFFLINE_ALERT = "SiteOffline";
 
     @Override
     protected void failbackLoadBalancers() throws URISyntaxException, IOException, InterruptedException {
@@ -43,6 +47,12 @@ public class FailoverTest extends AbstractCrossDCTest {
             scaleGossipRouter(DC_2, 1);
             // Wait for JGroups site view to contain both sites
             waitForSitesViewCount(2);
+            // Ensure that the SiteOffline alert is no longer firing
+            eventually(
+                  () -> String.format("Alert '%s' still firing on DC", SITE_OFFLINE_ALERT),
+                  () -> !DC_1.prometheus().isAlertFiring(SITE_OFFLINE_ALERT) && !DC_2.prometheus().isAlertFiring(SITE_OFFLINE_ALERT),
+                  5, TimeUnit.MINUTES
+            );
             // Add both sites to the Accelerator EndpointGroup
             AWSClient.acceleratorFallback(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl());
             waitForAcceleratorEndpointCount(2);
@@ -83,9 +93,14 @@ public class FailoverTest extends AbstractCrossDCTest {
     @Test
     @ActiveActive
     public void ensureAcceleratorUpdatedOnSplitBrainTest() {
-        var startTime = Instant.now();
+        // Minus one minute to allow for difference in local and AWS clocks
+        var startTime = Instant.now().minusSeconds(60);
         var acceleratorMeta = AWSClient.getAcceleratorMeta(DC_1.getLoadbalancerURL());
         var region = acceleratorMeta.endpointGroup().endpointGroupRegion();
+
+        // Ensure that no SiteOffline events are firing on either site
+        assertFalse(DC_1.prometheus().isAlertFiring(SITE_OFFLINE_ALERT));
+        assertFalse(DC_2.prometheus().isAlertFiring(SITE_OFFLINE_ALERT));
 
         // Assert that the Lambda has not been executed
         assertEquals(0, AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime));
@@ -104,7 +119,7 @@ public class FailoverTest extends AbstractCrossDCTest {
         waitForAcceleratorEndpointCount(1);
 
         // Assert that the Lambda has been triggered by both sites
-        ByRef.Integer count = new ByRef.Integer(0);
+        ByRef.Long count = new ByRef.Long(0);
         eventually(
               () -> String.format("Expected %d Lambda invocations, got %d", 2, count.get()),
               () -> {
