@@ -207,7 +207,7 @@ public class AWSClient {
                .map(elb -> EndpointConfiguration.builder()
                      .clientIPPreservationEnabled(false)
                      .endpointId(elb)
-                     .weight(50)
+                     .weight(128)
                      .build()
                ).toList();
 
