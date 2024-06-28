@@ -24,8 +24,6 @@ import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 public class FailoverTest extends AbstractCrossDCTest {
 
-    static final String OPERATORS_NS = "openshift-operators";
-
     @Override
     protected void failbackLoadBalancers() throws URISyntaxException, IOException, InterruptedException {
         super.failbackLoadBalancers();
@@ -44,8 +42,9 @@ public class FailoverTest extends AbstractCrossDCTest {
             scaleGossipRouter(DC_1, 1);
             scaleGossipRouter(DC_2, 1);
             // Wait for JGroups site view to contain both sites
+            waitForSitesViewCount(2);
+            // Add both sites to the Accelerator EndpointGroup
             AWSClient.acceleratorFallback(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl());
-            // Assert that both sites are part of the Accelerator EndpointGroup
             waitForAcceleratorEndpointCount(2);
         }
     }
@@ -118,8 +117,8 @@ public class FailoverTest extends AbstractCrossDCTest {
 
     private void waitForSitesViewCount(int count) {
         Supplier<String> msg = () -> "Timedout waiting for cross-site view to reform";
-        eventually(msg, () -> DC_1.ispn().getSiteView().size() == count);
-        eventually(msg, () -> DC_2.ispn().getSiteView().size() == count);
+        eventually(msg, () -> DC_1.ispn().getSiteView().size() == count, 5, TimeUnit.MINUTES);
+        eventually(msg, () -> DC_2.ispn().getSiteView().size() == count, 5, TimeUnit.MINUTES);
     }
 
     protected void scaleGossipRouter(DatacenterInfo datacenter, int replicas) {
