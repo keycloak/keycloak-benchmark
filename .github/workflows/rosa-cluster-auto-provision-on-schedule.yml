@@ -93,6 +93,15 @@ jobs:
       outputArchiveSuffix: 'external-infinispan'
     secrets: inherit
 
+  run-ap-functional-tests-with-external-infinispan:
+    needs: cluster-create-keycloak-deploy
+    name: Runs the functional test suite in Active/Passive with the External Infinispan feature
+    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      externalInfinispanEnabled: true
+    secrets: inherit
+
   keycloak-undeploy-with-external-infinispan:
     needs: run-scaling-benchmark-with-external-infinispan
     name: Undeploy Keycloak deployment on the multi-az cluster
@@ -131,3 +140,58 @@ jobs:
       outputArchiveSuffix: 'active-active'
       skipCreateDataset: true
     secrets: inherit
+
+  keycloak-undeploy-active-active:
+    needs: run-scaling-benchmark-active-active
+    name: Undeploy Keycloak deployment A/A
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      skipAuroraDeletion: true
+      activeActive: true
+    secrets: inherit
+
+  keycloak-deploy-active-active-with-external-infinispan:
+    needs: keycloak-undeploy-active-active
+    name: ROSA Scheduled Create Active/Active cluster with External Infinispan
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      createCluster: false
+      activeActive: true
+      enableExternalInfinispanFeature: true
+    secrets: inherit
+
+  run-scaling-benchmark-active-active-with-external-infinispan:
+    needs: keycloak-deploy-active-active-with-external-infinispan
+    name: Scaling Benchmark with Active/Active External Infinispan Feature
+    uses: ./.github/workflows/rosa-scaling-benchmark.yml
+    with:
+      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
+      outputArchiveSuffix: 'active-active-external-infinispan'
+      skipCreateDataset: true
+    secrets: inherit
+
+  run-functional-tests-active-active-with-external-infinispan:
+    needs: run-scaling-benchmark-active-active-with-external-infinispan
+    name: Runs the functional test suite in Active/Active with the External Infinispan feature
+    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
+    with:
+      activeActive: true
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      externalInfinispanEnabled: true
+    secrets: inherit
+
+  keycloak-undeploy-active-active-with-external-infinispan:
+    needs: run-functional-tests-active-active-with-external-infinispan
+    name: Undeploy Keycloak deployment on the multi-az cluster
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      skipAuroraDeletion: true
+      activeActive: true
+    secrets: inherit
+

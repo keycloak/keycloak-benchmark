@@ -4,13 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.CLIENT_SESSIONS;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.DISTRIBUTED_CACHES;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLUSTERED_CACHE_NAMES;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.USER_SESSION_CACHE_NAME;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.WORK_CACHE_NAME;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -26,20 +27,17 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
+import org.keycloak.benchmark.crossdc.client.InfinispanClient;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
-import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
-import org.keycloak.benchmark.crossdc.util.K8sUtils;
 import org.keycloak.benchmark.crossdc.util.PropertyUtils;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
-import io.fabric8.kubernetes.client.KubernetesClient;
 import jakarta.ws.rs.NotFoundException;
-import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractCrossDCTest {
@@ -54,6 +52,7 @@ public abstract class AbstractCrossDCTest {
     public static final String CLIENT_SECRET = "cross-dc-test-client-secret";
     public static final String USERNAME = "cross-dc-test-user";
     public static final String MAIN_PASSWORD = PropertyUtils.getRequired("main.password");
+    public static final boolean SKIP_EMBEDDED_CACHES = Boolean.getBoolean("skipEmbeddedCaches");
 
     public AbstractCrossDCTest() {
         var httpClient = HttpClientUtils.newHttpClient();
@@ -64,7 +63,7 @@ public abstract class AbstractCrossDCTest {
     }
 
     @BeforeEach
-    public void setUpTestEnvironment() throws URISyntaxException, IOException, InterruptedException, UnknownHostException {
+    public void setUpTestEnvironment() throws URISyntaxException, IOException, InterruptedException {
         failbackLoadBalancers();
         assertTrue(DC_1.kc().isActive(LOAD_BALANCER_KEYCLOAK));
 
@@ -72,12 +71,13 @@ public abstract class AbstractCrossDCTest {
         LOG.info("Setting up test environment");
         LOG.info("-------------------------------------------");
         LOG.info("Status of caches before test:");
-        DISTRIBUTED_CACHES
-                .stream()
-                .filter(cache -> !cache.equals(InfinispanUtils.WORK))
+        Arrays.stream(CLUSTERED_CACHE_NAMES)
+                .filter(cache -> !cache.equals(WORK_CACHE_NAME))
                 .forEach(cache -> {
-            LOG.infof("External cache %s " + cache + " in DC1: %d - entries [%s]", cache, DC_1.ispn().cache(cache).size(), DC_1.ispn().cache(cache).keys());
-            LOG.infof("External cache %s " + cache + " in DC2: %d - entries [%s]", cache, DC_2.ispn().cache(cache).size(), DC_2.ispn().cache(cache).keys());
+                    var entriesDc1 = DC_1.ispn().cache(cache).keys();
+                    var entriesDc2 = DC_2.ispn().cache(cache).keys();
+                    LOG.infof("External cache %s in DC1: (%d) -> %s", cache, entriesDc1.size(), entriesDc1);
+                    LOG.infof("External cache %s in DC2: (%d) -> %s", cache, entriesDc2.size(), entriesDc2);
         });
         LOG.info("-------------------------------------------");
 
@@ -122,21 +122,24 @@ public abstract class AbstractCrossDCTest {
 
         realmResource.users().create(user).close();
 
-        clearCache(DC_1, SESSIONS);
-        clearCache(DC_1, CLIENT_SESSIONS);
-        clearCache(DC_2, SESSIONS);
-        clearCache(DC_2, CLIENT_SESSIONS);
-        assertCacheSize(SESSIONS, 0);
-        assertCacheSize(CLIENT_SESSIONS, 0);
+        clearCache(DC_1, USER_SESSION_CACHE_NAME);
+        clearCache(DC_1, CLIENT_SESSION_CACHE_NAME);
+        clearCache(DC_2, USER_SESSION_CACHE_NAME);
+        clearCache(DC_2, CLIENT_SESSION_CACHE_NAME);
+        assertCacheSize(USER_SESSION_CACHE_NAME, 0);
+        assertCacheSize(CLIENT_SESSION_CACHE_NAME, 0);
     }
 
     private void clearCache(DatacenterInfo dc, String cache) {
-        dc.kc().embeddedIspn().cache(cache).clear();
         dc.ispn().cache(cache).clear();
-        if (cache.equals(SESSIONS) || cache.equals(CLIENT_SESSIONS)) {
+        if (cache.equals(USER_SESSION_CACHE_NAME) || cache.equals(CLIENT_SESSION_CACHE_NAME)) {
             // those sessions will have been invalidated
             KeycloakClient.cleanAdminClients();
         }
+        if (SKIP_EMBEDDED_CACHES) {
+            return;
+        }
+        dc.kc().embeddedIspn().cache(cache).clear();
     }
 
     @AfterEach
@@ -148,17 +151,17 @@ public abstract class AbstractCrossDCTest {
         }
 
         // Logout all users in master realm
-        DC_1.kc().adminClient().realm("master").logoutAll();
+        adminClient.realm("master").logoutAll();
 
         // Clear admin clients
         KeycloakClient.cleanAdminClients();
 
-        DISTRIBUTED_CACHES.stream()
-              .filter(cache -> !cache.equals(InfinispanUtils.WORK))
-              .forEach(cache -> {
-                  DC_1.ispn().cache(cache).clear();
-                  DC_2.ispn().cache(cache).clear();
-              });
+        Arrays.stream(CLUSTERED_CACHE_NAMES)
+                .filter(cache -> !cache.equals(WORK_CACHE_NAME))
+                .forEach(cache -> {
+                    DC_1.ispn().cache(cache).clear();
+                    DC_2.ispn().cache(cache).clear();
+                });
 
         MOCK_COOKIE_MANAGER.getCookieStore().removeAll();
         failbackLoadBalancers();
@@ -178,12 +181,10 @@ public abstract class AbstractCrossDCTest {
 
     protected void assertCacheSize(String cache, int size) {
         // Embedded caches
-        assertEquals(size, DC_1.kc().embeddedIspn().cache(cache).size(), () -> "Embedded cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
-        assertEquals(size, DC_2.kc().embeddedIspn().cache(cache).size(), () -> "Embedded cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
+        assertEmbeddedCacheSizeInAllDCs(cache, size);
 
         // External caches
-        assertEquals(size, DC_1.ispn().cache(cache).size(), () -> "External cache " + cache + " in DC1 has " + DC_1.ispn().cache(cache).size() + " entries");
-        assertEquals(size, DC_2.ispn().cache(cache).size(), () -> "External cache " + cache + " in DC2 has " + DC_2.ispn().cache(cache).size() + " entries");
+        assertExternalCacheSizeInAllDCs(cache, size);
     }
 
     protected void waitForAcceleratorEndpointCount(int count) {
@@ -209,8 +210,7 @@ public abstract class AbstractCrossDCTest {
             long sleepNanos = initialSleepNanos;
             long expectedEndTime = System.nanoTime() + timeoutNanos;
             while (expectedEndTime - System.nanoTime() > 0) {
-                if (condition.get())
-                    return;
+                if (condition.get()) return;
                 LockSupport.parkNanos(sleepNanos);
                 sleepNanos += initialSleepNanos;
             }
@@ -220,5 +220,76 @@ public abstract class AbstractCrossDCTest {
         } catch (Exception e) {
             throw new RuntimeException("Unexpected Exception during eventually!", e);
         }
+    }
+
+    private static void assertCacheSize(InfinispanClient.Cache cache, long expectedSize) {
+        assertEquals(expectedSize, cache.size(), String.format("Embedded cache %s has an incorrect size", cache.name()));
+    }
+
+    protected static void assertEmbeddedCacheSize(DatacenterInfo datacenterInfo, String cacheName, long expectedSize) {
+        if (SKIP_EMBEDDED_CACHES) {
+            return;
+        }
+        assertCacheSize(datacenterInfo.kc().embeddedIspn().cache(cacheName), expectedSize);
+    }
+
+    protected void assertEmbeddedCacheSizeInAllDCs(String cacheName, long expectedSize) {
+        assertEmbeddedCacheSize(DC_1, cacheName, expectedSize);
+        assertEmbeddedCacheSize(DC_2, cacheName, expectedSize);
+    }
+
+    protected static void assertExternalCacheSize(DatacenterInfo datacenterInfo, String cacheName, long expectedSize) {
+        assertCacheSize(datacenterInfo.ispn().cache(cacheName), expectedSize);
+    }
+
+    protected void assertExternalCacheSizeInAllDCs(String cacheName, long expectedSize) {
+        assertExternalCacheSize(DC_1, cacheName, expectedSize);
+        assertExternalCacheSize(DC_2, cacheName, expectedSize);
+    }
+
+    private static void assertContains(InfinispanClient.Cache cache, String expectedKey, boolean expectedResult) throws URISyntaxException, IOException, InterruptedException {
+        assertEquals(expectedResult, cache.contains(expectedKey), String.format("Expects key '%s' in cache '%s'", expectedKey, cache.name()));
+    }
+
+    protected static void assertEmbeddedCacheContains(DatacenterInfo datacenterInfo, String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        if (SKIP_EMBEDDED_CACHES) {
+            return;
+        }
+        assertContains(datacenterInfo.kc().embeddedIspn().cache(cacheName), expectedKey, true);
+    }
+
+    protected static void assertEmbeddedCacheNotContains(DatacenterInfo datacenterInfo, String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        if (SKIP_EMBEDDED_CACHES) {
+            return;
+        }
+        assertContains(datacenterInfo.kc().embeddedIspn().cache(cacheName), expectedKey, false);
+    }
+
+    protected static void assertExternalCacheContains(DatacenterInfo datacenterInfo, String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        assertContains(datacenterInfo.ispn().cache(cacheName), expectedKey, true);
+    }
+
+    protected static void assertExternalCacheNotContains(DatacenterInfo datacenterInfo, String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        assertContains(datacenterInfo.ispn().cache(cacheName), expectedKey, false);
+    }
+
+    protected void assertEmbeddedCacheContainsAllDCs(String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        assertEmbeddedCacheContains(DC_1, cacheName, expectedKey);
+        assertEmbeddedCacheContains(DC_2, cacheName, expectedKey);
+    }
+
+    protected void assertExternalCacheContainsAllDCs(String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        assertExternalCacheContains(DC_1, cacheName, expectedKey);
+        assertExternalCacheContains(DC_2, cacheName, expectedKey);
+    }
+
+    protected void assertEmbeddedCacheNotContainsAllDCs(String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        assertEmbeddedCacheNotContains(DC_1, cacheName, expectedKey);
+        assertEmbeddedCacheNotContains(DC_2, cacheName, expectedKey);
+    }
+
+    protected void assertExternalCacheNotContainsAllDCs(String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        assertExternalCacheNotContains(DC_1, cacheName, expectedKey);
+        assertExternalCacheNotContains(DC_2, cacheName, expectedKey);
     }
 }

@@ -1,39 +1,11 @@
 package org.keycloak.benchmark.crossdc.util;
 
-import org.keycloak.benchmark.crossdc.client.InfinispanClient;
-
 import java.util.Base64;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
+
+import org.keycloak.benchmark.crossdc.client.InfinispanClient;
 
 public class InfinispanUtils {
-
-    public static String SESSIONS = "sessions";
-    public static String CLIENT_SESSIONS = "clientSessions";
-    public static String WORK = "work";
-
-    public static Set<String> DISTRIBUTED_CACHES = Set.of(
-            SESSIONS,
-            "actionTokens",
-            "authenticationSessions",
-            "offlineSessions",
-            CLIENT_SESSIONS,
-            "offlineClientSessions",
-            "loginFailures",
-            WORK
-    );
-    public static Set<String> LOCAL_CACHES = Set.of(
-            "realms",
-            "users",
-            "authorization",
-            "keys"
-    );
-
-    public static Set<String> ALL_CACHES = Stream.of(DISTRIBUTED_CACHES, LOCAL_CACHES)
-            .flatMap(Set::stream)
-            .collect(java.util.stream.Collectors.toSet());
-
 
     public static String getBasicAuthenticationHeader(String username, String password) {
         String valueToEncode = username + ":" + password;

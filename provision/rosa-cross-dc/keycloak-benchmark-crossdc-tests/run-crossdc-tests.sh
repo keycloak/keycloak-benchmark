@@ -15,7 +15,8 @@ MVN_CMD="./mvnw -B -f provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/p
      -Ddeployment.namespace=${DEPLOYMENT_NAMESPACE} \
      -Dkubernetes.1.context=${KUBERNETES_1_CONTEXT} \
      -Dkubernetes.2.context=${KUBERNETES_2_CONTEXT} \
-     -Dmain.password=${MAIN_PASSWORD}"
+     -Dmain.password=${MAIN_PASSWORD} \
+     -DskipEmbeddedCaches=${SKIP_EMBEDDED_CACHES:-false}"
 
 if [ "${ACTIVE_ACTIVE}" == "true" ]; then
   MVN_CMD+=" -Pactive-active"

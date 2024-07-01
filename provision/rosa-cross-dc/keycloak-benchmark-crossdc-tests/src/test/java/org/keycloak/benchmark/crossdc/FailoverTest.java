@@ -3,7 +3,7 @@ package org.keycloak.benchmark.crossdc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.SESSIONS;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.USER_SESSION_CACHE_NAME;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -17,7 +17,6 @@ import org.infinispan.commons.util.ByRef;
 import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
-import org.keycloak.benchmark.crossdc.client.PrometheusClient;
 import org.keycloak.benchmark.crossdc.junit.tags.ActiveActive;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.K8sUtils;
@@ -80,7 +79,7 @@ public class FailoverTest extends AbstractCrossDCTest {
         DC_2.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
 
         // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
-        Set<String> sessions = DC_2.ispn().cache(SESSIONS).keys();
+        Set<String> sessions = DC_2.ispn().cache(USER_SESSION_CACHE_NAME).keys();
         assertTrue(sessions.contains(code.split("[.]")[1]));
 
         tokensMap = LOAD_BALANCER_KEYCLOAK.refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 200);

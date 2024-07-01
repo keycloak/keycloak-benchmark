@@ -20,6 +20,10 @@ on:
         description: 'Must be true when testing against an Active/Active Keycloak deployment'
         type: boolean
         default: false
+      externalInfinispanEnabled:
+        description: 'True if the deployment uses the External Infinispan feature'
+        type: boolean
+        default: false
 
 concurrency:
   # Only run once for the latest commit per ref and cancel other (previous) runs.
@@ -81,3 +85,4 @@ jobs:
         env:
           ACTIVE_ACTIVE: ${{ inputs.activeActive }}
           DEPLOYMENT_NAMESPACE: ${{ env.PROJECT }}
+          SKIP_EMBEDDED_CACHES: ${{ inputs.externalInfinispanEnabled }}
