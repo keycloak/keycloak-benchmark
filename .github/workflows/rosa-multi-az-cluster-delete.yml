@@ -17,6 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
         with:
@@ -40,6 +45,7 @@ jobs:
           echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
 
       - name: Delete Route53 Records
+        if: ${{ env.SUBDOMAIN != '' }}
         run: ./provision/aws/route53/route53_delete.sh
         env:
           SUBDOMAIN: ${{ env.SUBDOMAIN }}
@@ -49,11 +55,13 @@ jobs:
           echo "ACCELERATOR_DNS=${KEYCLOAK_URL#"https://"}" >> $GITHUB_ENV
 
       - name: Delete Global Accelerator
+        if: ${{ env.ACCELERATOR_DNS != '' }}
         run: ./provision/aws/global-accelerator/accelerator_multi_az_delete.sh
         env:
           ACCELERATOR_DNS: ${{ env.ACCELERATOR_DNS }}
           CLUSTER_1: ${{ inputs.clusterPrefix }}-a
           CLUSTER_2: ${{ inputs.clusterPrefix }}-b
+          DELETE_LB: false
           KEYCLOAK_NAMESPACE: runner-keycloak
 
   cluster1:
