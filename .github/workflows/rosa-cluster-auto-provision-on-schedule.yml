@@ -10,7 +10,7 @@ on:
 
 jobs:
   cluster-create-keycloak-deploy:
-    name: ROSA Scheduled Create cluster
+    name: ROSA Scheduled Create cluster A/P volatile sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
@@ -44,7 +44,7 @@ jobs:
 
   keycloak-deploy-with-persistent-sessions:
     needs: keycloak-undeploy
-    name: ROSA Scheduled Create cluster with Persistent Sessions
+    name: ROSA Scheduled Create cluster with A/P Persistent Sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
@@ -74,7 +74,7 @@ jobs:
 
   keycloak-deploy-with-external-infinispan:
     needs: keycloak-undeploy-with-persistent-sessions
-    name: ROSA Scheduled Create cluster with External Infinispan Feature
+    name: ROSA Scheduled Create cluster with A/P External Infinispan Feature
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
@@ -85,7 +85,7 @@ jobs:
 
   run-scaling-benchmark-with-external-infinispan:
     needs: keycloak-deploy-with-external-infinispan
-    name: Scaling Benchmark with External Infinispan Feature
+    name: Scaling Benchmark with Active/Passive External Infinispan Feature
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here ${{ env.CLUSTER_PREFIX }}-a
