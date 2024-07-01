@@ -1058,7 +1058,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             String parentGroupName = getParentGroupName(groupName);
 
             if (parentGroupName != null) {
-                Optional<GroupModel> maybeParent = session.groups().searchForGroupByNameStream(realm, parentGroupName, true, 1, 1).findFirst();
+                Optional<GroupModel> maybeParent = session.groups().searchForGroupByNameStream(realm, parentGroupName, true, -1, -1).findFirst();
                 maybeParent.ifPresent(parent -> {
                     GroupModel groupModel = session.groups().createGroup(realm, groupName, parent);
                     context.groupCreated(groupModel);
