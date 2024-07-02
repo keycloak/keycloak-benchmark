@@ -1,53 +1,50 @@
 = Releasing a new version
 
-If you need to do changes in the "dataset" and then consume it for example from the OpenShift pods, you may need the ability to push your changes to the Keycloak and the release it.
+We will release a new version of Keycloak Benchmark
+when we have one or more breaking backward compatibility changes with prior versions of Keycloak releases.
+The changes are often in the "dataset" provider but are not limited to that.
 
-== How to release
+== Release steps
 
-. Make sure that everything needed is committed and pushed inside https://github.com/keycloak/keycloak-benchmark in the "main" branch.
-Make sure that your local "main" branch has the same content.
+. Make sure that everything needed is committed
+and pushed inside https://github.com/keycloak/keycloak-benchmark in the `main` branch.
+On your local from the HEAD of the `main` branch,
+create a new release branch with this signature `0.XX-release`, for example `0.13-release`.
+In that release branch,
+make the below series of updates
+to upgrade the version which are required for a Keycloak Benchmark's SNAPSHOT release to be successful.
 +
-----
-git checkout main
-git log -n 1
-----
+. Update the latest supported version of Keycloak in the link:../../../../../.github/workflows/snapshot.yml[Snapshot release GitHub workflow YAML] in the `--notes 'Latest version built from` with a line similar to `<br>Use this with Keycloak 25.x`. This is further used by the `Snapshot` GitHub workflow to create the snapshot releases and imprint the artifacts with the specific Keycloak release.
 +
-The commit number should be the same as the last commit inside https://github.com/keycloak/keycloak-benchmark/tree/main
+. Now perform a project wide search for the below keywords and replace them with the respective ones appropriately as per the release.
+* Search for `nightly` and replace it with `25.0.1`, if the release is performed against the `Keycloak 25.0.1` build.
+* Search for `keycloak-999.0.0-SNAPSHOT` and replace it with `keycloak-25.0.1`, if the release is performed against the `Keycloak 25.0.1` build.
++
+. Now push your changes from your local `XX-release` branch to the remote `XX-release` branch, which in turn generates the specific artifacts necessary for the SNAPSHOT release.
 
-. Try the "dry" run of the release:
+== Post Release steps
+. Once the `release` branch is cut and the SNAPSHOT release generates its artifacts successfully, perform the below steps against the `main` branch inorder to propagate the new changes into a newer SNAPSHOT version. While these post-release steps, have to be executed manually, we hope to automate them to a single click release workflow in the future.
+. Upgrade to the new SNAPSHOT versions in all the locations inside the below files.
+For example, after performing a `0.13-SNAPSHOT` release,
+search for `0.13-SNAPSHOT` keyword in the files below and replace it with the next logical version number,
+in this case with `0.14-SNAPSHOT`.
+** Keycloak Benchmark ROOT
+* link:../../../../../pom.xml#L7[pom.xml].
+** Benchmark module
+* link:../../../../../benchmark/pom.xml[benchmark/pom.xml].
+* link:../../../antora.yml[antora.yml] file under the Benchmark docs.
+* link:../../../../benchmark/modules/ROOT/pages/report/rosa-benchmark-key-results.adoc[ROSA Benchmark key results] page.
+* link:../../../../benchmark/modules/ROOT/pages/run/running-benchmark-ansible.adoc[Running benchmark using Ansible] page.
 +
-----
-git checkout main
-mvn clean install
-mvn release:clean release:prepare -DdryRun=true -Dtag=0.3
-----
-
-. Once it is all good, then do a real release (not just dry run):
+** Dataset module
+* link:../../../../../dataset/pom.xml[dataset/pom.xml].
+* link:../../../../../dataset/src/test/java/org/keycloak/benchmark/test/KeycloakServer.java[KeycloakServer.java] update the default `project_version`.
+* link:../../../../dataset/antora.yml[antora.yml] file under the Dataset docs.
 +
-----
-mvn release:clean release:prepare -Dtag=0.3
-----
-
-. Check that commits in the https://github.com/keycloak/keycloak-benchmark/tree/main have your commits added (release commit and "next-version" commit) and also there is new tag under https://github.com/keycloak/keycloak-benchmark/tags
-+
-NOTE: There is likely no need to run `mvn release:perform` and deploy anything into the maven repository.
-As long as someone wants to have dependency on this dataset, we may need to add this.
-+
-. Just clean now
-+
-----
-mvn release:clean
-----
-
-. Go to your tab and build it locally (Replace with the actual tag version)
-+
-----
-git checkout keycloak-benchmark-parent-0.1
-mvn clean install
-git checkout main
-----
-+
-Check that this file (corresponding to your released version) exists on your laptop: `<YOUR_HOME>/.m2/repository/org/keycloak/keycloak-benchmark-dataset/0.1/keycloak-benchmark-dataset-0.1.jar`
-
-If everything is OK, a GitHub release is going to be created automatically with all artifacts that should be available for download.
-
+** Kubernetes module
+* link:../../../../../provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/pom.xml[pom.xml] for ROSA Cross DC functional tests.
+* link:../../../../kubernetes/antora.yml[antora.yml] file under the Kubernetes docs.
+** Ansible module
+* link:../../../../../ansible/env_example.yml[ansible/env_example.yml].
+* link:../../../../../ansible/env_rosa_benchmark.yml[ansible/env_rosa_benchmark.yml].
+. Once the changes are all in place, commit these to the `main` branch with a good commit message to indicate the project has now been upgraded to a newer SNAPSHOT release.
