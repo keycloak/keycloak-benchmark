@@ -1,25 +1,9 @@
 package org.keycloak.benchmark.crossdc.client;
 
-import org.infinispan.client.hotrod.Flag;
-import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.client.hotrod.configuration.ClientIntelligence;
-import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
-import org.infinispan.client.rest.RestCacheClient;
-import org.infinispan.client.rest.RestClient;
-import org.infinispan.client.rest.RestResponse;
-import org.infinispan.client.rest.configuration.RestClientConfigurationBuilder;
-import org.infinispan.commons.dataconversion.internal.Json;
-import org.infinispan.commons.util.concurrent.CompletionStages;
-import org.keycloak.benchmark.crossdc.util.InfinispanUtils;
-import org.keycloak.marshalling.KeycloakModelSchema;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.USER_SESSION_CACHE_NAME;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509ExtendedTrustManager;
 import java.net.Socket;
 import java.net.URI;
 import java.security.KeyManagementException;
@@ -31,8 +15,25 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.infinispan.client.hotrod.Flag;
+import org.infinispan.client.hotrod.RemoteCache;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.infinispan.client.hotrod.configuration.ClientIntelligence;
+import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
+import org.infinispan.client.rest.RestCacheClient;
+import org.infinispan.client.rest.RestClient;
+import org.infinispan.client.rest.RestResponse;
+import org.infinispan.client.rest.configuration.RestClientConfigurationBuilder;
+import org.infinispan.commons.dataconversion.internal.Json;
+import org.infinispan.commons.util.concurrent.CompletionStages;
+import org.keycloak.marshalling.KeycloakModelSchema;
 
 public class ExternalInfinispanClient implements InfinispanClient<InfinispanClient.ExternalCache> {
     private final RestClient restClient;
@@ -107,7 +108,7 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
         @Override
         public long size() {
             var size = cacheHotRodClient.size();
-            if (InfinispanUtils.SESSIONS.equals(cacheRestClient.name()) || InfinispanUtils.CLIENT_SESSIONS.equals(cacheRestClient.name())) {
+            if (USER_SESSION_CACHE_NAME.equals(cacheRestClient.name()) || CLIENT_SESSION_CACHE_NAME.equals(cacheRestClient.name())) {
                 size -= KeycloakClient.getCurrentlyInitializedAdminClients();
                 }
             return size;
@@ -120,7 +121,7 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
 
         @Override
         public boolean contains(String key) {
-            assertEquals(InfinispanUtils.SESSIONS, cacheHotRodClient.getName());
+            assertEquals(USER_SESSION_CACHE_NAME, cacheHotRodClient.getName());
             return cacheHotRodClient.containsKey(key);
         }
 
@@ -133,9 +134,14 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
         @Override
         public Set<String> keys() {
             var keySet = cacheHotRodClient.keySet().stream().map(String::valueOf).collect(Collectors.toSet());
-            return InfinispanUtils.SESSIONS.equals(cacheHotRodClient.getName()) ?
+            return USER_SESSION_CACHE_NAME.equals(cacheHotRodClient.getName()) ?
                     KeycloakClient.removeAdminClientSessions(keySet) :
                     keySet;
+        }
+
+        @Override
+        public String name() {
+            return cacheHotRodClient.getName();
         }
 
         @Override

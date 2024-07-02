@@ -15,6 +15,8 @@ public interface InfinispanClient<T extends InfinispanClient.Cache> {
         boolean remove(String key);
 
         Set<String> keys();
+
+        String name();
     }
 
     interface ExternalCache extends Cache {

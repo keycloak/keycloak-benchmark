@@ -1,15 +1,13 @@
 package org.keycloak.benchmark.crossdc.client;
 
-import org.apache.http.client.utils.URIBuilder;
-import org.jboss.logging.Logger;
-import org.jboss.resteasy.spi.NotImplementedYetException;
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
-import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
-import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
-import org.keycloak.benchmark.crossdc.util.KeycloakUtils;
-import org.keycloak.common.util.Time;
-import org.keycloak.util.JsonSerialization;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.URIToHostString;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.extractCodeFromResponse;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getFormDataAsString;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getLoginFormActionURL;
+import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.pointsToSameIp;
 
 import java.io.IOException;
 import java.net.URI;
@@ -25,14 +23,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.keycloak.benchmark.crossdc.util.InfinispanUtils.getNestedValue;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.URIToHostString;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.extractCodeFromResponse;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getFormDataAsString;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.getLoginFormActionURL;
-import static org.keycloak.benchmark.crossdc.util.KeycloakUtils.pointsToSameIp;
+import org.apache.http.client.utils.URIBuilder;
+import org.jboss.logging.Logger;
+import org.jboss.resteasy.spi.NotImplementedYetException;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
+import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
+import org.keycloak.benchmark.crossdc.util.KeycloakUtils;
+import org.keycloak.common.util.Time;
+import org.keycloak.util.JsonSerialization;
 
 public class KeycloakClient {
     private final HttpClient httpClient;
@@ -327,6 +327,11 @@ public class KeycloakClient {
                     @Override
                     public Set<String> keys() {
                         throw new NotImplementedYetException("This is not yet implemented :/");
+                    }
+
+                    @Override
+                    public String name() {
+                        return name;
                     }
                 };
             }

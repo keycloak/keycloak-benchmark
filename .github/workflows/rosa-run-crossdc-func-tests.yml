@@ -10,6 +10,10 @@ on:
         description: 'Must be true when testing against an Active/Active Keycloak deployment'
         type: boolean
         default: false
+      externalInfinispanEnabled:
+        description: 'True if the deployment uses the External Infinispan feature'
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -18,6 +22,10 @@ on:
         type: string
       activeActive:
         description: 'Must be true when testing against an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
+      externalInfinispanEnabled:
+        description: 'True if the deployment uses the External Infinispan feature'
         type: boolean
         default: false
 
@@ -81,3 +89,4 @@ jobs:
         env:
           ACTIVE_ACTIVE: ${{ inputs.activeActive }}
           DEPLOYMENT_NAMESPACE: ${{ env.PROJECT }}
+          SKIP_EMBEDDED_CACHES: ${{ inputs.externalInfinispanEnabled }}
