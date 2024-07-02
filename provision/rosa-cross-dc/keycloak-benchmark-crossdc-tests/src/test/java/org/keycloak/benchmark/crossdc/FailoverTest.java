@@ -17,7 +17,6 @@ import org.infinispan.commons.util.ByRef;
 import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
-import org.keycloak.benchmark.crossdc.client.PrometheusClient;
 import org.keycloak.benchmark.crossdc.junit.tags.ActiveActive;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.K8sUtils;
@@ -73,10 +72,16 @@ public class FailoverTest extends AbstractCrossDCTest {
         //  in the following tests, therefore we will wait for the health check to be in ALARM state before proceeding
         String healthCheckId = AWSClient.getHealthCheckId(DC_1.getKeycloakServerURL().substring("https://".length()));
         AWSClient.waitForTheHealthCheckToBeInState(healthCheckId, StateValue.ALARM);
-        String route53HealthCheckPath = AWSClient.getRoute53HealthCheckPath(healthCheckId);
 
         // Check the failover lambda was executed and the health check path was updated to a non-existing url
-        assertTrue(route53HealthCheckPath.endsWith("/lb-check-failed-over"), "Health check path was supposed to end with /lb-check-failed-over but was " + route53HealthCheckPath);
+        ByRef<String> route53HealthCheckPath = new ByRef<>("");
+        eventually(
+              () -> String.format("Health check path was supposed to end with /lb-check-failed-over but was '%s'", route53HealthCheckPath.get()),
+              () -> {
+                  route53HealthCheckPath.set(AWSClient.getRoute53HealthCheckPath(healthCheckId));
+                  return route53HealthCheckPath.get().endsWith("/lb-check-failed-over");
+              }
+        );
         DC_2.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
 
         // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
