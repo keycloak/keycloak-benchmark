@@ -38,8 +38,11 @@ import org.keycloak.http.HttpRequest;
 import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
+import org.keycloak.models.GroupProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.KeycloakSessionTask;
+import org.keycloak.models.KeycloakSessionTaskWithResult;
 import org.keycloak.models.KeycloakUriInfo;
 import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.RealmModel;
@@ -63,14 +66,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_GROUPS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
@@ -179,7 +182,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     // create each 100 groups per transaction as default case
                     // (to avoid transaction timeouts when creating too many groups in one transaction)
-                    createGroupsInMultipleTransactions(config, context, task);
+                    createGroupsInMultipleTransactions(config, context, task, config.getGroupsPerRealm());
 
                     // Step 2 - create clients (Using single executor for now... For multiple executors run separate create-clients endpoint)
                     for (int i = 0; i < config.getClientsPerRealm(); i += config.getClientsPerTransaction()) {
@@ -212,27 +215,41 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
-    private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, Task task) {
-        int groupsPerRealm = config.getGroupsPerRealm();
+    private void createGroupsInMultipleTransactions(DatasetConfig config, RealmContext context, Task task, int topLevelCount) {
         boolean hierarchicalGroups = Boolean.parseBoolean(config.getGroupsWithHierarchy());
         int hierarchyDepth = config.getGroupsHierarchyDepth();
-        int countGroupsAtEachLevel = hierarchicalGroups ? config.getCountGroupsAtEachLevel() : groupsPerRealm;
-        int totalNumberOfGroups =  hierarchicalGroups ? (int) Math.pow(countGroupsAtEachLevel, hierarchyDepth) : groupsPerRealm;
+        int countGroupsAtEachLevel = hierarchicalGroups ? config.getCountGroupsAtEachLevel() : 0;
+        String realmName = context.getRealm().getName();
+        ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
+        Long groupsCount = getGroupsCount(realmName);
 
-        for (int i = 0; i < totalNumberOfGroups; i += config.getGroupsPerTransaction()) {
-            int groupsStartIndex = i;
-            int groupEndIndex =  hierarchicalGroups ? Math.min(groupsStartIndex + config.getGroupsPerTransaction(), totalNumberOfGroups)
-            : Math.min(groupsStartIndex + config.getGroupsPerTransaction(), config.getGroupsPerRealm());
+        for (AtomicInteger index = new AtomicInteger(0); index.get() < topLevelCount; index.incrementAndGet()) {
+            KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), baseSession.getContext(), session -> {
+                RealmModel realm = session.realms().getRealmByName(realmName);
+                session.getContext().setRealm(realm);
+                String groupName = config.getGroupPrefix() + index.get();
 
-            logger.tracef("groupsStartIndex: %d, groupsEndIndex: %d", groupsStartIndex, groupEndIndex);
+                while (session.groups().getGroupByName(realm, null, groupName) != null) {
+                    groupName = config.getGroupPrefix() + index.incrementAndGet();
+                }
 
-            KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(),
-                    session -> createGroups(context, groupsStartIndex, groupEndIndex, hierarchicalGroups, hierarchyDepth, countGroupsAtEachLevel, session),
-                    config.getTransactionTimeoutInSeconds());
-
-            task.debug(logger, "Created %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
+                String finalGroupName = groupName;
+                KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), session.getContext(), s -> s.groups().createGroup(s.getContext().getRealm(), finalGroupName));
+                logger.infof("Creating top-level group %s in realm %s", groupName, context.getRealm().getName());
+                createGroupLevel(session, countGroupsAtEachLevel, hierarchyDepth, groupName, executor);
+            });
         }
-        task.info(logger, "Created all %d groups in realm %s", context.getGroups().size(), context.getRealm().getName());
+
+        executor.waitForAllToFinish();
+
+        task.info(logger, "Created all %d groups in realm %s", getGroupsCount(realmName) - groupsCount, context.getRealm().getName());
+    }
+
+    private Long getGroupsCount(String realmName) {
+        return KeycloakModelUtils.runJobInTransactionWithResult(baseSession.getKeycloakSessionFactory(), baseSession.getContext(), session -> {
+            RealmModel realm = session.realms().getRealmByName(realmName);
+            return session.groups().getGroupsCount(realm, false);
+        });
     }
 
     protected Response handleDatasetException(DatasetException de) {
@@ -899,6 +916,65 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         return Response.ok(TaskResponse.statusMessage("Site " + siteName + " was marked as up.")).build();
     }
 
+    @GET
+    @Path("/create-groups")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createGroups() {
+        boolean started = false;
+        boolean taskAdded = false;
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, CREATE_GROUPS);
+
+            Task task = Task.start("Creation of " + config.getCount() + " groups in the realm " + config.getRealmName());
+            TaskManager taskManager = new TaskManager(baseSession);
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
+            if (existingTask != null) {
+                return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
+            } else {
+                taskAdded = true;
+            }
+
+            logger.infof("Trigger creating groups with the configuration: %s", config);
+
+            // Use the cache
+            RealmModel realm = baseSession.realms().getRealmByName(config.getRealmName());
+            if (realm == null) {
+                throw new DatasetException("Realm '" + config.getRealmName() + "' not found");
+            }
+
+            int startIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String name = config.getGroupPrefix() + index;
+                return baseSession.groups().getGroupByName(realm, null, name) != null;
+            });
+            config.setStart(startIndex);
+
+            // Run this in separate thread to not block HTTP request
+            RealmContext context = new RealmContext(config);
+
+            context.setRealm(realm);
+
+            new Thread(() -> {
+                try {
+                    createGroupsInMultipleTransactions(config, context, task, config.getCount());
+                    success();
+                } catch (Exception e) {
+                    KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session
+                            -> new TaskManager(session).removeExistingTask(false));
+                }
+            }).start();
+            started = true;
+
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        } finally {
+            if (taskAdded && !started) {
+                new TaskManager(baseSession).removeExistingTask(false);
+            }
+        }
+    }
+
     @Override
     public void close() {
     }
@@ -1015,59 +1091,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
 
         task.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
-    }
-
-    private String getGroupName(boolean hierarchicalGroups, int countGroupsAtEachLevel, String prefix, int currentCount) {
-
-        if (!hierarchicalGroups) {
-            return prefix + currentCount;
-        }
-        if(currentCount == 0) {
-            return  prefix + "0";
-        }
-        // we are using "." separated paths in the group names, this is basically a number system with countGroupsAtEachLevel being the basis
-        // this allows us to find the parent group by trimming the group name even if the parent was created in previous transaction
-        StringBuilder groupName = new StringBuilder();
-        if(countGroupsAtEachLevel == 1) {
-            // numbering system does not work for base 1
-            groupName.append("0");
-            IntStream.range(0, currentCount).forEach(i -> groupName.append(GROUP_NAME_SEPARATOR).append("0"));
-            return prefix + groupName;
-        }
-
-        int leftover = currentCount;
-        while (leftover > 0) {
-            int digit = leftover % countGroupsAtEachLevel;
-            groupName.insert(0, digit + GROUP_NAME_SEPARATOR);
-            leftover = (leftover - digit) / countGroupsAtEachLevel;
-        }
-        return prefix + groupName.substring(0, groupName.length() - 1);
-    }
-
-    private String getParentGroupName(String groupName) {
-        if (groupName == null || groupName.lastIndexOf(GROUP_NAME_SEPARATOR) < 0) {
-            return null;
-        }
-        return groupName.substring(0, groupName.lastIndexOf(GROUP_NAME_SEPARATOR));
-    }
-
-    private void createGroups(RealmContext context, int startIndex, int endIndex, boolean hierarchicalGroups, int hierarchyDepth, int countGroupsAtEachLevel, KeycloakSession session) {
-        RealmModel realm = context.getRealm();
-        for (int i = startIndex; i < endIndex; i++) {
-            String groupName = getGroupName(hierarchicalGroups, countGroupsAtEachLevel, context.getConfig().getGroupPrefix(), i);
-            String parentGroupName = getParentGroupName(groupName);
-
-            if (parentGroupName != null) {
-                Optional<GroupModel> maybeParent = session.groups().searchForGroupByNameStream(realm, parentGroupName, true, -1, -1).findFirst();
-                maybeParent.ifPresent(parent -> {
-                    GroupModel groupModel = session.groups().createGroup(realm, groupName, parent);
-                    context.groupCreated(groupModel);
-                });
-            } else {
-                GroupModel groupModel = session.groups().createGroup(realm, groupName);
-                context.groupCreated(groupModel);
-            }
-        }
     }
 
     // Worker task to be triggered by single executor thread
@@ -1231,4 +1254,30 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 -> new TaskManager(session).removeExistingTask(true));
     }
 
+    private void createGroupLevel(KeycloakSession session, int count, int depth, String parent, ExecutorHelper executor) {
+        RealmModel realm = session.getContext().getRealm();
+        GroupProvider groups = session.groups();
+        GroupModel parentGroup = groups.searchForGroupByNameStream(realm, parent, true, -1, -1).findAny().orElse(null);
+
+        if (parentGroup == null) {
+            throw new RuntimeException("Parent group " + parent + " not found");
+        }
+
+        for (int index = 0; index < count; index++) {
+            String groupName = parent + GROUP_NAME_SEPARATOR + index;
+
+            if (groups.getGroupByName(realm, parentGroup, groupName) != null) {
+                continue;
+            }
+
+            logger.infof("Creating group %s", groupName);
+            KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), session.getContext(), s -> s.groups().createGroup(realm, groupName, parentGroup));
+
+            executor.addTask(() -> {
+                for (int depthIndex = 0; depthIndex < depth; depthIndex++) {
+                    KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), session.getContext(), s -> createGroupLevel(s, count, depth - 1, groupName, executor));
+                }
+            });
+        }
+    }
 }
