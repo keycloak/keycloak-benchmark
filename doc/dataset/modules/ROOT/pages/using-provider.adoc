@@ -107,9 +107,6 @@ The number of groups and the structure of the created groups can be managed by u
 `groups-per-realm`:: Total number of groups per realm.
 The default value is `20`.
 
-`groups-per-transaction`:: Number of groups to be created in one transaction.
-The default value is `100`.
-
 `groups-with-hierarchy`:: `true` or `false`, the default value is `false`.
 With the default value, only top-level groups are created.
 With groups-with-hierarchy set to `true` a tree structure of groups is created; the depth of the tree is defined by the parameter `groups-hierarchy-depth` and `groups-count-each-level` defines how many subgroups each created group will have.
@@ -129,6 +126,13 @@ The adopted subgroup naming convention uses a dot (`.`) in the group names which
 .Example parameters
 ----
 .../realms/master/dataset/create-realms?count=1&groups-with-hierarchy=true&groups-hierarchy-depth=3&groups-count-each-level=50
+----
+
+You can also create groups in an existing realm by invoking the `create-groups` endpoint and setting the `realm-name` parameter:
+
+.Example parameters
+----
+.../realms/master/dataset/create-groups?realm-name=realm-0&count=10&groups-with-hierarchy=true&groups-hierarchy-depth=3&groups-count-each-level=5
 ----
 
 === Create many events

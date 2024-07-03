@@ -21,6 +21,7 @@ package org.keycloak.benchmark.dataset.config;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_AUTHZ_CLIENT;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_GROUPS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_ORGS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
@@ -57,14 +58,14 @@ public class DatasetConfig {
     private Integer lastToRemove;
 
     // Realm-name is required when creating many clients or users. The realm where clients/users will be created must already exists
-    @QueryParamFill(paramName = "realm-name",  required = true, operations = { CREATE_CLIENTS, CREATE_USERS, LAST_CLIENT, LAST_USER, CREATE_AUTHZ_CLIENT })
+    @QueryParamFill(paramName = "realm-name",  required = true, operations = { CREATE_CLIENTS, CREATE_USERS, CREATE_GROUPS, LAST_CLIENT, LAST_USER, CREATE_AUTHZ_CLIENT })
     private String realmName;
 
     // NOTE: Start index is not available as parameter as it will be "auto-detected" based on already created realms (clients, users)
     private Integer start;
 
     // Count of entities to be created. Entity is realm, client or user based on the operation
-    @QueryParamIntFill(paramName = "count", required = true, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
+    @QueryParamIntFill(paramName = "count", required = true, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_EVENTS, CREATE_GROUPS, CREATE_OFFLINE_SESSIONS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer count;
 
     // Prefix for realm roles to create in every realm (in case of CREATE_REALMS) or to assign to users (in case of CREATE_USERS)
@@ -107,27 +108,27 @@ public class DatasetConfig {
     private Integer clientRolesPerClient;
 
     // Prefix of groups to be created (in case of CREATE_REALMS operation) or assigned to the users (In case of CREATE_USERS and CREATE_REALMS operations)
-    @QueryParamFill(paramName = "group-prefix", defaultValue = "group-", operations = { CREATE_REALMS, CREATE_USERS })
+    @QueryParamFill(paramName = "group-prefix", defaultValue = "group-", operations = { CREATE_REALMS, CREATE_USERS, CREATE_GROUPS })
     private String groupPrefix;
 
     // Count of groups to be created in every created realm
-    @QueryParamIntFill(paramName = "groups-per-realm", defaultValue = 20, operations = { CREATE_REALMS })
+    @QueryParamIntFill(paramName = "groups-per-realm", defaultValue = 20, operations = { CREATE_REALMS, CREATE_GROUPS })
     private Integer groupsPerRealm;
 
     // Number of groups to be created in one transaction
-    @QueryParamIntFill(paramName = "groups-per-transaction", defaultValue = 100, operations = { CREATE_REALMS })
+    @QueryParamIntFill(paramName = "groups-per-transaction", defaultValue = 100, operations = { CREATE_REALMS, CREATE_GROUPS })
     private Integer groupsPerTransaction;
 
     // When this parameter is false only top level groups are created, groups and subgroups are created
-    @QueryParamFill(paramName = "groups-with-hierarchy", defaultValue = "false", operations = { CREATE_REALMS })
+    @QueryParamFill(paramName = "groups-with-hierarchy", defaultValue = "false", operations = { CREATE_REALMS, CREATE_GROUPS })
     private String groupsWithHierarchy;
 
    // Depth of the group hierarchy tree. Active if groups-with-hierarchy = true
-    @QueryParamIntFill(paramName = "groups-hierarchy-depth", defaultValue = 3, operations = { CREATE_REALMS })
+    @QueryParamIntFill(paramName = "groups-hierarchy-depth", defaultValue = 3, operations = { CREATE_REALMS, CREATE_GROUPS })
     private Integer groupsHierarchyDepth;
 
     // Number of at each level of hierarchy. Each group will have this many subgroups. Active if groups-with-hierarchy = true
-    @QueryParamIntFill(paramName = "groups-count-each-level", defaultValue = 10, operations = { CREATE_REALMS })
+    @QueryParamIntFill(paramName = "groups-count-each-level", defaultValue = 10, operations = { CREATE_REALMS, CREATE_GROUPS })
     private Integer countGroupsAtEachLevel;
 
 
@@ -165,7 +166,7 @@ public class DatasetConfig {
 
     // Transaction timeout used for transactions for creating objects
     @QueryParamIntFill(paramName = "transaction-timeout", defaultValue = 300, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
-            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS, CREATE_GROUPS })
     private Integer transactionTimeoutInSeconds;
 
     // Count of users created in every transaction
@@ -173,14 +174,14 @@ public class DatasetConfig {
     private Integer usersPerTransaction;
 
     // Count of worker threads concurrently creating entities
-    @QueryParamIntFill(paramName = "threads-count", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
+    @QueryParamIntFill(paramName = "threads-count", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_GROUPS,
             CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
     private Integer threadsCount;
 
     // Timeout for the whole task. If timeout expires, then the existing task may not be terminated immediatelly. However it will be permitted to start another task
     // (EG. Send another HTTP request for creating realms), which can cause conflicts
     @QueryParamIntFill(paramName = "task-timeout", defaultValue = 3600, operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS,
-            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS })
+            CREATE_EVENTS, CREATE_OFFLINE_SESSIONS, REMOVE_REALMS, CREATE_AUTHZ_CLIENT, CREATE_ORGS, CREATE_GROUPS })
     private Integer taskTimeout;
 
     // The client id of a client to which data is going to be provisioned
