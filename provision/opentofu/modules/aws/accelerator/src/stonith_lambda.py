@@ -10,9 +10,11 @@ from urllib.parse import unquote
 def handle_site_offline(labels):
     a_client = boto3.client('globalaccelerator', region_name='us-west-2')
 
-    accelerator = jmespath.search("Accelerators[?DnsName=='%s']" % labels['accelerator'], a_client.list_accelerators())
+    acceleratorDNS = labels['accelerator']
+    accelerator = jmespath.search(f"Accelerators[?DnsName=='{acceleratorDNS}']", a_client.list_accelerators())
     if not accelerator:
-        raise Exception("Unable to find Global Accelerator with DNS '%s'" % labels['accelerator'])
+        print(f"Ignoring SiteOffline alert as accelerator with DnsName '{acceleratorDNS}' not found")
+        return
 
     accelerator_arn = accelerator[0]['AcceleratorArn']
     listener_arn = a_client.list_listeners(AcceleratorArn=accelerator_arn)['Listeners'][0]['ListenerArn']
