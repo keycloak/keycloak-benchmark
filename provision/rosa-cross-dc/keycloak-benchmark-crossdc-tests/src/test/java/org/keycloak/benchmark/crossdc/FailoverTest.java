@@ -103,12 +103,12 @@ public class FailoverTest extends AbstractCrossDCTest {
         var acceleratorMeta = AWSClient.getAcceleratorMeta(DC_1.getLoadbalancerURL());
         var region = acceleratorMeta.endpointGroup().endpointGroupRegion();
 
+        // Track the number of Lambda invocations at the start of the test as this maybe non-zero
+        var lambdaInvocationsStart = AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime);
+
         // Ensure that no SiteOffline events are firing on either site
         assertFalse(DC_1.prometheus().isAlertFiring(SITE_OFFLINE_ALERT));
         assertFalse(DC_2.prometheus().isAlertFiring(SITE_OFFLINE_ALERT));
-
-        // Assert that the Lambda has not been executed
-        assertEquals(0, AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime));
 
         // Assert that both sites are part of the Accelerator EndpointGroup
         assertEquals(2, AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size());
@@ -125,11 +125,12 @@ public class FailoverTest extends AbstractCrossDCTest {
 
         // Assert that the Lambda has been triggered by both sites
         ByRef.Long count = new ByRef.Long(0);
+        var expectedInvocations = lambdaInvocationsStart + 2;
         eventually(
-              () -> String.format("Expected %d Lambda invocations, got %d", 2, count.get()),
+              () -> String.format("Expected %d Lambda invocations, got %d", expectedInvocations, count.get()),
               () -> {
                   count.set(AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime));
-                  return count.get() == 2;
+                  return count.get() == expectedInvocations;
               },
               10, TimeUnit.MINUTES
         );
