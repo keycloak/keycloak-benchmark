@@ -14,7 +14,7 @@ In that release branch,
 make the below series of updates
 to upgrade the version which are required for a Keycloak Benchmark's SNAPSHOT release to be successful.
 +
-. Update the latest supported version of Keycloak in the link:../../../../../.github/workflows/snapshot.yml[Snapshot release GitHub workflow YAML] in the `--notes 'Latest version built from` with a line similar to `<br>Use this with Keycloak 25.x`. This is further used by the `Snapshot` GitHub workflow to create the snapshot releases and imprint the artifacts with the specific Keycloak release.
+. Update the latest supported version of Keycloak in the link:{github-files}/.github/workflows/snapshot.yml[Snapshot release GitHub workflow YAML] in the `--notes 'Latest version built from` with a line similar to `<br>Use this with Keycloak 25.x`. This is further used by the `Snapshot` GitHub workflow to create the snapshot releases and imprint the artifacts with the specific Keycloak release.
 +
 . Now perform a project wide search for the below keywords and replace them with the respective ones appropriately as per the release.
 * Search for `nightly` and replace it with `25.0.1`, if the release is performed against the `Keycloak 25.0.1` build.
@@ -23,28 +23,28 @@ to upgrade the version which are required for a Keycloak Benchmark's SNAPSHOT re
 . Now push your changes from your local `XX-release` branch to the remote `XX-release` branch, which in turn generates the specific artifacts necessary for the SNAPSHOT release.
 
 == Post Release steps
-. Once the `release` branch is cut and the SNAPSHOT release generates its artifacts successfully, perform the below steps against the `main` branch inorder to propagate the new changes into a newer SNAPSHOT version. While these post-release steps, have to be executed manually, we hope to automate them to a single click release workflow in the future.
+. Once the `release` branch is cut and the SNAPSHOT release generates its artifacts successfully, perform the below steps against the `main` branch in order to propagate the new changes into a newer SNAPSHOT version. While these post-release steps, have to be executed manually, we hope to automate them to a single click release workflow in the future.
 . Upgrade to the new SNAPSHOT versions in all the locations inside the below files.
 For example, after performing a `0.13-SNAPSHOT` release,
 search for `0.13-SNAPSHOT` keyword in the files below and replace it with the next logical version number,
 in this case with `0.14-SNAPSHOT`.
 ** Keycloak Benchmark ROOT
-* link:../../../../../pom.xml#L7[pom.xml].
+* link:{github-files}/pom.xml#L7[pom.xml].
 ** Benchmark module
-* link:../../../../../benchmark/pom.xml[benchmark/pom.xml].
-* link:../../../antora.yml[antora.yml] file under the Benchmark docs.
-* link:../../../../benchmark/modules/ROOT/pages/report/rosa-benchmark-key-results.adoc[ROSA Benchmark key results] page.
-* link:../../../../benchmark/modules/ROOT/pages/run/running-benchmark-ansible.adoc[Running benchmark using Ansible] page.
+* link:{github-files}/benchmark/pom.xml[benchmark/pom.xml].
+* link:{github-files}/doc/benchmark/antora.yml[antora.yml] file under the Benchmark docs.
+* link:{github-files}/doc/benchmark/modules/ROOT/pages/report/rosa-benchmark-key-results.adoc[ROSA Benchmark key results] page.
+* link:{github-files}/doc/benchmark/modules/ROOT/pages/run/running-benchmark-ansible.adoc[Running benchmark using Ansible] page.
 +
 ** Dataset module
-* link:../../../../../dataset/pom.xml[dataset/pom.xml].
-* link:../../../../../dataset/src/test/java/org/keycloak/benchmark/test/KeycloakServer.java[KeycloakServer.java] update the default `project_version`.
-* link:../../../../dataset/antora.yml[antora.yml] file under the Dataset docs.
+* link:{github-files}/dataset/pom.xml[dataset/pom.xml].
+* link:{github-files}/dataset/src/test/java/org/keycloak/benchmark/test/KeycloakServer.java[KeycloakServer.java] update the default `project_version`.
+* link:{github-files}/doc/dataset/antora.yml[antora.yml] file under the Dataset docs.
 +
 ** Kubernetes module
-* link:../../../../../provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/pom.xml[pom.xml] for ROSA Cross DC functional tests.
-* link:../../../../kubernetes/antora.yml[antora.yml] file under the Kubernetes docs.
+* link:{github-files}/provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/pom.xml[pom.xml] for ROSA Cross DC functional tests.
+* link:{github-files}/doc/kubernetes/antora.yml[antora.yml] file under the Kubernetes docs.
 ** Ansible module
-* link:../../../../../ansible/env_example.yml[ansible/env_example.yml].
-* link:../../../../../ansible/env_rosa_benchmark.yml[ansible/env_rosa_benchmark.yml].
+* link:{github-files}/ansible/env_example.yml[ansible/env_example.yml].
+* link:{github-files}/ansible/env_rosa_benchmark.yml[ansible/env_rosa_benchmark.yml].
 . Once the changes are all in place, commit these to the `main` branch with a good commit message to indicate the project has now been upgraded to a newer SNAPSHOT release.
