@@ -97,6 +97,10 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
 
     @Test
     public void testRemoteStoreDiscrepancyMissingSessionInBackupRemoteISPN() throws URISyntaxException, IOException, InterruptedException {
+        // Test removes the session of one of the sites. If the logout reaches that site, it won't find the session
+        // and do nothing. 
+        Assumptions.assumeFalse(SKIP_EMBEDDED_CACHES, "Test is invalid with external infinispan.");
+
         // Create a new user session
         Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.passwordGrant(REALM_NAME, CLIENTID, USERNAME, MAIN_PASSWORD);
 
@@ -125,6 +129,8 @@ public class LoginLogoutTest extends AbstractCrossDCTest {
 
     @Test
     public void testRemoteStoreDiscrepancyMissingSessionInAllRemoteISPN() throws URISyntaxException, IOException, InterruptedException {
+        // Test removes the user session manually from both sites. Nothing to test.
+        Assumptions.assumeFalse(SKIP_EMBEDDED_CACHES, "Test is invalid with external infinispan.");
         // Create a new user session
         Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.passwordGrant(REALM_NAME, CLIENTID, USERNAME, MAIN_PASSWORD);
         LOG.info("processing session " + tokensMap.get("session_state"));
