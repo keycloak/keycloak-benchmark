@@ -216,7 +216,7 @@ tasks:
         - ROSA_CLUSTER_NAME
         - NAMESPACE
     vars:
-      CROSS_DC_WAIT_TIMEOUT: '{{.CROSS_DC_WAIT_TIMEOUT | default "300"}}'
+      CROSS_DC_WAIT_TIMEOUT: '{{.CROSS_DC_WAIT_TIMEOUT | default "900"}}'
     cmds:
       - echo "Waiting for the Infinispan cluster to form on namespace '{{.NAMESPACE}}' (timeout after {{.CROSS_DC_WAIT_TIMEOUT}} seconds)"
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for condition=WellFormed --timeout={{.CROSS_DC_WAIT_TIMEOUT}}s infinispans.infinispan.org -n "{{.NAMESPACE}}" infinispan
