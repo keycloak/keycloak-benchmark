@@ -204,8 +204,8 @@ jobs:
         working-directory: provision/rosa-cross-dc
         run: |
           task global-accelerator-create 2>&1 | tee accelerator
-          echo "ACCELERATOR_DNS=$(grep -Po 'ACCELERATOR DNS: \K.*' accelerator)" >> $GITHUB_ENV
-          echo "ACCELERATOR_WEBHOOK=$(grep -Po 'ACCELERATOR WEBHOOK: \K.*' accelerator)" >> $GITHUB_ENV
+          echo "ACCELERATOR_DNS=$(grep -Po 'ACCELERATOR DNS: \K.*' accelerator | tail -1)" >> $GITHUB_ENV
+          echo "ACCELERATOR_WEBHOOK=$(grep -Po 'ACCELERATOR WEBHOOK: \K.*' accelerator | tail -1)" >> $GITHUB_ENV
         env:
           ACCELERATOR_NAME: ${{ env.CLUSTER_PREFIX }}
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
