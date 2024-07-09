@@ -312,7 +312,7 @@ tasks:
       TIMEOUT: "{{.TIMEOUT | default 1200}}"
     cmds:
       - |
-        if [ "{{.KC_CRYOSTAT}}" ]; then
+        if [ "{{.KC_CRYOSTAT}}" != "false" ]; then
         echo "Waiting for Cryostat condition in ROSA cluster {{.ROSA_CLUSTER_NAME}} for {{.TIMEOUT}} seconds"
         KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=MainDeploymentProgressing --timeout={{.TIMEOUT}}s cryostats.operator.cryostat.io/cryostat -n "{{.NAMESPACE}}"
         KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=MainDeploymentAvailable --timeout={{.TIMEOUT}}s cryostats.operator.cryostat.io/cryostat -n "{{.NAMESPACE}}"
