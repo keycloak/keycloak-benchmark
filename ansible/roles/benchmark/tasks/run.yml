@@ -49,8 +49,8 @@
     ./kcb.sh {{ kcb_params_workload_per_node }} > gatling.log
   ignore_errors: yes
   # Executing load run can be scheduled for hours. To prevent the test from failing when the SSH connection breaks, use asynchronous polling.
-  async: 86400
-  poll: 10
+  async: 3600
+  poll: 60
   register: gatling_result
 - debug: var=gatling_result
 
