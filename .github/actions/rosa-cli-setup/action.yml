@@ -31,7 +31,12 @@ runs:
       shell: bash
       run: |
         cd /usr/local/bin/
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/rosa-linux.tar.gz | tar xz
+        curl -L -o rosa-linux.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/rosa-linux.tar.gz
+        if [ ! -f rosa-linux.tar.gz ]; then
+          echo "File download failed!"
+          exit 1
+        fi
+        tar -xzf rosa-linux.tar.gz
 
     - id: rosa-cli-login
       name: Login ROSA CLI
