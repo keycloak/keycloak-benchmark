@@ -55,7 +55,7 @@ variable "subnet_cidr_prefix" {
 
 variable "openshift_version" {
   type    = string
-  default = "4.16.0"
+  default = "4.15.14"
   nullable = false
 }
 
