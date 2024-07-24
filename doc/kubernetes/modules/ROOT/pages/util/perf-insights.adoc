@@ -1,0 +1,45 @@
+= Analyzing the Continuous Performance Test results
+:description: A utility to perform custom analysis on the generated results from continuous performance tests.
+
+{description}
+
+== Continuous Performance Tests
+The `link:{github-files}/.github/workflows/rosa-cluster-auto-provision-on-schedule.yml[ROSA Daily Scheduled Run workflow]` is an automated process that ensures continuous performance testing for {project_name}'s Active/Active cluster deployments with external Infinispan which is scheduled to run every weekday.
+
+This workflow initiates by deploying a multi-availability zone cluster, activating features such as external Infinispan and persistent sessions. It executes a series of functional tests to verify the system's performance and stability in an active-active configuration.
+
+Following these tests, a scaling benchmark assesses the system's ability to handle varying loads, providing crucial insights into performance under real-world conditions and the results are then persisted to a `https://github.com/keycloak/keycloak-benchmark/tree/result-data/rosa_scalability[result-data branch]` in the benchmark's GitHub repository for further analysis.
+
+This automated schedule ensures consistent testing, early detection of potential issues, and continuous improvement of {project_name}'s performance.
+
+== Analyze the results
+
+We have a python script `link:{github-files}/benchmark/src/main/python/perfInsights.py[perfInsights.py]` which allows us to analyze the results generated from the Continuous Performance tests mentioned above.
+
+=== Installing needed python libraries
+
+[source,bash]
+----
+pip3 install -U -r requirements.txt
+----
+
+And we can check if all the requirements are satisfied using the below command.
+[source,bash]
+----
+python3 -m pip check
+----
+
+=== Usage
+
+Run the below command to access the results from the `https://github.com/keycloak/keycloak-benchmark/tree/result-data/rosa_scalability[result-data branch]` and save the analysis to a local dir.
+
+[source, bash]
+----
+python3 perfInsights.py <result_json_dir_path_on_github> <output_dir_path>
+----
+
+[source, bash]
+----
+Example:
+python3 perfInsights.py rosa_scalability/2024/07/23 results
+----
