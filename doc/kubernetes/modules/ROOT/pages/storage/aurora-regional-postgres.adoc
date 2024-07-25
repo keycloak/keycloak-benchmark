@@ -73,14 +73,22 @@ See xref:customizing-deployment.adoc[] for a list of all configuration options.
 The Aurora DB cluster is only accessible to ROSA clusters with an established Peering Connection, therefore all debugging
 connections must also originate from said clusters. A simple way to connect `psql` to the cluster is to execute the following:
 
-[source,bash]
+[.wrap]
+[source,bash,subs="+quotes"]
 ----
-kubectl run -i --tty --rm debug --image=postgres:13 --restart=Never -n {{.KC_NAMESPACE_PREFIX}}keycloak -- psql -h postgres -d keycloak -U keycloak
+kubectl run -i --tty --rm debug --image=postgres:15 --restart=Never -n *<namespace>* -- psql -h *<....rds.amazonaws.com>* -d keycloak -U keycloak
 ----
 
 This will create a pod in the Keycloak deployment namespace and establish a connection with the Aurora cluster. A password
 prompt will appear on initial connection and you should utilise the password defined in the Secret `keycloak-db-secret`.
 Upon exiting the pod shell, the pod will be deleted.
+
+To drop the contents of the database, run the following command. Then restart all Keycloak nodes in all datacenters.
+
+[source,sql]
+----
+DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+----
 
 == Disconnecting ROSA cluster from an individual Aurora Cluster
 
