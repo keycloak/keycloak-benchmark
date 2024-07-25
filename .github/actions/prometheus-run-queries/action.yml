@@ -37,7 +37,7 @@ runs:
       shell: bash
       # language=bash
       run: >
-        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
+        curl -fs -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
         'query=sum(container_cpu_usage_seconds_total{job="kubelet", namespace="${{   inputs.project }}",container="keycloak"})'
         | jq '.data.result[0].value[1]' -r >> ${{ inputs.output }}
       env:
@@ -50,7 +50,7 @@ runs:
       shell: bash
       # language=bash
       run: >
-        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
+        curl -fs -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode
         'query=sum(container_memory_working_set_bytes{job="kubelet", namespace="${{ inputs.project }}",container="keycloak"})'
         | jq '.data.result[0].value[1]' -r | awk '{print $0/1000/1000}' >> ${{ inputs.output }}       # Converting Bytes to MB before storing to file.
       env:
@@ -62,10 +62,10 @@ runs:
       shell: bash
       # language=bash
       run: |
-        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        curl -fs -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
         "query=round(avg(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'}))" \
         | jq '.data.result[0].value[1]' -r >> "${{ inputs.ispnCacheName}}_ispn_metrics_file_sum"
-        curl -s -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
+        curl -fs -H "Authorization: Bearer $OC_TOKEN" -k "https://$THANOS_HOST/api/v1/query" --data-urlencode \
         "query=round(avg(vendor_rpc_manager_cross_site_replication_times_seconds_count{job='infinispan-admin', namespace='${{ inputs.project }}',container='infinispan', cache='${{ inputs.ispnCacheName }}'}))" \
         | jq '.data.result[0].value[1]' -r >> "${{ inputs.ispnCacheName}}_ispn_metrics_file_count"
       env:
