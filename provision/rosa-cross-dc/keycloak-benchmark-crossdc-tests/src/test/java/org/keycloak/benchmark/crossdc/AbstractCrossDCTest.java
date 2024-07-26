@@ -53,6 +53,7 @@ public abstract class AbstractCrossDCTest {
     public static final String USERNAME = "cross-dc-test-user";
     public static final String MAIN_PASSWORD = PropertyUtils.getRequired("main.password");
     public static final boolean SKIP_EMBEDDED_CACHES = Boolean.getBoolean("skipEmbeddedCaches");
+    public static final boolean SKIP_REMOTE_CACHES = Boolean.getBoolean("skipRemoteCaches");
 
     public AbstractCrossDCTest() {
         var httpClient = HttpClientUtils.newHttpClient();
@@ -239,6 +240,9 @@ public abstract class AbstractCrossDCTest {
     }
 
     protected static void assertExternalCacheSize(DatacenterInfo datacenterInfo, String cacheName, long expectedSize) {
+        if (SKIP_REMOTE_CACHES) {
+            return;
+        }
         assertCacheSize(datacenterInfo.ispn().cache(cacheName), expectedSize);
     }
 
@@ -266,10 +270,16 @@ public abstract class AbstractCrossDCTest {
     }
 
     protected static void assertExternalCacheContains(DatacenterInfo datacenterInfo, String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        if (SKIP_REMOTE_CACHES) {
+            return;
+        }
         assertContains(datacenterInfo.ispn().cache(cacheName), expectedKey, true);
     }
 
     protected static void assertExternalCacheNotContains(DatacenterInfo datacenterInfo, String cacheName, String expectedKey) throws URISyntaxException, IOException, InterruptedException {
+        if (SKIP_REMOTE_CACHES) {
+            return;
+        }
         assertContains(datacenterInfo.ispn().cache(cacheName), expectedKey, false);
     }
 
