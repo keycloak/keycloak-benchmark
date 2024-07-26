@@ -10,8 +10,12 @@ on:
         description: 'Must be true when testing against an Active/Active Keycloak deployment'
         type: boolean
         default: false
-      externalInfinispanEnabled:
-        description: 'True if the deployment uses the External Infinispan feature'
+      skipEmbeddedCaches:
+        description: 'True if the deployment does not use the Embedded Infinispan'
+        type: boolean
+        default: false
+      skipRemoteCaches:
+        description: 'True if the deployment does not use the External Infinispan'
         type: boolean
         default: false
 
@@ -24,8 +28,12 @@ on:
         description: 'Must be true when testing against an Active/Active Keycloak deployment'
         type: boolean
         default: false
-      externalInfinispanEnabled:
-        description: 'True if the deployment uses the External Infinispan feature'
+      skipEmbeddedCaches:
+        description: 'Skip assertions for embedded caches'
+        type: boolean
+        default: false
+      skipRemoteCaches:
+        description: 'Skip assertions for remote caches'
         type: boolean
         default: false
 
@@ -89,4 +97,5 @@ jobs:
         env:
           ACTIVE_ACTIVE: ${{ inputs.activeActive }}
           DEPLOYMENT_NAMESPACE: ${{ env.PROJECT }}
-          SKIP_EMBEDDED_CACHES: ${{ inputs.externalInfinispanEnabled }}
+          SKIP_EMBEDDED_CACHES: ${{ inputs.skipEmbeddedCaches }}
+          SKIP_REMOTE_CACHES: ${{ inputs.skipRemoteCaches }}
