@@ -31,10 +31,14 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
     public void testConcurrentClientSessionAddition() throws IOException, URISyntaxException, InterruptedException {
         assumeTrue(SKIP_EMBEDDED_CACHES && SKIP_REMOTE_CACHES, "Test is applicable only for Persistent sessions at the moment");
 
+        /* This should not run for embedded caches with A/P setup because client sessions are asynchronously
+           propagated to the remote Infinispan's embedded caches. Due to that, some client sessions are lost.
+           Due to that, the code-to-token exchange then fails. */
+
         final var ITERATIONS = 20;
 
         Map<String, String> clientIdToId = new HashMap<>();
-        // Create clients in DC1
+        // Create clients that will later log in concurrently
         for (int i = 0; i < ITERATIONS * 3; i++) {
             // Create client
             ClientRepresentation client = new ClientRepresentation();
@@ -47,13 +51,14 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
             clientIdToId.put(client.getClientId(), KeycloakUtils.getCreatedId(DC_1.kc().adminClient().realm(REALM_NAME).clients().create(client)));
         }
 
-        // Create user session with the main client in DC1
+        // Create user session with the main client
         String code = LOAD_BALANCER_KEYCLOAK.usernamePasswordLogin(REALM_NAME, USERNAME, MAIN_PASSWORD, CLIENTID);
         String userSessionId = code.split("[.]")[1];
 
-        Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
+        // completing the login flow
+        LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
 
-        // Create cookies also for the other DCs URLS so we can login to the same user session from DC_1 and DC_2 Urls
+        // Copy cookies also to the other DCs URLs, so we can log in to the same user session from DC_1 and DC_2 URLs
         CookieManager mockCookieManager = HttpClientUtils.MOCK_COOKIE_MANAGER;
         List<HttpCookie> copy = List.copyOf(mockCookieManager.getCookieStore().getCookies());
         copy.forEach(cookie -> {
@@ -73,7 +78,8 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
             LOG.infof("Starting with the concurrent requests iteration %d", i);
 
             final var iteration = i;
-            // Create new client session with each client in DC1 or DC2 3 times concurrently
+            // Create new client session with each client in DC1 or DC2 3 times concurrently by opening the login screen.
+            // We are already logged in due to the cookies set above.
             IntStream.range(0, 3).parallel().forEach(j -> {
                 HttpResponse<String> stringHttpResponse = null;
                 KeycloakClient keycloakClient = rand.nextBoolean() ? DC_1.kc() : DC_2.kc();
@@ -81,11 +87,17 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
                 LOG.infof("Iteration [%d, %d] - ClientID: %s, id: %s, DC: %s ", iteration, j, clientId, clientIdToId.get(clientId), keycloakClient == DC_1.kc() ? "DC1" : "DC2");
                 long start = Time.currentTimeMillis();
                 try {
+                    // The following line creates the new client session as the user is already logged in with a cookie.
+                    // If this line fails it might indicate a deadlock on the Keycloak server side.
                     stringHttpResponse = keycloakClient.openLoginForm(REALM_NAME, clientId);
+
                     String code2 = KeycloakUtils.extractCodeFromResponse(stringHttpResponse);
                     String userSessionId2 = code2.split("[.]")[1];
-                    assertEquals(userSessionId, userSessionId2);
-                    Map<String, Object> stringObjectMap = keycloakClient.exchangeCode(REALM_NAME, clientId, CLIENT_SECRET, 200, code2);
+                    assertEquals(userSessionId, userSessionId2, "Expecting the same user session as on the initial login");
+
+                    // Completing the login flow.
+                    // This will only work if the client session was written successfully to the store.
+                    keycloakClient.exchangeCode(REALM_NAME, clientId, CLIENT_SECRET, 200, code2);
                 } catch (Throwable e) {
                     // Failure occurred, increment the counter and add the exception with details to the parent exception
                     failureCounter.incrementAndGet();
