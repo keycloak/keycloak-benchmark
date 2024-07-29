@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class ConcurrentModificationTest extends AbstractCrossDCTest {
 
@@ -28,6 +29,8 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
 
     @Test
     public void testConcurrentClientSessionAddition() throws IOException, URISyntaxException, InterruptedException {
+        assumeTrue(SKIP_EMBEDDED_CACHES && SKIP_REMOTE_CACHES, "Test is applicable only for Persistent sessions at the moment");
+
         final var ITERATIONS = 20;
 
         Map<String, String> clientIdToId = new HashMap<>();
