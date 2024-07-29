@@ -57,6 +57,7 @@ jobs:
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       enablePersistentSessions: true
+      enableExternalInfinispanFeature: true
       createCluster: false
       activeActive: true
     secrets: inherit
@@ -79,14 +80,3 @@ jobs:
       outputArchiveSuffix: 'active-active'
       skipCreateDataset: true
     secrets: inherit
-
-#  keycloak-undeploy-active-active:
-#    needs: run-scaling-benchmark-active-active
-#    name: Undeploy Keycloak deployment A/A
-#    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-#    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
-#    with:
-#      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
-#      skipAuroraDeletion: true
-#     activeActive: true
-#    secrets: inherit
