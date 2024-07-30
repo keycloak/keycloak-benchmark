@@ -190,8 +190,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                         int endIndex = Math.min(clientsStartIndex + config.getClientsPerTransaction(), config.getClientsPerRealm());
                         logger.tracef("clientsStartIndex: %d, clientsEndIndex: %d", clientsStartIndex, endIndex);
 
-                        KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session ->
-                                createClients(context, task, session, clientsStartIndex, endIndex), config.getTransactionTimeoutInSeconds());
+                        KeycloakModelUtils.runJobInTransactionWithTimeout(baseSession.getKeycloakSessionFactory(), session -> {
+                            KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
+                            createClients(context, task, session, clientsStartIndex, endIndex);
+                        }, config.getTransactionTimeoutInSeconds());
 
                         task.debug(logger, "Created %d clients in realm %s", context.getClientCount(), context.getRealm().getName());
                     }
@@ -327,6 +329,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                 // Run this concurrently with multiple threads
                 executor.addTaskRunningInTransaction(session -> {
+                    KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
 
                     createClients(context, task, session, clientsStartIndex, endIndex);
 
@@ -440,6 +443,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             // Run this concurrently with multiple threads
             executor.addTaskRunningInTransaction(session -> {
+                KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
+
                 createUsers(context, session, usersStartIndex, endIndex);
 
                 task.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
@@ -515,6 +520,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                 // Run this concurrently with multiple threads
                 executor.addTaskRunningInTransaction(session -> {
+                    KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
 
                     EventStoreProvider eventStore = session.getProvider(EventStoreProvider.class);
 
@@ -618,6 +624,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     if (realm == null) {
                         throw new IllegalStateException("Not found realm with name '" + realmName + "'");
                     }
+                    session.getContext().setRealm(realm);
                     // Just use user like "user-0"
                     String username = config.getUserPrefix() + "0";
                     UserModel user = session.users().getUserByUsername(realm, username);
