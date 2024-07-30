@@ -156,6 +156,7 @@ jobs:
           maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
       - name: Bring Backup online
+        if: ${{ always() }}
         working-directory: provision/infinispan
         run: task crossdc-connect
         env:
