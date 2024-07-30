@@ -21,12 +21,10 @@ MAXRETRIES=1200
 if [[ "${KC_HEALTH_HOSTNAME}" != '' ]]; then
   declare -A SERVICES=( \
    ["${KC_HEALTH_HOSTNAME}"]="realms/master/.well-known/openid-configuration" \
-   ["cryostat-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="/" \
   )
 else
   declare -A SERVICES=( \
    ["keycloak-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="realms/master/.well-known/openid-configuration" \
-   ["cryostat-${KC_NAMESPACE_PREFIX}keycloak.${KC_HOSTNAME_SUFFIX}"]="/" \
   )
 fi
 
