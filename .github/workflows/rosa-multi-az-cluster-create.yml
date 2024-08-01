@@ -50,8 +50,8 @@ on:
         description: 'When true deploy an Active/Active Keycloak deployment'
         type: boolean
         default: false
-      enablePersistentSessions:
-        description: 'To enable Persistent user and client sessions to the DB'
+      enableKc25Mode:
+        description: 'Set to true when version older than 26 is deployed'
         type: boolean
         default: false
       enableExternalInfinispanFeature:
@@ -65,7 +65,7 @@ on:
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
   REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
-  KC_PERSISTENT_SESSIONS: ${{ inputs.enablePersistentSessions }}
+  KC_KC25_MODE: ${{ inputs.enableKc25Mode }}
   KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
 
 jobs:
@@ -187,7 +187,7 @@ jobs:
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
           KC_CRYOSTAT: false
-          KC_PERSISTENT_SESSIONS: ${{ env.KC_PERSISTENT_SESSIONS }}
+          KC_KC25_MODE: ${{ env.KC_KC25_MODE }}
           KC_EXTERNAL_INFINISPAN: ${{ env.KC_EXTERNAL_INFINISPAN }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
@@ -228,7 +228,7 @@ jobs:
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
           KC_CRYOSTAT: false
-          KC_PERSISTENT_SESSIONS: ${{ env.KC_PERSISTENT_SESSIONS }}
+          KC_KC25_MODE: ${{ env.KC_KC25_MODE }}
           KC_EXTERNAL_INFINISPAN: ${{ env.KC_EXTERNAL_INFINISPAN }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
