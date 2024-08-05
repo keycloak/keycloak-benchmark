@@ -84,5 +84,13 @@ TOFU_CMD="tofu apply -auto-approve \
 
 cd ${SCRIPT_DIR}/../../opentofu/modules/aws/accelerator
 source ${SCRIPT_DIR}/../../opentofu/create.sh ${ACCELERATOR_NAME} "${TOFU_CMD}"
-echo "ACCELERATOR DNS: $(tofu output -json | jq -r .dns_name.value)"
-echo "ACCELERATOR WEBHOOK: $(tofu output -json | jq -r .webhook_url.value)"
+
+ACCELERATOR_DNS=$(tofu output -json | jq -r .dns_name.value)
+ACCELERATOR_WEBHOOK=$(tofu output -json | jq -r .webhook_url.value)
+
+echo "ACCELERATOR DNS: ${ACCELERATOR_DNS}"
+echo "ACCELERATOR WEBHOOK: ${ACCELERATOR_WEBHOOK}"
+if [ "${GITHUB_ENV}" != "" ]; then
+  echo "ACCELERATOR_DNS=${ACCELERATOR_DNS}" >> ${GITHUB_ENV}
+  echo "ACCELERATOR_WEBHOOK=${ACCELERATOR_WEBHOOK}" >> ${GITHUB_ENV}
+fi

@@ -1,5 +1,5 @@
 output "dns_name" {
-  value = module.global_accelerator.dns_name
+  value = module.global_accelerator.dual_stack_dns_name
 }
 
 output "webhook_url" {
