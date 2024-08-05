@@ -19,6 +19,7 @@ module "global_accelerator" {
   source = "terraform-aws-modules/global-accelerator/aws"
 
   name = var.name
+  ip_address_type = "DUAL_STACK"
 
   listeners = {
     listener_1 = {
