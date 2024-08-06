@@ -140,29 +140,33 @@ spec:
       mode: "SYNC"
       owners: {{ $config.owners | default $.Values.cacheDefaults.owners | quote }}
       statistics: "true"
-      remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout }}
+      remoteTimeout: {{ $config.remoteTimeout | default $.Values.cacheDefaults.remoteTimeout | quote }}
       encoding:
         media-type: "application/x-protostream"
       locking:
-        acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout }}
+        acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout | quote }}
+      transaction:
+        mode: {{ $config.txMode | default $.Values.cacheDefaults.txMode | quote }}
+        locking: {{ $config.txLockMode | default $.Values.cacheDefaults.txLockMode | quote }}
       {{- if and $config.memory $config.memory.maxCount }}
       memory:
         maxCount: {{ $config.memory.maxCount }}
       {{- end }}
       stateTransfer:
-        chunkSize: 16
+        chunkSize: "16"
       {{ if $.Values.crossdc.enabled }}
       {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
       backups:
         {{- if $config.mergePolicy }}
-        mergePolicy: {{ $config.mergePolicy }} # <1>
+        mergePolicy: {{ $config.mergePolicy  | quote }} # <1>
         {{- end}}
         {{$.Values.crossdc.remote.name }}: # <2>
           backup:
             strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }} # <3>
-            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout }}
+            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout | quote }}
+            failurePolicy: {{ $config.xsiteFailurePolicy | default $.Values.cacheDefaults.xsiteFailurePolicy | quote }}
             stateTransfer:
-              chunkSize: 16
+              chunkSize: "16"
               {{- if eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC"}}
               mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }} # <4>
               {{- end }}
