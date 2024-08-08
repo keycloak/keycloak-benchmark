@@ -149,7 +149,7 @@ public class AWSClient {
    public static Accelerator getAccelerator(GlobalAcceleratorClient gaClient, String acceleratorDns) {
       return gaClient.listAccelerators().accelerators()
             .stream()
-            .filter(a -> acceleratorDns.contains(a.dnsName()))
+            .filter(a -> acceleratorDns.contains(a.dnsName()) || acceleratorDns.contains(a.dualStackDnsName()))
             .findFirst()
             .orElseThrow();
    }

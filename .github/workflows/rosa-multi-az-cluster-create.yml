@@ -20,14 +20,22 @@ on:
         description: 'When true deploy an Active/Active Keycloak deployment'
         type: boolean
         default: false
-      enablePersistentSessions:
+      enableKc25Mode:
+        description: 'Set to true when version older than 26 is deployed'
+        type: boolean
+        default: false
+      enablePersistentSessionsFeature:
         description: 'To enable Persistent user and client sessions to the DB'
         type: boolean
         default: false
       enableExternalInfinispanFeature:
         description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
         type: boolean
-        default: false
+        default: true
+      enableMultiSiteFeature:
+        description: 'To enable the Multi Site Feature'
+        type: boolean
+        default: true
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -54,10 +62,18 @@ on:
         description: 'Set to true when version older than 26 is deployed'
         type: boolean
         default: false
+      enablePersistentSessionsFeature:
+        description: 'To enable Persistent user and client sessions to the DB'
+        type: boolean
+        default: false
       enableExternalInfinispanFeature:
         description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
         type: boolean
-        default: false
+        default: true
+      enableMultiSiteFeature:
+        description: 'To enable the Multi Site Feature'
+        type: boolean
+        default: true
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -67,6 +83,7 @@ env:
   REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
   KC_KC25_MODE: ${{ inputs.enableKc25Mode }}
   KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
+  KC_MULTI_SITE: ${{ inputs.enableMultiSiteFeature }}
 
 jobs:
   # Workaround required for passing env variables to reusable workflow declarations as ${{ env.* }} is not available

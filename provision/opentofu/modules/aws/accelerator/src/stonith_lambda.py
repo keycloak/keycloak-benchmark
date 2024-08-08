@@ -13,6 +13,8 @@ def handle_site_offline(labels):
     acceleratorDNS = labels['accelerator']
     accelerator = jmespath.search(f"Accelerators[?DnsName=='{acceleratorDNS}']", a_client.list_accelerators())
     if not accelerator:
+        accelerator = jmespath.search(f"Accelerators[?DualStackDnsName=='{acceleratorDNS}']", a_client.list_accelerators())
+    if not accelerator:
         print(f"Ignoring SiteOffline alert as accelerator with DnsName '{acceleratorDNS}' not found")
         return
 

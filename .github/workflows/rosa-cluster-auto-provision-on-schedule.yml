@@ -17,6 +17,7 @@ jobs:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       activeActive: true
       enableExternalInfinispanFeature: true
+      enableMultiSiteFeature: true
     secrets: inherit
 
   run-functional-tests-active-active-with-external-infinispan:
@@ -56,8 +57,9 @@ jobs:
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
-      enablePersistentSessions: true
+      enablePersistentSessionsFeature: true
       enableExternalInfinispanFeature: true
+      enableMultiSiteFeature: true
       createCluster: false
       activeActive: true
     secrets: inherit
