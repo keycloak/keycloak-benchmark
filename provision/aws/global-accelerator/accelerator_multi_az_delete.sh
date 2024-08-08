@@ -23,7 +23,7 @@ if [ -z "${ACCELERATOR_NAME}" ]; then
     exit 1
   fi
   ACCELERATOR_NAME=$(aws globalaccelerator list-accelerators \
-    --query "Accelerators[?ends_with(DnsName, '${ACCELERATOR_DNS}')].Name" \
+    --query "Accelerators[?(ends_with(DnsName, '${ACCELERATOR_DNS}') || ends_with(DualStackDnsName, '${ACCELERATOR_DNS}'))].Name" \
     --output text
   )
   if [ -z "${ACCELERATOR_NAME}" ]; then
