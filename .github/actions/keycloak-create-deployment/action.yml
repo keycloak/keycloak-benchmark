@@ -18,6 +18,9 @@ inputs:
   enableExternalInfinispanFeature:
     description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
     default: 'false'
+  enableMultiSiteFeature:
+    description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
+    default: 'false'
   image:
     description: 'Keycloak Image'
   podMemoryRequests:
@@ -57,6 +60,7 @@ runs:
         KC_DISABLE_STICKY_SESSION: ${{ inputs.disableStickySessions }}
         KC_KC25_MODE: ${{ inputs.enableKc25Mode }}
         KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
+        KC_MULTI_SITE: ${{ inputs.enableMultiSiteFeature }}
         KC_CONTAINER_IMAGE: ${{ inputs.image }}
         KC_MEMORY_REQUESTS_MB: ${{ inputs.podMemoryRequests }}
         KC_MEMORY_LIMITS_MB: ${{ inputs.podMemoryLimit }}

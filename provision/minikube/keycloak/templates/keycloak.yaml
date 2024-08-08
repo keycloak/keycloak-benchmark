@@ -56,7 +56,9 @@ spec:
 {{ end }}
   features:
     enabled:
+{{- if .Values.multiSite }}
       - multi-site # <3>
+{{- end }}
 {{- if .Values.externalInfinispan }}
       - remote-cache
 {{- end }}
