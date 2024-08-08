@@ -11,9 +11,7 @@ def handle_site_offline(labels):
     a_client = boto3.client('globalaccelerator', region_name='us-west-2')
 
     acceleratorDNS = labels['accelerator']
-    accelerator = jmespath.search(f"Accelerators[?DnsName=='{acceleratorDNS}']", a_client.list_accelerators())
-    if not accelerator:
-        accelerator = jmespath.search(f"Accelerators[?DualStackDnsName=='{acceleratorDNS}']", a_client.list_accelerators())
+    accelerator = jmespath.search(f"Accelerators[?(DnsName=='{acceleratorDNS}'|| DualStackDnsName=='{acceleratorDNS}')]", a_client.list_accelerators())
     if not accelerator:
         print(f"Ignoring SiteOffline alert as accelerator with DnsName '{acceleratorDNS}' not found")
         return
