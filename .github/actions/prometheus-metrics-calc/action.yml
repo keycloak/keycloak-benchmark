@@ -44,11 +44,17 @@ runs:
       run: |
         readarray -t lines < ${{ inputs.input }}
         num1=${lines[0]}
-        num2=${lines[1]}
+        num2=${lines[2]}
+        num3=${lines[1]}
+        num4=${lines[3]}
         #calculating the difference of cumulative metric (changed during the benchmark execution)
-        difference=$(awk "BEGIN {print ($num2-$num1); exit}")
+        difference_cluster_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
+        difference_cluster_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
+
+        # averaging the differences between the two clusters
+        average_difference=$(awk "BEGIN {print ($difference_cluster_1 + $difference_cluster_2) / 2; exit}")
         #the script calculates vCPU need to calculate the vcpu number from CPU seconds metrics for the interval during which the test was running
-        metric_count_in_interval=$(awk "BEGIN {print $difference/$TIME_INTERVAL; exit}")
+        metric_count_in_interval=$(awk "BEGIN {print $average_difference/$TIME_INTERVAL; exit}")
         #calculating the average metric per pod
         metric_per_pod=$(awk "BEGIN {print $metric_count_in_interval/$POD_NUM; exit}")
         #Calculating the final number, i.e. how many of specified criteria (e.g. user logins/sec, client credential grants, etc)
@@ -68,11 +74,17 @@ runs:
       run: |
         readarray -t lines < ${{ inputs.input }}
         num1=${lines[0]}
-        num2=${lines[1]}
+        num2=${lines[2]}
+        num3=${lines[1]}
+        num4=${lines[3]}
         #calculating the difference of cumulative metric (changed during the benchmark execution)
-        difference=$(awk "BEGIN {print ($num2-$num1); exit}")
+        difference_cluster_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
+        difference_cluster_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
+
+        # averaging the differences between the two clusters
+        average_difference=$(awk "BEGIN {print ($difference_cluster_1 + $difference_cluster_2) / 2; exit}")
         #calculating the average metric per pod
-        metric_per_pod=$(awk "BEGIN {print $difference/$POD_NUM; exit}")
+        metric_per_pod=$(awk "BEGIN {print $average_difference/$POD_NUM; exit}")
         #Calculating the final number, i.e. based on current environment setup how many of specified criteria (e.g. user active session, etc)
         #can be handled with 500Mb per pod based on the number calculated above. The result is number rounded down.
         result=$(awk "BEGIN {print int($CRITERIA_VALUE*500/$metric_per_pod); exit}")
@@ -101,15 +113,25 @@ runs:
         #Reading ispn metrics file with xsite reqs data
         readarray -t lines < "${{ inputs.ispnCacheName}}_ispn_metrics_file_count"
         num1=${lines[0]}
-        num2=${lines[1]}
+        num2=${lines[2]}
+        num3=${lines[1]}
+        num4=${lines[3]}
         #calculating the number of xsite requests during the test execution
-        xsite_reqs=$(awk "BEGIN {print ($num2-$num1); exit}")
+        xsite_reqs_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
+        xsite_reqs_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
+
+        xsite_reqs=$(awk "BEGIN {print ($xsite_reqs_1 + $xsite_reqs_2) / 2; exit}")
         #Reading ispn metrics file with xsite reqs totad duration
         readarray -t lines1 < "${{ inputs.ispnCacheName}}_ispn_metrics_file_sum"
         num1=${lines1[0]}
-        num2=${lines1[1]}
+        num2=${lines1[2]}
+        num3=${lines1[1]}
+        num4=${lines1[3]}
         #calculating the number of xsite requests during the test execution
-        xsite_reqs_total_duration=$(awk "BEGIN {print ($num2-$num1); exit}")
+        xsite_reqs_total_duration_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
+        xsite_reqs_total_duration_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
+
+        xsite_reqs_total_duration=$(awk "BEGIN {print ($xsite_reqs_total_duration_1 + $xsite_reqs_total_duration_2) / 2; exit}")
         #calculating the average duration per request in ms
         if [[ $xsite_reqs -gt 0 ]]; then
           averageXsiteReplicationTimePerReq=$(awk "BEGIN {print int($xsite_reqs_total_duration*1000/$xsite_reqs); exit}")
