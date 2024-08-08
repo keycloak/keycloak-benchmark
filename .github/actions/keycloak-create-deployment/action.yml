@@ -12,8 +12,8 @@ inputs:
   disableStickySessions:
     description: 'Disable sticky session in OpenShift Route'
     default: 'true'
-  enablePersistentSessions:
-    description: 'Enable persistent sessions to DB'
+  enableKc25Mode:
+    description: 'Set to true when version older than 26 is deployed'
     default: 'false'
   enableExternalInfinispanFeature:
     description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
@@ -55,7 +55,7 @@ runs:
         KC_NAMESPACE_PREFIX: ${{ inputs.projectPrefix }}
         KC_INSTANCES: ${{ inputs.replicas }}
         KC_DISABLE_STICKY_SESSION: ${{ inputs.disableStickySessions }}
-        KC_PERSISTENT_SESSIONS: ${{ inputs.enablePersistentSessions }}
+        KC_KC25_MODE: ${{ inputs.enableKc25Mode }}
         KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
         KC_CONTAINER_IMAGE: ${{ inputs.image }}
         KC_MEMORY_REQUESTS_MB: ${{ inputs.podMemoryRequests }}

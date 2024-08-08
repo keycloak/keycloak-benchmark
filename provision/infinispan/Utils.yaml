@@ -111,7 +111,7 @@ tasks:
         --set alertmanager.webhook.url={{ .ACCELERATOR_WEBHOOK_URL }}
         --set alertmanager.webhook.username={{ .ACCELERATOR_WEBHOOK_USERNAME }}
         --set alertmanager.webhook.password={{ .ACCELERATOR_WEBHOOK_PASSWORD }}
-        {{if eq .KC_PERSISTENT_SESSIONS "true"}}--values ispn-helm/persistent-session-caches.yaml{{end}}
+        {{if eq .KC_KC25_MODE "true"}}--values ispn-helm/kc-25-caches.yaml{{end}}
         ./ispn-helm
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"

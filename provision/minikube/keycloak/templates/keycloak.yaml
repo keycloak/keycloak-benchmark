@@ -57,9 +57,6 @@ spec:
   features:
     enabled:
       - multi-site # <3>
-{{- if .Values.persistentSessions }}
-      - persistent-user-sessions
-{{- end }}
 {{- if .Values.externalInfinispan }}
       - remote-cache
 {{- end }}
@@ -78,10 +75,6 @@ spec:
   # tag::keycloak-ispn[]
   additionalOptions:
   # end::keycloak-ispn[]
-    {{- if .Values.persistentSessions }}
-    - name: spi-user-sessions-infinispan-use-caches
-      value: "false"
-    {{- end }}
     - name: http-metrics-histograms-enabled
       value: 'true'
     - name: http-metrics-slos
