@@ -10,7 +10,7 @@ on:
 
 jobs:
   keycloak-deploy-active-active-with-external-infinispan:
-    name: ROSA Scheduled Create Active/Active cluster with External Infinispan
+    name: ROSA Scheduled Create Active/Active cluster with External Infinispan and volatile sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
@@ -52,14 +52,13 @@ jobs:
 
   keycloak-deploy-active-active:
     needs: keycloak-undeploy-active-active-with-external-infinispan
-    name: ROSA Scheduled Create Active/Active cluster with Persistent Sessions
+    name: ROSA Scheduled Create Active/Active cluster with External Infinispan and Persistent Sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
-      enablePersistentSessionsFeature: true
-      enableExternalInfinispanFeature: true
       enableMultiSiteFeature: true
+      enableExternalInfinispanFeature: false
       createCluster: false
       activeActive: true
     secrets: inherit
