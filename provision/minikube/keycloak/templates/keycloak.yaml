@@ -77,6 +77,20 @@ spec:
   # tag::keycloak-ispn[]
   additionalOptions:
   # end::keycloak-ispn[]
+    {{ if .Values.otel }}
+    - name: tracing-enabled
+      value: "true"
+    - name: tracing-endpoint
+      value: "http://jaeger-collector.monitoring.svc:4317"
+    - name: tracing-sampler-ratio
+      value: {{ .Values.otelSamplingPercentage | quote }}
+    - name: tracing-sampler-type
+      value: "parentbased_traceidratio"
+    {{- end }}
+    {{- if .Values.persistentSessions }}
+    - name: spi-user-sessions-infinispan-use-caches
+      value: "false"
+    {{- end }}
     - name: http-metrics-histograms-enabled
       value: 'true'
     - name: http-metrics-slos
@@ -159,25 +173,8 @@ spec:
     podTemplate:
       metadata:
         annotations:
-          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}-{{ .Values.otelVersion }}
+          checksum/config: {{ include (print $.Template.BasePath "/keycloak-providers-configmap.yaml") . | sha256sum }}-{{ include (print $.Template.BasePath "/postgres/postgres-deployment.yaml") . | sha256sum }}-{{ .Values.keycloakImage }}-{{ include (print $.Template.BasePath "/keycloak-infinispan-configmap.yaml") . | sha256sum }}
       spec:
-        {{ if .Values.otel }}
-        initContainers:
-          - name: download-otel
-            image: registry.access.redhat.com/ubi8/ubi-minimal
-            command:
-              - /bin/bash
-            args:
-              - -c
-              # language=bash
-              - |
-                if [ ! -e /otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar ]; then
-                  curl -f -L https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/{{ .Values.otelVersion }}/opentelemetry-javaagent.jar -o /otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
-                fi
-            volumeMounts:
-              - name: otel
-                mountPath: /otel
-        {{ end }}
         containers:
           -
 {{ if hasPrefix "localhost/" .Values.keycloakImage }}
@@ -197,31 +194,6 @@ spec:
                     name: keycloak-preconfigured-admin
                     key: password
                     optional: false
-{{ if .Values.otel }}
-              # Instrumentation for the HTTP/2 protocol doesn't work yet - no metrics will be available, probably also no tracing
-              # As a workaround, force downgrade to HTTP/1.1
-              # https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/8927
-              - name: QUARKUS_HTTP_HTTP2
-                value: 'false'
-              - name: OTEL_SEMCONV_STABILITY_OPT_IN
-                value: 'http'
-              # https://github.com/open-telemetry/opentelemetry-java-instrumentation
-              # https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md
-              - name: OTEL_RESOURCE_ATTRIBUTES
-                value: service.name=keycloak
-              - name: OTEL_TRACES_EXPORTER
-                # with otel+tempo 1.4.1 forwarding of traces works, but searching is not returning all values for now, for example delete users was missing
-                value: jaeger
-              - name: OTEL_EXPORTER_JAEGER_ENDPOINT
-                value: http://jaeger-collector.monitoring.svc:14250
-              - name: OTEL_TRACES_SAMPLER
-                value: parentbased_traceidratio # always_on, parentbased_traceidratio, ...
-              - name: OTEL_TRACES_SAMPLER_ARG
-                value: {{ .Values.otelSamplingPercentage | quote }}
-              - name: OTEL_METRICS_EXPORTER
-                value: prometheus
-{{ end }}
-              # JMX is disabled as it breaks Quarkus configuration. Issue is tracked in https://github.com/keycloak/keycloak-benchmark/issues/840
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
 {{- if not (eq (int .Values.metaspaceInitMB) 96) }}
@@ -233,17 +205,9 @@ spec:
 {{- if .Values.jvmDebug }}
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- end }}
-{{- if .Values.otel }}
-                  -javaagent:/otel/opentelemetry-javaagent-{{ .Values.otelVersion }}.jar
-{{- end }}
 {{- if .Values.cryostat }}
 {{- end }}
             ports:
-{{ if .Values.otel }}
-              - containerPort: 9464
-                protocol: TCP
-                name: otel-prometheus
-{{ end }}
 {{ if .Values.cryostat }}
               - containerPort: 9091
                 protocol: TCP
@@ -276,20 +240,10 @@ spec:
                 mountPath: /etc/cache-embedded-mtls
                 readOnly: true
 {{ end }}
-{{ if .Values.otel }}
-              - name: otel
-                mountPath: /otel
-                readOnly: true
-{{ end }}
         volumes:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
-{{ if .Values.otel }}
-          - name: otel
-            persistentVolumeClaim:
-              claimName: otel
-{{ end }}
 {{ if .Values.infinispan.jgroupsTls }}
           - name: cache-embedded-mtls-volume
             secret:
