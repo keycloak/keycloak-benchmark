@@ -4,9 +4,9 @@
 {description}
 
 == Continuous Performance Tests
-The `link:{github-files}/.github/workflows/rosa-cluster-auto-provision-on-schedule.yml[ROSA Daily Scheduled Run workflow]` is an automated process that ensures continuous performance testing for {project_name}'s Active/Active cluster deployments with external Infinispan which is scheduled to run every weekday.
+The link:{github-files}/.github/workflows/rosa-cluster-auto-provision-on-schedule.yml[ROSA Daily Scheduled Run workflow] is an automated process that ensures continuous performance testing which is scheduled to run every weekday.
 
-This workflow initiates by deploying a multi-availability zone cluster, activating features such as external Infinispan and persistent sessions. It executes a series of functional tests to verify the system's performance and stability in an active-active configuration.
+This workflow initiates by deploying a multi-AZ cluster, activating features such as external Infinispan and persistent sessions. It executes a series of functional tests to verify the system's performance and stability in an active-active configuration.
 
 Following these tests, a scaling benchmark assesses the system's ability to handle varying loads, providing crucial insights into performance under real-world conditions and the results are then persisted to a `https://github.com/keycloak/keycloak-benchmark/tree/result-data/rosa_scalability[result-data branch]` in the benchmark's GitHub repository for further analysis.
 
@@ -14,7 +14,7 @@ This automated schedule ensures consistent testing, early detection of potential
 
 == Analyze the results
 
-We have a python script `link:{github-files}/benchmark/src/main/python/perfInsights.py[perfInsights.py]` which allows us to analyze the results generated from the Continuous Performance tests mentioned above.
+We have a Python script `link:{github-files}/benchmark/src/main/python/perfInsights.py[perfInsights.py]` which allows us to analyze the results generated from the Continuous Performance tests mentioned above.
 
 === Installing needed python libraries
 
