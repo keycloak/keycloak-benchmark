@@ -21,7 +21,6 @@ if [ -z "$REGION" ]; then echo "Variable REGION needs to be set."; exit 1; fi
 
 # Cleanup might fail if Aurora/EFS hasn't been configured for the cluster. Ignore any failures and continue
 ./rds/aurora_delete_peering_connection.sh || true
-./rosa_efs_delete.sh || true
 
 # Explicitly delete OSD Network Verifier that's sometimes created as it prevents VPC being deleted
 OSD_VERIFIER_SG=$(aws ec2 describe-security-groups \

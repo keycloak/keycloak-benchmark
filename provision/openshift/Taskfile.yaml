@@ -116,16 +116,17 @@ tasks:
       - common:env
       - openshift-env
       - grafana-sa
-    env:
-      KB_RETENTION: '{{.KB_RETENTION}}'
     cmds:
       - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install jaeger jaegertracing/jaeger --version 0.58.0 -n monitoring -f ../minikube/jaeger/values.yaml
-      - envsubst < ../minikube/jaeger/deployment-patch.yaml > .task/subtask-{{.TASK}}-patchfile.yaml
-      - kubectl patch deployment jaeger -n monitoring --patch-file .task/subtask-{{.TASK}}-patchfile.yaml
+      - >
+        helm upgrade --install jaeger jaegertracing/jaeger --version 3.1.2 -n monitoring -f ../minikube/jaeger/values.yaml
+        --set allInOne.podSecurityContext.runAsUser=$(cat .task/monitoring-uids)
+        --set allInOne.podSecurityContext.runAsGroup=$(cat .task/monitoring-uids)
+        --set allInOne.podSecurityContext.fsGroup=$(cat .task/monitoring-uids)
+        --set allInOne.extraEnv[0].value={{.KB_RETENTION}}
     sources:
-      - jaeger/**/*.*
+      - ../minikube/jaeger/**/*.*
       - .task/subtask-{{.TASK}}.yaml
       - .task/var-KB_RETENTION
       - .task/var-KC_HOSTNAME_SUFFIX
@@ -182,7 +183,7 @@ tasks:
       - grafana
       - jaeger
     cmds:
-      - helm upgrade --install monitoring monitoring
+      - helm upgrade -n monitoring --install monitoring monitoring
     sources:
       - monitoring/**/*.*
       - .task/subtask-{{.TASK}}.yaml

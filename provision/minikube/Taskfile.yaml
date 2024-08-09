@@ -95,14 +95,12 @@ tasks:
       - common:split
       - prometheus
       - common:env
-    env:
-      KB_RETENTION: '{{.KB_RETENTION}}'
     cmds:
       - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install jaeger jaegertracing/jaeger --version 0.58.0 -n monitoring -f jaeger/values.yaml
-      - envsubst < jaeger/deployment-patch.yaml > .task/subtask-{{.TASK}}-patchfile.yaml
-      - kubectl patch deployment jaeger -n monitoring --patch-file .task/subtask-{{.TASK}}-patchfile.yaml
+      - >
+        helm upgrade --install jaeger jaegertracing/jaeger --version 3.1.2 -n monitoring -f ../minikube/jaeger/values.yaml
+        --set allInOne.extraEnv[0].value={{.KB_RETENTION}}
     sources:
       - jaeger/**/*.*
       - .task/subtask-{{.TASK}}.yaml

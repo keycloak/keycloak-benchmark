@@ -3,7 +3,6 @@ provisionDataStore:
   cassandra: false
 allInOne:
   enabled: true
-  tag: 1.36.0
   resources:
     limits:
       cpu: 500m
@@ -11,8 +10,16 @@ allInOne:
     requests:
       cpu: 256m
       memory: 128Mi
+  extraEnv:
+    - name: "BADGER_SPAN_STORE_TTL"
+      value: "24h"
 storage:
-  type: none
+  type: badger
+  badger:
+    ephemeral: false
+    persistence:
+       mountPath: /go/bin/data
+       useExistingPvcName: "storage-jaeger"
 agent:
   enabled: false
 collector:

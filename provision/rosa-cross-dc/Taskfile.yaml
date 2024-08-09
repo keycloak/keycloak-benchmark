@@ -576,20 +576,17 @@ tasks:
         - ROSA_CLUSTER_NAME
     vars:
       RETENTION: '{{.RETENTION | default "168h"}}'
-      JAEGER_VERSION: '{{.JAEGER_VERSION | default "0.58.0"}}'
-    env:
-      KB_RETENTION: '{{.RETENTION}}'
+      JAEGER_VERSION: '{{.JAEGER_VERSION | default "3.1.2"}}'
     cmds:
       - >
         KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
         helm upgrade --install jaeger jaegertracing/jaeger --version {{.JAEGER_VERSION}} -n monitoring -f "{{.ROOT_DIR}}/../minikube/jaeger/values.yaml"
-      - envsubst < "{{.ROOT_DIR}}/../minikube/jaeger/deployment-patch.yaml" > .task/jaeger-{{.ROSA_CLUSTER_NAME}}-patchfile.yaml
-      - >
-        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
-        oc patch deployment jaeger -n monitoring --patch-file .task/jaeger-{{.ROSA_CLUSTER_NAME}}-patchfile.yaml
+        --set allInOne.podSecurityContext.runAsUser=$(cat .task/monitoring-uids)
+        --set allInOne.podSecurityContext.runAsGroup=$(cat .task/monitoring-uids)
+        --set allInOne.podSecurityContext.fsGroup=$(cat .task/monitoring-uids)
+        --set allInOne.extraEnv[0].value={{.RETENTION}}
     sources:
-      - "{{.ROOT_DIR}}/../minikube/jaeger/values.yaml"
-      - "{{.ROOT_DIR}}/../minikube/jaeger/deployment-patch.yaml"
+      - "{{.ROOT_DIR}}/../minikube/jaeger/**/*"
       - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
 
   install-grafana-charts:

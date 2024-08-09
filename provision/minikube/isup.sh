@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# set -x
+set -e
+
+if [[ "$RUNNER_DEBUG" == "1" ]]; then
+  set -x
+fi
 
 # when no arguments was given
 if [ $# -eq 0 ]
@@ -53,12 +57,12 @@ for SERVICE in "${!SERVICES[@]}"; do
 
   if [ "${SERVICE}" == "jaeger.${HOST}" ]
   then
-    until curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} -o - 2>/dev/null | grep "jaeger-query" >/dev/null 2>/dev/null
+    until curl -k -f -v https://${SERVICE}/${SERVICES[${SERVICE}]} -o - 2>/dev/null | grep "jaeger-all-in-one" >/dev/null 2>/dev/null
     do
       RETRIES=$(($RETRIES - 1))
       if [ $RETRIES -eq 0 ]
       then
-          echo "Failed to see service jaeger-query in the list of Jaeger services"
+          echo "Failed to see service jaeger-all-in-one in the list of Jaeger services"
           exit 1
       fi
       # wait a bit

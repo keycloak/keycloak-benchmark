@@ -68,8 +68,6 @@ fi
 
 cd ${SCRIPT_DIR}
 ./rosa_oc_login.sh
-# EFS creation disabled due to https://issues.redhat.com/browse/CLOUDDST-22629
-# ./rosa_efs_create.sh
 ../infinispan/install_operator.sh
 
 # cryostat operator depends on certmanager operator
