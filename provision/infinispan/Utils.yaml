@@ -107,10 +107,6 @@ tasks:
         --set image={{.CROSS_DC_IMAGE}}
         --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
         --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}
-        --set acceleratorDNS={{ .ACCELERATOR_DNS }}
-        --set alertmanager.webhook.url={{ .ACCELERATOR_WEBHOOK_URL }}
-        --set alertmanager.webhook.username={{ .ACCELERATOR_WEBHOOK_USERNAME }}
-        --set alertmanager.webhook.password={{ .ACCELERATOR_WEBHOOK_PASSWORD }}
         {{if eq .KC_KC25_MODE "true"}}--values ispn-helm/kc-25-caches.yaml{{end}}
         ./ispn-helm
     preconditions:
@@ -209,6 +205,30 @@ tasks:
       - .task/tokens/{{.TOKEN_FILE}}
     preconditions:
       - test -f ".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  deploy-xsite-infinispan-monitoring:
+    label: 'deploy-xsite-infinispan-monitoring-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
+    internal: true
+    desc: "Deploy PrometheusRule and AlertManagerConfig for STONITH Lambda"
+    requires:
+      vars:
+        - NAMESPACE
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.NAMESPACE}} wait --for=jsonpath="{.status.ingress[0].host}" route infinispan-external
+      - >
+        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" helm upgrade --install infinispan-monitoring --namespace {{.NAMESPACE}}
+        --set acceleratorDNS={{ .ACCELERATOR_DNS }}
+        --set infinispanURL=$(KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.NAMESPACE}} get route infinispan-external -o jsonpath='{.status.ingress[].host}')
+        --set alertmanager.webhook.url={{ .ACCELERATOR_WEBHOOK_URL }}
+        --set alertmanager.webhook.username={{ .ACCELERATOR_WEBHOOK_USERNAME }}
+        --set alertmanager.webhook.password={{ .ACCELERATOR_WEBHOOK_PASSWORD }}
+        --set crossdc.local.name={{.CROSS_DC_LOCAL_SITE}}
+        --set crossdc.remote.name={{.CROSS_DC_REMOTE_SITE}}
+        ./ispn-monitoring
+    sources:
+      - ispn-monitoring/**/*.*
+      - .task/subtask-{{.TASK}}.yaml
 
   wait-cluster:
     label: 'wait-cluster-{{.ROSA_CLUSTER_NAME}}-{{.NAMESPACE}}'
@@ -414,6 +434,18 @@ tasks:
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           NAMESPACE: "{{.OC_NAMESPACE_2}}"
+      - task: deploy-xsite-infinispan-monitoring
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.OC_NAMESPACE_1}}"
+          CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
+          CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: deploy-xsite-infinispan-monitoring
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.OC_NAMESPACE_2}}"
+          CROSS_DC_LOCAL_SITE: "{{.ROSA_CLUSTER_NAME_2}}"
+          CROSS_DC_REMOTE_SITE: "{{.ROSA_CLUSTER_NAME_1}}"
       - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_1}}"
       - echo {{.TASK}} > ".task/kubecfg/ispn-{{.ROSA_CLUSTER_NAME_2}}"
 

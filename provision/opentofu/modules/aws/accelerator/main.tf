@@ -65,7 +65,7 @@ module "lambda_function" {
   function_name              = var.name
   handler                    = "stonith_lambda.handler"
   runtime                    = "python3.12"
-  source_path                = "src/stonith_lambda.py"
+  source_path                = "src"
   create_lambda_function_url = true
   timeout                    = 15
 

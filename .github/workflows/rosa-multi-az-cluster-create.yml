@@ -140,6 +140,11 @@ jobs:
         with:
           tofu_wrapper: false
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # Must be the same as the python runtime specified in provision/opentofu/modules/aws/accelerator/main.tf
+
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
         with:

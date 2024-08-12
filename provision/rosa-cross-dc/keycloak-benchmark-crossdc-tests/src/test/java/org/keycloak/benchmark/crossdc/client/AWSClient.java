@@ -243,7 +243,7 @@ public class AWSClient {
             .toList();
    }
 
-   private static <T> T acceleratorClient(BiFunction<SdkHttpClient, GlobalAcceleratorClient, T> fn) {
+   public static <T> T acceleratorClient(BiFunction<SdkHttpClient, GlobalAcceleratorClient, T> fn) {
       try (
             SdkHttpClient httpClient = ApacheHttpClient.builder().build();
             GlobalAcceleratorClient gaClient = GlobalAcceleratorClient.builder()

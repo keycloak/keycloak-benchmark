@@ -2,9 +2,22 @@
 import boto3
 import jmespath
 import json
+import urllib3
+import requests
 
 from base64 import b64decode
 from urllib.parse import unquote
+
+# Prevent unverified HTTPS connection warning
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# end::stonith-start[]
+SECRETS_REGION = 'eu-central-1'
+KEYCLOAK_USER = 'keycloak'
+KEYCLOAK_SECRET_NAME = 'keycloak-master-password'
+INFINISPAN_USER = 'developer'
+INFINISPAN_SECRET_NAME = KEYCLOAK_SECRET_NAME
+# tag::stonith-end[]
 
 
 def handle_site_offline(labels):
@@ -40,6 +53,9 @@ def handle_site_offline(labels):
             EndpointConfigurations=endpoints
         )
         print(f"Removed site={offline_site} from Accelerator EndpointGroup")
+
+        take_infinispan_site_offline(offline_site, labels['infinispan'])
+        print(f"Backup site={offline_site} caches taken offline")
     else:
         print("Ignoring SiteOffline alert only one Endpoint defined in the EndpointGroup")
 
@@ -53,6 +69,13 @@ def endpoint_belongs_to_site(endpoint, site):
         if tag['Key'] == 'site':
             return tag['Value'] == site
     return false
+
+
+def take_infinispan_site_offline(site, endpoint):
+    password = get_secret(INFINISPAN_SECRET_NAME, SECRETS_REGION)
+    url = f"https://{endpoint}/rest/v2/container/x-site/backups/{site}?action=take-offline"
+    rsp = requests.post(url, auth=(INFINISPAN_USER, password), verify=False)
+    rsp.raise_for_status()
 
 
 def get_secret(secret_name, region_name):
@@ -90,14 +113,9 @@ def handler(event, context):
             "statusCode": 401
         }
 
-# end::stonith-start[]
-    expected_user = 'keycloak'
-    secret_name = 'keycloak-master-password'
-    secret_region = 'eu-central-1'
-# tag::stonith-end[]
-    expectedPass = get_secret(secret_name, secret_region)
+    expectedPass = get_secret(KEYCLOAK_SECRET_NAME, SECRETS_REGION)
     username, password = decode_basic_auth_header(authorization)
-    if username != expected_user and password != expectedPass:
+    if username != KEYCLOAK_USER and password != expectedPass:
         print('Invalid username/password combination')
         return {
             "statusCode": 403
