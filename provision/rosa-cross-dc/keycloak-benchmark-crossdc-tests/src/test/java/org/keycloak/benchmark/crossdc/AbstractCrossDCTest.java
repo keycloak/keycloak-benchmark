@@ -3,6 +3,7 @@ package org.keycloak.benchmark.crossdc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.keycloak.benchmark.crossdc.client.AWSClient.acceleratorClient;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
 import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME;
 import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLUSTERED_CACHE_NAMES;
@@ -14,9 +15,12 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -27,6 +31,7 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
+import org.keycloak.benchmark.crossdc.client.ExternalInfinispanClient;
 import org.keycloak.benchmark.crossdc.client.InfinispanClient;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
@@ -38,6 +43,10 @@ import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
 import jakarta.ws.rs.NotFoundException;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
+import software.amazon.awssdk.services.elasticloadbalancingv2.model.LoadBalancer;
+import software.amazon.awssdk.services.globalaccelerator.model.EndpointDescription;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractCrossDCTest {
@@ -145,6 +154,7 @@ public abstract class AbstractCrossDCTest {
 
     @AfterEach
     public void tearDownTestEnvironment() throws URISyntaxException, IOException, InterruptedException {
+        failbackLoadBalancers();
         Keycloak adminClient = DC_1.kc().adminClient();
 
         if (adminClient.realms().realm(REALM_NAME).toRepresentation() != null) {
@@ -165,7 +175,6 @@ public abstract class AbstractCrossDCTest {
                 });
 
         MOCK_COOKIE_MANAGER.getCookieStore().removeAll();
-        failbackLoadBalancers();
     }
 
     @AfterAll
@@ -194,6 +203,43 @@ public abstract class AbstractCrossDCTest {
               () -> AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size() == count,
               2, TimeUnit.MINUTES
         );
+    }
+
+    protected Set<String> getInfinispanSiteNamesInAccelerator() {
+        return acceleratorClient((httpClient, gaClient) -> {
+            var acceleratorMeta = AWSClient.getAcceleratorMeta(DC_1.getLoadbalancerURL());
+            var endpointGroup = acceleratorMeta.endpointGroup();
+            var region = endpointGroup.endpointGroupRegion();
+
+            try (ElasticLoadBalancingV2Client elbClient =
+                       ElasticLoadBalancingV2Client.builder()
+                             .region(Region.of(region))
+                             .httpClient(httpClient)
+                             .build()
+            ) {
+                var endpointIds = endpointGroup.endpointDescriptions()
+                      .stream()
+                      .map(EndpointDescription::endpointId)
+                      .collect(Collectors.toSet());
+
+                return elbClient.describeLoadBalancers().loadBalancers()
+                      .stream()
+                      .filter(lb -> endpointIds.contains(lb.loadBalancerArn()))
+                      .map(LoadBalancer::dnsName)
+                      .map(this::datacenterFromEndpointDNS)
+                      .map(DatacenterInfo::ispn)
+                      .map(ExternalInfinispanClient::siteName)
+                      .collect(Collectors.toSet());
+            }
+        });
+    }
+
+    private DatacenterInfo datacenterFromEndpointDNS(String dns) {
+        if (DC_1.getKeycloakServerURL().contains(dns))
+            return DC_1;
+        if (DC_2.getKeycloakServerURL().contains(dns))
+            return DC_2;
+        throw new IllegalStateException(String.format("Unknown Keycloak URL '%s'", dns));
     }
 
     protected void eventually(Supplier<String> messageSupplier, Supplier<Boolean> condition) {

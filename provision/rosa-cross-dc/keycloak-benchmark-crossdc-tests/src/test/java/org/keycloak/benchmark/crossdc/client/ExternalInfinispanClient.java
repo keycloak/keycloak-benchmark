@@ -10,7 +10,6 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -179,12 +178,23 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
 
     }
 
-    public List<String> getSiteView() {
+    public Set<String> getSiteView() {
         return serverInfo(restClient)
                 .at("sites_view")
                 .asJsonList().stream()
                 .map(Json::asString)
-                .toList();
+                .collect(Collectors.toSet());
+    }
+
+    public boolean isSiteOffline(String site) {
+        try (var rsp = awaitAndCheckOkStatus(restClient.container().backupStatus(site))) {
+            var json = Json.read(rsp.body());
+            return json.at("status").asString().equals("offline");
+        }
+    }
+
+    public void bringBackupOnline(String site) {
+        try (var ignore = awaitAndCheckOkStatus(restClient.container().bringBackupOnline(site))) {}
     }
 
     public static final X509ExtendedTrustManager TRUST_ALL_MANAGER = new X509ExtendedTrustManager() {
