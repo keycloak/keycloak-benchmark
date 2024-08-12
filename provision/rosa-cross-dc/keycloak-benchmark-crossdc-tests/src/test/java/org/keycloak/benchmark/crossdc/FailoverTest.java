@@ -8,6 +8,7 @@ import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.U
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +47,9 @@ public class FailoverTest extends AbstractCrossDCTest {
             scaleGossipRouter(DC_2, 1);
             // Wait for JGroups site view to contain both sites
             waitForSitesViewCount(2);
+            // Bring backup sites online after split-brain heal
+            DC_1.ispn().bringBackupOnline(DC_2.ispn().siteName());
+            DC_2.ispn().bringBackupOnline(DC_1.ispn().siteName());
             // Ensure that the SiteOffline alert is no longer firing
             eventually(
                   () -> String.format("Alert '%s' still firing on DC", SITE_OFFLINE_ALERT),
@@ -98,6 +102,9 @@ public class FailoverTest extends AbstractCrossDCTest {
     @Test
     @ActiveActive
     public void ensureAcceleratorUpdatedOnSplitBrainTest() {
+        var ispnSiteNames = DC_1.ispn().getSiteView();
+        assertEquals(2, ispnSiteNames.size());
+
         // Minus one minute to allow for difference in local and AWS clocks
         var startTime = Instant.now().minusSeconds(60);
         var acceleratorMeta = AWSClient.getAcceleratorMeta(DC_1.getLoadbalancerURL());
@@ -127,12 +134,27 @@ public class FailoverTest extends AbstractCrossDCTest {
         ByRef.Long count = new ByRef.Long(0);
         var expectedInvocations = lambdaInvocationsStart + 2;
         eventually(
-              () -> String.format("Expected %d Lambda invocations, got %d", expectedInvocations, count.get()),
+              () -> String.format("Expected at least %d Lambda invocations, got %d", expectedInvocations, count.get()),
               () -> {
                   count.set(AWSClient.getLambdaInvocationCount(acceleratorMeta.name(), region, startTime));
-                  return count.get() == expectedInvocations;
+                  return count.get() >= expectedInvocations;
               },
               10, TimeUnit.MINUTES
+        );
+
+        // Determine which Infinispan site is still active in the Accelerator
+        var onlineSites = getInfinispanSiteNamesInAccelerator();
+        assertEquals(onlineSites.size(), 1);
+        var offlineSites = new HashSet<>(ispnSiteNames);
+        offlineSites.removeAll(onlineSites);
+        assertEquals(1, offlineSites.size());
+
+        // Assert that the backup site for all caches have been marked as offline
+        var offlineSite = offlineSites.iterator().next();
+        var onlineSiteClient = !DC_1.ispn().siteName().equals(offlineSite) ? DC_1.ispn() : DC_2.ispn();
+        eventually(
+              () -> String.format("Expected site '%s' to be marked as offline", offlineSite),
+              () -> onlineSiteClient.isSiteOffline(offlineSite)
         );
     }
 

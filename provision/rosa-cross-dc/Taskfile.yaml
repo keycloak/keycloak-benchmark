@@ -333,6 +333,7 @@ tasks:
         - ROSA_CLUSTER_NAME_2
         - AURORA_CLUSTER
         - ACCELERATOR_DNS
+        - ACCELERATOR_NAME
         - ACCELERATOR_WEBHOOK_URL
         - ACCELERATOR_WEBHOOK_USERNAME
         - ACCELERATOR_WEBHOOK_PASSWORD
@@ -372,6 +373,7 @@ tasks:
       - task: create-env-configmap
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: configure-lambda-env
 
   default:
     desc: "Deploys Infinispan, Aurora DB and Keycloak in a Active/Passive deployment using ROSA clusters"
@@ -991,3 +993,42 @@ tasks:
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config --ignore-not-found
     preconditions:
       - test -f "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  configure-lambda-env:
+    internal: true
+    requires:
+      vars:
+        - ACCELERATOR_NAME
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    vars:
+      LAMBDA_REGION: "$(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})"
+      ISPN_ENDPOINT_1: "$(cat {{.ISPN_DIR}}/.task/ispn-endpoint-{{.ROSA_CLUSTER_NAME_1}})"
+      ISPN_ENDPOINT_2: "$(cat {{.ISPN_DIR}}/.task/ispn-endpoint-{{.ROSA_CLUSTER_NAME_2}})"
+    cmds:
+      - task: fetch-rosa-region
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:fetch-endpoint
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:fetch-endpoint
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - |
+        export INFINISPAN_SITE_ENDPOINTS=$(echo "{\"{{.ROSA_CLUSTER_NAME_1}}\":\"{{.ISPN_ENDPOINT_1}}\",\"{{.ROSA_CLUSTER_NAME_2}}\":\"{{.ISPN_ENDPOINT_2}}\"}" | jq tostring)
+        aws lambda update-function-configuration \
+        --function-name {{.ACCELERATOR_NAME}} \
+        --region {{.LAMBDA_REGION}} \
+        --environment "{
+          \"Variables\": {
+            \"INFINISPAN_USER\" : \"developer\",
+            \"INFINISPAN_USER_SECRET\" : \"keycloak-master-password\",
+            \"INFINISPAN_SITE_ENDPOINTS\" : ${INFINISPAN_SITE_ENDPOINTS},
+            \"WEBHOOK_USER\" : \"keycloak\",
+            \"WEBHOOK_USER_SECRET\" : \"keycloak-master-password\",
+            \"SECRETS_REGION\" : \"eu-central-1\"
+          }
+        }"

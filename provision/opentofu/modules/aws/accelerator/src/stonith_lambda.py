@@ -1,10 +1,31 @@
-# tag::stonith-start[]
+# tag::fencing[]
+from urllib.error import HTTPError
+
 import boto3
 import jmespath
 import json
+import os
+import urllib3
 
 from base64 import b64decode
 from urllib.parse import unquote
+
+# Prevent unverified HTTPS connection warning
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+class MissingEnvironmentVariable(Exception):
+    pass
+
+
+class MissingSiteUrl(Exception):
+    pass
+
+
+def env(name):
+    if name in os.environ:
+        return os.environ[name]
+    raise MissingEnvironmentVariable(f"Environment Variable '{name}' must be set")
 
 
 def handle_site_offline(labels):
@@ -40,6 +61,9 @@ def handle_site_offline(labels):
             EndpointConfigurations=endpoints
         )
         print(f"Removed site={offline_site} from Accelerator EndpointGroup")
+
+        take_infinispan_site_offline(reporter, offline_site)
+        print(f"Backup site={offline_site} caches taken offline")
     else:
         print("Ignoring SiteOffline alert only one Endpoint defined in the EndpointGroup")
 
@@ -55,11 +79,30 @@ def endpoint_belongs_to_site(endpoint, site):
     return false
 
 
-def get_secret(secret_name, region_name):
+def take_infinispan_site_offline(reporter, offlinesite):
+    endpoints = json.loads(INFINISPAN_SITE_ENDPOINTS)
+    if reporter not in endpoints:
+        raise MissingSiteUrl(f"Missing URL for site '{reporter}' in 'INFINISPAN_SITE_ENDPOINTS' json")
+
+    endpoint = endpoints[reporter]
+    password = get_secret(INFINISPAN_USER_SECRET)
+    url = f"https://{endpoint}/rest/v2/container/x-site/backups/{offlinesite}?action=take-offline"
+    http = urllib3.PoolManager(cert_reqs='CERT_NONE')
+    headers = urllib3.make_headers(basic_auth=f"{INFINISPAN_USER}:{password}")
+    try:
+        rsp = http.request("POST", url, headers=headers)
+        if rsp.status >= 400:
+            raise HTTPError(f"Unexpected response status '%d' when taking site offline", rsp.status)
+        rsp.release_conn()
+    except HTTPError as e:
+        print(f"HTTP error encountered: {e}")
+
+
+def get_secret(secret_name):
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
-        region_name=region_name
+        region_name=SECRETS_REGION
     )
     return client.get_secret_value(SecretId=secret_name)['SecretString']
 
@@ -90,14 +133,9 @@ def handler(event, context):
             "statusCode": 401
         }
 
-# end::stonith-start[]
-    expected_user = 'keycloak'
-    secret_name = 'keycloak-master-password'
-    secret_region = 'eu-central-1'
-# tag::stonith-end[]
-    expectedPass = get_secret(secret_name, secret_region)
+    expectedPass = get_secret(WEBHOOK_USER_SECRET)
     username, password = decode_basic_auth_header(authorization)
-    if username != expected_user and password != expectedPass:
+    if username != WEBHOOK_USER and password != expectedPass:
         print('Invalid username/password combination')
         return {
             "statusCode": 403
@@ -117,4 +155,12 @@ def handler(event, context):
     return {
         "statusCode": 204
     }
-# end::stonith-end[]
+
+
+INFINISPAN_USER = env('INFINISPAN_USER')
+INFINISPAN_USER_SECRET = env('INFINISPAN_USER_SECRET')
+INFINISPAN_SITE_ENDPOINTS = env('INFINISPAN_SITE_ENDPOINTS')
+SECRETS_REGION = env('SECRETS_REGION')
+WEBHOOK_USER = env('WEBHOOK_USER')
+WEBHOOK_USER_SECRET = env('WEBHOOK_USER_SECRET')
+# end::fencing[]

@@ -576,3 +576,17 @@ tasks:
           KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n openshift-operators scale --replicas=1 deployment/infinispan-operator-controller-manager
           KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n openshift-operators rollout status -w deployment/infinispan-operator-controller-manager
           KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n ${NAMESPACE} rollout status -w deployment/infinispan-router
+
+  fetch-endpoint:
+    internal: true
+    requires:
+      vars:
+        - NAMESPACE
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.NAMESPACE}} get route infinispan-external -o jsonpath='{.status.ingress[].host}' > .task/ispn-endpoint-{{.ROSA_CLUSTER_NAME}}
+    generates:
+      - .task/ispn-endpoint-{{.ROSA_CLUSTER_NAME}}
