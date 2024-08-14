@@ -87,14 +87,12 @@ spec:
     - name: tracing-sampler-type
       value: "parentbased_traceidratio"
     {{- end }}
-    {{- if .Values.persistentSessions }}
-    - name: spi-user-sessions-infinispan-use-caches
-      value: "false"
-    {{- end }}
+    # end::keycloak[]
     - name: http-metrics-histograms-enabled
       value: 'true'
     - name: http-metrics-slos
       value: '5,10,25,50,250,500'
+    # tag::keycloak[]
 {{- if or (eq .Values.database "infinispan") (eq .Values.database "postgres+infinispan") }}
     - name: storage-hotrod-host
       value: infinispan
@@ -144,6 +142,27 @@ spec:
       value: {{ .Values.infinispan.site }}
     {{ end }}
     # end::keycloak-ispn[]
+{{- end }}
+{{- if .Values.keycloakDocumentation }}
+    # end::keycloak[]
+    # This block is just for documentation purposes as we need both versions of Infinispan config, with and without numbers to corresponding options
+    # tag::keycloak[]
+    - name: cache-remote-host
+      value: {{ quote .Values.infinispan.remoteStore.host }}
+    - name: cache-remote-port
+      value: {{ quote .Values.infinispan.remoteStore.port }}
+    - name: cache-remote-username
+      secret:
+        name: remote-store-secret
+        key: username
+    - name: cache-remote-password
+      secret:
+        name: remote-store-secret
+        key: password
+    {{- if .Values.infinispan.site }}
+    - name: spi-connections-infinispan-quarkus-site-name
+      value: {{ .Values.infinispan.site }}
+    {{ end }}
 {{- end }}
 {{- if .Values.infinispan.jgroupsTls }}
     - name: cache-embedded-mtls-enabled

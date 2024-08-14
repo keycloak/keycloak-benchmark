@@ -16,6 +16,13 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set dbUrl=\<AWS_AURORA_URL_HERE\> \
   --set keycloakImage=\<KEYCLOAK_IMAGE_HERE\> \
   --set useAWSJDBCWrapper=true \
+  --set multiSite=true \
+  --set keycloakDocumentation=true \
+  --set infinispan.customConfig=false \
+  --set infinispan.remoteStore.enabled=false \
+  --set infinispan.remoteStore.host=infinispan.keycloak.svc \
+  --set infinispan.remoteStore.password=secure_password \
+  --set infinispan.site=keycloak \
   --set jvmDebug=false \
   --set cryostat=false \
   --set instances=3 \
@@ -39,6 +46,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set dbUrl=\<AWS_AURORA_URL_HERE\> \
   --set keycloakImage=\<KEYCLOAK_IMAGE_HERE\> \
   --set useAWSJDBCWrapper=true \
+  --set multiSite=true \
   --set jvmDebug=false \
   --set cryostat=false \
   --set heapInitMB=64 \
