@@ -7,6 +7,10 @@ on:
         description: 'Name of the cluster'
         type: string
         default: 'gh-keycloak-a'
+      clusterPrefix:
+        description: 'Cluster prefix'
+        type: string
+        default: 'gh-keycloak'
       region:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
@@ -44,6 +48,10 @@ on:
     inputs:
       clusterName:
         description: 'Name of the cluster'
+        type: string
+        default: 'gh-keycloak-a'
+      clusterPrefix:
+        description: 'Cluster prefix'
         type: string
         default: 'gh-keycloak'
       region:
@@ -105,7 +113,7 @@ jobs:
       - name: Login to OpenShift cluster
         uses: ./.github/actions/oc-keycloak-login
         with:
-          clusterName: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+          clusterName: ${{ inputs.clusterPrefix }}-a
 
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
@@ -179,7 +187,19 @@ jobs:
         with:
           createReportFile: true
 
-      - name: Run Memory Usage Total Query Before Benchmark
+      - name: Run Memory Usage Total Query Before Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runMemoryUsageTotal: true
+          output: memory_create_sessions
+
+      - name: Login to OpenShift cluster 2
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Run Memory Usage Total Query Before Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -203,7 +223,24 @@ jobs:
         continue-on-error: true
         working-directory: ansible
 
-      - name: Run Memory Usage Total Query After Benchmark
+      - name: Login to OpenShift cluster 1
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Run Memory Usage Total Query After Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runMemoryUsageTotal: true
+          output: memory_create_sessions
+
+      - name: Login to OpenShift cluster 2
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Run Memory Usage Total Query After Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -227,7 +264,24 @@ jobs:
           isvCPU: false
           isMemory: true
 
-      - name: Run CPU sec Util Query Before Benchmark
+      - name: Login to OpenShift cluster 1
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Run CPU sec Util Query Before Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: user_logins_vCpu
+
+      - name: Login to OpenShift cluster 2
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Run CPU sec Util Query Before Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -251,7 +305,24 @@ jobs:
         continue-on-error: true
         working-directory: ansible
 
-      - name: Run CPU sec Util Query After Benchmark
+      - name: Login to OpenShift cluster 1
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Run CPU sec Util Query After Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: user_logins_vCpu
+
+      - name: Login to OpenShift cluster 2
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Run CPU sec Util Query After Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -269,7 +340,24 @@ jobs:
           isvCPU: true
           isMemory: false
 
-      - name: Run CPU sec Util Query Before Benchmark
+      - name: Login to OpenShift cluster 1
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Run CPU sec Util Query Before Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: client_credential_grants_vCpu
+
+      - name: Login to OpenShift cluster 2
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Run CPU sec Util Query Before Benchmark on cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -292,7 +380,24 @@ jobs:
         continue-on-error: true
         working-directory: ansible
 
-      - name: Run CPU sec Util Query After Benchmark
+      - name: Login to OpenShift cluster 1
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Run CPU sec Util Query After Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: client_credential_grants_vCpu
+
+      - name: Login to OpenShift cluster 2
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Run CPU sec Util Query After Benchmark on cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
