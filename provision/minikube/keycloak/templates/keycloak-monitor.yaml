@@ -13,18 +13,4 @@ spec:
       scheme: https
       tlsConfig:
         insecureSkipVerify: true
----
-{{ if .Values.otel }}
-apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
-metadata:
-  name: keycloak-otel
-  namespace: {{ .Values.namespace }}
-spec:
-  selector:
-    matchLabels:
-      app: keycloak
-  podMetricsEndpoints:
-    - port: otel-prometheus
-{{ end }}
 {{ end }}
