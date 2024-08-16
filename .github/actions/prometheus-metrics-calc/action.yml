@@ -120,7 +120,7 @@ runs:
         xsite_reqs_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
         xsite_reqs_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
 
-        xsite_reqs=$(awk "BEGIN {print ($xsite_reqs_1 + $xsite_reqs_2) / 2; exit}")
+        xsite_reqs=$(awk "BEGIN {print int(($xsite_reqs_1 + $xsite_reqs_2) / 2); exit}")
         #Reading ispn metrics file with xsite reqs totad duration
         readarray -t lines1 < "${{ inputs.ispnCacheName}}_ispn_metrics_file_sum"
         num1=${lines1[0]}
