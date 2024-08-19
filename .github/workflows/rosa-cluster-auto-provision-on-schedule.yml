@@ -9,49 +9,7 @@ on:
 #   CLUSTER_PREFIX: gh-keycloak
 
 jobs:
-  keycloak-deploy-active-active-with-external-infinispan:
-    name: ROSA Scheduled Create Active/Active cluster with External Infinispan and volatile sessions
-    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
-    with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
-      activeActive: true
-      enableExternalInfinispanFeature: true
-      enableMultiSiteFeature: true
-    secrets: inherit
-
-  run-functional-tests-active-active-with-external-infinispan:
-    needs: keycloak-deploy-active-active-with-external-infinispan
-    name: Runs the functional test suite in Active/Active with the External Infinispan feature
-    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
-    with:
-      activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
-      skipEmbeddedCaches: true
-    secrets: inherit
-
-  run-scaling-benchmark-active-active-with-external-infinispan:
-    needs: run-functional-tests-active-active-with-external-infinispan
-    name: Scaling Benchmark with Active/Active External Infinispan Feature
-    uses: ./.github/workflows/rosa-scaling-benchmark.yml
-    with:
-      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
-      outputArchiveSuffix: 'active-active-external-infinispan'
-    secrets: inherit
-
-  keycloak-undeploy-active-active-with-external-infinispan:
-    needs: run-scaling-benchmark-active-active-with-external-infinispan
-    name: Undeploy Keycloak deployment on the multi-az cluster
-    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
-    with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
-      skipAuroraDeletion: true
-      activeActive: true
-    secrets: inherit
-
   keycloak-deploy-active-active:
-    needs: keycloak-undeploy-active-active-with-external-infinispan
     name: ROSA Scheduled Create Active/Active cluster with External Infinispan and Persistent Sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
@@ -59,7 +17,6 @@ jobs:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       enableMultiSiteFeature: true
       enableExternalInfinispanFeature: false
-      createCluster: false
       activeActive: true
     secrets: inherit
 
@@ -79,5 +36,4 @@ jobs:
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       outputArchiveSuffix: 'active-active'
-      skipCreateDataset: true
     secrets: inherit
