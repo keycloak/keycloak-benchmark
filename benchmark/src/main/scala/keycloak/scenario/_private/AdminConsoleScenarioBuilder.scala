@@ -23,9 +23,9 @@ object AdminConsoleScenarioBuilder {
 
   val ACCEPT_JSON = Map("Accept" -> "application/json")
   val ACCEPT_ALL = Map("Accept" -> "*/*")
-  val AUTHORIZATION = Map("Authorization" -> "Bearer ${accessToken}")
+  val AUTHORIZATION = Map("Authorization" -> "Bearer #{accessToken}")
 
-  val APP_URL = "${keycloakServer}/admin/master/console/"
+  val APP_URL = "#{keycloakServer}/admin/master/console/"
   val DATE_FMT = DateTimeFormatter.RFC_1123_DATE_TIME
 
 
@@ -84,7 +84,7 @@ class AdminConsoleScenarioBuilder {
   def loginThroughLoginForm(): AdminConsoleScenarioBuilder = {
     chainBuilder = chainBuilder
       .exec(http("JS Adapter Auth - Login Form Redirect")
-        .get("/auth/realms/master/protocol/openid-connect/auth?client_id=security-admin-console&redirect_uri=${keycloakServerUrlEncoded}%2Fadmin%2Fmaster%2Fconsole%2F&state=${state}&nonce=${nonce}&response_mode=fragment&response_type=code&scope=openid")
+        .get("/auth/realms/master/protocol/openid-connect/auth?client_id=security-admin-console&redirect_uri=#{keycloakServerUrlEncoded}%2Fadmin%2Fmaster%2Fconsole%2F&state=#{state}&nonce=#{nonce}&response_mode=fragment&response_type=code&scope=openid")
         .headers(UI_HEADERS)
         .check(status.is(200), regex("action=\"([^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("login-form-uri")))
       .exitHereIfFailed
@@ -95,9 +95,9 @@ class AdminConsoleScenarioBuilder {
     // Successful login
     chainBuilder = chainBuilder
       .exec(http("Login Form - Submit Correct Credentials")
-        .post("${login-form-uri}")
-        .formParam("username", "${username}")
-        .formParam("password", "${password}")
+        .post("#{login-form-uri}")
+        .formParam("username", "#{username}")
+        .formParam("password", "#{password}")
         .formParam("login", "Log in")
         .check(status.is(302),
           header("Location").saveAs("login-redirect"),
@@ -120,7 +120,7 @@ class AdminConsoleScenarioBuilder {
           http("JS Adapter Token - Exchange code for tokens")
             .post("/auth/realms/master/protocol/openid-connect/token")
             .headers(ACCEPT_ALL)
-            .formParam("code", "${code}")
+            .formParam("code", "#{code}")
             .formParam("grant_type", "authorization_code")
             .formParam("client_id", "security-admin-console")
             .formParam("redirect_uri", APP_URL)
@@ -138,8 +138,8 @@ class AdminConsoleScenarioBuilder {
           // iframe status listener
           // TODO: properly set Referer
           http("IFrame Status Init")
-            .get("/auth/realms/master/protocol/openid-connect/login-status-iframe.html/init?client_id=security-admin-console&origin=${keycloakServerRootEncoded}") // ${keycloakServerUrlEncoded}
-            .headers(ACCEPT_ALL) //  ++ Map("Referer" -> "/auth/realms/master/protocol/openid-connect/login-status-iframe.html?version=3.3.0.cr1-201708011508") ${resourceVersion}
+            .get("/auth/realms/master/protocol/openid-connect/login-status-iframe.html/init?client_id=security-admin-console&origin=#{keycloakServerRootEncoded}") // #{keycloakServerUrlEncoded}
+            .headers(ACCEPT_ALL) //  ++ Map("Referer" -> "/auth/realms/master/protocol/openid-connect/login-status-iframe.html?version=3.3.0.cr1-201708011508") #{resourceVersion}
             .check(status.is(204))
         )
       )
@@ -166,8 +166,8 @@ class AdminConsoleScenarioBuilder {
         .headers(AUTHORIZATION)
         .check(status.is(200)))
 
-      .exec(http("Console REST - ${realm}")
-        .get("/auth/admin/realms/${realm}")
+      .exec(http("Console REST - #{realm}")
+        .get("/auth/admin/realms/#{realm}")
         .headers(AUTHORIZATION)
         .check(status.is(200)))
 
@@ -187,12 +187,12 @@ class AdminConsoleScenarioBuilder {
   def openRealmSettings(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder.exec(http("Console Realm Settings")
-      .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/realm-detail.html")
+      .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/realm-detail.html")
       .headers(UI_HEADERS)
       .check(status.is(200))
       .resources(
-        http("Console REST - ${realm}")
-          .get("/auth/admin/realms/${realm}")
+        http("Console REST - #{realm}")
+          .get("/auth/admin/realms/#{realm}")
           .headers(AUTHORIZATION)
           .check(status.is(200)),
 
@@ -207,30 +207,30 @@ class AdminConsoleScenarioBuilder {
           .check(status.is(200)),
 
         http("Console - kc-tabs-realm.html")
-          .get("/auth/resources/${resourceVersion}/admin/keycloak/templates/kc-tabs-realm.html")
+          .get("/auth/resources/#{resourceVersion}/admin/keycloak/templates/kc-tabs-realm.html")
           //.headers(UI_HEADERS ++ Map("Referer" -> ""))  // TODO fix referer
           .headers(UI_HEADERS)
           .check(status.is(200)),
 
         http("Console - kc-menu.html")
-          .get("/auth/resources/${resourceVersion}/admin/keycloak/templates/kc-menu.html")
+          .get("/auth/resources/#{resourceVersion}/admin/keycloak/templates/kc-menu.html")
           //.headers(UI_HEADERS ++ Map("Referer" -> ""))  // TODO fix referer
           .headers(UI_HEADERS)
           .check(status.is(200)),
 
         // request fonts for css also set referer
         http("OpenSans-Semibold-webfont.woff")
-          .get("/auth/resources/${resourceVersion}/admin/keycloak/lib/patternfly/fonts/OpenSans-Semibold-webfont.woff")
+          .get("/auth/resources/#{resourceVersion}/admin/keycloak/lib/patternfly/fonts/OpenSans-Semibold-webfont.woff")
           .headers(UI_HEADERS)
           .check(status.is(200)),
 
         http("OpenSans-Bold-webfont.woff")
-          .get("/auth/resources/${resourceVersion}/admin/keycloak/lib/patternfly/fonts/OpenSans-Bold-webfont.woff")
+          .get("/auth/resources/#{resourceVersion}/admin/keycloak/lib/patternfly/fonts/OpenSans-Bold-webfont.woff")
           .headers(UI_HEADERS)
           .check(status.is(200)),
 
         http("OpenSans-Light-webfont.woff")
-          .get("/auth/resources/${resourceVersion}/admin/keycloak/lib/patternfly/fonts/OpenSans-Light-webfont.woff")
+          .get("/auth/resources/#{resourceVersion}/admin/keycloak/lib/patternfly/fonts/OpenSans-Light-webfont.woff")
           .headers(UI_HEADERS)
           .check(status.is(200))
       )
@@ -243,12 +243,12 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - client-list.html")
-        .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/client-list.html")
+        .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/client-list.html")
         .headers(UI_HEADERS)
         .check(status.is(200))
         .resources(
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
           http("Console REST - realms")
@@ -256,11 +256,11 @@ class AdminConsoleScenarioBuilder {
             .headers(AUTHORIZATION)
             .check(status.is(200)),
           http("Console - kc-paging.html")
-            .get("/auth/resources/${resourceVersion}/admin/keycloak/templates/kc-paging.html")
+            .get("/auth/resources/#{resourceVersion}/admin/keycloak/templates/kc-paging.html")
             .headers(UI_HEADERS)
             .check(status.is(200)),
-          http("Console REST - ${realm}/clients")
-            .get("/auth/admin/realms/${realm}/clients?viewableOnly=true")
+          http("Console REST - #{realm}/clients")
+            .get("/auth/admin/realms/#{realm}/clients?viewableOnly=true")
             .headers(AUTHORIZATION)
             .check(status.is(200))
         )
@@ -272,12 +272,12 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - create-client.html")
-        .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/create-client.html")
+        .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/create-client.html")
         .headers(UI_HEADERS)
         .check(status.is(200))
         .resources(
-          http("Console REST - ${realm}/clients")
-            .get("/auth/admin/realms/${realm}/clients")
+          http("Console REST - #{realm}/clients")
+            .get("/auth/admin/realms/#{realm}/clients")
             .headers(AUTHORIZATION)
             .check(status.is(200))
         )
@@ -288,33 +288,33 @@ class AdminConsoleScenarioBuilder {
   def submitNewClient(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
-      .exec(http("Console REST - ${realm}/clients POST")
-        .post("/auth/admin/realms/${realm}/clients")
+      .exec(http("Console REST - #{realm}/clients POST")
+        .post("/auth/admin/realms/#{realm}/clients")
         .headers(AUTHORIZATION)
         .header("Content-Type", "application/json")
         .body(StringBody(
           """
-               {"enabled":true,"attributes":{},"redirectUris":[],"clientId":"${randomClientId}","rootUrl":"http://localhost:8081/myapp","protocol":"openid-connect"}
+               {"enabled":true,"attributes":{},"redirectUris":[],"clientId":"#{randomClientId}","rootUrl":"http://localhost:8081/myapp","protocol":"openid-connect"}
             """.stripMargin))
         .check(status.is(201), headerRegex("Location", "\\/([^\\/]+)$").saveAs("idOfClient")))
 
-      .exec(http("Console REST - ${realm}/clients/ID")
-        .get("/auth/admin/realms/${realm}/clients/${idOfClient}")
+      .exec(http("Console REST - #{realm}/clients/ID")
+        .get("/auth/admin/realms/#{realm}/clients/#{idOfClient}")
         .headers(AUTHORIZATION)
         .check(status.is(200), bodyString.saveAs("clientJson"))
         .resources(
-          http("Console REST - ${realm}/clients")
-            .get("/auth/admin/realms/${realm}/clients")
+          http("Console REST - #{realm}/clients")
+            .get("/auth/admin/realms/#{realm}/clients")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/client-templates")
-            .get("/auth/admin/realms/${realm}/client-templates")
+          http("Console REST - #{realm}/client-templates")
+            .get("/auth/admin/realms/#{realm}/client-templates")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
@@ -332,30 +332,30 @@ class AdminConsoleScenarioBuilder {
     chainBuilder = chainBuilder.exec(s => {
       s.set("updateClientJson", s("clientJson").as[String].replace("\"publicClient\":false", "\"publicClient\":true"))
     })
-      .exec(http("Console REST - ${realm}/clients/ID PUT")
-        .put("/auth/admin/realms/${realm}/clients/${idOfClient}")
+      .exec(http("Console REST - #{realm}/clients/ID PUT")
+        .put("/auth/admin/realms/#{realm}/clients/#{idOfClient}")
         .headers(AUTHORIZATION)
         .header("Content-Type", "application/json")
-        .body(StringBody("${updateClientJson}"))
+        .body(StringBody("#{updateClientJson}"))
         .check(status.is(204)))
 
-      .exec(http("Console REST - ${realm}/clients/ID")
-        .get("/auth/admin/realms/${realm}/clients/${idOfClient}")
+      .exec(http("Console REST - #{realm}/clients/ID")
+        .get("/auth/admin/realms/#{realm}/clients/#{idOfClient}")
         .headers(AUTHORIZATION)
         .check(status.is(200), bodyString.saveAs("clientJson"))
         .resources(
-          http("Console REST - ${realm}/clients")
-            .get("/auth/admin/realms/${realm}/clients")
+          http("Console REST - #{realm}/clients")
+            .get("/auth/admin/realms/#{realm}/clients")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/client-templates")
-            .get("/auth/admin/realms/${realm}/client-templates")
+          http("Console REST - #{realm}/client-templates")
+            .get("/auth/admin/realms/#{realm}/client-templates")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
@@ -372,17 +372,17 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - client-detail.html")
-        .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/client-detail.html")
+        .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/client-detail.html")
         .headers(UI_HEADERS)
         .check(status.is(200))
         .resources(
-          http("Console REST - ${realm}/client-templates")
-            .get("/auth/admin/realms/${realm}/client-templates")
+          http("Console REST - #{realm}/client-templates")
+            .get("/auth/admin/realms/#{realm}/client-templates")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
@@ -391,18 +391,18 @@ class AdminConsoleScenarioBuilder {
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/clients")
-            .get("/auth/admin/realms/${realm}/clients")
+          http("Console REST - #{realm}/clients")
+            .get("/auth/admin/realms/#{realm}/clients")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/clients/ID")
-            .get("/auth/admin/realms/${realm}/clients/${idOfClient}")
+          http("Console REST - #{realm}/clients/ID")
+            .get("/auth/admin/realms/#{realm}/clients/#{idOfClient}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
           http("Console - kc-tabs-client.html")
-            .get("/auth/resources/${resourceVersion}/admin/keycloak/templates/kc-tabs-client.html")
+            .get("/auth/resources/#{resourceVersion}/admin/keycloak/templates/kc-tabs-client.html")
             .headers(UI_HEADERS)
             .check(status.is(200))
         )
@@ -414,7 +414,7 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - user-list.html")
-        .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/user-list.html")
+        .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/user-list.html")
         .headers(UI_HEADERS)
         .check(status.is(200))
         .resources(
@@ -422,12 +422,12 @@ class AdminConsoleScenarioBuilder {
             .get("/auth/admin/realms")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
           http("Console - kc-tabs-users.html")
-            .get("/auth/resources/${resourceVersion}/admin/keycloak/templates/kc-tabs-users.html")
+            .get("/auth/resources/#{resourceVersion}/admin/keycloak/templates/kc-tabs-users.html")
             .headers(UI_HEADERS)
             .check(status.is(200))
         )
@@ -438,8 +438,8 @@ class AdminConsoleScenarioBuilder {
   def viewAllUsers(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
-      .exec(http("Console REST - ${realm}/users")
-        .get("/auth/admin/realms/${realm}/users?first=0&max=20")
+      .exec(http("Console REST - #{realm}/users")
+        .get("/auth/admin/realms/#{realm}/users?first=0&max=20")
         .headers(AUTHORIZATION)
         .check(status.is(200))
       )
@@ -452,8 +452,8 @@ class AdminConsoleScenarioBuilder {
       .repeat(10, "i") {
         exec(s => s.set("offset", s("i").as[Int] * 20))
           .pause(1)
-          .exec(http("Console REST - ${realm}/users?first=${offset}")
-            .get("/auth/admin/realms/${realm}/users?first=${offset}&max=20")
+          .exec(http("Console REST - #{realm}/users?first=#{offset}")
+            .get("/auth/admin/realms/#{realm}/users?first=#{offset}&max=20")
             .headers(AUTHORIZATION)
             .check(status.is(200))
           )
@@ -464,8 +464,8 @@ class AdminConsoleScenarioBuilder {
   def find20Users(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
-      .exec(http("Console REST - ${realm}/users?first=0&max=20&search=user")
-        .get("/auth/admin/realms/${realm}/users?first=0&max=20&search=user")
+      .exec(http("Console REST - #{realm}/users?first=0&max=20&search=user")
+        .get("/auth/admin/realms/#{realm}/users?first=0&max=20&search=user")
         .headers(AUTHORIZATION)
         .check(status.is(200))
       )
@@ -475,8 +475,8 @@ class AdminConsoleScenarioBuilder {
   def findUnlimitedUsers(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
-      .exec(http("Console REST - ${realm}/users?search=user")
-        .get("/auth/admin/realms/${realm}/users?search=user")
+      .exec(http("Console REST - #{realm}/users?search=user")
+        .get("/auth/admin/realms/#{realm}/users?search=user")
         .headers(AUTHORIZATION)
         .check(status.is(200))
       )
@@ -487,8 +487,8 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(s => s.set("randomUsername", getRandomUser()))
-      .exec(http("Console REST - ${realm}/users?first=0&max=20&search=USERNAME")
-        .get("/auth/admin/realms/${realm}/users?first=0&max=20&search=${randomUsername}")
+      .exec(http("Console REST - #{realm}/users?first=0&max=20&search=USERNAME")
+        .get("/auth/admin/realms/#{realm}/users?first=0&max=20&search=#{randomUsername}")
         .headers(AUTHORIZATION)
         .check(status.is(200), jsonPath("$[0]['id']").saveAs("userId"))
       )
@@ -499,7 +499,7 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - user-detail.html")
-        .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/user-detail.html")
+        .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/user-detail.html")
         .headers(UI_HEADERS)
         .check(status.is(200))
         .resources(
@@ -509,28 +509,28 @@ class AdminConsoleScenarioBuilder {
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/users/ID")
-            .get("/auth/admin/realms/${realm}/users/${userId}")
+          http("Console REST - #{realm}/users/ID")
+            .get("/auth/admin/realms/#{realm}/users/#{userId}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
           http("Console - kc-tabs-user.html")
-            .get("/auth/resources/${resourceVersion}/admin/keycloak/templates/kc-tabs-user.html")
+            .get("/auth/resources/#{resourceVersion}/admin/keycloak/templates/kc-tabs-user.html")
             .headers(UI_HEADERS)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/authentication/required-actions")
-            .get("/auth/admin/realms/${realm}/authentication/required-actions")
+          http("Console REST - #{realm}/authentication/required-actions")
+            .get("/auth/admin/realms/#{realm}/authentication/required-actions")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/attack-detection/brute-force/users/ID")
-            .get("/auth/admin/realms/${realm}/attack-detection/brute-force/users/${userId}")
+          http("Console REST - #{realm}/attack-detection/brute-force/users/ID")
+            .get("/auth/admin/realms/#{realm}/attack-detection/brute-force/users/#{userId}")
             .headers(AUTHORIZATION)
             .check(status.is(200))
         )
@@ -542,18 +542,18 @@ class AdminConsoleScenarioBuilder {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
       .exec(http("Console - user-credentials.html")
-        .get("/auth/resources/${resourceVersion}/admin/keycloak/partials/user-credentials.html")
+        .get("/auth/resources/#{resourceVersion}/admin/keycloak/partials/user-credentials.html")
         .headers(UI_HEADERS)
         .check(status.is(200))
         .resources(
 
-          http("Console REST - ${realm}/users/ID")
-            .get("/auth/admin/realms/${realm}/users/${userId}")
+          http("Console REST - #{realm}/users/ID")
+            .get("/auth/admin/realms/#{realm}/users/#{userId}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}")
-            .get("/auth/admin/realms/${realm}")
+          http("Console REST - #{realm}")
+            .get("/auth/admin/realms/#{realm}")
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
@@ -562,8 +562,8 @@ class AdminConsoleScenarioBuilder {
             .headers(AUTHORIZATION)
             .check(status.is(200)),
 
-          http("Console REST - ${realm}/authentication/required-actions")
-            .get("/auth/admin/realms/${realm}/authentication/required-actions")
+          http("Console REST - #{realm}/authentication/required-actions")
+            .get("/auth/admin/realms/#{realm}/authentication/required-actions")
             .headers(AUTHORIZATION)
             .check(status.is(200))
         )
@@ -580,7 +580,7 @@ class AdminConsoleScenarioBuilder {
           .post("/auth/realms/master/protocol/openid-connect/token")
           .headers(ACCEPT_ALL)
           .formParam("grant_type", "refresh_token")
-          .formParam("refresh_token", "${refreshToken}")
+          .formParam("refresh_token", "#{refreshToken}")
           .formParam("client_id", "security-admin-console")
           .check(status.is(200),
             jsonPath("$.access_token").saveAs("accessToken"),
@@ -608,8 +608,8 @@ class AdminConsoleScenarioBuilder {
   def setTemporaryPassword(): AdminConsoleScenarioBuilder = {
     refreshTokenIfExpired()
     chainBuilder = chainBuilder
-      .exec(http("Console REST - ${realm}/users/ID/reset-password PUT")
-        .put("/auth/admin/realms/${realm}/users/${userId}/reset-password")
+      .exec(http("Console REST - #{realm}/users/ID/reset-password PUT")
+        .put("/auth/admin/realms/#{realm}/users/#{userId}/reset-password")
         .headers(AUTHORIZATION)
         .header("Content-Type", "application/json")
         .body(StringBody("""{"type":"password","value":"testtest","temporary":true}"""))

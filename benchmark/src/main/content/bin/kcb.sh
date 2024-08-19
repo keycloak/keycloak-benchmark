@@ -131,9 +131,9 @@ run_benchmark_with_workload() {
   DATE_START_ISO=$(date --iso-8601=seconds)
   DATE_START_ISO_COMPRESSED=$(date '+%Y%m%d-%H%M%S')
   if [ "$MODE" = "incremental" ]; then
-    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO > "$OUTPUT_DIR/gatling.log" 2>&1
+    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -rf "$OUTPUT_DIR" -s $SCENARIO > "$OUTPUT_DIR/gatling.log" 2>&1
   else
-    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -bf $DIRNAME -rf "$OUTPUT_DIR" -s $SCENARIO | rewrite_output 2>&1 | tee "$OUTPUT_DIR/gatling.log"
+    java $JAVA_OPTS "${SERVER_OPTS[@]}" "${CONFIG_ARGS[@]}" "-D$1=$2" "-Dmeasurement=${3:-30}" -cp $CLASSPATH_OPTS io.gatling.app.Gatling -rf "$OUTPUT_DIR" -s $SCENARIO | rewrite_output 2>&1 | tee "$OUTPUT_DIR/gatling.log"
   fi
   EXIT_RESULT=$?
   # don't include URLs or password information into the configuration recorded
