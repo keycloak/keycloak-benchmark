@@ -8,10 +8,8 @@ import io.gatling.http.Predef._
 import keycloak.Utils
 import keycloak.Utils.randomUUID
 import keycloak.scenario.KeycloakScenarioBuilder.{ADMIN_ENDPOINT, CODE_PATTERN, LOGIN_ENDPOINT, LOGOUT_ENDPOINT, TOKEN_ENDPOINT, UI_HEADERS, REALMS_ENDPOINT, MASTER_REALM_TOKEN_ENDPOINT, downCounterAboveZero}
-import keycloak.scenario._private.AdminConsoleScenarioBuilder.DATE_FMT
 import org.keycloak.benchmark.Config
 
-import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.DurationDouble
 import scala.util.Random
@@ -21,26 +19,23 @@ import scala.util.Random
  */
 object KeycloakScenarioBuilder {
 
-  val BASE_URL = "#{keycloakServer}/realms/#{realm}"
-  val LOGIN_ENDPOINT = BASE_URL + "/protocol/openid-connect/auth"
-  val LOGOUT_ENDPOINT = BASE_URL + "/protocol/openid-connect/logout"
-  val TOKEN_ENDPOINT = BASE_URL + "/protocol/openid-connect/token"
-  val MASTER_REALM_TOKEN_ENDPOINT = "#{keycloakServer}/realms/master/protocol/openid-connect/token"
-  val REALMS_ENDPOINT = "#{keycloakServer}/admin/realms"
-  val ADMIN_ENDPOINT = "#{keycloakServer}/admin/realms/#{realm}"
-  val CODE_PATTERN = "code="
+  private val BASE_URL = "#{keycloakServer}/realms/#{realm}"
+  private val LOGIN_ENDPOINT = BASE_URL + "/protocol/openid-connect/auth"
+  private val LOGOUT_ENDPOINT = BASE_URL + "/protocol/openid-connect/logout"
+  private val TOKEN_ENDPOINT = BASE_URL + "/protocol/openid-connect/token"
+  private val MASTER_REALM_TOKEN_ENDPOINT = "#{keycloakServer}/realms/master/protocol/openid-connect/token"
+  private val REALMS_ENDPOINT = "#{keycloakServer}/admin/realms"
+  private val ADMIN_ENDPOINT = "#{keycloakServer}/admin/realms/#{realm}"
+  private val CODE_PATTERN = "code="
 
   // Specify defaults for http requests
-  val UI_HEADERS = Map(
+  private val UI_HEADERS = Map(
     "Accept" -> "text/html,application/xhtml+xml,application/xml",
     "Accept-Encoding" -> "gzip, deflate",
     "Accept-Language" -> "en-US,en;q=0.5",
     "User-Agent" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0")
 
-  val ACCEPT_JSON = Map("Accept" -> "application/json")
-  val ACCEPT_ALL = Map("Accept" -> "*/*")
-
-  val registerAndLogoutScenario = new KeycloakScenarioBuilder()
+  val registerAndLogoutScenario: KeycloakScenarioBuilder = new KeycloakScenarioBuilder()
     .openLoginPageWithRegistrationLink(true)
     .browserOpensRegistrationPage()
     .userThinkPause()
@@ -59,7 +54,7 @@ object KeycloakScenarioBuilder {
 
 class KeycloakScenarioBuilder {
 
-  var chainBuilder = exec(s => {
+  var chainBuilder: ChainBuilder = exec(s => {
 
     val serverUrl = Config.serverUrisList.iterator().next()
     val realmIndex = String.valueOf(Random.nextInt(Config.numOfRealms))
@@ -83,30 +78,30 @@ class KeycloakScenarioBuilder {
       userPassword = Config.userPassword
     }
 
-    var redirectUri = serverUrl.stripSuffix("/").concat("/realms/").concat(realmName).concat("/account");
+    var redirectUri = serverUrl.stripSuffix("/").concat("/realms/").concat(realmName).concat("/account")
 
     if (Config.clientRedirectUrl != null) {
-      redirectUri = Config.clientRedirectUrl;
+      redirectUri = Config.clientRedirectUrl
     }
 
-    var clientId = "client-".concat(clientIndex);
+    var clientId = "client-".concat(clientIndex)
 
     if (Config.clientId != null) {
-      clientId = Config.clientId;
+      clientId = Config.clientId
     }
 
-    var clientSecret = "client-".concat(clientIndex).concat("-secret");
+    var clientSecret = "client-".concat(clientIndex).concat("-secret")
 
     if (Config.clientSecret != null) {
-      clientSecret = Config.clientSecret;
+      clientSecret = Config.clientSecret
     }
 
-    var scope = Config.scope;
+    var scope = Config.scope
 
     if (scope == null) {
-      scope = "openid profile";
+      scope = "openid profile"
     } else {
-      scope = scope.trim().replace(',', ' ');
+      scope = scope.trim().replace(',', ' ')
     }
 
     s.setAll("keycloakServer" -> serverUrl,
@@ -188,7 +183,7 @@ class KeycloakScenarioBuilder {
   def browserPostsWrongCredentials(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .asLongAs(s => downCounterAboveZero(s, "wrongPasswordCount")) {
-        var c = exec(http("Browser posts wrong credentials")
+        val c = exec(http("Browser posts wrong credentials")
           .post("#{login-form-uri}")
           .headers(UI_HEADERS)
           .formParam("username", "#{username}")
@@ -249,7 +244,7 @@ class KeycloakScenarioBuilder {
           jsonPath("$..expires_in").find.saveAs("expiresIn"),
         )
       )
-      .exec(session => (session.removeAll("code")))
+      .exec(session => session.removeAll("code"))
       .exitHereIfFailed
     this
   }
@@ -386,7 +381,7 @@ class KeycloakScenarioBuilder {
         .body(StringBody("""{ "name" : "#{createdRoleId}" }"""))
         .check(status.is(201))
         .check(header("Location").notNull.saveAs("roleLocation")))
-      .exec(session => (session.removeAll("createdRoleId")))
+      .exec(session => session.removeAll("createdRoleId"))
       .exitHereIfFailed
     this
   }
@@ -397,7 +392,7 @@ class KeycloakScenarioBuilder {
         .delete("#{roleLocation}")
         .header("Authorization", "Bearer #{token}")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("roleLocation")))
+      .exec(session => session.removeAll("roleLocation"))
       .exitHereIfFailed
     this
   }
@@ -427,7 +422,7 @@ class KeycloakScenarioBuilder {
         .body(StringBody("""{ "name" : "#{createdGroupId}" }"""))
         .check(status.is(201))
         .check(header("Location").notNull.saveAs("groupLocation")))
-      .exec(session => (session.removeAll("createdGroupId")))
+      .exec(session => session.removeAll("createdGroupId"))
       .exitHereIfFailed
     this
   }
@@ -438,7 +433,7 @@ class KeycloakScenarioBuilder {
         .delete("#{groupLocation}")
         .header("Authorization", "Bearer #{token}")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("groupLocation")))
+      .exec(session => session.removeAll("groupLocation"))
       .exitHereIfFailed
     this
   }
@@ -486,7 +481,7 @@ class KeycloakScenarioBuilder {
         .header("Authorization", "Bearer #{token}")
         .header("Content-Type", "application/json")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("createdRealmId")))
+      .exec(session => session.removeAll("createdRealmId"))
       .exitHereIfFailed
     this
   }
@@ -504,7 +499,7 @@ class KeycloakScenarioBuilder {
             | "name":"#{createdClientScopeId}","protocol":"openid-connect"} """.stripMargin))
         .check(status.is(201))
         .check(header("Location").notNull.saveAs("clientScopeLocation")))
-      .exec(session => (session.removeAll("createdClientScopeId")))
+      .exec(session => session.removeAll("createdClientScopeId"))
       .exitHereIfFailed
     this
   }
@@ -525,7 +520,7 @@ class KeycloakScenarioBuilder {
         .delete("#{clientScopeLocation}")
         .header("Authorization", "Bearer #{token}")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("clientScopeLocation")))
+      .exec(session => session.removeAll("clientScopeLocation"))
       .exitHereIfFailed
     this
   }
@@ -563,7 +558,7 @@ class KeycloakScenarioBuilder {
         .delete("#{clientLocation}")
         .header("Authorization", "Bearer #{token}")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("clientLocation")))
+      .exec(session => session.removeAll("clientLocation"))
       .exitHereIfFailed
     this
   }
@@ -653,7 +648,7 @@ class KeycloakScenarioBuilder {
         .delete("#{userLocation}")
         .header("Authorization", "Bearer #{token}")
         .check(status.is(204)))
-      .exec(session => (session.removeAll("userLocation")))
+      .exec(session => session.removeAll("userLocation"))
       .exitHereIfFailed
     this
   }
