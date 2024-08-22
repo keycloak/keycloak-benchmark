@@ -222,6 +222,10 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "identity-providers-count", operations = CREATE_ORGS)
     private int identityProvidersCount;
 
+    // Count of identity provider mappers per identity provider
+    @QueryParamIntFill(paramName = "identity-provider-mappers-count", operations = CREATE_ORGS)
+    private int identityProviderMappersCount;
+
     // String representation of this configuration (cached here to not be computed in runtime)
     private String toString = "DatasetConfig []";
 
@@ -423,5 +427,9 @@ public class DatasetConfig {
 
     public int getIdentityProvidersCount() {
         return identityProvidersCount;
+    }
+
+    public int getIdentityProviderMappersCount() {
+        return identityProviderMappersCount;
     }
 }

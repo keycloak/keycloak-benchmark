@@ -292,11 +292,25 @@ As a result, 1k organizations with the following configuration:
 * 500 unmanaged members
 * 10 identity providers
 
+It is also possible te specify a number of identity provider mappers per each identity provider:
+
+----
+.../realms/realm-0/dataset/orgs/create?count=1000&unmanaged-members-count=500&identity-providers-count=10&identity-provider-mappers-count=3
+----
+
+In this case 1k organizations with each having 500 unmanaged members, 10 identity providers and each identity provider having 3 identity provider mnappers
+
 You can also provision data to a specific organization. For instance, to provision
 more identity providers to a specific organization:
 
 ----
 .../realms/realm-0/dataset/orgs/org-0/identity-providers/create?count=1000
+----
+
+Optionally it's possible to specify a number of identity provider mappers per each identity provider
+
+----
+.../realms/realm-0/dataset/orgs/org-0/identity-providers/create?count=1000&identity-provider-mappers-count=5
 ----
 
 Or to provision more unmanaged members to a specific organization:
