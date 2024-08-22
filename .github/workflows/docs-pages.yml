@@ -13,7 +13,6 @@ on:
     paths:
       - '.github/workflows/docs-pages.yml'
       - 'antora/**'
-      - 'dashbuilder/**'
       - 'doc/**'
 
 concurrency:
@@ -41,17 +40,6 @@ jobs:
           gh release download aggregated-benchmarks -D antora/_site/keycloak-benchmark/results --repo keycloak/keycloak-benchmark
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Set up Node.js for DashBuilder
-        uses: actions/setup-node@v4
-        with:
-          node-version: '16.x'
-          cache: 'yarn'
-          cache-dependency-path: 'dashbuilder/yarn.lock'
-      - name: Prepare dashbuilder
-        working-directory: dashbuilder
-        run: |
-          ./build.sh
-          mv dist ../antora/_site/keycloak-benchmark/dashbuilder
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
