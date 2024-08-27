@@ -78,6 +78,7 @@ tasks:
       CROSS_DC_REMOTE_GOSSIP_ROUTER: '{{.CROSS_DC_REMOTE_GOSSIP_ROUTER | default "true"}}'
       CROSS_DC_FD_INTERVAL: '{{.CROSS_DC_FD_INTERVAL | default "2000"}}'
       CROSS_DC_FD_TIMEOUT: '{{.CROSS_DC_FD_TIMEOUT | default "10000"}}'
+      CROSS_DC_VOLATILE_SESSIONS: '{{.CROSS_DC_VOLATILE_SESSIONS | default .KC_EXTERNAL_INFINISPAN | default "false"}}' # false if persistent sessions are enabled in Keycloak
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
@@ -107,6 +108,7 @@ tasks:
         --set image={{.CROSS_DC_IMAGE}}
         --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
         --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}
+        --set createSessionsCaches={{.CROSS_DC_VOLATILE_SESSIONS}}
         --set acceleratorDNS={{ .ACCELERATOR_DNS }}
         --set alertmanager.webhook.url={{ .ACCELERATOR_WEBHOOK_URL }}
         --set alertmanager.webhook.username={{ .ACCELERATOR_WEBHOOK_USERNAME }}

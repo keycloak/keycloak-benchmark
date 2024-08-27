@@ -125,6 +125,9 @@ spec:
     {{- end }}
     # end::infinispan-crossdc[]
 {{range $cache, $config := .Values.caches -}}
+  {{- if and (not $.Values.createSessionsCaches) (eq $cache "sessions" "offlineSessions" "clientSessions" "offlineClientSessions") }}
+    {{continue}}
+  {{- end}}
 ---
 # tag::infinispan-cache-{{ $cache }}[]
 apiVersion: infinispan.org/v2alpha1
@@ -146,8 +149,8 @@ spec:
       locking:
         acquireTimeout: {{ $config.lockTimeout | default $.Values.cacheDefaults.lockTimeout | quote }}
       transaction:
-        mode: {{ $config.txMode | default $.Values.cacheDefaults.txMode | quote }}
-        locking: {{ $config.txLockMode | default $.Values.cacheDefaults.txLockMode | quote }}
+        mode: {{ $config.txMode | default $.Values.cacheDefaults.txMode | quote }} # <1>
+        locking: {{ $config.txLockMode | default $.Values.cacheDefaults.txLockMode | quote }} # <2>
       {{- if and $config.memory $config.memory.maxCount }}
       memory:
         maxCount: {{ $config.memory.maxCount }}
@@ -157,18 +160,18 @@ spec:
       {{ if $.Values.crossdc.enabled }}
       {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
       backups:
-        {{- if $config.mergePolicy }}
-        mergePolicy: {{ $config.mergePolicy  | quote }} # <1>
+        {{- if and $config.mergePolicy (eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC")}}
+        mergePolicy: {{ $config.mergePolicy | quote }}
         {{- end}}
-        {{$.Values.crossdc.remote.name }}: # <2>
+        {{$.Values.crossdc.remote.name }}: # <3>
           backup:
-            strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }} # <3>
-            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout | quote }}
-            failurePolicy: {{ $config.xsiteFailurePolicy | default $.Values.cacheDefaults.xsiteFailurePolicy | quote }}
+            strategy: {{ $config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode | quote }} # <4>
+            timeout: {{ $config.xsiteRemoteTimeout | default $.Values.cacheDefaults.xsiteRemoteTimeout | quote }} # <5>
+            failurePolicy: {{ $config.xsiteFailurePolicy | default $.Values.cacheDefaults.xsiteFailurePolicy | quote }} # <6>
             stateTransfer:
               chunkSize: "16"
               {{- if eq ($config.crossSiteMode | default $.Values.cacheDefaults.crossSiteMode) "ASYNC"}}
-              mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }} # <4>
+              mode: {{ $config.stateTransferMode | default $.Values.cacheDefaults.stateTransferMode | quote }}
               {{- end }}
       {{- end }}
 # end::infinispan-cache-{{ $cache }}[]
@@ -244,6 +247,9 @@ metadata:
 data:
   batch: |+
     {{range $cache, $config := .Values.caches -}}
+    {{- if and (not $.Values.createSessionsCaches) (eq $cache "sessions" "offlineSessions" "clientSessions" "offlineClientSessions") }}
+      {{continue}}
+    {{- end}}
     clearcache {{ $cache }}
     {{ end }}
 # end::infinispan-crossdc-clear-caches[]
