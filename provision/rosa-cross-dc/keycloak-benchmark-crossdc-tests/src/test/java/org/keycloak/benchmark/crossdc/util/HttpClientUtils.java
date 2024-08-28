@@ -1,5 +1,6 @@
 package org.keycloak.benchmark.crossdc.util;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
@@ -15,7 +16,8 @@ import java.security.cert.X509Certificate;
 public class HttpClientUtils {
 
     public static final CookieManager MOCK_COOKIE_MANAGER = new CookieManager();
-    private static final TrustManager MOCK_TRUST_MANAGER = new X509ExtendedTrustManager() {
+    public static final HostnameVerifier ACCEPT_ALL_HOSTNAME_VERIFIER = (hostname, session) -> true;
+    public static final TrustManager MOCK_TRUST_MANAGER = new X509ExtendedTrustManager() {
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) {
 

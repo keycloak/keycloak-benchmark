@@ -1,25 +1,20 @@
 package org.keycloak.benchmark.crossdc.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.ACCEPT_ALL_HOSTNAME_VERIFIER;
+import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_TRUST_MANAGER;
 import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME;
 import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.USER_SESSION_CACHE_NAME;
 
-import java.net.Socket;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509ExtendedTrustManager;
 
 import org.infinispan.client.hotrod.Flag;
 import org.infinispan.client.hotrod.RemoteCache;
@@ -63,13 +58,13 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
         var builder = new RestClientConfigurationBuilder();
         builder.addServer().host(host).port(port);
         builder.security().authentication().username(Objects.requireNonNull(username)).password(Objects.requireNonNull(password));
-        builder.security().ssl().sslContext(sslContext).trustManagers(new TrustManager[]{TRUST_ALL_MANAGER}).hostnameVerifier(ACCEPT_ALL_HOSTNAME_VERIFIER);
+        builder.security().ssl().sslContext(sslContext).trustManagers(new TrustManager[]{MOCK_TRUST_MANAGER}).hostnameVerifier(ACCEPT_ALL_HOSTNAME_VERIFIER);
         return RestClient.forConfiguration(builder.build());
     }
 
     private static SSLContext createSSLContext() {
         try {
-            var trustManagers = new TrustManager[]{TRUST_ALL_MANAGER};
+            var trustManagers = new TrustManager[]{MOCK_TRUST_MANAGER};
             var sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, trustManagers, null);
             return sslContext;
@@ -92,6 +87,55 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
 
     public String siteName() {
         return siteName;
+    }
+
+    private record NonExistingCache(String cacheName) implements InfinispanClient.ExternalCache {
+
+
+        @Override
+        public void takeOffline(String backupSiteName) {
+            //no-op
+        }
+
+        @Override
+        public void bringOnline(String backupSiteName) {
+            //no-op
+        }
+
+        @Override
+        public boolean isBackupOnline(String backupSiteName) {
+            return false;
+        }
+
+        @Override
+        public long size() {
+            return 0;
+        }
+
+        @Override
+        public void clear() {
+
+        }
+
+        @Override
+        public boolean contains(String key) {
+            return false;
+        }
+
+        @Override
+        public boolean remove(String key) {
+            return false;
+        }
+
+        @Override
+        public Set<String> keys() {
+            return Set.of();
+        }
+
+        @Override
+        public String name() {
+            return cacheName;
+        }
     }
 
     public static class ExternalCache implements InfinispanClient.ExternalCache {
@@ -163,8 +207,9 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
     }
 
     @Override
-    public ExternalCache cache(String name) {
-        return new ExternalCache(restClient.cache(name), hotRodClient.getCache(name));
+    public InfinispanClient.ExternalCache cache(String name) {
+        RemoteCache<Object, Object> cache = hotRodClient.getCache(name);
+        return cache == null ? new NonExistingCache(name) : new ExternalCache(restClient.cache(name), hotRodClient.getCache(name));
     }
 
     @Override
@@ -196,47 +241,4 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
     public void bringBackupOnline(String site) {
         try (var ignore = awaitAndCheckOkStatus(restClient.container().bringBackupOnline(site))) {}
     }
-
-    public static final X509ExtendedTrustManager TRUST_ALL_MANAGER = new X509ExtendedTrustManager() {
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
-
-        }
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
-
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
-
-        }
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    };
-
-    private static final HostnameVerifier ACCEPT_ALL_HOSTNAME_VERIFIER = new HostnameVerifier() {
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            return true;
-        }
-    };
 }

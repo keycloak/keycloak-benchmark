@@ -75,6 +75,9 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set namespace=keycloak \
   --set replicas=3 \
+  --set cpu= \
+  --set memory= \
+  --set jvmOptions="" \
   --set crossdc.enabled=true \
   --set crossdc.local.name=site-a \
   --set crossdc.local.gossipRouterEnabled=true \
@@ -89,10 +92,18 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set metrics.histograms=false \
   --set hotrodPassword="strong-password" \
   --set cacheDefaults.crossSiteMode=SYNC \
+  --set cacheDefaults.stateTransferMode=AUTO \
+  --set cacheDefaults.xsiteFailurePolicy=FAIL \
+  --set cacheDefaults.txMode=NON_XA \
+  --set cacheDefaults.txLockMode=PESSIMISTIC \
+  --set image= \
+  --set fd.interval=2000 \
+  --set fd.timeout=10000 \
+  --set createSessionsCaches=false \
   --set acceleratorDNS=a3da6a6cbd4e27b02.awsglobalaccelerator.com \
+  --set alertmanager.webhook.url=https://tjqr2vgc664b6noj6vugprakoq0oausj.lambda-url.eu-west-1.on.aws/ \
   --set alertmanager.webhook.username=keycloak \
   --set alertmanager.webhook.password=changme \
-  --set alertmanager.webhook.url=https://tjqr2vgc664b6noj6vugprakoq0oausj.lambda-url.eu-west-1.on.aws/ \
   > ${BUILDDIR}/helm/ispn-site-a.yaml
 
 # Infinispan site B deployment
@@ -113,4 +124,16 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set metrics.histograms=false \
   --set hotrodPassword="strong-password" \
   --set cacheDefaults.crossSiteMode=SYNC \
+  --set cacheDefaults.stateTransferMode=AUTO \
+  --set cacheDefaults.xsiteFailurePolicy=FAIL \
+  --set cacheDefaults.txMode=NON_XA \
+  --set cacheDefaults.txLockMode=PESSIMISTIC \
+  --set image= \
+  --set fd.interval=2000 \
+  --set fd.timeout=10000 \
+  --set createSessionsCaches=false \
+  --set acceleratorDNS=a3da6a6cbd4e27b02.awsglobalaccelerator.com \
+  --set alertmanager.webhook.url=https://tjqr2vgc664b6noj6vugprakoq0oausj.lambda-url.eu-west-1.on.aws/ \
+  --set alertmanager.webhook.username=keycloak \
+  --set alertmanager.webhook.password=changme \
   > ${BUILDDIR}/helm/ispn-site-b.yaml
