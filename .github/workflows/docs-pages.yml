@@ -34,12 +34,6 @@ jobs:
       - name: Build docs
         working-directory: antora
         run: ./build.sh
-      - name: Add benchmark data to website
-        run: |
-          mkdir -p antora/_site/keycloak-benchmark/results
-          gh release download aggregated-benchmarks -D antora/_site/keycloak-benchmark/results --repo keycloak/keycloak-benchmark
-        env:
-          GH_TOKEN: ${{ github.token }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
