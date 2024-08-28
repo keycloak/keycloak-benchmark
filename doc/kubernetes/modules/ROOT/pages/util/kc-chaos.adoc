@@ -7,7 +7,7 @@
 
 There is an excellent writeup about why we need chaos testing tools in general https://redhat-chaos.github.io/krkn/#introduction[in the introduction to the chaos testing tool krkn].
 
-== Running the failure test from the CLI
+== Running the failure test using `kc-chaos.sh` script
 
 === Preparations
 
@@ -40,3 +40,44 @@ Set the environment variables below to configure on how and where this script ge
 === Collecting the results
 
 The chaos script also collects information about the Keycloak failures, Keycloak pod utilization, Keycloak pod restarts, Keycloak logs before killing the keycloak pod and at the end of the run and store them under the `results/logs` directory.
+
+== Running the failure test using Krkn Chaos testing framework
+
+We integrated a Chaos testing framework https://krkn-chaos.github.io/krkn/[krkn] as part of a Taskfile https://github.com/keycloak/keycloak-benchmark/blob/main/provision/rosa-cross-dc/Chaos.yaml[Chaos.yaml] and created individual tasks to run the `pod-scenarios` test against different components within the multi-site setup of Keycloak on Kubernetes.
+It focuses on simulating Pod failure scenarios for Keycloak and Infinispan applications.
+
+=== Preparations
+
+* This Taskfile requires Podman/Docker to be installed and configured on the system.
+* The Kubernetes configuration file for the ROSA cluster must be available in the specified `ISPN_DIR` directory.
+* Make sure to set the required environment variables before running the tasks.
+* You can customize the behavior of the tasks by overriding the default values for the variables.
+
+==== kraken-pod-scenarios
+This is an internal task that provides the core functionality for running Kraken pod failure scenarios. It uses the pod-scenarios image from the https://github.com/krkn-chaos/krkn-hub/tree/main[krkn-chaos/krkn-hub] repository. The task requires the following variables:
+
+`ROSA_CLUSTER_NAME`:: The name of the ROSA cluster
+`POD_LABEL`:: A label selector to identify the target pods
+`EXPECTED_POD_COUNT`:: The expected number of pods after the disruption
+`ISPN_DIR`:: The directory containing the Infinispan configuration
+
+The task sets some default values for variables like `DEFAULT_NAMESPACE`, `DISRUPTION_COUNT`, `WAIT_DURATION`, and `ITERATIONS`. It also has a precondition to ensure the existence of the Kubernetes configuration file.
+
+==== kill-gossip-router
+This task kills the JGroups Gossip Router pod in the Infinispan cluster. It calls the `kraken-pod-scenarios` task with specific values for `POD_LABEL`, `DISRUPTION_COUNT`, and `EXPECTED_POD_COUNT`.
+
+[WARNING]
+====
+Right now, the `kill-gossip-router` task fails with an `timeout while waiting for pods to come up` error message, which needs to be fixed and currently tracked under https://github.com/keycloak/keycloak-benchmark/issues/943[a GitHub issue].
+====
+
+==== kill-infinispan
+This task kills a random Infinispan pod. It calls the kraken-pod-scenarios task with appropriate values for  `POD_LABEL`, `DISRUPTION_COUNT`, and `EXPECTED_POD_COUNT`. The default value for `EXPECTED_POD_COUNT` is calculated based on the `CROSS_DC_ISPN_REPLICAS` variable (or 3 if not set).
+
+==== kill-keycloak
+This task kills a random Keycloak pod. It calls the kraken-pod-scenarios task with specific values for  `POD_LABEL`, `DISRUPTION_COUNT`, and `EXPECTED_POD_COUNT`. The default value for `EXPECTED_POD_COUNT` is calculated based on the `KC_INSTANCES` variable (or 1 if not set).
+
+
+=== Limitations
+
+* Currently, we are not able to peek into the Krkn report which gets generated inside the kraken pod but gets removed as its ephemeral storage. This is currently planned to be fixed and tracked in https://github.com/keycloak/keycloak-benchmark/issues/942[a GitHub issue].
