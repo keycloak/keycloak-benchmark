@@ -1,11 +1,13 @@
 package org.keycloak.benchmark.crossdc;
 
+import org.infinispan.client.hotrod.RemoteCache;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
 import org.keycloak.benchmark.crossdc.util.KeycloakUtils;
 import org.keycloak.common.util.Time;
+import org.keycloak.models.sessions.infinispan.entities.RootAuthenticationSessionEntity;
 import org.keycloak.representations.idm.ClientRepresentation;
 
 import java.io.IOException;
@@ -22,6 +24,8 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
+import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.AUTHENTICATION_SESSIONS_CACHE_NAME;
 
 public class ConcurrentModificationTest extends AbstractCrossDCTest {
 
@@ -59,7 +63,7 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
         LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
 
         // Copy cookies also to the other DCs URLs, so we can log in to the same user session from DC_1 and DC_2 URLs
-        CookieManager mockCookieManager = HttpClientUtils.MOCK_COOKIE_MANAGER;
+        CookieManager mockCookieManager = MOCK_COOKIE_MANAGER;
         List<HttpCookie> copy = List.copyOf(mockCookieManager.getCookieStore().getCookies());
         copy.forEach(cookie -> {
             if (cookie.getDomain().startsWith(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl().substring("https://".length()))) {
@@ -115,6 +119,31 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
         if (failureCounter.get() > 0) {
             throw parentException;
         }
+    }
+
+    @Test
+    void testConcurrentAuthenticationSessionsAddition() throws IOException, URISyntaxException, InterruptedException {
+        RemoteCache<String, RootAuthenticationSessionEntity> authenticationSessions = (RemoteCache<String, RootAuthenticationSessionEntity>) DC_1.ispn().cache(AUTHENTICATION_SESSIONS_CACHE_NAME).getRemoteCache();
+        authenticationSessions.clear();
+
+        HttpResponse<String> stringHttpResponse = LOAD_BALANCER_KEYCLOAK.openLoginForm(REALM_NAME, CLIENTID);
+        assertEquals(200, stringHttpResponse.statusCode());
+
+        int ITERATIONS = 20;
+        IntStream.range(0, ITERATIONS).parallel().forEach(j -> {
+            try {
+                HttpResponse<String> response = LOAD_BALANCER_KEYCLOAK.openLoginForm(REALM_NAME, CLIENTID);
+                assertEquals(200, response.statusCode());
+            } catch (IOException | InterruptedException | URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        assertEquals(1, authenticationSessions.size());
+        try (var iter = authenticationSessions.values().iterator()) {
+            assertEquals(ITERATIONS + 1, iter.next().getAuthenticationSessions().size());
+        }
+
     }
 
     private HttpCookie createCookie(HttpCookie oldCookie, String domain) {

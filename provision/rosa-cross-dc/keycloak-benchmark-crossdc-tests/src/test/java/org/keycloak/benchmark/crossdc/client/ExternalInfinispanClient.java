@@ -108,6 +108,11 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
         }
 
         @Override
+        public RemoteCache getRemoteCache() {
+            return null;
+        }
+
+        @Override
         public long size() {
             return 0;
         }
@@ -203,6 +208,11 @@ public class ExternalInfinispanClient implements InfinispanClient<InfinispanClie
                 var status = Json.read(rsp.body()).at(backupSiteName).at("status").asString();
                 return "online".equals(status);
             }
+        }
+
+        @Override
+        public RemoteCache getRemoteCache() {
+            return cacheHotRodClient;
         }
     }
 
