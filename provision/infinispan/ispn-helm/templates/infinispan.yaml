@@ -225,7 +225,11 @@ metadata:
   name: crossdc-push-state-status
   namespace: {{ $namespace }}
 data:
-  batch: site push-site-status --all-caches --site={{.Values.crossdc.remote.name}}
+  batch: |
+    site push-site-status --cache=actionTokens
+    site push-site-status --cache=authenticationSessions
+    site push-site-status --cache=loginFailures
+    site push-site-status --cache=worksite
 # end::infinispan-crossdc-push-state-status[]
 ---
 # tag::infinispan-crossdc-reset-push-state-status[]
@@ -235,7 +239,11 @@ metadata:
   name: crossdc-reset-push-state-status
   namespace: {{ $namespace }}
 data:
-  batch: site clear-push-state-status --all-caches --site={{.Values.crossdc.remote.name}}
+  batch: |
+    site clear-push-site-status --cache=actionTokens
+    site clear-push-site-status --cache=authenticationSessions
+    site clear-push-site-status --cache=loginFailures
+    site clear-push-site-status --cache=work
 # end::infinispan-crossdc-reset-push-state-status[]
 ---
 # tag::infinispan-crossdc-clear-caches[]

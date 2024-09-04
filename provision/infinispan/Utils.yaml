@@ -475,20 +475,10 @@ tasks:
         - ROSA_CLUSTER_NAME
         - NAMESPACE
     cmds:
-      - task: rosa-oc-login
-      - |
-        cat << EOF | KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} apply -f -
-        apiVersion: infinispan.org/v2alpha1
-        kind: Batch
-        metadata:
-          name: bring-online
-        spec:
-          cluster: infinispan
-          configMap: crossdc-connect
-        EOF
-      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} delete Batch/bring-online || true
-      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} logs job/bring-online || true
-      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/bring-online
+      - task: execute-batch
+        vars:
+          CONFIG_MAP: crossdc-connect
+          NAME: bring-online
 
   crossdc-disconnect:
     internal: true
@@ -498,21 +488,10 @@ tasks:
         - ROSA_CLUSTER_NAME
         - NAMESPACE
     cmds:
-      - task: rosa-oc-login
-
-      - |
-        cat << EOF | KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} apply -f -
-        apiVersion: infinispan.org/v2alpha1
-        kind: Batch
-        metadata:
-          name: take-offline
-        spec:
-          cluster: infinispan
-          configMap: crossdc-disconnect
-        EOF
-      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} delete Batch/take-offline || true
-      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} logs job/take-offline || true
-      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/take-offline
+      - task: execute-batch
+        vars:
+          CONFIG_MAP: crossdc-disconnect
+          NAME: take-offline
 
   crossdc-split:
     internal: true
@@ -525,14 +504,28 @@ tasks:
     cmds:
       - task: gossip-router-kill
         vars:
+          NAMESPACE: "{{.NAMESPACE}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - task: gossip-router-kill
         vars:
+          NAMESPACE: "{{.NAMESPACE}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: until-log
+        # We can't use CrossSiteViewFormed condition due to JDG-5409
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.TASKFILE_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}"
+          REGEX: "ISPN000976.*{{.ROSA_CLUSTER_NAME_2}}"
+      - task: until-log
+        # We can't use CrossSiteViewFormed condition due to JDG-5409
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.TASKFILE_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}"
+          REGEX: "ISPN000976.*.{{.ROSA_CLUSTER_NAME_1}}"
 
   crossdc-heal:
     internal: true
-    desc: "Heal a simulated split-brain by recreating down the GossipRouter on each site"
+    desc: "Heal a simulated split-brain by recreating the GossipRouter on each site"
     requires:
       vars:
         - NAMESPACE
@@ -541,11 +534,52 @@ tasks:
     cmds:
       - task: gossip-router-resurrect
         vars:
+          NAMESPACE: "{{.NAMESPACE}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - task: gossip-router-resurrect
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: until-log
+        # We can't use CrossSiteViewFormed condition due to JDG-5409
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.TASKFILE_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}"
+          REGEX: "ISPN000439.*.{{.ROSA_CLUSTER_NAME_1}}*.*{{.ROSA_CLUSTER_NAME_2}}"
+      - task: until-log
+        # We can't use CrossSiteViewFormed condition due to JDG-5409
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.TASKFILE_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}"
+          REGEX: "ISPN000439.*.{{.ROSA_CLUSTER_NAME_1}}*.*{{.ROSA_CLUSTER_NAME_2}}"
+
+  crossdc-sync-state:
+    internal: true
+    desc: "Push cache state of ROSA_CLUSTER_NAME to backup site"
+    requires:
+      vars:
+        - NAMESPACE
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - echo "crossdc-sync-state"
+      - task: execute-batch
+        vars:
+          CONFIG_MAP: crossdc-push-state
+          NAME: push-state
+          NAMESPACE: "{{.NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: execute-batch
+        vars:
+          CONFIG_MAP: crossdc-push-state-status
+          NAME: push-state-status
+          NAMESPACE: "{{.NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: execute-batch
+        vars:
+          CONFIG_MAP: crossdc-reset-push-state-status
+          NAME: reset-push-state-status
+          NAMESPACE: "{{.NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
 
   gossip-router-kill:
     internal: true
@@ -560,8 +594,8 @@ tasks:
       - |
         KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n openshift-operators scale --replicas=0 deployment/infinispan-operator-controller-manager
         KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n openshift-operators rollout status -w deployment/infinispan-operator-controller-manager
-        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n ${NAMESPACE} scale --replicas=0 deployment/infinispan-router
-        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n ${NAMESPACE} rollout status -w deployment/infinispan-router
+        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.NAMESPACE}} delete pods -l app=infinispan-router-pod --force --grace-period=0
+        KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.NAMESPACE}} delete deployment/infinispan-router || true
 
   gossip-router-resurrect:
     internal: true
@@ -574,9 +608,15 @@ tasks:
           vars:
             ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
         - |
-          KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n openshift-operators scale --replicas=1 deployment/infinispan-operator-controller-manager
-          KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n openshift-operators rollout status -w deployment/infinispan-operator-controller-manager
-          KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n ${NAMESPACE} rollout status -w deployment/infinispan-router
+          export KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+          kubectl -n openshift-operators scale --replicas=1 deployment/infinispan-operator-controller-manager
+          kubectl -n openshift-operators rollout status -w deployment/infinispan-operator-controller-manager
+          # Wait for Infinispan operator to recreate the gossip router deployment
+          until kubectl -n {{.NAMESPACE}} get deployment/infinispan-router -o=jsonpath='{.items[0].metadata.name}' >/dev/null 2>&1; do
+            echo "Waiting for deployment/infinispan-router to be created"
+            sleep 1
+          done
+          kubectl -n {{.NAMESPACE}} rollout status -w deployment/infinispan-router
 
   fetch-endpoint:
     internal: true
@@ -591,3 +631,47 @@ tasks:
       - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{.NAMESPACE}} get route infinispan-external -o jsonpath='{.status.ingress[].host}' > .task/ispn-endpoint-{{.ROSA_CLUSTER_NAME}}
     generates:
       - .task/ispn-endpoint-{{.ROSA_CLUSTER_NAME}}
+
+  execute-batch:
+    internal: true
+    desc: "Execute a Batch CR and wait for completion"
+    requires:
+      vars:
+        - CONFIG_MAP
+        - NAME
+        - NAMESPACE
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: rosa-oc-login
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - |
+        cat << EOF | KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} apply -f -
+        apiVersion: infinispan.org/v2alpha1
+        kind: Batch
+        metadata:
+          name: {{.NAME}}
+        spec:
+          cluster: infinispan
+          configMap: {{.CONFIG_MAP}}
+        EOF
+      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} delete Batch/{{.NAME}} || true
+      - defer: KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} logs job/{{.NAME}} || true
+      - KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" kubectl -n {{ .NAMESPACE }} wait --for=jsonpath='{.status.phase}'=Succeeded Batch/{{.NAME}}
+
+  until-log:
+    internal: true
+    requires:
+      vars:
+        - NAMESPACE
+        - KUBECONFIG
+        - REGEX
+    cmds:
+      - |
+        # Anonymous pipes fail with Taskfiles for some reason, so polling the logs instead of streaming is required
+        export KUBECONFIG="{{.KUBECONFIG}}"
+        until kubectl -n {{.NAMESPACE}} logs -l app=infinispan-pod --since 1m --tail -1 | grep -q '{{.REGEX}}'; do
+          echo "Waiting for log to match pattern '{{.REGEX}}'"
+          sleep 1
+        done
