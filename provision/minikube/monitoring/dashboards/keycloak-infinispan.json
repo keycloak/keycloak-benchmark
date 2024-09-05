@@ -222,7 +222,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / (rate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) + rate(vendor_cache_container_stats_misses{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]))",
+          "expr": "irate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / (irate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) + irate(vendor_cache_container_stats_misses{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]))",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -658,7 +658,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_jgroups_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / rate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m])",
+          "expr": "irate(vendor_jgroups_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / irate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -754,7 +754,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
+          "expr": "irate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -958,7 +958,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_statistics_stores{cache=\"$distributed_cache\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
+          "expr": "irate(vendor_statistics_stores{cache=\"$distributed_cache\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -1244,7 +1244,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum by (pod,site) (rate(vendor_rpc_manager_number_xsite_requests_sent_to_site{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
+          "expr": "sum by (pod,site) (irate(vendor_rpc_manager_number_xsite_requests_sent_to_site{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
           "legendFormat": "{{pod}} -> {{site}} - sent",
           "range": true,
           "refId": "A"
@@ -1255,7 +1255,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum by (pod,site) (rate(vendor_rpc_manager_number_xsite_requests_received_from_site{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
+          "expr": "sum by (pod,site) (irate(vendor_rpc_manager_number_xsite_requests_received_from_site{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
           "hide": false,
           "legendFormat": "{{pod}} <- {{site}} - received",
           "range": true,
@@ -1354,7 +1354,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m]) / rate(vendor_rpc_manager_cross_site_replication_times_seconds_count{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m])",
+          "expr": "irate(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m]) / irate(vendor_rpc_manager_cross_site_replication_times_seconds_count{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m])",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -1560,7 +1560,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (rate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + rate(vendor_statistics_misses{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
+          "expr": "irate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (irate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + irate(vendor_statistics_misses{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
