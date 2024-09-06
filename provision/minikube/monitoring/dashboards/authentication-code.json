@@ -134,7 +134,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(http_server_requests_seconds_bucket{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", le=\"0.25\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m])) without (le) / rate(http_server_requests_seconds_count{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m]) ",
+          "expr": "sum(irate(http_server_requests_seconds_bucket{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", le=\"0.25\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m])) without (le) / irate(http_server_requests_seconds_count{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m]) ",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -148,7 +148,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) / (rate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) + rate(vendor_statistics_misses{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]))",
+          "expr": "irate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) / (irate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) + irate(vendor_statistics_misses{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]))",
           "hide": false,
           "legendFormat": "Realms cache hit ratio",
           "range": true,
@@ -160,7 +160,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) / (rate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) + rate(vendor_statistics_misses{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]))",
+          "expr": "irate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) / (irate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) + irate(vendor_statistics_misses{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]))",
           "hide": false,
           "legendFormat": "Users cache hit ratio",
           "range": true,
@@ -365,7 +365,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m])) by (le,uri))",
+          "expr": "histogram_quantile(0.99, sum(irate(http_server_requests_seconds_bucket{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m])) by (le,uri))",
           "legendFormat": "{{uri}}",
           "range": true,
           "refId": "A"
