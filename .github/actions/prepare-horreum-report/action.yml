@@ -26,7 +26,7 @@ runs:
         OUTPUT_FILE_NAME="${output_file_prefix}${cur_date_iso_compressed}-${uuid}.json"
         echo "HORREUM_OUTPUT_FILE_NAME=$OUTPUT_FILE_NAME" >> $GITHUB_ENV
         jq -n --arg current_date "${cur_date_iso}" --arg id "${uuid}" \
-        '{"$schema": "urn:keycloak-benchmark:0.1", "uuid": ($id), "name": "ROSA Scalability Benchmark Run Results",
+        '{"$schema": "urn:keycloak-benchmark:0.2", "uuid": ($id), "name": "ROSA Scalability Benchmark Run Results",
         "start": ($current_date), "end": ""}' > ${OUTPUT_FILE_NAME}
         #Reading configmap with environment data
         configJson=$(oc get configmap env-config -n ${{ env.PROJECT }} -o "jsonpath={ .data['environment_data\.json']}'" | rev | cut -d\' -f2- | rev | jq)
