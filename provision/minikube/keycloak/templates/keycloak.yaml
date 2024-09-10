@@ -62,6 +62,9 @@ spec:
 {{- if .Values.externalInfinispan }}
       - remote-cache
 {{- end }}
+{{ if .Values.otel }}
+      - opentelemetry
+{{- end }}
 {{- if .Values.externalInfinispan }}
     disabled:
       - persistent-user-sessions
