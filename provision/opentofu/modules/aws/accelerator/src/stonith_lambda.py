@@ -147,6 +147,13 @@ def handler(event, context):
 
     body = json.loads(body)
     print(json.dumps(body))
+
+    if body['status'] != 'firing':
+        print("Ignoring alert as status is not 'firing', status was: '%s'" % body['status'])
+        return {
+            "statusCode": 204
+        }
+
     for alert in body['alerts']:
         labels = alert['labels']
         if labels['alertname'] == 'SiteOffline':

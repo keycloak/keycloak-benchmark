@@ -1,8 +1,10 @@
 package org.keycloak.benchmark.crossdc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.keycloak.benchmark.crossdc.FailoverTest.SITE_OFFLINE_ALERT;
 import static org.keycloak.benchmark.crossdc.client.AWSClient.acceleratorClient;
 import static org.keycloak.benchmark.crossdc.util.HttpClientUtils.MOCK_COOKIE_MANAGER;
 import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME;
@@ -132,12 +134,29 @@ public abstract class AbstractCrossDCTest {
 
         realmResource.users().create(user).close();
 
+        // Assert the environment is set up correctly and in default state
         clearCache(DC_1, USER_SESSION_CACHE_NAME);
         clearCache(DC_1, CLIENT_SESSION_CACHE_NAME);
         clearCache(DC_2, USER_SESSION_CACHE_NAME);
         clearCache(DC_2, CLIENT_SESSION_CACHE_NAME);
         assertCacheSize(USER_SESSION_CACHE_NAME, 0);
         assertCacheSize(CLIENT_SESSION_CACHE_NAME, 0);
+
+        assertFalse(DC_1.prometheus().isAlertFiring(SITE_OFFLINE_ALERT));
+        assertFalse(DC_2.prometheus().isAlertFiring(SITE_OFFLINE_ALERT));
+
+        assertEquals(DC_1.ispn().getSiteView().size(), 2);
+        assertEquals(DC_2.ispn().getSiteView().size(), 2);
+
+        if (activePassive) {
+            Stream.of(DC_1, DC_2).forEach(dc -> {
+                String healthCheckId = AWSClient.getHealthCheckId(dc.getKeycloakServerURL().substring("https://".length()));
+                String route53HealthCheckPath = AWSClient.getRoute53HealthCheckPath(healthCheckId);
+                assertTrue(route53HealthCheckPath.endsWith("/lb-check"), "Health check path was supposed to end with /lb-check but was " + route53HealthCheckPath);
+            });
+        } else {
+            assertEquals(AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size(), 2);
+        }
     }
 
     private void clearCache(DatacenterInfo dc, String cache) {
