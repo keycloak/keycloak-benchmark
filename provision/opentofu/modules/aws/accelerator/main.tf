@@ -63,9 +63,9 @@ module "lambda_function" {
   }
 
   function_name              = var.name
-  handler                    = "stonith_lambda.handler"
+  handler                    = "fencing_lambda.handler"
   runtime                    = "python3.12"
-  source_path                = "src/stonith_lambda.py"
+  source_path                = "src/fencing_lambda.py"
   create_lambda_function_url = true
   timeout                    = 15
 
