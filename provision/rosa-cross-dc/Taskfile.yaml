@@ -1152,6 +1152,7 @@ tasks:
         - ROSA_CLUSTER_NAME_1
         - ROSA_CLUSTER_NAME_2
     cmds:
+      - if [ ! -d .task ]; then mkdir .task; fi
       - |
         ALL_SITES=$(echo "{{.ROSA_CLUSTER_NAME_1}} {{.ROSA_CLUSTER_NAME_2}}" | xargs -n1 | sort | xargs)
         ONLINE_SITES="$(ACCELERATOR_NAME={{.ACCELERATOR_NAME}} ../aws/global-accelerator/accelerator_active_clusters.sh)"

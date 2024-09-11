@@ -283,6 +283,7 @@ tasks:
         - KUBECONFIG
         - NAMESPACE
     cmds:
+      - if [ ! -d .task ]; then mkdir .task; fi
       - |
         export KUBECONFIG={{.KUBECONFIG}}
         INSTANCES=$(kubectl -n {{.KC_ISPN_NAMESPACE}} get keycloak/keycloak -o jsonpath='{.spec.instances}')
@@ -303,5 +304,6 @@ tasks:
         - REPLICAS
     cmds:
       - |
+        export KUBECONFIG={{.KUBECONFIG}}
         kubectl -n {{.NAMESPACE}} scale --replicas={{.REPLICAS}} keycloak/keycloak
         kubectl -n {{.NAMESPACE}} rollout status --watch --timeout=600s statefulset/keycloak
