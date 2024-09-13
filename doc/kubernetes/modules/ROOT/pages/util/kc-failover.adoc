@@ -1,88 +1,65 @@
 = Simulate Keycloak Site Failover
-:description: How to automate the simulation of Keycloak site failure.
+:description: How to automate the simulation of Keycloak site failures.
 
 == Prerequisites:
 
-* A Keycloak instance replicated across two Openshift clusters with Infinispan xsite and an Aurora DB
-* Realm, user and client exist with the values required by the benchmark CLI command
+* A Keycloak instance replicated across two ROSA clusters with Infinispan xsite and an Aurora DB
+* xref:prerequisite/prerequisite-task.adoc[Task]
 
 == Running the failure test from the CLI
 
-=== Preparations
 
-* Extract the `+keycloak-benchmark-${version}.[zip|tar.gz]+` file
-* xref:benchmark-guide::preparing-keycloak.adoc[]
-* Make sure your local KUBECONFIG is set to the Openshift cluster which you want to fail.
+== Installation steps
 
-=== Parameters
+. Check out the Git repository from https://github.com/keycloak/keycloak-benchmark/.
 
-The failover scripts requires the following env variables to be set; `FAILOVER_MODE` and `DOMAIN`.
+. Change to the folder `link:{github-files}/provision/rosa-cross-dc/[provision/rosa-cross-dc]`.
 
-The `FAILOVER_MODE` determines the type of failover that is initiated by the script and can be one of the following values:
-[cols='1,3']
-|===
-| FAILOVER_MODE | Description
+. Provide the required variables for the desired task in a `.env` file in the folder.
 
-| [.nowrap]`HEALTH_PROBE`
-| Deletes the Keycloak aws-health-route so that Route53 will eventually failover.
 
-| [.nowrap]`KEYCLOAK_ROUTES`
-| Deletes all Keycloak routes so that Route53 will eventually failover, but requests to the old DNS IP addresses will fail.
-The Keycloak Operator is scaled down to 0 pods to prevent the Keycloak Ingress from being recreated.
+== Split Brain
 
-| [.nowrap]`CLUSTER_FAIL`
-| Deletes all Keycloak and Infinispan pods with no grace period and remove the associated StatefulSet. Both operators are
-scaled down to prevent the removed resources from being recreated.
+Two tasks are provided for split-brain failover, one to cause a split-brain and the other to recover from it:
 
-| [.nowrap]`GOSSIP_ROUTER_FAIL`
-| Deletes the Infinispan Gossip Router pod with no grace period and removes the associated Deployment. The Infinispan
-operator is scaled down to prevent the removed resources from being recreated.
-|===
-
-See below for a description of the other environment variables that can be configured.
-
-`DOMAIN` :: *Required*. The Route53 domain hosting the `client.`, `primary.` and `backup.` subdomains.
-
-`FAILOVER_DELAY` :: *Optional*. The delay in seconds to wait before initiating cluster failover. Defaults to 60 seconds.
-
-=== Execution
-
-Use the xref:benchmark-guide::run/running-benchmark-cli.adoc[] guide to simulate load against a specific Kubernetes environment.
-
-In parallel execute below command to initiate failover:
-
-[source,bash]
+[source]
 ----
-FAILOVER_MODE="KEYCLOAK_ROUTES" DOMAIN=... ./kc-failover.sh
+* split-heal:                             Heal a split-brain simulation by reenabling GossipRouters and reseting the global accelerator endpoints
+* split-trigger:                          Disables Infinispan GossipRouters on each cluster to simulate a split-brain scenario
 ----
 
-NOTE: In order for the `kc-failover.sh` script to accurately record the time taken for Route53 failover to occur, it's
-recommended that the script is executed in the same environment as the Keycloak benchmark scenario.
-
-== Restoring clusters after failover tests
-Once a failover benchmark has been executed, it's possible to restore the original cluster state by executing the script
-with the `RECOVERY_MODE` env variable set. The value of  `RECOVERY_MODE` determines the subdomain that is used to recreate
-the `aws-health-route` Route.
-
-=== Parameters
-
-[cols='1,3']
 |===
-| RECOVERY_MODE | Description
+|Variable |Details
 
-| [.nowrap]`ACTIVE`
-| Recreates the `aws-health-route` Route with `primary.$\{DOMAIN}` URL and scales up the Infinispan and Keycloak operators.
+|ACCELERATOR_NAME
+|The unique name of the AWS Global Accelerator used by the deployment.
 
-| [.nowrap]`PASSIVE`
-| Recreates the `aws-health-route` Route with `backup.$\{DOMAIN}` URL and scales up the Infinispan and Keycloak operators.
+|ROSA_CLUSTER_NAME_1
+|The name of one ROSA cluster.
+
+|ROSA_CLUSTER_NAME_2
+|The name of the other ROSA cluster.
+
 |===
 
+== Cluster Failure
 
-`DOMAIN` :: *Required*. The Route53 domain hosting the `client.`, `primary.` and `backup.` subdomains.
+Two tasks are provided for simulating cluster failures. One to aggressively delete the Keycloak and Infinispan StatefulSets,
+the other to recreate them:
 
-=== Execution
-
-[source,bash]
+[source]
 ----
-RECOVERY_MODE=ACTIVE DOMAIN=... ./kc-failover.sh
+* kill-cluster:                           Delete the Keycloak and Infinispan StatefulSets in the specified cluster
+* revive-cluster:                         Recreate the Keycloak and Infinispan StatefulSets in the specified cluster
 ----
+
+The `kill-cluster` task disables both the Keycloak and Infinispan Operators to prevent the StatefulSets being recreated
+automatically. Conversely, the `revive-cluster` re-enables the Operators to allow the StatefulSets to be recreated.
+
+|===
+|Variable |Details
+
+|ROSA_CLUSTER_NAME
+|The name of the ROSA cluster.
+
+|===

@@ -13,6 +13,7 @@ vars:
   ROUTE53_DIR: "{{.ROOT_DIR}}/../aws/route53"
   RDS_DIR: "{{.ROOT_DIR}}/../aws/rds"
   KC_DIR: "{{.ROOT_DIR}}/../openshift"
+  KC_TASKS_DIR: "{{.ROOT_DIR}}/../keycloak-tasks"
   ANSIBLE_DIR: "{{.ROOT_DIR}}/../../ansible"
   PYTHON_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/python"
   BENCHMARK_DIR: "{{.ROOT_DIR}}/../../benchmark/src/main/content/bin"
@@ -1034,3 +1035,127 @@ tasks:
             \"SECRETS_REGION\" : \"eu-central-1\"
           }
         }"
+
+
+  kill-cluster:
+    desc: "Delete the Keycloak and Infinispan StatefulSets in the specified cluster"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: scale-k8s-resource
+        vars:
+          NAMESPACE: openshift-operators
+          RESOURCE: deployment/infinispan-operator-controller-manager
+          REPLICAS: 0
+      - task: scale-k8s-resource
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          RESOURCE: deployment/keycloak-operator
+          REPLICAS: 0
+      - kubectl -n {{.KC_ISPN_NAMESPACE}} delete pods --all --force --grace-period=0
+      - kubectl -n {{.KC_ISPN_NAMESPACE}} delete statefulset --all
+
+  revive-cluster:
+    desc: "Recreate the Keycloak and Infinispan StatefulSets in the specified cluster"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: scale-k8s-resource
+        vars:
+          NAMESPACE: openshift-operators
+          RESOURCE: deployment/infinispan-operator-controller-manager
+          REPLICAS: 1
+      - task: scale-k8s-resource
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          RESOURCE: deployment/keycloak-operator
+          REPLICAS: 1
+      - kubectl -n {{.KC_ISPN_NAMESPACE}} rollout status --watch --timeout=600s statefulset/infinispan
+      - kubectl -n {{.KC_ISPN_NAMESPACE}} rollout status --watch --timeout=600s statefulset/keycloak
+
+  scale-k8s-resource:
+    internal: true
+    requires:
+      vars:
+        - NAMESPACE
+        - RESOURCE
+        - REPLICAS
+    cmds:
+      - kubectl -n {{.NAMESPACE}} scale --replicas={{.REPLICAS}} {{.RESOURCE}}
+      - kubectl -n {{.NAMESPACE}} rollout status --watch --timeout=600s {{.RESOURCE}}
+
+  split-trigger:
+    desc: "Disables Infinispan GossipRouters on each cluster to simulate a split-brain scenario"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:crossdc-split
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          ROSA_CLUSTER_NAME_1: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME_2: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  split-heal:
+    desc: "Heal a split-brain simulation by reenabling GossipRouters and reseting the global accelerator endpoints"
+    requires:
+      vars:
+        - ACCELERATOR_NAME
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: fetch-accelerator-site-status
+      - task: keycloak:scale-down
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/$(cat {{.ROOT_DIR}}/.task/accelerator-offline-sites)"
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+      - task: ispn:crossdc-heal
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          ROSA_CLUSTER_NAME_1: "{{.ROSA_CLUSTER_NAME_1}}"
+          ROSA_CLUSTER_NAME_2: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:crossdc-sync-state
+        vars:
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          ROSA_CLUSTER_NAME: "$(cat {{.ROOT_DIR}}/.task/accelerator-online-sites)"
+      - task: keycloak:scale-up
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/$(cat {{.ROOT_DIR}}/.task/accelerator-offline-sites)"
+          NAMESPACE: "{{.KC_ISPN_NAMESPACE}}"
+          REPLICAS: "$(cat {{.KC_TASKS_DIR}}/.task/var-KC_INSTANCES)"
+      - >
+        ACCELERATOR_NAME={{.ACCELERATOR_NAME}}
+        CLUSTER_NAME=$(cat {{.ROOT_DIR}}/.task/accelerator-offline-sites)
+        KEYCLOAK_NAMESPACE={{.KC_ISPN_NAMESPACE}}
+        ../aws/global-accelerator/accelerator_add_cluster.sh
+
+  fetch-accelerator-site-status:
+    internal: true
+    requires:
+      vars:
+        - ACCELERATOR_NAME
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - if [ ! -d .task ]; then mkdir .task; fi
+      - |
+        ALL_SITES=$(echo "{{.ROSA_CLUSTER_NAME_1}} {{.ROSA_CLUSTER_NAME_2}}" | xargs -n1 | sort | xargs)
+        ONLINE_SITES="$(ACCELERATOR_NAME={{.ACCELERATOR_NAME}} ../aws/global-accelerator/accelerator_active_clusters.sh)"
+        OFFLINE_SITES="$(echo "${ALL_SITES//${ONLINE_SITES}/}" | xargs)"
+        echo "${ONLINE_SITES}" > .task/accelerator-online-sites
+        echo "${OFFLINE_SITES}" > .task/accelerator-offline-sites
