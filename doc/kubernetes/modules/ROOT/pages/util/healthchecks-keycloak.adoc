@@ -52,7 +52,9 @@ curl -s https://keycloak_site_b_url/lb-check
 ----
 
 === Infinispan Cache Health
-Checks the health of the default cache manager and individual caches in an external Infinispan cluster. This is vital for Keycloak performance and reliability, as Infinispan is often used for distributed caching and session clustering in Keycloak deployments.
+Check the health of the default cache manager and individual caches in an external Infinispan cluster.
+This is vital for Keycloak performance and reliability,
+as Infinispan is often used for distributed caching and session clustering in Keycloak deployments.
 
 This command returns the overall health of the Infinispan cache manager, this is useful as the Admin user doesn't need to provide user credentials to get the health status.
 [source,bash]
@@ -91,7 +93,7 @@ oc get infinispan -n <NAMESPACE> -o json  \
 ----
 
 === Keycloak Readiness in Openshift
-Specifically checks for the readiness and rolling update conditions of Keycloak deployments in Red Hat OpenShift, ensuring that the Keycloak instances are fully operational and not undergoing updates that could impact availability.
+Specifically, checks for the readiness and rolling update conditions of Keycloak deployments in Red Hat OpenShift, ensuring that the Keycloak instances are fully operational and not undergoing updates that could impact availability.
 
 [source,bash]
 ----
@@ -101,31 +103,69 @@ oc wait --for=condition=RollingUpdate=False --timeout=10s keycloaks.k8s.keycloak
 ==== Optional Bash script
 You can use the link:{github-files}/provision/rosa-cross-dc/cross-site-health-checks.sh[cross-site-health-checks.sh] script and extend it to perform the necessary checks and integrate this into your monitoring architecture.
 
-To run the script, as a pre-requisite, you need to establish a session from your terminal to the target OCP cluster with a command such as,
+To run the script, as a pre-requisite,
+you need to establish a session from your terminal to the target OCP cluster with a command.
 
 [source,bash]
 ----
 oc login --token=sha256~masked-key --server=https://api.gh-keycloak-a.masked.openshiftapps.com:6443
 ----
 
+Also note, it would be necessary to run this script against all the clusters in the cluster group,
+so the Administrator would have to repeat the above `oc` login command for all the clusters,
+which could be automated.
+
 To run the script itself once you have an active `oc` session below is an example usage.
 
 [source,bash]
 ----
-./cross-site-health-checks.sh -d gh-keycloak-a-gh-keycloak-b-masked.keycloak-benchmark.com \
--u developer -p masked-password \
--s gh-keycloak-a.masked.openshiftapps.com \
--c 3 -n runner-keycloak
+./cross-site-health-checks.sh \
+-n runner-keycloak \
+-l <KEYCLOAK_LB_URL> \
+-k <KEYCLOAK_SITE_URL> \
+-i <KEYCLOAK_ISPN_REST_URL> \
+-u developer \
+-p <ISPN_REST_URL_PWD> \
+-c 3
+
+Verify the Keycloak Load Balancer health check
+Checking health for: KEYCLOAK_LB_URL/lb-check
+"HEALTHY"
+
+Verify the Load Balancer health check on the Site
+Checking health for: KEYCLOAK_SITE_URL/lb-check
+"HEALTHY"
+
+Verify the default cache manager health in external ISPN
+Checking health for: KEYCLOAK_ISPN_REST_URL/rest/v2/cache-managers/default/health/status
+"HEALTHY"
+
+Verify individual cache health
+"HEALTHY"
+
+ISPN Cluster Distribution
+"HEALTHY"
+
+ISPN Overall Status
+"HEALTHY"
+
+Verify for Keycloak condition in ROSA cluster
+keycloak.k8s.keycloak.org/keycloak condition met
+keycloak.k8s.keycloak.org/keycloak condition met
 ----
 
-Usage of the script with details around the different options
+==== Usage of the script with details around the different options
 [source, bash]
 ----
-Usage: ./cross-site-health-checks.sh [-d domain] [-u infinispan_user] [-p infinispan_pwd] [-s infinispan_url_suffix] [-c expected_count] [-n namespace]
-  -d domain: Keycloak domain
+Usage: [-n namespace] [-l keycloak_lb_url] [-k keycloak_site_url]
+[-i infinispan_rest_url] [-u infinispan_user] [-p infinispan_pwd]
+[-c expected_ispn_count]
+
+  -n namespace: Kubernetes namespace
+  -l keycloak_lb_url: Keycloak Load Balancer URL
+  -k keycloak_site_url: Keycloak Site URL
+  -i infinispan_rest_url: Infinispan REST URL
   -u infinispan_user: Infinispan user
   -p infinispan_pwd: Infinispan password
-  -s infinispan_url_suffix: Infinispan URL suffix
-  -c expected_count: Expected Node Count in the Infinispan cluster
-  -n namespace: Kubernetes namespace
+  -c expected_ispn_count: Expected Node Count in the Infinispan cluster
 ----

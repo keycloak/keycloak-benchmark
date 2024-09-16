@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 
 # Default values
-domain="temp-domain"
+namespace="runner-keycloak"
+keycloak_lb_url="temp-lb-url"
+keycloak_site_url="temp-site-url"
+infinispan_rest_url="temp-rest-url"
 infinispan_user="developer"
 infinispan_pwd="password-is-not-set"
-infinispan_url_suffix="temp-suffix"
-namespace="runner-keycloak"
 
 # Usage function to display help for the script
 usage() {
-    echo "Usage: $0 [-d domain] [-u infinispan_user] [-p infinispan_pwd] [-s infinispan_url_suffix] [-c expected_count] [-n namespace]"
-    echo "  -d domain: Keycloak domain"
+    echo "Usage: $0 [-n namespace] [-l keycloak_lb_url] [-k keycloak_site_url] [-i infinispan_rest_url] [-u infinispan_user] [-p infinispan_pwd] [-c expected_ispn_count]"
+    echo "  -n namespace: Kubernetes namespace"
+    echo "  -l keycloak_lb_url: Keycloak Load Balancer URL"
+    echo "  -k keycloak_site_url: Keycloak Site URL"
+    echo "  -i infinispan_rest_url: Infinispan REST URL"
     echo "  -u infinispan_user: Infinispan user"
     echo "  -p infinispan_pwd: Infinispan password"
-    echo "  -s infinispan_url_suffix: Infinispan URL suffix"
-    echo "  -c expected_count: Expected Node Count in the Infinispan cluster"
-    echo "  -n namespace: Kubernetes namespace"
+    echo "  -c expected_ispn_count: Expected Node Count in the Infinispan cluster"
     exit 1
 }
 
@@ -26,19 +28,21 @@ if [ $# -eq 0 ]; then
 fi
 
 # Parse input arguments
-while getopts ":d:u:p:s:n:c:h" opt; do
+while getopts ":n:l:k:i:u:p:c:h" opt; do
   case ${opt} in
-    d ) domain=$OPTARG
+    n ) namespace=$OPTARG
+          ;;
+    l ) keycloak_lb_url=$OPTARG
       ;;
+    k ) keycloak_site_url=$OPTARG
+      ;;
+    i ) infinispan_rest_url=$OPTARG
+          ;;
     u ) infinispan_user=$OPTARG
       ;;
     p ) infinispan_pwd=$OPTARG
       ;;
-    s ) infinispan_url_suffix=$OPTARG
-      ;;
-    n ) namespace=$OPTARG
-      ;;
-    c ) expected_count=$OPTARG
+    c ) expected_ispn_count=$OPTARG
       ;;
     h ) usage
       ;;
@@ -61,13 +65,6 @@ for cmd in curl jq oc; do
         exit 1
     fi
 done
-
-
-# Base URLs
-keycloak_lb_url="https://client.$domain"
-keycloak_site_a_url="https://primary.$domain"
-keycloak_site_b_url="https://backup.$domain"
-infinispan_rest_url="https://infinispan-external-runner-keycloak.apps.$infinispan_url_suffix"
 
 health_check() {
     local url=$1
@@ -95,23 +92,23 @@ health_check() {
 }
 
 echo "Verify the Keycloak Load Balancer health check"
-health_check $keycloak_lb_url/lb-check
+health_check "$keycloak_lb_url"/lb-check
 
-echo "Verify the Load Balancer health check on Site A and Site B"
-health_check $keycloak_site_a_url/lb-check
-health_check $keycloak_site_b_url/lb-check
+echo "Verify the Load Balancer health check on the Site"
+health_check "$keycloak_site_url"/lb-check
 
 echo "Verify the default cache manager health in external ISPN"
-health_check $infinispan_rest_url/rest/v2/cache-managers/default/health/status
+health_check "$infinispan_rest_url"/rest/v2/cache-managers/default/health/status
 
 echo "Verify individual cache health"
-curl -u $infinispan_user:$infinispan_pwd -sk $infinispan_rest_url/rest/v2/cache-managers/default/health \
+curl -u "$infinispan_user":"$infinispan_pwd" -sk "$infinispan_rest_url"/rest/v2/cache-managers/default/health \
  | jq 'if .cluster_health.health_status == "HEALTHY" and (all(.cache_health[].status; . == "HEALTHY")) then "HEALTHY" else "UNHEALTHY" end'
 echo
 
 echo "ISPN Cluster Distribution"
-curl -u $infinispan_user:$infinispan_pwd -sk $infinispan_rest_url/rest/v2/cluster\?action\=distribution \
- | jq --argjson expectedCount $expected_count 'if map(select(.node_addresses | length > 0)) | length == $expectedCount then "HEALTHY" else "UNHEALTHY" end'
+# shellcheck disable=SC2086
+curl -u "$infinispan_user":"$infinispan_pwd" -sk $infinispan_rest_url/rest/v2/cluster\?action\=distribution \
+ | jq --argjson expectedCount "$expected_ispn_count" 'if map(select(.node_addresses | length > 0)) | length == $expectedCount then "HEALTHY" else "UNHEALTHY" end'
 echo
 
 echo "ISPN Overall Status"
@@ -122,5 +119,5 @@ oc get infinispan -n runner-keycloak -o json  \
 echo
 
 echo "Verify for Keycloak condition in ROSA cluster"
-oc wait --for=condition=Ready --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n runner-keycloak
-oc wait --for=condition=RollingUpdate=False --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n runner-keycloak
+oc wait --for=condition=Ready --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n "$namespace"
+oc wait --for=condition=RollingUpdate=False --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n "$namespace"
