@@ -1,0 +1,70 @@
+name: Keycloak Multi-Site Health Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: OpenShift cluster prefix for a multi-AZ deployment
+        required: true
+      project:
+        description: OpenShift project where Keycloak is running
+        required: true
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      expectedInfinispanNodeCount:
+        description: 'Expected Infinispan cluster node count'
+        type: string
+        default: '3'
+
+jobs:
+  run:
+    name: Perform Multi-Site Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster A
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Get Keycloak URLs from cluster A
+        id: get_urls_a
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ inputs.project }}
+
+      - name: Perform Health checks on cluster A
+        id: multi_site_health_check_a
+        shell: bash
+        run: |
+          ./cross-site-health-checks.sh -n ${{ inputs.project }} -l ${{ env.KEYCLOAK_URL }} -k ${{ env.KEYCLOAK_SITE_URL }} -i ${{ env.KEYCLOAK_ISPN_REST_URL }} -u developer -p ${{ env.KEYCLOAK_ADMIN_PASSWORD }} -c ${{ inputs.expectedInfinispanNodeCount }}
+        working-directory: provision/rosa-cross-dc
+
+      - name: Login to OpenShift cluster B
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-b
+
+      - name: Get Keycloak URLs from cluster B
+        id: get_urls_b
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ inputs.project }}
+
+      - name: Perform Health checks on cluster B
+        id: multi_site_health_check_b
+        shell: bash
+        run: |
+          ./cross-site-health-checks.sh -n ${{ inputs.project }} -l ${{ env.KEYCLOAK_URL }} -k ${{ env.KEYCLOAK_SITE_URL }} -i ${{ env.KEYCLOAK_ISPN_REST_URL }} -u developer -p ${{ env.KEYCLOAK_ADMIN_PASSWORD }} -c ${{ inputs.expectedInfinispanNodeCount }}
+        working-directory: provision/rosa-cross-dc
