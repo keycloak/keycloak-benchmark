@@ -20,8 +20,18 @@ jobs:
       activeActive: true
     secrets: inherit
 
-  run-functional-tests-active-active:
+  run-multi-site-health-checks-1:
     needs: keycloak-deploy-active-active
+    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      project: runner-keycloak
+      region: eu-west-1
+      expectedInfinispanNodeCount: '3'
+    secrets: inherit
+
+  run-functional-tests-active-active:
+    needs: run-multi-site-health-checks-1
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
@@ -30,10 +40,30 @@ jobs:
       skipRemoteCaches: true
     secrets: inherit
 
-  run-scaling-benchmark-active-active:
+  run-multi-site-health-checks-2:
     needs: run-functional-tests-active-active
+    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      project: runner-keycloak
+      region: eu-west-1
+      expectedInfinispanNodeCount: '3'
+    secrets: inherit
+
+  run-scaling-benchmark-active-active:
+    needs: run-multi-site-health-checks-2
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       outputArchiveSuffix: 'active-active'
+    secrets: inherit
+
+  run-multi-site-health-checks-3:
+    needs: run-scaling-benchmark-active-active
+    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      project: runner-keycloak
+      region: eu-west-1
+      expectedInfinispanNodeCount: '3'
     secrets: inherit
