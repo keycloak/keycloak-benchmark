@@ -22,6 +22,7 @@ jobs:
 
   run-multi-site-health-checks-1:
     needs: keycloak-deploy-active-active
+    name: Run multi-site health checks after deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
@@ -42,6 +43,7 @@ jobs:
 
   run-multi-site-health-checks-2:
     needs: run-functional-tests-active-active
+    name: Run multi-site health checks after functional tests
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
@@ -60,6 +62,7 @@ jobs:
 
   run-multi-site-health-checks-3:
     needs: run-scaling-benchmark-active-active
+    name: Run multi-site health checks after benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
