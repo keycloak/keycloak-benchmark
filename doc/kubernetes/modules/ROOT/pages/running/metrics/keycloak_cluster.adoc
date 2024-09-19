@@ -6,7 +6,7 @@
 {description}
 
 The deployment described in this document is for single-site deployments.
-In this architecture, {project_name} nodes creates cluster between themselves, used by the {ispn} clustered caches.
+In this architecture, {project_name} nodes leverage {ispn} embedded clustered caches to form a cluster.
 
 If an external {jdgserver_name} is used, check xref:./keycloak_with_external_infinispan.adoc[] guide.
 
@@ -15,13 +15,13 @@ include::partial$/running/metrics/kc_http_metrics.adoc[leveloffset=+1]
 
 == Clustering and Network
 
-Multiple {project_name} nodes allows to distribute the load among them, but it requires communication between the nodes.
-This section describes the useful metrics to monitor the network between {project_name} nodes and possible faults.
+Deploying multiple {project_name} nodes allows the load to be distributed amongst them, but this requires communication between the nodes.
+This section describes metrics that are useful for monitoring the communication between {project_name} in order to identify possible faults.
 
 include::partial$/running/metrics/jgrp_metrics.adoc[leveloffset=+1]
 
 == {ispn} Caches
 
-{project_name} caches data in embedded {ispn} caches. The metrics in this section help monitoring the caching health and the cluster replication.
+{project_name} caches data in embedded {ispn} caches. The metrics in this section help to monitor the caching health and the cluster replication.
 
 include::partial$/running/metrics/ispn_metrics.adoc[leveloffset=+1]
