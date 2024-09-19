@@ -1,0 +1,71 @@
+== Connection Pool
+
+{project_name} exposes the Hot Rod client connection pool.
+For each {jdgserver_name}, a connection pool is created and the sum of all active or idle connection are exposed in the metric.
+
+NOTE: A connection is active if it is currently being used.
+
+|===
+|Metric |Description
+
+| `vendor_client_hotrod_connection_pool_idle`
+| The number of idle connection.
+
+| `vendor_client_hotrod_connection_pool_active`
+| The number of active connection.
+
+| `vendor_client_hotrod_connection_pool_retries_total`
+| The total number of requests retried due to network errors.
+
+|===
+
+== Cache Metrics
+
+This section describes the per-cache metrics.
+
+====
+*Tags*
+
+* `cache=<name>`: The cache name.
+====
+
+=== Data Access
+
+The Hot Rod client reports the response time for each request.
+On a healthy deployment, the response time should be stable with little variance.
+Increases in the response time, or spikes, may imply a {jdgserver_name} cluster under heavy load.
+
+Read requests are divided in 2 groups, a read hit or a read miss.
+A read is a hit if the value is found in the {jdgserver_name} cluster.
+
+|===
+|Metric |Description
+
+| `vendor_client_hotrod_cache_writes_seconds_count`
+| The total number of store requests.
+
+| `vendor_client_hotrod_cache_writes_seconds_sum`
+| The total duration of all store requests.
+
+| `vendor_client_hotrod_cache_removes_seconds_count`
+| The total number of remove requests.
+
+| `vendor_client_hotrod_cache_removes_seconds_sum`
+| The total duration of all remove requests.
+
+| `vendor_client_hotrod_cache_reads_hit_seconds_count`
+| The total number of read hits requests.
+
+| `vendor_client_hotrod_cache_reads_hit_seconds_sum`
+| The total duration of all read hits requests.
+
+| `vendor_client_hotrod_cache_reads_miss_seconds_count`
+| The total number of read misses requests.
+
+| `vendor_client_hotrod_cache_reads_miss_seconds_sum`
+| The total duration of all read misses requests.
+
+|===
+
+include::partial$/running/metrics/histogram_note.adoc[]
+

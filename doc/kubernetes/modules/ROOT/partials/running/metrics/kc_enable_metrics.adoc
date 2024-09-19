@@ -1,0 +1,22 @@
+= Enable {project_name} metrics
+
+{project_name} exposes metrics on the management interface endpoint `/metrics`.
+To enable, use the build time option `--metrics-enabled=true`.
+
+On a Kubernetes cluster, using the {project_name} Operator, metrics can be enabled by in the `addionalOptions` as shown below:
+
+[source,yaml]
+----
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  labels:
+    app: keycloak
+  name: keycloak
+spec:
+  additionalOptions:
+    - name: metrics-enabled
+      value: 'true'
+----
+
+Additional information can be found https://www.keycloak.org/server/configuration-metrics[here].
