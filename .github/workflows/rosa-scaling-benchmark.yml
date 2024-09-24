@@ -15,10 +15,10 @@ on:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
         default: 'eu-west-1'
-      numberOfEntitiesInRealm:
-        description: 'Number of entities for the scenario in DB'
+      usersPerRealm:
+        description: 'Number of users for the scenario in DB'
         type: number
-        default: 20000
+        default: 100000
       maxWaitEntityCreation:
         description: 'Maximum number of seconds to wait for creation of entities'
         type: number
@@ -58,10 +58,10 @@ on:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
         default: 'eu-west-1'
-      numberOfEntitiesInRealm:
-        description: 'Number of entities for the scenario in DB'
+      usersPerRealm:
+        description: 'Number of users for the scenario in DB'
         type: number
-        default: 20000
+        default: 100000
       maxWaitEntityCreation:
         description: 'Maximum number of seconds to wait for creation of entities'
         type: number
@@ -93,6 +93,7 @@ env:
   PROJECT_PREFIX: runner- # same as default
   PROJECT: runner-keycloak
   ANSIBLE_CUSTOM_VARS_ARG: '-e @env_rosa_benchmark.yml'
+  CLIENTS_PER_REALM: 20000
 
 jobs:
   run:
@@ -152,14 +153,14 @@ jobs:
           ROSA_CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           NAMESPACE: ${{ env.PROJECT }}
 
-      - name: Create Keycloak dataset with "${{ inputs.numberOfEntitiesInRealm }}" users and clients
+      - name: Create Keycloak dataset with "${{ inputs.usersPerRealm }}" users and "${{ env.CLIENTS_PER_REALM }}" clients
         if: ${{ !inputs.skipCreateDataset }}
         uses: ./.github/actions/keycloak-create-dataset
         with:
           project: ${{ env.PROJECT }}
-          users: ${{ inputs.numberOfEntitiesInRealm }}
+          users: ${{ inputs.usersPerRealm }}
           clients: 100
-          clientsPerRealm: ${{ inputs.numberOfEntitiesInRealm }}
+          clientsPerRealm: ${{ env.CLIENTS_PER_REALM }}
           createClientForSpecificRealm: true
           maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
@@ -217,7 +218,7 @@ jobs:
           --ramp-up=20
           --logout-percentage=0
           --measurement=${{ inputs.measurement }}
-          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }}
+          --users-per-realm=${{ inputs.usersPerRealm }}
           --log-http-on-failure
           --sla-error-percentage=0.001
         continue-on-error: true
@@ -299,7 +300,7 @@ jobs:
           --ramp-up=20
           --logout-percentage=100
           --measurement=${{ inputs.measurement }}
-          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }}
+          --users-per-realm=${{ inputs.usersPerRealm }}
           --log-http-on-failure
           --sla-error-percentage=0.001
         continue-on-error: true
@@ -374,7 +375,7 @@ jobs:
           --users-per-sec=${{ inputs.numberOfClientsPerSecond }}
           --ramp-up=20
           --measurement=${{ inputs.measurement }}
-          --users-per-realm=${{ inputs.numberOfEntitiesInRealm }}
+          --users-per-realm=${{ inputs.usersPerRealm }}
           --log-http-on-failure
           --sla-error-percentage=0.001
         continue-on-error: true
