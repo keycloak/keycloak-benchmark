@@ -20,10 +20,6 @@ on:
         description: 'When true deploy an Active/Active Keycloak deployment'
         type: boolean
         default: false
-      enableKc25Mode:
-        description: 'Set to true when version older than 26 is deployed'
-        type: boolean
-        default: false
       enableExternalInfinispanFeature:
         description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
         type: boolean
@@ -54,10 +50,6 @@ on:
         description: 'When true deploy an Active/Active Keycloak deployment'
         type: boolean
         default: false
-      enableKc25Mode:
-        description: 'Set to true when version older than 26 is deployed'
-        type: boolean
-        default: false
       enableExternalInfinispanFeature:
         description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
         type: boolean
@@ -73,7 +65,6 @@ on:
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
   REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
-  KC_KC25_MODE: ${{ inputs.enableKc25Mode }}
   KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
   KC_MULTI_SITE: ${{ inputs.enableMultiSiteFeature }}
 
@@ -196,7 +187,7 @@ jobs:
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
           KC_CRYOSTAT: false
-          KC_KC25_MODE: ${{ env.KC_KC25_MODE }}
+          KC_IS_ACTIVE_PASSIVE: true
           KC_EXTERNAL_INFINISPAN: ${{ env.KC_EXTERNAL_INFINISPAN }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000
@@ -238,7 +229,7 @@ jobs:
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
           KC_CRYOSTAT: false
-          KC_KC25_MODE: ${{ env.KC_KC25_MODE }}
+          KC_IS_ACTIVE_PASSIVE: false
           KC_EXTERNAL_INFINISPAN: ${{ env.KC_EXTERNAL_INFINISPAN }}
           KC_MEMORY_REQUESTS_MB: 3000
           KC_MEMORY_LIMITS_MB: 4000

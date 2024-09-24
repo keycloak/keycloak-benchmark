@@ -24,7 +24,7 @@ vars:
   KC_REMOTE_STORE_HOST: '{{default "localhost" .KC_REMOTE_STORE_HOST}}'
   KC_REMOTE_STORE_PORT: '{{default "11222" .KC_REMOTE_STORE_PORT}}'
   KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
-  KC_KC25_MODE: '{{default "false" .KC_KC25_MODE}}'
+  KC_IS_ACTIVE_PASSIVE: '{{default "false" .KC_IS_ACTIVE_PASSIVE}}'
   KC_EXTERNAL_INFINISPAN: '{{default "false" .KC_EXTERNAL_INFINISPAN}}'
   MULTI_AZ: '{{default "false" .MULTI_AZ}}'
   ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
@@ -72,7 +72,7 @@ tasks:
       - echo {{.KC_REMOTE_STORE_HOST}} > .task/var-KC_REMOTE_STORE_HOST
       - echo {{.KC_REMOTE_STORE_PORT}} > .task/var-KC_REMOTE_STORE_PORT
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
-      - echo {{.KC_KC25_MODE}} > .task/var-KC_KC25_MODE
+      - echo {{.KC_IS_ACTIVE_PASSIVE}} > .task/var-KC_IS_ACTIVE_PASSIVE
       - echo {{.KC_EXTERNAL_INFINISPAN}} > .task/var-KC_EXTERNAL_INFINISPAN
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
@@ -94,6 +94,7 @@ tasks:
           --arg kc_repo "{{ .KC_REPOSITORY }}" \
           --arg kc_branch "{{ .KC_BRANCH }}" \
           --argjson is_multi_az "{{ .MULTI_AZ }}" \
+          --argjson is_active_passive "{{ .KC_IS_ACTIVE_PASSIVE }}" \
           '. + { "numOfPods": ($num_of_pods|tonumber), "cpuRequestsPerPod": ($cpu_requests_per_pod|tonumber),
                              "cpuLimitsPerPod": (if ($cpu_limits_per_pod | length) == 0 then null else ($cpu_limits_per_pod | tonumber?) end),
                              "stickySessionDisabled": ($sticky_sessions),
@@ -110,6 +111,7 @@ tasks:
                                "max": ($meta_spc_max|tonumber)
                              },
                             "isMultiAZ": ($is_multi_az),
+                            "isActivePassive": ($is_active_passive),
                             "keycloakOperatorTag": ($kc_operator_tag),
                             "keycloakRepository": ($kc_repo),
                             "keycloakBranch": ($kc_branch),
@@ -140,7 +142,7 @@ tasks:
       - test "{{.KC_REMOTE_STORE_HOST}}" == "$(cat .task/var-KC_REMOTE_STORE_HOST)"
       - test "{{.KC_REMOTE_STORE_PORT}}" == "$(cat .task/var-KC_REMOTE_STORE_PORT)"
       - test "{{.KC_DISABLE_STICKY_SESSION}}" == "$(cat .task/var-KC_DISABLE_STICKY_SESSION)"
-      - test "{{.KC_KC25_MODE}}" == "$(cat .task/var-KC_KC25_MODE)"
+      - test "{{.KC_IS_ACTIVE_PASSIVE}}" == "$(cat .task/var-KC_IS_ACTIVE_PASSIVE)"
       - test "{{.KC_EXTERNAL_INFINISPAN}}" == "$(cat .task/var-KC_EXTERNAL_INFINISPAN)"
       - test "{{.KC_HOSTNAME_OVERRIDE}}" == "$(cat .task/var-KC_HOSTNAME_OVERRIDE)"
       - test "{{.KC_HEALTH_HOSTNAME}}" == "$(cat .task/var-KC_HEALTH_HOSTNAME)"
