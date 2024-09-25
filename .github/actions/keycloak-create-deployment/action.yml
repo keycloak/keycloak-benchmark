@@ -12,7 +12,7 @@ inputs:
   disableStickySessions:
     description: 'Disable sticky session in OpenShift Route'
     default: 'true'
-  enableKc25Mode:
+  isActivePassive:
     description: 'Set to true when version older than 26 is deployed'
     default: 'false'
   enableExternalInfinispanFeature:
@@ -58,7 +58,7 @@ runs:
         KC_NAMESPACE_PREFIX: ${{ inputs.projectPrefix }}
         KC_INSTANCES: ${{ inputs.replicas }}
         KC_DISABLE_STICKY_SESSION: ${{ inputs.disableStickySessions }}
-        KC_KC25_MODE: ${{ inputs.enableKc25Mode }}
+        KC_IS_ACTIVE_PASSIVE: ${{ inputs.isActivePassive }}
         KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
         KC_MULTI_SITE: ${{ inputs.enableMultiSiteFeature }}
         KC_CONTAINER_IMAGE: ${{ inputs.image }}

@@ -88,9 +88,11 @@ public class FailoverTest extends AbstractCrossDCTest {
         );
         DC_2.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
 
-        // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
-        Set<String> sessions = DC_2.ispn().cache(USER_SESSION_CACHE_NAME).keys();
-        assertTrue(sessions.contains(code.split("[.]")[1]));
+        if (!SKIP_REMOTE_CACHES) {
+            // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
+            Set<String> sessions = DC_2.ispn().cache(USER_SESSION_CACHE_NAME).keys();
+            assertTrue(sessions.contains(code.split("[.]")[1]));
+        }
 
         tokensMap = LOAD_BALANCER_KEYCLOAK.refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 200);
 

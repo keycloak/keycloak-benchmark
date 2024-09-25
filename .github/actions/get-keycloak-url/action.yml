@@ -14,11 +14,6 @@ runs:
       run: |
         KEYCLOAK_URL=https://$(kubectl get routes -n "${{ inputs.project }}" -l app=keycloak -o jsonpath='{.items[*].spec.host}')
         echo "KEYCLOAK_URL=$KEYCLOAK_URL" >> "$GITHUB_ENV"
-    - id: get-keycloak-site-url
-      shell: bash
-      run: |
-        KEYCLOAK_SITE_URL=https://$(kubectl -n "${{ inputs.project }}" get svc accelerator-loadbalancer --template="{{range .status.loadBalancer.ingress}}{{.hostname}}{{end}}")
-        echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
     - id: get-ispn-rest-url
       shell: bash
       run: |

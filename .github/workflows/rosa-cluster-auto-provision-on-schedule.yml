@@ -20,11 +20,12 @@ jobs:
       activeActive: true
     secrets: inherit
 
-  run-multi-site-health-checks-1:
+  run-multi-site-health-checks-after-deploy:
     needs: keycloak-deploy-active-active
     name: Run multi-site health checks after deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
+      activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
       region: eu-west-1
@@ -32,7 +33,7 @@ jobs:
     secrets: inherit
 
   run-functional-tests-active-active:
-    needs: run-multi-site-health-checks-1
+    needs: run-multi-site-health-checks-after-deploy
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
@@ -41,11 +42,12 @@ jobs:
       skipRemoteCaches: true
     secrets: inherit
 
-  run-multi-site-health-checks-2:
+  run-multi-site-health-checks-after-functional-tests:
     needs: run-functional-tests-active-active
     name: Run multi-site health checks after functional tests
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
+      activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
       region: eu-west-1
@@ -53,20 +55,62 @@ jobs:
     secrets: inherit
 
   run-scaling-benchmark-active-active:
-    needs: run-multi-site-health-checks-2
+    needs: run-multi-site-health-checks-after-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       outputArchiveSuffix: 'active-active'
     secrets: inherit
 
-  run-multi-site-health-checks-3:
+  run-multi-site-health-checks-after-benchmarks:
     needs: run-scaling-benchmark-active-active
     name: Run multi-site health checks after benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
+      activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
       region: eu-west-1
       expectedInfinispanNodeCount: '3'
+    secrets: inherit
+
+  keycloak-undeploy-active-active:
+    needs: run-multi-site-health-checks-after-benchmarks
+    name: Undeploy Keycloak A/A deployment on the multi-az cluster
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      skipAuroraDeletion: true
+      activeActive: true
+    secrets: inherit
+
+  keycloak-deploy-active-passive:
+    needs: keycloak-undeploy-active-active
+    name: Deploy Active/Passive Keycloak with External Infinispan and Persistent Sessions
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      enableMultiSiteFeature: true
+      enableExternalInfinispanFeature: false
+      createCluster: false
+    secrets: inherit
+
+  run-functional-tests-active-passive:
+    needs: keycloak-deploy-active-passive
+    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
+    with:
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      skipEmbeddedCaches: true
+      skipRemoteCaches: true
+    secrets: inherit
+
+  run-scaling-benchmark-active-passive:
+    needs: run-functional-tests-active-passive
+    uses: ./.github/workflows/rosa-scaling-benchmark.yml
+    with:
+      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      skipCreateDataset: true
+      outputArchiveSuffix: 'active-passive'
     secrets: inherit

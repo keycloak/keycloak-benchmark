@@ -11,6 +11,10 @@ on:
         required: true
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+      activeActive:
+        description: 'When true deploy an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
       expectedInfinispanNodeCount:
         description: 'Expected Infinispan cluster node count'
         default: '3'
@@ -27,6 +31,10 @@ on:
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
+      activeActive:
+        description: 'When true deploy an Active/Active Keycloak deployment'
+        type: boolean
+        default: false
       expectedInfinispanNodeCount:
         description: 'Expected Infinispan cluster node count'
         type: string
@@ -59,6 +67,13 @@ jobs:
         with:
           project: ${{ inputs.project }}
 
+      - id: get-keycloak-site-a-url-from-glb
+        if: ${{ inputs.activeActive }}
+        shell: bash
+        run: |
+          KEYCLOAK_SITE_URL=https://$(kubectl -n "${{ inputs.project }}" get svc accelerator-loadbalancer --template="{{range .status.loadBalancer.ingress}}{{.hostname}}{{end}}")
+          echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
+
       - name: Perform Health checks on cluster A
         id: multi_site_health_check_a
         shell: bash
@@ -76,6 +91,13 @@ jobs:
         uses: ./.github/actions/get-keycloak-url
         with:
           project: ${{ inputs.project }}
+
+      - id: get-keycloak-site-b-url-from-glb
+        if: ${{ inputs.activeActive }}
+        shell: bash
+        run: |
+          KEYCLOAK_SITE_URL=https://$(kubectl -n "${{ inputs.project }}" get svc accelerator-loadbalancer --template="{{range .status.loadBalancer.ingress}}{{.hostname}}{{end}}")
+          echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
 
       - name: Perform Health checks on cluster B
         id: multi_site_health_check_b
