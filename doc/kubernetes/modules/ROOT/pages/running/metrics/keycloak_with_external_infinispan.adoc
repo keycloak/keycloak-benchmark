@@ -1,0 +1,28 @@
+= {project_name} with external {jdgserver_name} deployment
+:description: This document contains details of the {project_name} metrics that can be used to monitor your deployment's performance.
+
+{description}
+
+The deployment described in this document is for multi-site deployments.
+In this architecture, {project_name} nodes use an external {jdgserver_name} to store the cached data.
+
+If your deployment does not use an external {jdgserver_name}, check xref:./keycloak_cluster.adoc[] guide.
+
+include::partial$/running/metrics/kc_enable_metrics.adoc[leveloffset=+1]
+include::partial$/running/metrics/kc_http_metrics.adoc[leveloffset=+1]
+
+== {ispn} Caches
+
+IMPORTANT: Metrics available since {project_name} 27 or newer.
+
+{project_name} caches data in embedded {ispn} caches. The metrics in this section help monitor the caching health.
+
+include::partial$/running/metrics/ispn_metrics.adoc[leveloffset=+1]
+
+== Hot Rod client metrics
+
+IMPORTANT: Metrics available since {project_name} 27 or newer.
+
+{project_name} uses the {ispn} Hot Rod client to connection to an external {jdgserver_name} deployment.
+
+include::partial$/running/metrics/kc_hot_rod_client_metrics.adoc[leveloffset=+1]
