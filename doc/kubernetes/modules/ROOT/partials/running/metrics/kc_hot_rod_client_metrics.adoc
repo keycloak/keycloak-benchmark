@@ -69,3 +69,20 @@ A read is a hit if the value is found in the {jdgserver_name} cluster.
 
 include::partial$/running/metrics/histogram_note.adoc[]
 
+====
+*Hit Ratio for read and remove operations*
+
+An expression can be used to compute the hit ratio for a cache in systems such as Prometheus.
+As an example, the hit ratio for read operations can be expressed as:
+
+`vendor_client_hotrod_cache_reads_hit_seconds_count/(vendor_client_hotrod_cache_reads_hit_seconds_count+vendor_client_hotrod_cache_reads_miss_seconds_count)`
+
+====
+
+====
+*Read/Write ratio*
+
+An expression can be used to compute the read-write ratio for a cache, using the metrics above:
+
+`(vendor_client_hotrod_cache_reads_hit_seconds_count+vendor_client_hotrod_cache_reads_miss_seconds_count)/(vendor_client_hotrod_cache_reads_hit_seconds_count+vendor_client_hotrod_cache_reads_miss_seconds_count+vendor_client_hotrod_cache_removes_seconds_count+vendor_client_hotrod_cache_writes_seconds_count)`
+====
