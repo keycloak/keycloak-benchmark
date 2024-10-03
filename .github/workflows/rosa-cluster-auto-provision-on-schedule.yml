@@ -20,7 +20,7 @@ jobs:
       activeActive: true
     secrets: inherit
 
-  run-multi-site-health-checks-after-deploy:
+  run-active-active-health-checks-after-deploy:
     needs: keycloak-deploy-active-active
     name: Run multi-site health checks after deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
@@ -33,7 +33,7 @@ jobs:
     secrets: inherit
 
   run-functional-tests-active-active:
-    needs: run-multi-site-health-checks-after-deploy
+    needs: run-active-active-health-checks-after-deploy
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
@@ -42,7 +42,7 @@ jobs:
       skipRemoteCaches: true
     secrets: inherit
 
-  run-multi-site-health-checks-after-functional-tests:
+  run-active-active-health-checks-after-functional-tests:
     needs: run-functional-tests-active-active
     name: Run multi-site health checks after functional tests
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
@@ -55,14 +55,14 @@ jobs:
     secrets: inherit
 
   run-scaling-benchmark-active-active:
-    needs: run-multi-site-health-checks-after-functional-tests
+    needs: run-active-active-health-checks-after-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       outputArchiveSuffix: 'active-active'
     secrets: inherit
 
-  run-multi-site-health-checks-after-benchmarks:
+  run-active-active-health-checks-after-benchmarks:
     needs: run-scaling-benchmark-active-active
     name: Run multi-site health checks after benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
@@ -75,7 +75,7 @@ jobs:
     secrets: inherit
 
   keycloak-undeploy-active-active:
-    needs: run-multi-site-health-checks-after-benchmarks
+    needs: run-active-active-health-checks-after-benchmarks
     name: Undeploy Keycloak A/A deployment on the multi-az cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
@@ -97,8 +97,20 @@ jobs:
       createCluster: false
     secrets: inherit
 
-  run-functional-tests-active-passive:
+  run-active-passive-health-checks-after-deploy:
     needs: keycloak-deploy-active-passive
+    name: Run multi-site health checks after benchmarks
+    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
+    with:
+      activeActive: false
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      project: runner-keycloak
+      region: eu-west-1
+      expectedInfinispanNodeCount: '3'
+    secrets: inherit
+
+  run-functional-tests-active-passive:
+    needs: run-active-passive-health-checks-after-deploy
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
@@ -106,11 +118,35 @@ jobs:
       skipRemoteCaches: true
     secrets: inherit
 
-  run-scaling-benchmark-active-passive:
+  run-active-passive-health-checks-after-functional-tests:
     needs: run-functional-tests-active-passive
+    name: Run multi-site health checks after benchmarks
+    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
+    with:
+      activeActive: false
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      project: runner-keycloak
+      region: eu-west-1
+      expectedInfinispanNodeCount: '3'
+    secrets: inherit
+
+  run-scaling-benchmark-active-passive:
+    needs: run-active-passive-health-checks-after-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
       clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       skipCreateDataset: true
       outputArchiveSuffix: 'active-passive'
+    secrets: inherit
+
+  run-active-passive-health-checks-after-benchmarks:
+    needs: run-scaling-benchmark-active-passive
+    name: Run multi-site health checks after benchmarks
+    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
+    with:
+      activeActive: false
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      project: runner-keycloak
+      region: eu-west-1
+      expectedInfinispanNodeCount: '3'
     secrets: inherit

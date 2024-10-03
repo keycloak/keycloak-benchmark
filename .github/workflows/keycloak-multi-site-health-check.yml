@@ -74,6 +74,15 @@ jobs:
           KEYCLOAK_SITE_URL=https://$(kubectl -n "${{ inputs.project }}" get svc accelerator-loadbalancer --template="{{range .status.loadBalancer.ingress}}{{.hostname}}{{end}}")
           echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
 
+      - id: get-keycloak-site-a-url-from-r53
+        if: ${{ !inputs.activeActive }}
+        shell: bash
+        run: |
+          DOMAIN=$(./route53_fetch_domain.sh "keycloak-benchmark.com.")
+          KEYCLOAK_SITE_URL="https://primary.$DOMAIN"
+          echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
+        working-directory: provision/aws/route53
+
       - name: Perform Health checks on cluster A
         id: multi_site_health_check_a
         shell: bash
@@ -98,6 +107,15 @@ jobs:
         run: |
           KEYCLOAK_SITE_URL=https://$(kubectl -n "${{ inputs.project }}" get svc accelerator-loadbalancer --template="{{range .status.loadBalancer.ingress}}{{.hostname}}{{end}}")
           echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
+
+      - id: get-keycloak-site-b-url-from-r53
+        if: ${{ !inputs.activeActive }}
+        shell: bash
+        run: |
+          DOMAIN=$(./route53_fetch_domain.sh "keycloak-benchmark.com.")
+          KEYCLOAK_SITE_URL="https://backup.$DOMAIN"
+          echo "KEYCLOAK_SITE_URL=$KEYCLOAK_SITE_URL" >> "$GITHUB_ENV"
+        working-directory: provision/aws/route53
 
       - name: Perform Health checks on cluster B
         id: multi_site_health_check_b
