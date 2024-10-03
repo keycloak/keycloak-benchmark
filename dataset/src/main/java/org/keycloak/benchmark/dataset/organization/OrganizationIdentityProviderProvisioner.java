@@ -110,6 +110,7 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
                 identityProvider.setProviderId(KeycloakOIDCIdentityProviderFactory.PROVIDER_ID);
                 identityProvider.setLoginHint(true);
                 identityProvider.setEnabled(true);
+                identityProvider.setHideOnLogin(true);
                 HashMap<String, String> idpConfig = new HashMap<>();
                 identityProvider.setConfig(idpConfig);
                 idpConfig.put("issuer", "http://localhost:8180/realms/" + realm.getName());
@@ -132,7 +133,7 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
                     mapper.setName(idpAlias + "-idp-mapper-" + j);
                     mapper.setIdentityProviderMapper(HardcodedRoleMapper.PROVIDER_ID);
                     mapper.setConfig(Map.of(
-                            ConfigConstants.ROLE, OAuth2Constants.OFFLINE_ACCESS, 
+                            ConfigConstants.ROLE, OAuth2Constants.OFFLINE_ACCESS,
                             IdentityProviderMapperModel.SYNC_MODE, IdentityProviderMapperSyncMode.INHERIT.toString()
                     ));
                     realm.addIdentityProviderMapper(mapper);
