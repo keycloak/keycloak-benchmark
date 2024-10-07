@@ -61,7 +61,7 @@ variable "openshift_version" {
 
 variable "instance_type" {
   type     = string
-  default  = "m5.4xlarge"
+  default  = "m5.2xlarge"
   nullable = false
 }
 
