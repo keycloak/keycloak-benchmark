@@ -157,6 +157,10 @@ spec:
       {{- end }}
       stateTransfer:
         chunkSize: "16"
+      {{- if and $.Values.indexing $config.indexing }}
+      indexing:
+        {{- toYaml $config.indexing | nindent 8}}
+      {{- end}}
       {{ if $.Values.crossdc.enabled }}
       {{- $_ := $.Values.crossdc.remote.name | required ".Values.crossdc.remote.name is required." -}}
       backups:

@@ -21,18 +21,38 @@ cacheDefaults:
   # OPTIMISTIC|PESSIMISTIC
   txLockMode: PESSIMISTIC
 caches:
-  sessions:
-    mergePolicy: ALWAYS_REMOVE
   actionTokens: {}
   authenticationSessions:
     mergePolicy: ALWAYS_REMOVE
+  sessions:
+    mergePolicy: ALWAYS_REMOVE
+    indexing:
+      enabled: true
+      indexed-entities:
+        - keycloak.RemoteUserSessionEntity
   offlineSessions:
     mergePolicy: ALWAYS_REMOVE
+    indexing:
+      enabled: true
+      indexed-entities:
+        - keycloak.RemoteUserSessionEntity
   clientSessions:
     mergePolicy: ALWAYS_REMOVE
+    indexing:
+      enabled: true
+      indexed-entities:
+        - keycloak.RemoteAuthenticatedClientSessionEntity
   offlineClientSessions:
     mergePolicy: ALWAYS_REMOVE
-  loginFailures: { }
+    indexing:
+      enabled: true
+      indexed-entities:
+        - keycloak.RemoteAuthenticatedClientSessionEntity
+  loginFailures:
+    indexing:
+      enabled: true
+      indexed-entities:
+        - keycloak.LoginFailureEntity
   work: { }
 crossdc:
   enabled: false
@@ -69,3 +89,4 @@ alertmanager:
 createSessionsCaches: 'false'
 cpu: '4:2'
 memory: '2Gi:1Gi'
+indexing: 'false'
