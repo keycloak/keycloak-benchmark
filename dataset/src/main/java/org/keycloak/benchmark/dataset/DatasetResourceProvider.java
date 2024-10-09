@@ -41,8 +41,6 @@ import org.keycloak.models.GroupModel;
 import org.keycloak.models.GroupProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
-import org.keycloak.models.KeycloakSessionTask;
-import org.keycloak.models.KeycloakSessionTaskWithResult;
 import org.keycloak.models.KeycloakUriInfo;
 import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.RealmModel;
@@ -251,7 +249,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         return KeycloakModelUtils.runJobInTransactionWithResult(baseSession.getKeycloakSessionFactory(), baseSession.getContext(), session -> {
             RealmModel realm = session.realms().getRealmByName(realmName);
             return session.groups().getGroupsCount(realm, false);
-        }, false);
+        }, false, "dataset:get-groups-count");
     }
 
     protected Response handleDatasetException(DatasetException de) {
@@ -723,7 +721,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     realmIds.addAll(session.getProvider(RealmProvider.class).getRealmsStream()
                             .filter(realm -> realm.getName().startsWith(config.getRealmPrefix()))
                             .map(RealmModel::getId)
-                            .collect(Collectors.toList()));
+                            .toList());
 
                     task.info(logger, "Will delete %d realms.", realmIds.size());
                 } else {
@@ -1195,7 +1193,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             logger.debugf("CACHE: After obtain default roles in realm %s", realm.getName());
 
             // Just obtain first 20 clients for assign client roles - to avoid unecessary DB calls here to load all the clients and then their roles
-            List<ClientModel> clients = realm.getClientsStream(0, 20).collect(Collectors.toList());
+            List<ClientModel> clients = realm.getClientsStream(0, 20).toList();
             logger.debugf("CACHE: After realm.getClients in realm %s", realm.getName());
 
             List<RoleModel> sortedClientRoles = new ArrayList<>();
@@ -1206,7 +1204,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                         String name2 = client2.getClientId().substring(config.getClientPrefix().length());
                         return Integer.parseInt(name1) - Integer.parseInt(name2);
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             sortedClients.forEach(client -> {
                 // Sort client roles and add to the shared list
@@ -1219,7 +1217,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                         String name2 = role2.getName().substring(index2);
                         return Integer.parseInt(name1) - Integer.parseInt(name2);
                     })
-                    .collect(Collectors.toList());
+                    .toList();
                 sortedClientRoles.addAll(currentClientRoles);
             });
 
