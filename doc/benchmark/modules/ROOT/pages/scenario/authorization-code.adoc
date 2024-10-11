@@ -14,12 +14,6 @@ See xref:scenario-overview.adoc[] for a list of all scenarios.
 
 See the source code at link:{github-files}/benchmark/src/main/scala/keycloak/scenario/authentication/AuthorizationCode.scala[AuthorizationCode.scala] for details.
 
-[WARNING]
-====
-Due to the circumstances described in issue https://github.com/keycloak/keycloak-benchmark/issues/945[#945], this scenario will not work with a non-TLS localhost URLs like `+http://localhost+`, `+http://127.0.0.1+` or similar.
-Instead, use IP addresses of other interfaces, or `+http://0.0.0.0+`, or run Keycloak with a TLS certificate.
-====
-
 == Running an example scenario
 
 === Prerequisites
@@ -41,13 +35,13 @@ See xref:configuration.adoc[] for additional CLI options.
 ----
 bin/kcb.sh \
   --scenario=keycloak.scenario.authentication.AuthorizationCode \
-  --server-url=http://0.0.0.0:8080/ \
+  --server-url=http://localhost:8080/ \
   --realm-name=realm-0 \
   --username=user-0 \
   --user-password=user-0-password \
   --client-id=client-0 \
   --client-secret=client-0-secret \
-  --client-redirect-uri=http://0.0.0.0:8080 \
+  --client-redirect-uri=http://localhost:8080 \
   --log-http-on-failure
 ----
 

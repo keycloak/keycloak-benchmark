@@ -1,6 +1,5 @@
 package org.keycloak.benchmark;
 
-import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -191,53 +190,13 @@ public class Config {
         String serversProp = System.getProperty("server-url");
         if (serversProp == null) {
             String serversEnv = System.getenv("KC_SERVER_URL");
-            serverUris = serversEnv != null ? serversEnv : "http://0.0.0.0:8080";
+            serverUris = serversEnv != null ? serversEnv : "http://localhost:8080/auth";
         } else {
             serverUris = serversProp;
         }
 
         // initialize serverUrisList and serverUrisIterator
         serverUrisList = Arrays.asList(serverUris.split(" "));
-    }
-
-    public static void preventLocalhostServerUris() {
-        serverUrisList.stream().forEach(s -> {
-            URI uri = URI.create(s);
-            if (uri.getScheme().equals("http") && isLocalhostSecureContext(uri)) {
-                throw new RuntimeException("""
-                                           Gatling won't send secure cookies to localhost addresses. Due to this, it is incompatible of running tests against with Keycloak 26.
-                                           See https://github.com/keycloak/keycloak-benchmark/issues/945 for more information.
-                                           As a workaround, use a different IP address on your current host, or use http://0.0.0.0
-                                           """);
-            }
-        });
-    }
-
-    public static boolean isLocalhostSecureContext(URI uri) {
-        String host = uri.getHost();
-        if (host == null) {
-            return false;
-        }
-
-        // The host matches a CIDR notation of ::1/128
-        if (host.equals("[::1]") || host.equals("[0000:0000:0000:0000:0000:0000:0000:0001]")) {
-            return true;
-        }
-
-        // The host matches a CIDR notation of 127.0.0.0/8
-        if (host.matches("127.\\d{1,3}.\\d{1,3}.\\d{1,3}")) {
-            return true;
-        }
-
-        if (host.equals("localhost") || host.equals("localhost.")) {
-            return true;
-        }
-
-        if (host.endsWith(".localhost") || host.endsWith(".localhost.")) {
-            return true;
-        }
-
-        return false;
     }
 
     public static String toStringPopulationConfig() {
