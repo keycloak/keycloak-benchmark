@@ -11,5 +11,7 @@ runs:
   steps:
     - id: delete-load-runners
       shell: bash
-      run: ./aws_ec2.sh delete ${{ inputs.region }}
+      run: |
+        source .venv/bin/activate
+        ./aws_ec2.sh delete ${{ inputs.region }}
       working-directory: ansible
