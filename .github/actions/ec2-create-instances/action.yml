@@ -13,6 +13,8 @@ runs:
       name: Install the required Ansible AWS collections.
       shell: bash
       run: |
+        python3 -m venv .venv
+        source .venv/bin/activate
         ./aws_ec2.sh requirements
         pipx inject ansible-core boto3 botocore
       working-directory: ansible
