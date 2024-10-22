@@ -139,11 +139,6 @@ jobs:
           aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
           rosa-token: ${{ secrets.ROSA_TOKEN }}
 
-      - name: Scale ROSA clusters
-        run: |
-          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-a --min-replicas 4 --max-replicas 15 --autorepair scaling
-          rosa edit machinepool -c ${{ env.CLUSTER_PREFIX }}-b --min-replicas 4 --max-replicas 15 --autorepair scaling
-
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
 
