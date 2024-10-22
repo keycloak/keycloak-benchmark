@@ -58,6 +58,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   )
   sts                      = local.sts_roles
   replicas                 = var.replicas
+  compute_machine_type     = var.instance_type
   version                  = var.openshift_version
   wait_for_create_complete = true
 }

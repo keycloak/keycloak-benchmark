@@ -91,10 +91,6 @@ jobs:
           tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
           mv keycloak-benchmark-* keycloak-benchmark
 
-      - name: Allow cluster to scale
-        if: ${{ !inputs.skipCreateDeployment }}
-        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 4 --autorepair scaling
-
       - name: Create Keycloak deployment
         if: ${{ !inputs.skipCreateDeployment }}
         uses: ./.github/actions/keycloak-create-deployment
@@ -180,10 +176,6 @@ jobs:
         uses: ./.github/actions/keycloak-delete-deployment
         with:
           project: ${{ env.PROJECT }}
-
-      - name: Scale down the cluster
-        if: ${{ (success() || failure()) && !inputs.skipDeleteProject }}
-        run: rosa edit machinepool -c ${{ inputs.clusterName }} --min-replicas 0 --autorepair scaling
 
   archive:
     name: Commit results to Git repository

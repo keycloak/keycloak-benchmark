@@ -67,6 +67,6 @@ variable "instance_type" {
 
 variable "replicas" {
   type     = number
-  default  = 2
+  default  = 6
   nullable = false
 }
