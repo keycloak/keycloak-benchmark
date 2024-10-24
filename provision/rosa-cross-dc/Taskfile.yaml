@@ -792,6 +792,7 @@ tasks:
     vars:
       SCENARIO: '{{.SCENARIO | default "keycloak.scenario.authentication.AuthorizationCode"}}'
       USERS: "{{.USERS | default 20000}}"
+      CLIENTS: "{{.CLIENTS | default 10000}}"
       USERS_PER_SEC: "{{.USERS_PER_SEC | default 150}}"
       DURATION: "{{.DURATION | default 600}}"
       REFRESH_TOKEN_COUNT: "{{.REFRESH_TOKEN_COUNT | default 0}}"
@@ -807,6 +808,7 @@ tasks:
         --realm-name=realm-0
         --logout-percentage={{.LOGOUT_PERCENTAGE}}
         --users-per-realm={{.USERS}}
+        --clients-per-realm={{.CLIENTS}}
         --ramp-up=20
         --log-http-on-failure
         --refresh-token-count={{.REFRESH_TOKEN_COUNT}}
