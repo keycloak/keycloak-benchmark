@@ -1,142 +1,160 @@
 = {project_name} Service Level Indicators
-:description: This document contains details of the SLI's to monitor your {project_name} deployment's performance.
+:description: This document contains details of the Service Level Indicators to monitor your {project_name} deployment's performance.
 
-Service Level Objectives (SLOs) and Service Level Indicators (SLIs) are essential components in monitoring and maintaining the performance and reliability of {project_name} in production environments.
+Service Level Indicators (SLIs) and Service Level Objectives (SLOs) are essential components in monitoring and maintaining the performance and reliability of {project_name} in production environments.
 
-- **SLOs** define the target performance or reliability level that {project_name} should achieve, such as availability or response times.
-- **SLIs** are the specific metrics used to measure how well {project_name} is meeting these targets, such as uptime percentage or request latency.
+The Google Site Reliability Engineering book defines this as follows:
 
-By tracking these, {project_name}
-users can ensure that their deployments are running optimally and detect potential issues early.
-These metrics are also invaluable for teams supporting {project_name},
-enabling effective troubleshooting and performance tuning.
+- A Service Level Indicator (SLI) is a carefully defined quantitative measure of some aspect of the level of service that is provided.
 
-We assume that the scenario
-for defining the SLOs and SLIs is based on the below steps and also the histogram metrics are enabled in {project_name} for the PromQL queries
-to run as intended.
+- A Service level objective (SLO) is a target value or range of values for a service level that is measured by an SLI.
+
+By agreeing those with the stakeholders and tracking these, service owners
+can ensure that deployments are aligned with user's expectations and that they neither over- nor under-deliver on the service they provide.
+
+== Prerequisites
+
+* Metrics need to be enabled for Keycloak, and the `http-metrics-slos` option needs to be set to latency to be measured for the SLO defined below.
+* A monitoring system collecting the metrics. The following paragraphs assume Prometheus or a similar system is used that supports the PromQL query language.
+
+https://www.keycloak.org/keycloak-benchmark/kubernetes-guide/latest/running/metrics/keycloak_cluster#processing-time[More details about the metrics are captured here.]
+
+== Definition of the service delivered
+
+The following service definition is used in the next steps to identify the appropriate SLIs and SLOs. It should capture the behavior observed by its users.
 
 ====
 As a {project_name} user,
 
 * I want to be able to log in,
-* refresh my token,
-* and log out.
+* refresh my token and
+* log out,
 
-So that I can interact with the {project_name} system effectively and perform the necessary tasks without interruption.
+so that I can use the applications that use {project_name} for authentication.
 ====
 
+== Definition of SLI and SLO
 
-[cols="2,1,2,2", options="header"]
+The following provides example SLIs and SLOs based on the service description above and the metrics available in {project_name}.
+
+[%autowidth,options="header"]
 |===
-| Service Level Objective^*^ | Service Level Indicator | SLI Metric         | Metric Details
+| Characteristic | Service Level Indicator | Service Level Objective^*^ | Metric Source
 
-| {project_name} should be available 99.99% of the time.                 | Availability            | Uptime percentage is the ratio of successful authentication requests to total authentication requests.               |
-The `up` metric which indicates if the Prometheus server is able to scrape metrics from the {project_name} instance.
-This metric will have a value of 1 if the {project_name} service is available
-and responding to Prometheus scrape requests,
-and 0 if the service is down or unreachable.
+| Availability
+| Percentage of the time {project_name} is able to answer requests as measured by the monitoring system
+| {project_name} should be available 99.9% of the time within a month (44 minutes unavailability per month).
+| Use the Prometheus `up` metric which indicates if the Prometheus server is able to scrape metrics from the {project_name} instance.
 
-It could be represented in a pseudo PromQL query as `sum(up{...}) > 0`
+| Latency
+| Response time for authentication related HTTP requests as measured by the server
+| 95% of all authentication related requests should be faster than 250 ms within a 5-minute-interval.
+| {project_name} server-side metrics to track latency for specific endpoints along with Response Time Distribution using `http_server_requests_seconds_bucket` and `http_server_requests_seconds_count`.
 
-| 95% of {project_name} authentication requests should have a latency below 200ms. | Authentication Latency  | {project_name} server-side metrics to track latency for specific endpoints along with Response Time Distribution.            | `http_server_requests_seconds_bucket`, `http_server_requests_seconds_count`.
+| Errors
+| Failed authentication requests due to server problems as measured by the server
+| The rate of errors due to server problems for authentication requests should be less than 0.1% within a 5-minute-interval.
+| Identify server side error by filtering the metric `http_server_requests_seconds_count` on the tag `outcome` for value `SERVER_ERROR`.
 
-https://www.keycloak.org/keycloak-benchmark/kubernetes-guide/latest/running/metrics/keycloak_cluster#processing-time[More details about the metrics are captured here.]
-
-In the next section there is an example PromQL query,
-which explains how these metrics can be fetched
-and note
-that you have
-to have working Prometheus server scraping metrics data
-from {project_name} metrics endpoint at a given interval.
-
-| The error rate of {project_name} requests should be less than 0.1%.                        | Error Rate | The ratio of failed authentication requests to total requests.                                                       | Failed requests could be identified by the `5xx error codes`
-and `4xx error codes` generated by the {project_name} server
-and those could be further per URL.
-
-Similar to the previous Latency SLI,
-in the next section we provide an example PromQL query to fetch error requests rate.
 |===
 
 ^*^ These SLO target values are an example and should be tailored to fit your use case and deployment.
 
 == PromQL queries
 
-=== Query for calculating authentication request latency:
+=== Availability
 
+This metric will have a value of at least one if the {project_name} instances is available
+and responding to Prometheus scrape requests,
+and 0 if the service is down or unreachable.
 
-[source,plaintext]
+Then use a tool like Grafana to show a 30-day interval and let it calculate the average of the metric in that time window.
+
 ----
-sum(irate(http_server_requests_seconds_bucket{uri=~"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate", le="0.25", namespace="$namespace", pod="$pod_name"}[2m])) without (le) /
-irate(http_server_requests_seconds_count{uri=~"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate", namespace="$namespace", pod="$pod_name"}[2m])
+sum(
+  up{
+    container="keycloak", # <1>
+    namespace="$namespace"
+  }
+)
+OR
+on() vector(0) # <2>
 ----
+<1> Filter by additional tags to identify Keycloak
+<2> Alternative value 0 when none of the Pods is available
 
-==== Query explanation:
+=== Latency of authentication requests
 
 This Prometheus query calculates the percentage of authentication requests
-that completed within 0.25 seconds relative to all authentication requests for specific Keycloak endpoints,
-targeting a particular namespace and pod, over the past 2 minutes.
+that completed within 0.25 seconds relative to all authentication requests for specific Keycloak endpoints, targeting a particular namespace and pod, over the past 5 minutes.
 
-===== *irate(http_server_requests_seconds_bucket{...}[2m]) without (le)*:
-- Computes the instantaneous rate of requests that completed in 0.25 seconds or less for the specified Keycloak endpoints (`token`, `auth`, `logout`, etc.), in the given `namespace` and `pod`, over the last 2 minutes.
-- The "without (le)" clause ensures aggregation across all response time buckets.
+This example requires the Keycloak configuration `http-metrics-slos` to be set to `250` indicating that buckets for requests faster and slower than 250 ms should be recorded.
+Setting `http-metrics-histograms-enabled` to `true` would capture additional buckets which can help with performance troubleshooting.
 
-===== *irate(http_server_requests_seconds_count{...}[2m])*:
-- Calculates the instantaneous rate of all requests (successful and failed) for the same Keycloak endpoints, namespace, and pod within the past 2 minutes.
+----
+sum(
+  rate(
+    http_server_requests_seconds_bucket{
+      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      le="0.25", # <2>
+      container="keycloak", # <3>
+      namespace="$namespace"}
+    [5m] # <4>
+  )
+) without (le,uri,status,outcome,method,pod,instance) # <5>
+/
+sum(
+  rate(
+    http_server_requests_seconds_count{
+      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      container="keycloak",
+      namespace="$namespace"}
+    [5m] # <3>
+  )
+) without (le,uri,status,outcome,method,pod,instance) # <5>
+----
+<1> URLs related to logging in
+<2> Response time as defined by SLO
+<3> Filter by additional tags like
+<4> Interval as specfied by SLO
+<5> Ignore as many labels necessary to create a single sum
 
-===== *Resulting value from division*:
-- Divides the rate of requests completed in <= 0.25 seconds by the total rate of requests, yielding the percentage of authentication requests with a response time under 0.25 seconds.
+=== Errors for authentication requests
 
-=== Query to fetch rate of server errors:
+This Prometheus query calculates the percentage of authentication requests
+that returned a server side error for all authentication requests,
+targeting a particular namespace, over the past 5 minutes.
 
 [source,plaintext]
 ----
-irate(http_server_requests_seconds_count{uri=~"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate", outcome="SERVER_ERROR"}[2m]) / irate(http_server_requests_seconds_count{uri=~"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate"}[2m])
+sum(
+  rate(
+    http_server_requests_seconds_count{
+      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      outcome="SERVER_ERROR", # <2>
+      container="keycloak", # <3>
+      namespace="$namespace"}
+    [2m] # <4>
+  )
+) without (le,uri,status,outcome,method,pod,instance) # <5>
+/
+sum(
+  rate(
+    http_server_requests_seconds_count{
+      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      container="keycloak", # <3>
+      namespace="$namespace"}
+    [2m] # <4>
+  )
+) without (le,uri,status,outcome,method,pod,instance) # <5>
 ----
+<1> URLs related to logging in
+<2> Filter for all requests that responded with a server error (HTTP status 5xx)
+<3> Filter for Keycloak containers
+<4> Interval as specified by SLO
+<5> Ignore as many labels necessary to create a single sum
 
-==== Query explanation:
+== Further Reading
 
-This Prometheus query calculates the proportion of requests that resulted in server side errors (5xx error codes),
-relative to all requests (both successful and failed)
-for specific Keycloak endpoints, over the past 2 minutes.
-
-===== *irate(http_server_requests_seconds_bucket{...}[2m])*:
-- Computes the instantaneous rate of server errors (labeled as SERVER_ERROR),
-targeting Keycloak endpoints (token, auth, logout, etc.)
-over the last 2 minutes.
-
-===== *irate(http_server_requests_seconds_count{...}[2m])*:
-- Calculates the instantaneous rate of all requests (successful and errors) for the same Keycloak
-endpoints in the past 2 minutes.
-
-===== *Resulting value from division*:
-
-- Divides the rate of client errors by the total rate of requests
-(successful and errors), providing the percentage of server errors.
-
-
-=== Query to fetch rate of client errors:
-
-[source,plaintext]
-----
-irate(http_server_requests_seconds_count{uri=~"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate", outcome="CLIENT_ERROR"}[2m]) / irate(http_server_requests_seconds_count{uri=~"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate"}[2m])
-----
-
-==== Query explanation:
-
-This Prometheus query calculates the proportion of requests that resulted in client side errors (4xx error codes),
-relative to all requests (both successful and failed)
-for specific Keycloak endpoints, over the past 2 minutes.
-
-===== *irate(http_server_requests_seconds_bucket{...}[2m])*:
-- Computes the instantaneous rate of client errors (labeled as CLIENT_ERROR),
-targeting Keycloak endpoints (token, auth, logout, etc.)
-over the last 2 minutes.
-
-===== *irate(http_server_requests_seconds_count{...}[2m])*:
-- Calculates the instantaneous rate of all requests (successful and errors) for the same Keycloak
-endpoints in the past 2 minutes.
-
-===== *Resulting value from division*:
-
-- Divides the rate of client errors by the total rate of requests
-(successful and errors), providing the percentage of client errors.
+* https://sre.google/sre-book/service-level-objectives/[Google SRE Book on Service Level Objectives]
+* https://prometheus.io/docs/prometheus/latest/querying/basics/[Prometheus PromQL Basics]
