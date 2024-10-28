@@ -127,7 +127,7 @@ sum(
 ----
 <1> URLs related to logging in
 <2> Response time as defined by SLO
-<3> Filter by additional tags like
+<3> Filter by additional tags to identify the right containers
 <4> Interval as specfied by SLO
 <5> Ignore as many labels necessary to create a single sum
 
@@ -146,7 +146,7 @@ sum(
       outcome="SERVER_ERROR", # <2>
       container="keycloak", # <3>
       namespace="$namespace"}
-    [2m] # <4>
+    [5m] # <4>
   )
 ) without (le,uri,status,outcome,method,pod,instance) # <5>
 /
@@ -156,7 +156,7 @@ sum(
       uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
       container="keycloak", # <3>
       namespace="$namespace"}
-    [2m] # <4>
+    [5m] # <4>
   )
 ) without (le,uri,status,outcome,method,pod,instance) # <5>
 ----
