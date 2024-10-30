@@ -95,9 +95,8 @@ ifndef::external_infinispan[]
 [TIP]
 ====
 For `users` and `realms` cache, the database invalidation translates into a remove operation.
-These metrics are a good indicator of how frequent the database entities are modified.
+These metrics are a good indicator of how frequent the database entities are modified and therefore removed from the cache.
 ====
-endif::[]
 
 ====
 *Hit Ratio for read and remove operations*
@@ -122,7 +121,7 @@ ifndef::external_infinispan[]
 === Eviction
 
 Eviction is the process to limit the cache size and, when full, an entry is removed to make room for a new entry to be cached.
-As {project_name} caches the database entities, database access always proceeds with an eviction event.
+As {project_name} caches the database entities in the `users`, `realms` and `authorization`, database access always proceeds with an eviction event.
 
 |===
 |Metric |Description
@@ -135,10 +134,9 @@ m|vendor_statistics_evictions
 ====
 *Eviction rate*
 
-A rapid increase of eviction and very high database usage means the `users` or `realms` cache is too small for smooth {project_name} operation.
-If enough memory is available, consider increase the max cache size using the CLI options `cache-embedded-users-max-count` or `cache-embedded-realms-max-count`
+A rapid increase of eviction and very high database CPU usage means the `users` or `realms` cache is too small for smooth {project_name} operation, as data needs to be re-loaded very often from the database which slows down responses.
+If enough memory is available, consider increasing the max cache size using the CLI options `cache-embedded-users-max-count` or `cache-embedded-realms-max-count`
 ====
-endif::[]
 
 ifdef::clustered_caches[]
 == Locking
