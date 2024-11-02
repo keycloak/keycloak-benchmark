@@ -23,6 +23,40 @@ spec:
     limits:
       {{ if .Values.cpuLimits }}cpu: "{{ .Values.cpuLimits }}"{{end}}
       {{ if .Values.memoryLimitsMB }}memory: "{{ .Values.memoryLimitsMB }}M"{{end}}
+  {{ if eq .Values.environment "openshift" }}
+  scheduling:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - arm64
+      podAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: keycloak
+                  app.kubernetes.io/component: server
+                  app.kubernetes.io/instance: keycloak
+                  app.kubernetes.io/managed-by: keycloak-operator
+              topologyKey: topology.kubernetes.io/zone
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: keycloak
+                  app.kubernetes.io/component: server
+                  app.kubernetes.io/instance: keycloak
+                  app.kubernetes.io/managed-by: keycloak-operator
+              topologyKey: kubernetes.io/hostname
+  {{end}}
   db:
 {{ if or (eq .Values.database "aurora-postgres") (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
     vendor: postgres

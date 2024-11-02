@@ -36,7 +36,7 @@ After the installation process is finished, it creates a new admin user.
 CLUSTER_NAME=rosa-kcb
 VERSION=4.13.8
 REGION=eu-central-1
-COMPUTE_MACHINE_TYPE=m5.2xlarge
+COMPUTE_MACHINE_TYPE=m6g.2xlarge
 MULTI_AZ=false
 REPLICAS=3
 ----
@@ -85,7 +85,7 @@ The above installation script creates an admin user automatically but in case th
 == Scaling the cluster's nodes on demand
 
 The standard setup of nodes might be too small for running a load test, at the same time using a different instance type and rebuilding the cluster takes a lot of time (about 45 minutes).
-To scale the cluster on demand, the standard setup has a machine pool named `scaling` with instances of type `m5.2xlarge` which is auto-scaled based on the current demand from 4 to 15 instances.
+To scale the cluster on demand, the standard setup has a machine pool named `scaling` with instances of type `m6g.2xlarge` which is auto-scaled based on the current demand from 4 to 15 instances.
 However, auto-scaling of worker nodes is quite time-consuming as nodes are scaled one by one.
 
 To use different instance types, use `rosa create machinepool` to create additional machine pools
