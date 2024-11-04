@@ -28,7 +28,7 @@ import org.keycloak.Keycloak;
 public class KeycloakServer {
 
     private static final String KEYCLOAK_VERSION = System.getProperty("keycloak.version", "999.0.0-SNAPSHOT");
-    private static final String PROJECT_VERSION = System.getProperty("project.version", "0.14-SNAPSHOT");
+    private static final String PROJECT_VERSION = System.getProperty("project.version", "0.15-SNAPSHOT");
 
     public static void main(String[] rawArgs) {
         List<String> args = new ArrayList<>(Arrays.asList(rawArgs));
