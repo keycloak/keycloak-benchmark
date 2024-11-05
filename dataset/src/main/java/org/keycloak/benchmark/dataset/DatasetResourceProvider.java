@@ -19,9 +19,11 @@
 package org.keycloak.benchmark.dataset;
 
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
@@ -919,6 +921,32 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         baseSession.realms().getRealmByName("master").removeAttribute("is-site-" + siteName + "-down");
 
         return Response.ok(TaskResponse.statusMessage("Site " + siteName + " was marked as up.")).build();
+    }
+
+    /**
+     * Simulates error responses by Keycloak
+     * This can be used for example, for feeding {@code http_server_requests_seconds_bucket} with data with {@code outcome="SERVER_ERROR"}
+     *
+     * @param errorPercentage percentage 0-100 to specify how probable 500 response is
+     */
+    @GET
+    @Path("/simulate-error-response")
+    @Produces({MediaType.TEXT_PLAIN})
+    @NoCache
+    public Response simulateErrorResponse(@QueryParam("errorPercentage") @DefaultValue("50") int errorPercentage) {
+        if (errorPercentage > 100) {
+            errorPercentage = 100;
+        }
+
+        if (errorPercentage < 0) {
+            errorPercentage = 0;
+        }
+
+        Random rand = new Random();
+        if (rand.nextInt(100) < errorPercentage) {
+            return Response.serverError().build();
+        }
+        return Response.ok("I am fine!").build();
     }
 
     @GET
