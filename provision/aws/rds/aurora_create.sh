@@ -123,7 +123,7 @@ aws rds create-db-cluster \
     ${AURORA_GLOBAL_CLUSTER_IDENTIFIER}
 
 # For now only two AZs in each region are supported due to the two subnets created above
-readarray -t AZS < <(echo ${AWS_REGION}a; echo ${AWS_REGION}b)
+AZS=("${AWS_REGION}a" "${AWS_REGION}b")
 
 for i in $( seq ${AURORA_INSTANCES} ); do
   aws rds create-db-instance \
