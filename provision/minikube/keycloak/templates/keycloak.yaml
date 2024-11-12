@@ -233,6 +233,7 @@ spec:
                   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8787
 {{- end }}
 {{- if .Values.cryostat }}
+                  -Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false
 {{- end }}
             ports:
 {{ if .Values.cryostat }}
