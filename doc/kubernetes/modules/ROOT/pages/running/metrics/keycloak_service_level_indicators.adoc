@@ -105,9 +105,9 @@ Setting `http-metrics-histograms-enabled` to `true` would capture additional buc
 
 ----
 sum(
-  rate(
+  irate(
     http_server_requests_seconds_bucket{
-      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      uri=~"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*", # <1>
       le="0.25", # <2>
       container="keycloak", # <3>
       namespace="$namespace"}
@@ -116,9 +116,9 @@ sum(
 ) without (le,uri,status,outcome,method,pod,instance) # <5>
 /
 sum(
-  rate(
+  irate(
     http_server_requests_seconds_count{
-      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      uri=~"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*", # <1>
       container="keycloak",
       namespace="$namespace"}
     [5m] # <3>
@@ -140,9 +140,9 @@ targeting a particular namespace, over the past 5 minutes.
 [source,plaintext]
 ----
 sum(
-  rate(
+  irate(
     http_server_requests_seconds_count{
-      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      uri=~"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*", # <1>
       outcome="SERVER_ERROR", # <2>
       container="keycloak", # <3>
       namespace="$namespace"}
@@ -151,9 +151,9 @@ sum(
 ) without (le,uri,status,outcome,method,pod,instance) # <5>
 /
 sum(
-  rate(
+  irate(
     http_server_requests_seconds_count{
-      uri=~"/realms/{realm}/protocol/{protocol}/.*|/realms/{realm}/login-actions/.*", # <1>
+      uri=~"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*", # <1>
       container="keycloak", # <3>
       namespace="$namespace"}
     [5m] # <4>
