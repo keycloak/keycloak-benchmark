@@ -508,7 +508,7 @@
             "h": 16,
             "w": 6,
             "x": 0,
-            "y": 23
+            "y": 2
           },
           "id": 12,
           "options": {
@@ -585,7 +585,7 @@
             "h": 16,
             "w": 6,
             "x": 6,
-            "y": 23
+            "y": 2
           },
           "id": 20,
           "options": {
@@ -678,7 +678,7 @@
             "h": 16,
             "w": 6,
             "x": 12,
-            "y": 23
+            "y": 2
           },
           "id": 18,
           "options": {
@@ -756,7 +756,7 @@
             "h": 16,
             "w": 6,
             "x": 0,
-            "y": 39
+            "y": 18
           },
           "id": 22,
           "options": {
@@ -860,7 +860,7 @@
             "h": 16,
             "w": 6,
             "x": 6,
-            "y": 39
+            "y": 18
           },
           "id": 142,
           "options": {
@@ -952,7 +952,7 @@
             "h": 16,
             "w": 6,
             "x": 12,
-            "y": 39
+            "y": 18
           },
           "id": 140,
           "options": {
@@ -1046,7 +1046,7 @@
             "h": 16,
             "w": 6,
             "x": 0,
-            "y": 55
+            "y": 34
           },
           "id": 24,
           "options": {
@@ -1139,7 +1139,7 @@
             "h": 16,
             "w": 6,
             "x": 6,
-            "y": 55
+            "y": 34
           },
           "id": 26,
           "options": {
@@ -1235,7 +1235,7 @@
             "h": 16,
             "w": 6,
             "x": 12,
-            "y": 55
+            "y": 34
           },
           "id": 224,
           "options": {
@@ -1264,23 +1264,11 @@
               "exemplar": false,
               "expr": "sum by (pod)(jvm_threads_states_threads{namespace=\"$namespace\", container=\"keycloak\", state=\"waiting\"})",
               "format": "time_series",
-              "hide": true,
+              "hide": false,
               "instant": false,
               "legendFormat": "{{pod}}",
               "range": true,
               "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "editorMode": "code",
-              "expr": "jvm_threads_states_threads",
-              "hide": false,
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "B"
             }
           ],
           "title": "JVM waiting threads",
@@ -1332,7 +1320,7 @@
             "h": 16,
             "w": 6,
             "x": 0,
-            "y": 24
+            "y": 51
           },
           "id": 30,
           "options": {
@@ -1357,7 +1345,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum by (pod) (sum_over_time(agroal_active_count[$__range:$__interval]) / sum_over_time((agroal_active_count + agroal_available_count)[$__range:$__interval]))",
+              "expr": "avg by (pod) (sum_over_time(agroal_active_count[$__range:$__interval]) / sum_over_time((agroal_active_count + agroal_available_count)[$__range:$__interval]))",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
@@ -1427,7 +1415,7 @@
             "h": 16,
             "w": 6,
             "x": 6,
-            "y": 24
+            "y": 51
           },
           "id": 32,
           "options": {
@@ -1521,7 +1509,7 @@
             "h": 16,
             "w": 6,
             "x": 12,
-            "y": 24
+            "y": 51
           },
           "id": 34,
           "options": {
@@ -1629,7 +1617,7 @@
             "h": 16,
             "w": 6,
             "x": 0,
-            "y": 40
+            "y": 67
           },
           "id": 183,
           "options": {
@@ -1735,7 +1723,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 105
+            "y": 52
           },
           "id": 38,
           "options": {
@@ -1824,38 +1812,13 @@
                 ]
               }
             },
-            "overrides": [
-              {
-                "__systemRef": "hideSeriesFrom",
-                "matcher": {
-                  "id": "byNames",
-                  "options": {
-                    "mode": "exclude",
-                    "names": [
-                      "{outcome=\"SUCCESS\", uri=\"/realms/{realm}/protocol/{protocol}/token\"}"
-                    ],
-                    "prefix": "All except:",
-                    "readOnly": true
-                  }
-                },
-                "properties": [
-                  {
-                    "id": "custom.hideFrom",
-                    "value": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": true
-                    }
-                  }
-                ]
-              }
-            ]
+            "overrides": []
           },
           "gridPos": {
             "h": 15,
             "w": 12,
             "x": 6,
-            "y": 105
+            "y": 52
           },
           "id": 42,
           "options": {
@@ -1917,7 +1880,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 120
+            "y": 67
           },
           "id": 40,
           "options": {
@@ -2035,7 +1998,7 @@
             "h": 15,
             "w": 12,
             "x": 6,
-            "y": 120
+            "y": 67
           },
           "id": 50,
           "options": {
@@ -2128,7 +2091,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 135
+            "y": 82
           },
           "id": 44,
           "options": {
@@ -2222,7 +2185,7 @@
             "h": 15,
             "w": 12,
             "x": 6,
-            "y": 135
+            "y": 82
           },
           "id": 264,
           "options": {
@@ -2321,7 +2284,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 150
+            "y": 97
           },
           "id": 49,
           "options": {
@@ -2384,7 +2347,7 @@
             "h": 15,
             "w": 6,
             "x": 6,
-            "y": 150
+            "y": 97
           },
           "id": 46,
           "options": {
@@ -2459,7 +2422,7 @@
             "h": 15,
             "w": 6,
             "x": 12,
-            "y": 150
+            "y": 97
           },
           "id": 47,
           "options": {
@@ -2568,7 +2531,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 165
+            "y": 112
           },
           "id": 51,
           "options": {
@@ -2663,7 +2626,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2678,7 +2642,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 90
+            "y": 160
           },
           "id": 89,
           "options": {
@@ -2755,7 +2719,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2770,7 +2735,7 @@
             "h": 15,
             "w": 6,
             "x": 6,
-            "y": 90
+            "y": 160
           },
           "id": 90,
           "options": {
@@ -2847,7 +2812,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2862,7 +2828,7 @@
             "h": 15,
             "w": 6,
             "x": 12,
-            "y": 90
+            "y": 160
           },
           "id": 99,
           "options": {
@@ -2941,7 +2907,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -2956,7 +2923,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 105
+            "y": 175
           },
           "id": 66,
           "options": {
@@ -3032,7 +2999,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3048,7 +3016,7 @@
             "h": 15,
             "w": 6,
             "x": 6,
-            "y": 105
+            "y": 175
           },
           "id": 97,
           "options": {
@@ -3070,7 +3038,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum by (pod)((\nirate(vendor_statistics_hit_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) + irate(vendor_statistics_miss_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]))\n/\n(\n    irate(vendor_statistics_hit_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) + irate(vendor_statistics_miss_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m])\n    + \n    irate(vendor_statistics_remove_hit_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) + irate(vendor_statistics_remove_miss_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) \n    + \n    irate(vendor_statistics_store_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m])\n))",
+              "expr": "avg by (pod)((\nirate(vendor_statistics_hit_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) + irate(vendor_statistics_miss_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]))\n/\n(\n    irate(vendor_statistics_hit_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) + irate(vendor_statistics_miss_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m])\n    + \n    irate(vendor_statistics_remove_hit_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) + irate(vendor_statistics_remove_miss_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m]) \n    + \n    irate(vendor_statistics_store_times_seconds_count{container=\"keycloak\", namespace=\"$namespace\", cache=\"$jdbc_cache_names\"}[5m])\n))",
               "legendFormat": "{{pod}}",
               "range": true,
               "refId": "A"
@@ -3094,7 +3062,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3106,7 +3075,7 @@
             "h": 15,
             "w": 6,
             "x": 12,
-            "y": 105
+            "y": 175
           },
           "id": 91,
           "options": {
@@ -3131,7 +3100,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum by (pod)(\n  rate(\n    vendor_statistics_store_times_seconds_sum{\n      container=\"keycloak\", \n      namespace=\"$namespace\",\n      cache=\"$jdbc_cache_names\"}\n    [$__range] \n  )\n)\n/\nsum by(pod)(\n  rate(\n    vendor_statistics_store_times_seconds_count{\n      container=\"keycloak\",\n      namespace=\"$namespace\",\n      cache=\"$jdbc_cache_names\"}\n    [$__range] \n  )\n)",
+              "expr": "avg by (pod)(\n  rate(\n    vendor_statistics_store_times_seconds_sum{\n      container=\"keycloak\", \n      namespace=\"$namespace\",\n      cache=\"$jdbc_cache_names\"}\n    [$__range] \n  )\n)\n/\nsum by(pod)(\n  rate(\n    vendor_statistics_store_times_seconds_count{\n      container=\"keycloak\",\n      namespace=\"$namespace\",\n      cache=\"$jdbc_cache_names\"}\n    [$__range] \n  )\n)",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
@@ -3186,7 +3155,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3201,7 +3171,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 120
+            "y": 190
           },
           "id": 94,
           "options": {
@@ -3278,7 +3248,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3290,7 +3261,7 @@
             "h": 15,
             "w": 6,
             "x": 6,
-            "y": 120
+            "y": 190
           },
           "id": 70,
           "options": {
@@ -3316,7 +3287,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum by (pod)(irate(vendor_statistics_hit_times_seconds_count{container=\"keycloak\", cache=\"$jdbc_cache_names\", namespace=\"$namespace\"}[5m]) / (irate(vendor_statistics_hit_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m]) + irate(vendor_statistics_miss_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m])))",
+              "expr": "avg by (pod)(irate(vendor_statistics_hit_times_seconds_count{container=\"keycloak\", cache=\"$jdbc_cache_names\", namespace=\"$namespace\"}[5m]) / (irate(vendor_statistics_hit_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m]) + irate(vendor_statistics_miss_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m])))",
               "hide": false,
               "legendFormat": "{{pod}}",
               "range": true,
@@ -3372,7 +3343,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3387,7 +3359,7 @@
             "h": 15,
             "w": 6,
             "x": 12,
-            "y": 120
+            "y": 190
           },
           "id": 53,
           "options": {
@@ -3464,7 +3436,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -3479,7 +3452,7 @@
             "h": 15,
             "w": 6,
             "x": 0,
-            "y": 135
+            "y": 205
           },
           "id": 95,
           "options": {
@@ -3556,7 +3529,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3568,7 +3542,7 @@
             "h": 15,
             "w": 6,
             "x": 6,
-            "y": 135
+            "y": 205
           },
           "id": 92,
           "options": {
@@ -3594,7 +3568,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum by (pod)(irate(vendor_statistics_remove_hit_times_seconds_count{container=\"keycloak\", cache=\"$jdbc_cache_names\", namespace=\"$namespace\"}[5m]) / (irate(vendor_statistics_remove_hit_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m]) + irate(vendor_statistics_remove_miss_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m])))",
+              "expr": "avg by (pod)(irate(vendor_statistics_remove_hit_times_seconds_count{container=\"keycloak\", cache=\"$jdbc_cache_names\", namespace=\"$namespace\"}[5m]) / (irate(vendor_statistics_remove_hit_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m]) + irate(vendor_statistics_remove_miss_times_seconds_count{cache=\"$jdbc_cache_names\", namespace=\"$namespace\", container=\"keycloak\"}[5m])))",
               "hide": false,
               "legendFormat": "{{pod}}",
               "range": true,
@@ -3650,7 +3624,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -3661,7 +3636,7 @@
             "h": 15,
             "w": 6,
             "x": 12,
-            "y": 135
+            "y": 205
           },
           "id": 87,
           "options": {
