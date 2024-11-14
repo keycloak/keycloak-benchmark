@@ -31,6 +31,10 @@ on:
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
+      computeMachineType:
+        description: 'Instance type for the compute nodes'
+        default: 'm7g.2xlarge'
+        type: string
   workflow_call:
     inputs:
       clusterPrefix:
@@ -60,6 +64,10 @@ on:
         default: true
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      computeMachineType:
+        description: 'Instance type for the compute nodes'
+        default: 'm7g.2xlarge'
         type: string
 
 env:
@@ -115,6 +123,7 @@ jobs:
       clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
       region: ${{ needs.meta.outputs.region }}
       availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
+      computeMachineType: ${{ inputs.computeMachineType }}
     secrets: inherit
 
   deploy-keycloak:
