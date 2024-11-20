@@ -233,7 +233,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(\n  irate(\n    http_server_requests_seconds_count{\n      uri=~\"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*\", \n      outcome=\"SERVER_ERROR\", \n      container=\"keycloak\", \n      namespace=\"$namespace\"}\n    [$__range] \n  )\n) without (le,uri,status,outcome,method,instance)  \n/\nsum(\n  irate(\n    http_server_requests_seconds_count{\n      uri=~\"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*\", \n      container=\"keycloak\", \n      namespace=\"$namespace\"}\n    [$__range] \n  )\n) without (le,uri,status,outcome,method,instance) \n\nOR on() vector(0)",
+          "expr": "sum(\n  irate(\n    http_server_requests_seconds_count{\n      uri=~\"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*\", \n      outcome=\"SERVER_ERROR\", \n      container=\"keycloak\", \n      namespace=\"$namespace\"}\n    [$__range] \n  )\n) without (le,uri,status,outcome,method,instance,pod)  \n/\nsum(\n  irate(\n    http_server_requests_seconds_count{\n      uri=~\"/realms/{realm}/protocol/{protocol}.*|/realms/{realm}/login-actions.*\", \n      container=\"keycloak\", \n      namespace=\"$namespace\"}\n    [$__range] \n  )\n) without (le,uri,status,outcome,method,instance,pod)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -3743,7 +3743,7 @@
       "type": "row"
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "revision": 1,
   "schemaVersion": 38,
   "style": "dark",
