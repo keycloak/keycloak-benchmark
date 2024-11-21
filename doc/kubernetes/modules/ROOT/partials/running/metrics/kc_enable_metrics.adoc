@@ -1,7 +1,7 @@
 = Enable {project_name} metrics
 
 {project_name} exposes metrics on the management interface endpoint `/metrics`.
-To enable, use the build time option `--metrics-enabled=true`.
+To enable, use the build time option `--metrics-enabled=true` and `--event-metrics-user-enabled=true`.
 
 On a Kubernetes cluster, using the {project_name} Operator, metrics can be enabled by in the  {project_name} CR `addionalOptions` as shown below:
 
@@ -16,6 +16,8 @@ metadata:
 spec:
   additionalOptions:
     - name: metrics-enabled
+      value: 'true'
+    - name: event-metrics-user-enabled
       value: 'true'
 ----
 
