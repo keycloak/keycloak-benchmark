@@ -14,7 +14,7 @@
 2. Click on Run workflow button
 3. Fill in the form and click on Run workflow button
    1. Name of the cluster - the name of the cluster that will be later used for other workflows. Default value is `gh-${{ github.repository_owner }}`, this results in `gh-<owner of fork>`.
-   2. Instance type for compute nodes - see [AWS EC2 instance types](https://aws.amazon.com/ec2/instance-types/). Default value is `m7g.2xlarge`.
+   2. Instance type for compute nodes - see [AWS EC2 instance types](https://aws.amazon.com/ec2/instance-types/). Default value is `c7g.2xlarge`.
    3. Deploy to multiple availability zones in the region - if checked, the cluster will be deployed to multiple availability zones in the region. Default value is `false`.
    4. Number of worker nodes to provision - number of compute nodes in the cluster. Default value is `2`.
 4. Wait for the workflow to finish.
