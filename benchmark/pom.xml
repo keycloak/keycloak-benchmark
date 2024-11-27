@@ -18,11 +18,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.gatling</groupId>
             <artifactId>gatling-app</artifactId>
             <version>${gatling.version}</version>
@@ -39,17 +34,31 @@
                     <groupId>io.gatling</groupId>
                     <artifactId>gatling-jms</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-redis-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-jdbc-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-jms-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-http-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.gatling</groupId>
+                    <artifactId>gatling-core-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-java8-compat_2.13</artifactId>
+                </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.gatling</groupId>
-            <artifactId>gatling-recorder</artifactId>
-            <version>${gatling.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-            <version>${janino.version}</version>
         </dependency>
     </dependencies>
 
@@ -115,13 +124,6 @@
                                     </excludes>
                                 </filter>
                             </filters>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>io.gatling:gatling-recorder:*</exclude>
-                                    <exclude>org.scala-lang.modules:scala-swing_2.13:*</exclude>
-                                    <exclude>org.scala-lang.modules:scala-java8-compat_2.13:*</exclude>
-                                </excludes>
-                            </artifactSet>
                         </configuration>
                     </execution>
                 </executions>
