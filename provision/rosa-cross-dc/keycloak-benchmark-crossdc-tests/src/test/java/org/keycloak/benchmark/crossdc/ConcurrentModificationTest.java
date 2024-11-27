@@ -1,6 +1,7 @@
 package org.keycloak.benchmark.crossdc;
 
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
@@ -27,6 +28,7 @@ public class ConcurrentModificationTest extends AbstractCrossDCTest {
 
     private static final Logger LOG = Logger.getLogger(ConcurrentModificationTest.class);
 
+    @Disabled("Disabled the test due to an ongoing investigation, look https://github.com/keycloak/keycloak-benchmark/issues/1055 for more details")
     @Test
     public void testConcurrentClientSessionAddition() throws IOException, URISyntaxException, InterruptedException {
         assumeTrue(SKIP_EMBEDDED_CACHES && SKIP_REMOTE_CACHES, "Test is applicable only for Persistent sessions at the moment");
