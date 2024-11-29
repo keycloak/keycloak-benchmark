@@ -229,11 +229,13 @@ metadata:
   name: crossdc-push-state-status
   namespace: {{ $namespace }}
 data:
-  batch: |
-    site push-site-status --cache=actionTokens
-    site push-site-status --cache=authenticationSessions
-    site push-site-status --cache=loginFailures
-    site push-site-status --cache=work
+  batch: |-
+    {{- range $cache, $config := .Values.caches -}}
+    {{- if and (not $.Values.createSessionsCaches) (eq $cache "sessions" "offlineSessions" "clientSessions" "offlineClientSessions") }}
+      {{- continue}}
+    {{- end}}
+    site push-site-status --cache={{ $cache }}
+    {{- end }}
 # end::infinispan-crossdc-push-state-status[]
 ---
 # tag::infinispan-crossdc-reset-push-state-status[]
@@ -243,11 +245,13 @@ metadata:
   name: crossdc-reset-push-state-status
   namespace: {{ $namespace }}
 data:
-  batch: |
-    site clear-push-site-status --cache=actionTokens
-    site clear-push-site-status --cache=authenticationSessions
-    site clear-push-site-status --cache=loginFailures
-    site clear-push-site-status --cache=work
+  batch: |-
+    {{- range $cache, $config := .Values.caches -}}
+    {{- if and (not $.Values.createSessionsCaches) (eq $cache "sessions" "offlineSessions" "clientSessions" "offlineClientSessions") }}
+      {{- continue}}
+    {{- end}}
+    site clear-push-site-status --cache={{ $cache }}
+    {{- end }}
 # end::infinispan-crossdc-reset-push-state-status[]
 ---
 # tag::infinispan-crossdc-clear-caches[]
@@ -257,12 +261,12 @@ metadata:
   name: crossdc-clear-caches
   namespace: {{ $namespace }}
 data:
-  batch: |+
-    {{range $cache, $config := .Values.caches -}}
+  batch: |-
+    {{- range $cache, $config := .Values.caches -}}
     {{- if and (not $.Values.createSessionsCaches) (eq $cache "sessions" "offlineSessions" "clientSessions" "offlineClientSessions") }}
-      {{continue}}
+      {{- continue}}
     {{- end}}
     clearcache {{ $cache }}
-    {{ end }}
+    {{- end }}
 # end::infinispan-crossdc-clear-caches[]
 {{ end }}

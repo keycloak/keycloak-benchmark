@@ -94,7 +94,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set cacheDefaults.crossSiteMode=SYNC \
   --set cacheDefaults.stateTransferMode=AUTO \
   --set cacheDefaults.xsiteFailurePolicy=FAIL \
-  --set cacheDefaults.txMode=NON_XA \
+  --set cacheDefaults.txMode=NON_DURABLE_XA \
   --set cacheDefaults.txLockMode=PESSIMISTIC \
   --set image= \
   --set fd.interval=2000 \
@@ -126,7 +126,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set cacheDefaults.crossSiteMode=SYNC \
   --set cacheDefaults.stateTransferMode=AUTO \
   --set cacheDefaults.xsiteFailurePolicy=FAIL \
-  --set cacheDefaults.txMode=NON_XA \
+  --set cacheDefaults.txMode=NON_DURABLE_XA \
   --set cacheDefaults.txLockMode=PESSIMISTIC \
   --set image= \
   --set fd.interval=2000 \
@@ -137,3 +137,35 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set alertmanager.webhook.username=keycloak \
   --set alertmanager.webhook.password=changme \
   > ${BUILDDIR}/helm/ispn-site-b.yaml
+
+# Infinispan volatile sessions
+helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
+  --set namespace=keycloak \
+  --set replicas=3 \
+  --set crossdc.enabled=true \
+  --set crossdc.local.name=site-1 \
+  --set crossdc.local.gossipRouterEnabled=true \
+  --set crossdc.remote.name=site-b \
+  --set crossdc.remote.gossipRouterEnabled=true \
+  --set crossdc.remote.namespace=keycloak \
+  --set crossdc.remote.url=openshift://api.site-b \
+  --set crossdc.remote.secret=xsite-token-secret \
+  --set crossdc.route.enabled=true \
+  --set crossdc.route.tls.keystore.secret=xsite-keystore-secret \
+  --set crossdc.route.tls.truststore.secret=xsite-truststore-secret \
+  --set metrics.histograms=false \
+  --set hotrodPassword="strong-password" \
+  --set cacheDefaults.crossSiteMode=SYNC \
+  --set cacheDefaults.stateTransferMode=AUTO \
+  --set cacheDefaults.xsiteFailurePolicy=FAIL \
+  --set cacheDefaults.txMode=NON_DURABLE_XA \
+  --set cacheDefaults.txLockMode=PESSIMISTIC \
+  --set image= \
+  --set fd.interval=2000 \
+  --set fd.timeout=10000 \
+  --set createSessionsCaches=true \
+  --set acceleratorDNS=a3da6a6cbd4e27b02.awsglobalaccelerator.com \
+  --set alertmanager.webhook.url=https://tjqr2vgc664b6noj6vugprakoq0oausj.lambda-url.eu-west-1.on.aws/ \
+  --set alertmanager.webhook.username=keycloak \
+  --set alertmanager.webhook.password=changme \
+  > ${BUILDDIR}/helm/ispn-volatile.yaml
