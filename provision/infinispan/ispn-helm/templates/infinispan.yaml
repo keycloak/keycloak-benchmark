@@ -23,6 +23,14 @@ data:
         metrics:
           namesAsTags: true
           histograms: {{ .Values.metrics.histograms }}
+        {{- if .Values.tracing.enabled }}
+        tracing:
+          enabled: true
+          collector-endpoint: "http://jaeger-collector.monitoring.svc:4318"
+          exporter-protocol: "OTLP"
+          service-name: {{ .Values.tracing.serviceName | quote }}
+          security: false
+        {{- end }}
       server:
         endpoints:
           - securityRealm: default
@@ -60,7 +68,7 @@ spec:
   configListener:
     enabled: false
   container:
-    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}} -Djgroups.xsite.fd.interval={{.Values.fd.interval}} -Djgroups.xsite.fd.timeout={{.Values.fd.timeout}}'
+    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}} -Djgroups.xsite.fd.interval={{.Values.fd.interval}} -Djgroups.xsite.fd.timeout={{.Values.fd.timeout}} -Dotel.traces.sampler=parentbased_always_off'
     {{- if .Values.cpu }}
     cpu: {{ .Values.cpu }}
     {{- end}}
