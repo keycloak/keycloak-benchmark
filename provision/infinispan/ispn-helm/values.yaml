@@ -16,14 +16,18 @@ cacheDefaults:
   lockTimeout: 4000
   # WARN|FAIL|IGNORE. ASYNC only works with WARN|IGNORE
   xsiteFailurePolicy: FAIL
-  # NONE|NON_XA
-  txMode: NON_XA
+  # NONE|NON_XA|NON_DURABLE_XA|FULL_XA
+  txMode: NON_DURABLE_XA
   # OPTIMISTIC|PESSIMISTIC
   txLockMode: PESSIMISTIC
 caches:
   actionTokens: {}
   authenticationSessions:
     mergePolicy: ALWAYS_REMOVE
+    indexing:
+      enabled: true
+      indexed-entities:
+        - keycloak.RootAuthenticationSessionEntity
   sessions:
     mergePolicy: ALWAYS_REMOVE
     indexing:
