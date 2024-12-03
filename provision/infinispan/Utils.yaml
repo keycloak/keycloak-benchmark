@@ -79,6 +79,7 @@ tasks:
       CROSS_DC_FD_INTERVAL: '{{.CROSS_DC_FD_INTERVAL | default "2000"}}'
       CROSS_DC_FD_TIMEOUT: '{{.CROSS_DC_FD_TIMEOUT | default "10000"}}'
       CROSS_DC_VOLATILE_SESSIONS: '{{.CROSS_DC_VOLATILE_SESSIONS | default .KC_EXTERNAL_INFINISPAN | default "false"}}' # false if persistent sessions are enabled in Keycloak
+      CROSS_DC_TRACING: '{{.CROSS_DC_TRACING | default .KC_OTEL | default "false"}}'
     cmds:
       - >
         KUBECONFIG=".task/kubecfg/{{.ROSA_CLUSTER_NAME}}" helm upgrade --install infinispan --namespace {{.NAMESPACE}}
@@ -99,6 +100,7 @@ tasks:
         --set crossdc.route.tls.keystore.secret={{.CROSS_DC_JGRP_KS_SECRET}}
         --set crossdc.route.tls.truststore.secret={{.CROSS_DC_JGRP_TS_SECRET}}
         --set metrics.histograms={{.CROSS_DC_HISTOGRAMS}}
+        --set tracing.enabled={{.CROSS_DC_TRACING}}
         --set hotrodPassword={{.CROSS_DC_HOT_ROD_PASSWORD}}
         --set cacheDefaults.crossSiteMode={{.CROSS_DC_MODE}}
         --set cacheDefaults.stateTransferMode={{.CROSS_DC_STATE_TRANSFER_MODE}}
