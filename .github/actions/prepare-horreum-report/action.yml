@@ -16,25 +16,42 @@ runs:
       name: Create and Prepare Report File
       if: ${{ inputs.createReportFile == 'true' }}
       shell: bash
-      # language=bash
       run: |
+        set -e  # Exit on error
+
         output_file_prefix="result-"
         cur_date=$(date)
         cur_date_iso=$(date -d "$cur_date" --iso-8601=seconds)
         cur_date_iso_compressed=$(date -d "$cur_date" '+%Y%m%d-%H%M%S')
         uuid=$(uuidgen)
+
+        # Extract compute machine type
+        echo "Getting compute machine type..."
+        nodes_output=$(oc get nodes -o custom-columns=TYPE:.metadata.labels."node\.kubernetes\.io/instance-type" || { echo "Failed to get nodes info"; exit 1; })
+        compute_machine_type=$(echo "$nodes_output" | tail -n +2 | sort -u | tr '\n' ',' | sed 's/,$//' || { echo "Failed to parse machine type"; exit 1; })
+
+        if [[ -z "$compute_machine_type" ]]; then
+          echo "Warning: No compute machine type found."
+          compute_machine_type="unknown"
+        fi
+
         OUTPUT_FILE_NAME="${output_file_prefix}${cur_date_iso_compressed}-${uuid}.json"
         echo "HORREUM_OUTPUT_FILE_NAME=$OUTPUT_FILE_NAME" >> $GITHUB_ENV
-        jq -n --arg current_date "${cur_date_iso}" --arg id "${uuid}" \
+
+        # Create the JSON file with the initial structure, using --arg for computeMachineType
+        jq -n --arg current_date "${cur_date_iso}" --arg id "${uuid}" --arg compute_machine_type "${compute_machine_type}" \
         '{"$schema": "urn:keycloak-benchmark:0.2", "uuid": ($id), "name": "ROSA Scalability Benchmark Run Results",
-        "start": ($current_date), "end": ""}' > ${OUTPUT_FILE_NAME}
-        #Reading configmap with environment data
-        configJson=$(oc get configmap env-config -n ${{ env.PROJECT }} -o "jsonpath={ .data['environment_data\.json']}'" | rev | cut -d\' -f2- | rev | jq)
-        jq '. + {"context":{}}' ${OUTPUT_FILE_NAME} > tmp.json && \
-        mv tmp.json ${OUTPUT_FILE_NAME}
-        #Putting environment parameters into JSON
-        jq --argjson configJson "${configJson}" '.context = ($configJson)' ${OUTPUT_FILE_NAME} > tmp.json && \
-        mv tmp.json ${OUTPUT_FILE_NAME}
+        "start": ($current_date), "end": "", "computeMachineType": ($compute_machine_type)}' > ${OUTPUT_FILE_NAME}
+
+        # Read configmap with environment data
+        echo "Reading environment data from configmap..."
+        configJson=$(oc get configmap env-config -n ${{ env.PROJECT }} -o "jsonpath={ .data['environment_data\.json']}'" || { echo "Failed to get configmap data"; exit 1; })
+        configJson=$(echo "$configJson" | rev | cut -d\' -f2- | rev | jq || { echo "Failed to parse configmap JSON"; exit 1; })
+
+        # Add environment parameters to JSON
+        echo "Updating report JSON with context data..."
+        jq '. + {"context":{}}' ${OUTPUT_FILE_NAME} > tmp.json && mv tmp.json ${OUTPUT_FILE_NAME}
+        jq --argjson configJson "${configJson}" '.context = ($configJson)' ${OUTPUT_FILE_NAME} > tmp.json && mv tmp.json ${OUTPUT_FILE_NAME}
 
     - id: finalize-report-file
       name: Add end time to the report
