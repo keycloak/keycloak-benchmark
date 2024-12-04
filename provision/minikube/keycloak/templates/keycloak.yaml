@@ -50,6 +50,10 @@ spec:
       haproxy.router.openshift.io/balance: roundrobin
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
+  {{- if .Values.networkPolicy.enabled }}
+  networkPolicy:
+    enabled: true
+  {{- end }}
 {{ if .Values.keycloakImage }}
   image: {{ .Values.keycloakImage }} # <2>
   startOptimized: {{ .Values.startOptimized }} # <2>
