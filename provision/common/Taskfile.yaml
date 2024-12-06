@@ -30,6 +30,7 @@ vars:
   ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
   KC_REPOSITORY: '{{default "" .KC_REPOSITORY}}'
   KC_BRANCH: '{{default "" .KC_BRANCH}}'
+  KC_NETWORK_POLICY: '{{default "true" .KC_NETWORK_POLICY}}'
 tasks:
 
   split:
@@ -76,6 +77,7 @@ tasks:
       - echo {{.KC_EXTERNAL_INFINISPAN}} > .task/var-KC_EXTERNAL_INFINISPAN
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
+      - echo {{.KC_NETWORK_POLICY}} > .task/var-KC_NETWORK_POLICY
       - |
         jq -n --arg cpu_requests_per_pod "{{ .KC_CPU_REQUESTS }}" \
           --arg cpu_limits_per_pod "{{ .KC_CPU_LIMITS }}" \
@@ -146,6 +148,7 @@ tasks:
       - test "{{.KC_EXTERNAL_INFINISPAN}}" == "$(cat .task/var-KC_EXTERNAL_INFINISPAN)"
       - test "{{.KC_HOSTNAME_OVERRIDE}}" == "$(cat .task/var-KC_HOSTNAME_OVERRIDE)"
       - test "{{.KC_HEALTH_HOSTNAME}}" == "$(cat .task/var-KC_HEALTH_HOSTNAME)"
+      - test "{{.KC_NETWORK_POLICY}}" == "$(cat .task/var-KC_NETWORK_POLICY)"
 
   mvnw:
     dir: ../..
