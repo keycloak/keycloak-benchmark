@@ -1,8 +1,8 @@
 name: ROSA Daily Scheduled Run
 
 on:
-  schedule:
-    - cron: '0 5 * * 1-5' # Runs At 05:00 UTC on every day-of-week from Monday through Friday.
+  #schedule:
+  #  - cron: '0 5 * * 1-5' # Runs At 05:00 UTC on every day-of-week from Monday through Friday.
   workflow_dispatch:
 
 # env:
@@ -22,7 +22,7 @@ jobs:
 
   run-active-active-health-checks-after-deploy:
     needs: keycloak-deploy-active-active
-    name: Run multi-site health checks after deployment
+    name: Run multi-site health checks after A/A deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
@@ -44,7 +44,7 @@ jobs:
 
   run-active-active-health-checks-after-functional-tests:
     needs: run-functional-tests-active-active
-    name: Run multi-site health checks after functional tests
+    name: Run multi-site health checks after A/A functional tests
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
@@ -64,7 +64,7 @@ jobs:
 
   run-active-active-health-checks-after-benchmarks:
     needs: run-scaling-benchmark-active-active
-    name: Run multi-site health checks after benchmarks
+    name: Run multi-site health checks after A/A benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
@@ -100,7 +100,7 @@ jobs:
 
   run-active-active-volatile-health-checks-after-deploy:
     needs: keycloak-deploy-active-active-volatile
-    name: Run multi-site health checks after deployment
+    name: Run multi-site health checks after volatile sessions deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
@@ -123,7 +123,7 @@ jobs:
 
   run-active-active-volatile-health-checks-after-functional-tests:
     needs: run-functional-tests-active-active-volatile
-    name: Run multi-site health checks after functional tests
+    name: Run multi-site health checks after volatile sessions functional tests
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
@@ -145,7 +145,7 @@ jobs:
 
   run-active-active-volatile-health-checks-after-benchmarks:
     needs: run-scaling-benchmark-active-active-volatile
-    name: Run multi-site health checks after benchmarks
+    name: Run multi-site health checks after after volatile sessions benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
