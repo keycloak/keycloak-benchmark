@@ -61,7 +61,7 @@ def fetch_and_process_json(github_user, github_repo, branch_name, json_directory
                     data_frames[test].append(df)
 
     combined_df = pd.concat(basic_df, ignore_index=True)
-    perf_across_deployments_df = combined_df[['start', 'context.externalInfinispanFeatureEnabled', 'context.persistentSessionsEnabled', 'cpuUsageForLoginsTest.userLoginsPerSecPer1vCpuPerPod', 'cpuUsageForCredentialGrantsTest.credentialGrantsPerSecPer1vCpu', 'memoryUsageTest.activeSessionsPer500MbPerPod']]
+    perf_across_deployments_df = combined_df[['start', 'context.externalInfinispanFeatureEnabled', 'cpuUsageForLoginsTest.userLoginsPerSecPer1vCpuPerPod', 'cpuUsageForCredentialGrantsTest.credentialGrantsPerSecPer1vCpu', 'memoryUsageTest.activeSessionsPer500MbPerPod']]
 
     print(perf_across_deployments_df.to_csv(index=False))
     # Concatenate all DataFrames for each test into a single DataFrame
