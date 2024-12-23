@@ -6,8 +6,29 @@ on:
     - cron: '0 21 * * *' # Runs every day at 9 PM UTC.
 
 jobs:
+  accelerator-delete:
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
+      - name: Delete Global Accelerators
+        run: ./provision/aws/global-accelerator/accelerator_reaper.sh
 
   rosa-delete:
+    needs: accelerator-delete
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-cluster-delete.yml
     secrets: inherit
@@ -72,24 +93,3 @@ jobs:
       - shell: bash
         if: ${{ always() }}
         run: ./provision/aws/aws_check_subnet_groups.sh
-
-  accelerator-delete:
-    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure AWS CLI
-        run: |
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
-
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
-        with:
-          tofu_wrapper: false
-
-      - name: Delete Global Accelerators
-        run: ./provision/aws/global-accelerator/accelerator_reaper.sh
