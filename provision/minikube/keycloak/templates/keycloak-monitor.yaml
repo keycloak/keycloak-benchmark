@@ -8,9 +8,21 @@ spec:
   selector:
     matchLabels:
       app: keycloak
+  # Use pod target labels "as is" without any renaming
+  # podTargetLabels:
+  #   - app
   podMetricsEndpoints:
     - port: management
       scheme: https
       tlsConfig:
         insecureSkipVerify: true
+      relabelings:
+        - targetLabel: application
+          # Alternative: hard-coded value
+          # replacement: "keycloak"
+          sourceLabels:
+          - __meta_kubernetes_pod_label_app
+          regex: (.+)
+          replacement: ${1}
+
 {{ end }}
