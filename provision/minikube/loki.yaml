@@ -1,11 +1,12 @@
 #  https://github.com/grafana/loki/blob/main/production/helm/loki/values.yaml
-
 loki:
   commonConfig:
     replication_factor: 1
   storage:
     type: 'filesystem'
   auth_enabled: false
+  image:
+    registry: mirror.gcr.io
 
 monitoring:
   rules:
@@ -14,12 +15,25 @@ monitoring:
     # failed to call webhook: Post "https://prometheus-kube-prometheus-operator.monitoring.svc:443/admission-prometheusrules/mutate?timeout=10s":
     # dial tcp xxx.xxx.xxx:443: connect: connection refused
     enabled: false
+  selfMonitoring:
+    enabled: false
+    lokiCanary:
+      enabled: false
+
+test:
+  enabled: false
 
 write:
   persistence:
     size: 1Gi
 
-config:
-  table_manager:
-    retention_deletes_enabled: true
-    retention_period: 60d
+tableManager:
+  retention_deletes_enabled: true
+  retention_period: 60d
+
+grafana-agent-operator:
+  https://github:
+    com/grafana/helm-charts/blob/main/charts/agent-operator/values:
+      yaml:
+  image:
+    registry: mirror.gcr.io
