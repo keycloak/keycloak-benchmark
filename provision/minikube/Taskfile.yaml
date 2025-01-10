@@ -72,7 +72,7 @@ tasks:
       - kubectl create namespace monitoring || true
       - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --version 39.11.0 -f monitoring.yaml --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io --set prometheus.prometheusSpec.retention={{.KB_RETENTION}}
+      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --version 67.9.0 -f monitoring.yaml --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io --set prometheus.prometheusSpec.retention={{.KB_RETENTION}}
     sources:
       - monitoring.yaml
       - .task/subtask-{{.TASK}}.yaml
@@ -84,6 +84,8 @@ tasks:
       - prometheus
       - common:split
       - ipchange
+      - promtail
+      - loki
     cmds:
       - helm upgrade --install monitoring --set hostname={{.IP}}.nip.io monitoring
     sources:
@@ -130,8 +132,8 @@ tasks:
       - helm repo update
       # A loki update might fail as a stateful set can't be updated. If that fails, uninstall and re-install.
       - >
-        bash -c "helm upgrade --install loki grafana/loki --version 3.0.0 -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}}
-        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki --version 3.0.0 -n monitoring -f loki.yaml --set config.table_manager.retention_period={{.KB_RETENTION}})"
+        bash -c "helm upgrade --install loki grafana/loki --version 3.3.2 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}}
+        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki --version 3.3.2 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}})"
     sources:
       - loki.yaml
       - .task/subtask-{{.TASK}}.yaml
