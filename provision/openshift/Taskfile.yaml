@@ -110,27 +110,6 @@ tasks:
       - .task/var-KC_HOSTNAME_SUFFIX
       - .task/var-KC_DATABASE_URL
 
-  jaeger:
-    deps:
-      - common:split
-      - common:env
-      - openshift-env
-      - grafana-sa
-    cmds:
-      - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
-      - helm repo update
-      - >
-        helm upgrade --install jaeger jaegertracing/jaeger --version 3.1.2 -n monitoring -f ../minikube/jaeger/values.yaml
-        --set allInOne.podSecurityContext.runAsUser=$(cat .task/monitoring-uids)
-        --set allInOne.podSecurityContext.runAsGroup=$(cat .task/monitoring-uids)
-        --set allInOne.podSecurityContext.fsGroup=$(cat .task/monitoring-uids)
-        --set allInOne.extraEnv[0].value={{.KB_RETENTION}}
-    sources:
-      - ../minikube/jaeger/**/*.*
-      - .task/subtask-{{.TASK}}.yaml
-      - .task/var-KB_RETENTION
-      - .task/var-KC_HOSTNAME_SUFFIX
-
   grafana-sa:
     # this setup was inspired by https://zhimin-wen.medium.com/custom-grafana-dashboard-for-user-workload-in-openshift-6dc2d4cad274
     deps:
@@ -181,7 +160,6 @@ tasks:
       - common:env
       - openshift-env
       - grafana
-      - jaeger
     cmds:
       - helm upgrade -n monitoring --install monitoring monitoring
     sources:
@@ -278,6 +256,7 @@ tasks:
         --set multiSite={{ .KC_MULTI_SITE }}
         --set nodePortsEnabled=false
         --set networkPolicy.enabled={{ .KC_NETWORK_POLICY }}
+        --set tracingEndpoint=http://tempo-tempo.monitoring.svc:4317
         ../minikube/keycloak
       - >
         bash -c '

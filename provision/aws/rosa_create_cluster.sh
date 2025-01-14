@@ -75,6 +75,7 @@ cd ${SCRIPT_DIR}
 ./rosa_install_cryotstat_operator.sh
 
 ./rosa_install_openshift_logging.sh
+./rosa_install_tempo_operator.sh
 
 echo "Enabling user alert routing."
 oc apply -f ${SCRIPT_DIR}/../openshift/cluster-monitoring-config.yaml
