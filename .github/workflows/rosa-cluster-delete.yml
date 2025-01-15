@@ -76,6 +76,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rosa-logs
+          name: rosa-logs-${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
           path: provision/aws/logs
           retention-days: 5
