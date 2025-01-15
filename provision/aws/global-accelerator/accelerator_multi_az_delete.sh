@@ -28,7 +28,7 @@ if [ -z "${ACCELERATOR_NAME}" ]; then
   )
   if [ -z "${ACCELERATOR_NAME}" ]; then
     echo "Unable to find Global Accelerator with DnsName '${ACCELERATOR_DNS}'"
-    exit 1
+    exit 0
   fi
 fi
 
