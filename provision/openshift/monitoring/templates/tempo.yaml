@@ -1,0 +1,42 @@
+apiVersion: tempo.grafana.com/v1alpha1
+kind: TempoMonolithic
+metadata:
+  name: tempo
+  namespace: monitoring
+spec:
+  ingestion:
+    otlp:
+      grpc:
+        enabled: true
+      http:
+        enabled: true
+  jaegerui:
+    enabled: true
+    ingress:
+      enabled: true
+    resources:
+      limits:
+        cpu: '2'
+        memory: 2Gi
+    route:
+      enabled: true
+  multitenancy:
+    enabled: false
+    mode: static
+  observability:
+    grafana:
+      dataSource:
+        enabled: false
+    metrics:
+      prometheusRules:
+        enabled: false
+      serviceMonitors:
+        enabled: true
+  resources:
+    limits:
+      cpu: '2'
+      memory: 2Gi
+  storage:
+    traces:
+      backend: pv
+      size: 1Gi

@@ -513,7 +513,6 @@ tasks:
     internal: true
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
-      - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
       - helm repo update
 
   create-grafana-service-account:
@@ -571,27 +570,6 @@ tasks:
       - "{{.KC_DIR}}/grafana.yaml"
       - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
 
-  install-jaeger:
-    label: "install-jaeger-{{.ROSA_CLUSTER_NAME}}"
-    internal: true
-    requires:
-      vars:
-        - ROSA_CLUSTER_NAME
-    vars:
-      RETENTION: '{{.RETENTION | default "168h"}}'
-      JAEGER_VERSION: '{{.JAEGER_VERSION | default "3.1.2"}}'
-    cmds:
-      - >
-        KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
-        helm upgrade --install jaeger jaegertracing/jaeger --version {{.JAEGER_VERSION}} -n monitoring -f "{{.ROOT_DIR}}/../minikube/jaeger/values.yaml"
-        --set allInOne.podSecurityContext.runAsUser=$(cat .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}})
-        --set allInOne.podSecurityContext.runAsGroup=$(cat .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}})
-        --set allInOne.podSecurityContext.fsGroup=$(cat .task/monitoring-uids-{{.ROSA_CLUSTER_NAME}})
-        --set allInOne.extraEnv[0].value={{.RETENTION}}
-    sources:
-      - "{{.ROOT_DIR}}/../minikube/jaeger/**/*"
-      - "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
-
   install-grafana-charts:
     label: "install-grafana-charts-{{.ROSA_CLUSTER_NAME}}"
     internal: true
@@ -642,12 +620,6 @@ tasks:
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
       - task: install-grafana
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
-      - task: install-jaeger
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-      - task: install-jaeger
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - task: install-grafana-charts

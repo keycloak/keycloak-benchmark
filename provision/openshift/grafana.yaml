@@ -45,23 +45,13 @@ datasources:
           httpMethod: "POST"
         secureJsonData:
           httpHeaderValue1: Bearer $__file{/etc/secrets/grafanaserviceaccount/token}
-      - name: Jaeger
-        uid: PC9A941E8F2E49454
-        type: jaeger
-        url: "http://jaeger-query.monitoring.svc:16686"
+      - name: Tempo
+        uid: PD9A941E8F2E49454
+        type: tempo
+        url: "http://tempo-tempo.monitoring.svc:3200"
         access: proxy
         isDefault: false
         editable: false
-        jsonData:
-          tracesToLogs:
-            datasourceUid: P8E80F9AEF21F6940
-            filterByTraceID: true,
-            mapTagNamesEnabled: true
-            mappedTags:
-              - key: "hostname"
-                value: "pod"
-            spanStartTimeShift: "-1h"
-            spanEndTimeShift: "1h"
 extraSecretMounts:
 - name: grafana-sa-secret
   secretName: grafana-sa-secret
