@@ -68,7 +68,7 @@ spec:
   configListener:
     enabled: false
   container:
-    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}} -Djgroups.xsite.fd.interval={{.Values.fd.interval}} -Djgroups.xsite.fd.timeout={{.Values.fd.timeout}} -Dotel.traces.sampler=parentbased_always_off'
+    extraJvmOpts: '-Dorg.infinispan.openssl=false -Dorg.infinispan.threads.virtual=true -Dinfinispan.cluster.name=ISPN {{.Values.jvmOptions}} -Djgroups.xsite.fd.interval={{.Values.fd.interval}} -Djgroups.xsite.fd.timeout={{.Values.fd.timeout}} -Dotel.traces.sampler=parentbased_always_off'
     {{- if .Values.cpu }}
     cpu: {{ .Values.cpu }}
     {{- end}}
