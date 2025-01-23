@@ -1,4 +1,41 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.4.7"
+    },
+    {
+      "type": "panel",
+      "id": "heatmap",
+      "name": "Heatmap",
+      "version": ""
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -24,6 +61,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -45,7 +83,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "description": "",
       "fieldConfig": {
@@ -130,7 +168,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -145,7 +183,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) / (irate(vendor_statistics_hits{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) + irate(vendor_statistics_misses{cache=\"realms\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]))",
@@ -157,7 +195,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) / (irate(vendor_statistics_hits{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]) + irate(vendor_statistics_misses{cache=\"users\", namespace=\"${namespace}\", pod=\"$pod_name\"}[2m]))",
@@ -182,7 +220,7 @@
       "dataFormat": "timeseries",
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -253,7 +291,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "exemplar": true,
@@ -284,7 +322,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -362,7 +400,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99, sum(irate(http_server_requests_seconds_bucket{uri=~\"/realms/{realm}/protocol/{protocol}/(token|auth|logout)|/realms/{realm}/login-actions/authenticate\", namespace=\"$namespace\", pod=\"$pod_name\"}[2m])) by (le,uri))",
@@ -383,14 +421,10 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "runner-keycloak",
-          "value": "runner-keycloak"
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(namespace)",
         "hide": 0,
@@ -409,18 +443,10 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": true,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "http_server_requests_seconds_bucket{namespace=\"$namespace\"}",
         "hide": 0,
@@ -448,6 +474,6 @@
   "timezone": "",
   "title": "Authentication Code SLO",
   "uid": "R3kK_894z",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }

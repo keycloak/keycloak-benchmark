@@ -1,4 +1,35 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.4.7"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -24,6 +55,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -43,7 +75,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -123,7 +155,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_cache_container_health_number_of_nodes{namespace=\"$namespace\"})",
@@ -138,7 +170,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "description": "",
       "fieldConfig": {
@@ -219,7 +251,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / (irate(vendor_cache_container_stats_hits{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) + irate(vendor_cache_container_stats_misses{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]))",
@@ -234,7 +266,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -315,7 +347,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_tcp_get_thread_pool_size{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
@@ -326,7 +358,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_tcp_get_thread_pool_size_active{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
@@ -338,7 +370,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_tcp_get_largest_size{job=\"$namespace/keycloak-metrics\"}",
@@ -354,7 +386,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -436,7 +468,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_ufc_get_average_time_blocked{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
@@ -447,7 +479,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_mfc_get_average_time_blocked{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
@@ -463,7 +495,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "description": "RED (Random Early Drop) If the bundler queue starts to grows (i.e the socker.write() is unable to keep up with the number of messages to be sent) and gets closer to max size, this protocol will drop messages.",
       "fieldConfig": {
@@ -544,7 +576,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_tcp_get_num_rejected_msgs{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
@@ -555,7 +587,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "vendor_jgroups_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}",
@@ -571,7 +603,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -655,7 +687,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_jgroups_red_get_dropped_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m]) / irate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|${namespace}/keycloak-metrics\"}[2m])",
@@ -670,7 +702,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -751,7 +783,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_jgroups_red_get_total_messages{namespace=\"${namespace}\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
@@ -780,7 +812,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -860,7 +892,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries_in_memory{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
@@ -875,7 +907,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -955,7 +987,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_statistics_stores{cache=\"$distributed_cache\", job=~\"infinispan-admin|$namespace/keycloak-metrics\"}[2m])",
@@ -970,7 +1002,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1050,7 +1082,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_read_time_nanos{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
@@ -1065,7 +1097,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1145,7 +1177,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_write_time_nanos{cache=\"${distributed_cache}\", namespace=\"${namespace}\"})",
@@ -1160,7 +1192,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1241,7 +1273,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "sum by (pod,site) (irate(vendor_rpc_manager_number_xsite_requests_sent_to_site{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
@@ -1252,7 +1284,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "sum by (pod,site) (irate(vendor_rpc_manager_number_xsite_requests_received_from_site{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"}[2m]))",
@@ -1268,7 +1300,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1351,7 +1383,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_rpc_manager_cross_site_replication_times_seconds_sum{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m]) / irate(vendor_rpc_manager_cross_site_replication_times_seconds_count{job=\"infinispan-admin\", cache=\"$distributed_cache\", namespace=\"$namespace\"} [2m])",
@@ -1381,7 +1413,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1423,8 +1455,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1461,7 +1492,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_approximate_entries_in_memory{cache=\"${local_cache}\", namespace=\"${namespace}\"})",
@@ -1476,7 +1507,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "description": "",
       "fieldConfig": {
@@ -1522,8 +1553,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -1557,7 +1587,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) / (irate(vendor_statistics_hits{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]) + irate(vendor_statistics_misses{cache=\"${local_cache}\", namespace=\"${namespace}\", job=\"${namespace}/keycloak-metrics\"}[2m]))",
@@ -1572,7 +1602,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1614,8 +1644,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -1652,7 +1681,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_read_time_nanos{cache=\"${local_cache}\", namespace=\"${namespace}\"})",
@@ -1667,7 +1696,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1709,8 +1738,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -1747,7 +1775,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "avg without(instance,node,job,endpoint,otel_scope_name) (vendor_statistics_average_write_time_nanos{cache=\"${local_cache}\", namespace=\"${namespace}\"})",
@@ -1768,14 +1796,10 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "runner-keycloak",
-          "value": "runner-keycloak"
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(namespace)",
         "hide": 0,

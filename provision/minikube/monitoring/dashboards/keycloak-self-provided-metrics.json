@@ -1,4 +1,35 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.4.7"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -24,14 +55,14 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 7,
+  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "description": "Shows the number of password validations performed by Keycloak",
       "fieldConfig": {
@@ -109,7 +140,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_credentials_password_hashing_validations_total{namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -124,7 +155,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -203,7 +234,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"code_to_token\", namespace=\"$namespace\", realm=\"$realm\", error!=\"\"}[$__rate_interval])",
@@ -215,7 +246,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"code_to_token\", namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -232,7 +263,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -311,7 +342,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"client_login\", namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -323,7 +354,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"client_login\", namespace=\"$namespace\", realm=\"$realm\", error!=\"\"}[$__rate_interval])",
@@ -340,7 +371,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -419,7 +450,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"refresh_token\", namespace=\"$namespace\", realm=\"$realm\", error!=\"\"}[$__rate_interval])",
@@ -431,7 +462,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"refresh_token\", namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -448,7 +479,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -527,7 +558,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"login\", namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -540,7 +571,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"login\", namespace=\"$namespace\", realm=\"$realm\", error!=\"\"}[$__rate_interval])",
@@ -557,7 +588,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -636,7 +667,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"logout\", namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -648,7 +679,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"logout\", namespace=\"$namespace\", realm=\"$realm\", error!=\"\"}[$__rate_interval])",
@@ -665,7 +696,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -744,7 +775,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"token_exchange\", namespace=\"$namespace\", realm=\"$realm\"}[$__rate_interval])",
@@ -757,7 +788,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "irate(keycloak_user_events_total{event=\"token_exchange\", namespace=\"$namespace\", realm=\"$realm\", error!=\"\"}[$__rate_interval])",
@@ -772,7 +803,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "revision": 1,
   "schemaVersion": 38,
   "style": "dark",
@@ -780,14 +811,10 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "runner-keycloak",
-          "value": "runner-keycloak"
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(namespace)",
         "hide": 0,
@@ -807,14 +834,10 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "realm-0",
-          "value": "realm-0"
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(realm)",
         "hide": 0,
@@ -843,6 +866,6 @@
   "timezone": "browser",
   "title": "Keycloak self-provided metrics",
   "uid": "dtvmgcVNk",
-  "version": 1,
+  "version": 2,
   "weekStart": "monday"
 }
