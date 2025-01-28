@@ -9,7 +9,7 @@ vars:
   KC_DB_POOL_MAX_SIZE: '{{default "10" .KC_DB_POOL_MAX_SIZE}}'
   KC_DB_POOL_MIN_SIZE: '{{default "5" .KC_DB_POOL_MIN_SIZE}}'
   KC_DATABASE: '{{default "postgres" .KC_DATABASE}}'
-  KC_OPERATOR_TAG: '{{default "nightly" .KC_OPERATOR_TAG}}'
+  KC_OPERATOR_TAG: '{{default "26.1.0" .KC_OPERATOR_TAG}}'
   KC_CONTAINER_IMAGE: '{{default "" .KC_CONTAINER_IMAGE}}'
   KC_INSTANCES: '{{default "1" .KC_INSTANCES}}'
   KC_CPU_REQUESTS: '{{default "0" .KC_CPU_REQUESTS}}'
@@ -202,7 +202,7 @@ tasks:
       - mkdir -p keycloak-cli
       - rm -f keycloak-cli/*.zip
       - >
-        curl -L -f https://github.com/keycloak/keycloak/releases/download/nightly/keycloak-999.0.0-SNAPSHOT.zip -o keycloak-cli/keycloak.zip
+        curl -L -f https://github.com/keycloak/keycloak/releases/download/26.1.0/keycloak-26.1.0.zip -o keycloak-cli/keycloak.zip
     status:
       - find keycloak-cli/keycloak.zip -mtime +1 -exec false {} +
     sources:
