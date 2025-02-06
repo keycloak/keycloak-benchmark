@@ -1,0 +1,60 @@
+{{ if eq .Values.database "mysql" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mysql
+  name: mysql
+  namespace: {{ .Values.namespace }}
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - imagePullPolicy: Always
+          env:
+            - name: MYSQL_PASSWORD
+              value: secret99
+            - name: MYSQL_ROOT_PASSWORD
+              value: secret99
+            - name: MYSQL_USER
+              value: keycloak
+            - name: MYSQL_DATABASE
+              value: keycloak
+          image: mirror.gcr.io/library/mysql:8.4
+          resources:
+            requests:
+              cpu: "{{ .Values.cpuRequests }}"
+          startupProbe:
+            tcpSocket:
+              port: 3306
+            failureThreshold: 20
+            initialDelaySeconds: 10
+            periodSeconds: 2
+          readinessProbe:
+            tcpSocket:
+              port: 3306
+            failureThreshold: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            failureThreshold: 10
+            periodSeconds: 10
+          name: mysql
+          ports:
+            - containerPort: 3306
+              protocol: TCP
+      restartPolicy: Always
+{{ end }}
