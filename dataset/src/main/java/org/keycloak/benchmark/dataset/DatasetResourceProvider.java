@@ -236,7 +236,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                 }
 
                 String finalGroupName = groupName;
-                KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), session.getContext(), s -> s.groups().createGroup(s.getContext().getRealm(), finalGroupName));
+                session.groups().createGroup(realm, finalGroupName);
                 logger.infof("Creating top-level group %s in realm %s", groupName, context.getRealm().getName());
                 createGroupLevel(session, countGroupsAtEachLevel, hierarchyDepth, groupName, executor);
             });
