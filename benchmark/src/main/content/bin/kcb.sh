@@ -29,7 +29,7 @@ DIRNAME=$(dirname "$RESOLVED_NAME")
 
 # Default values
 JAVA_OPTS="-server"
-JAVA_OPTS="${JAVA_OPTS} -Xmx4G -XX:+HeapDumpOnOutOfMemoryError"
+JAVA_OPTS="${JAVA_OPTS} -Xmx1G -XX:+HeapDumpOnOutOfMemoryError"
 
 DEBUG_MODE="${DEBUG:-false}"
 DEBUG_PORT="${DEBUG_PORT:-8787}"
