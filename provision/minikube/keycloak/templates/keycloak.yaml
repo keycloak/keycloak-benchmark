@@ -234,6 +234,7 @@ spec:
                     optional: false
               - name: JAVA_OPTS_APPEND # <5>
                 value: >
+                  -Djdk.tracePinnedThreads=full
 {{- if not (eq (int .Values.metaspaceInitMB) 96) }}
                   -XX:MetaspaceSize={{ .Values.metaspaceInitMB }}m
 {{- end }}
@@ -257,7 +258,6 @@ spec:
                 protocol: TCP
                 name: jvm-debug
 {{ end }}
-            # end::keycloak[]
             # readinessProbe:
             #   exec:
             #     command:
