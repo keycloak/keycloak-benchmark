@@ -31,6 +31,8 @@ vars:
   KC_REPOSITORY: '{{default "" .KC_REPOSITORY}}'
   KC_BRANCH: '{{default "" .KC_BRANCH}}'
   KC_NETWORK_POLICY: '{{default "true" .KC_NETWORK_POLICY}}'
+  KC_GRAFANA_DASHBOARDS_REPOSITORY: '{{default "https://github.com/keycloak/keycloak-grafana-dashboard.git" .KC_GRAFANA_DASHBOARDS_REPOSITORY}}'
+  KC_GRAFANA_DASHBOARDS_BRANCH: '{{default "main" .KC_GRAFANA_DASHBOARDS_BRANCH}}'
 tasks:
 
   split:
@@ -240,3 +242,29 @@ tasks:
       - .task/subtask-{{.TASK}}.yaml
     generates:
       - ../tlsdisableagent/tlscheckdisable-agent.jar
+
+  clone-keycloak-grafana-dashboards:
+    desc: "Clone the Keycloak grafana repository"
+    internal: true
+    dir: ".task"
+    cmds:
+      - rm ../monitoring/keycloak-grafana-dashboard || true
+      - rm -rf "keycloak-grafana-dashboard" || true
+      - git clone --branch "{{.KC_GRAFANA_DASHBOARDS_BRANCH}}" "{{.KC_GRAFANA_DASHBOARDS_REPOSITORY}}" "keycloak-grafana-dashboard" --depth 1
+      - git -C "keycloak-grafana-dashboard" checkout "{{.KC_GRAFANA_DASHBOARDS_BRANCH}}"
+      - git -C "keycloak-grafana-dashboard" pull
+      - |
+        cd keycloak-grafana-dashboard/dashboards
+        for F in *; do
+          cp ${F} copy.json;
+          DS_PROMETHEUS=PBFA97CFB590B2093 envsubst '${DS_PROMETHEUS}' < copy.json > ${F};
+          rm copy.json;
+        done
+      - ln -s $(readlink -f keycloak-grafana-dashboard) ../monitoring/keycloak-grafana-dashboard
+    generates:
+      - ./keycloak-grafana-dashboard
+    status:
+      - test -d keycloak-grafana-dashboard
+      - test -n "$(ls -A keycloak-grafana-dashboard)"
+      - test "{{.KC_GRAFANA_DASHBOARDS_REPOSITORY}}" == "$(git -C keycloak remote get-url origin)"
+      - test "{{.KC_GRAFANA_DASHBOARDS_BRANCH}}" == "$(git -C keycloak rev-parse --abbrev-ref HEAD)"
