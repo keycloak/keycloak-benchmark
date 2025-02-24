@@ -248,7 +248,6 @@ tasks:
     internal: true
     dir: ".task"
     cmds:
-      - rm ../monitoring/keycloak-grafana-dashboard || true
       - rm -rf "keycloak-grafana-dashboard" || true
       - git clone --branch "{{.KC_GRAFANA_DASHBOARDS_BRANCH}}" "{{.KC_GRAFANA_DASHBOARDS_REPOSITORY}}" "keycloak-grafana-dashboard" --depth 1
       - git -C "keycloak-grafana-dashboard" checkout "{{.KC_GRAFANA_DASHBOARDS_BRANCH}}"
@@ -260,7 +259,14 @@ tasks:
           DS_PROMETHEUS=PBFA97CFB590B2093 envsubst '${DS_PROMETHEUS}' < copy.json > ${F};
           rm copy.json;
         done
-      - ln -s $(readlink -f keycloak-grafana-dashboard) ../monitoring/keycloak-grafana-dashboard
+      - |
+        if [[ "$PWD" = */rosa-cross-dc/* ]]; then
+          rm ../../openshift/monitoring/keycloak-grafana-dashboard || true
+          ln -s $(readlink -f keycloak-grafana-dashboard) ../../openshift/monitoring/keycloak-grafana-dashboard
+        else
+          rm ../monitoring/keycloak-grafana-dashboard || true
+          ln -s $(readlink -f keycloak-grafana-dashboard) ../monitoring/keycloak-grafana-dashboard
+        fi
     generates:
       - ./keycloak-grafana-dashboard
     status:
