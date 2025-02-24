@@ -740,11 +740,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     // first delete the realm - but keep the realm name for later to remove the client
                     RealmModel realm = session.realms().getRealm(realmId);
+                    session.getContext().setRealm(realm);
                     boolean deleted = session.realms().removeRealm(realmId);
 
                     if (deleted) {
                         // then delete the client associated with the realm
                         RealmModel master = session.realms().getRealmByName("master");
+                        session.getContext().setRealm(master);
                         ClientModel clientByClientId = session.clients().getClientByClientId(master, realm.getName() + "-realm");
                         if (clientByClientId != null) {
                             session.clients().removeClient(master, clientByClientId.getId());

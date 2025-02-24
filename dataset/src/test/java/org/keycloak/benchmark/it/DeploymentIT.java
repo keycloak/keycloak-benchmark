@@ -101,6 +101,8 @@ public class DeploymentIT {
             waitForKeycloakStart();
             executeDatasetCommand("create-realms?count=1&clients-per-realm=2&users-per-realm=2");
             waitForDatasetCompleted();
+            executeDatasetCommand("remove-realms?remove-all=true&realm-prefix=realm-0");
+            waitForDatasetCompleted();
         } finally {
             stopKeycloak(process);
         }
