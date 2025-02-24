@@ -54,6 +54,13 @@ spec:
       haproxy.router.openshift.io/balance: roundrobin
       haproxy.router.openshift.io/disable_cookies: 'true'
 {{end}}
+  {{ if .Values.otel }}
+  tracing:
+    enabled: true
+    endpoint: {{ .Values.tracingEndpoint }}
+    samplerRatio: {{ .Values.otelSamplingPercentage }}
+    samplerType: "parentbased_traceidratio"
+  {{- end }}
   {{- if .Values.networkPolicy.enabled }}
   networkPolicy:
     enabled: true
@@ -94,16 +101,6 @@ spec:
   # tag::keycloak-ispn[]
   additionalOptions:
   # end::keycloak-ispn[]
-    {{ if .Values.otel }}
-    - name: tracing-enabled
-      value: "true"
-    - name: tracing-endpoint
-      value: {{ .Values.tracingEndpoint }}
-    - name: tracing-sampler-ratio
-      value: {{ .Values.otelSamplingPercentage | quote }}
-    - name: tracing-sampler-type
-      value: "parentbased_traceidratio"
-    {{- end }}
     # end::keycloak[]
     - name: http-metrics-histograms-enabled
       value: 'true'
