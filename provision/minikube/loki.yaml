@@ -4,9 +4,29 @@ loki:
     replication_factor: 1
   storage:
     type: 'filesystem'
+  schemaConfig:
+    configs:
+      - from: 2025-03-01
+        store: tsdb
+        index:
+          prefix: loki_index_
+          period: 24h
+        object_store: filesystem # we're storing on filesystem so there's no real persistence here.
+        schema: v13
   auth_enabled: false
   image:
     registry: mirror.gcr.io
+
+singleBinary:
+  replicas: 1
+read:
+  replicas: 0
+backend:
+  replicas: 0
+write:
+  persistence:
+    size: 1Gi
+  replicas: 0
 
 monitoring:
   rules:
@@ -22,10 +42,6 @@ monitoring:
 
 test:
   enabled: false
-
-write:
-  persistence:
-    size: 1Gi
 
 tableManager:
   retention_deletes_enabled: true

@@ -133,8 +133,8 @@ tasks:
       - helm repo update
       # A loki update might fail as a stateful set can't be updated. If that fails, uninstall and re-install.
       - >
-        bash -c "helm upgrade --install loki grafana/loki --version 3.3.2 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}}
-        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki --version 3.3.2 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}})"
+        bash -c "helm upgrade --install loki grafana/loki --version 6.27.0 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}}
+        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki --version 6.27.0 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}})"
     sources:
       - loki.yaml
       - .task/subtask-{{.TASK}}.yaml
