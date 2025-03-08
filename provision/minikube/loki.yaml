@@ -16,16 +16,47 @@ loki:
   auth_enabled: false
   image:
     registry: mirror.gcr.io
+  pattern_ingester:
+    enabled: true
+  limits_config:
+    allow_structured_metadata: true
+    volume_enabled: true
+  ruler:
+    enable_api: true
+
+deploymentMode: SingleBinary
 
 singleBinary:
   replicas: 1
-read:
-  replicas: 0
+
+chunksCache:
+  enabled: false
+
+# Zero out replica counts of other deployment modes
 backend:
   replicas: 0
+read:
+  replicas: 0
 write:
-  persistence:
-    size: 1Gi
+  replicas: 0
+
+ingester:
+  replicas: 0
+querier:
+  replicas: 0
+queryFrontend:
+  replicas: 0
+queryScheduler:
+  replicas: 0
+distributor:
+  replicas: 0
+compactor:
+  replicas: 0
+indexGateway:
+  replicas: 0
+bloomCompactor:
+  replicas: 0
+bloomGateway:
   replicas: 0
 
 monitoring:
