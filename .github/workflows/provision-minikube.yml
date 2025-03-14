@@ -25,6 +25,8 @@ concurrency:
 jobs:
   build:
 
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    
     runs-on: ubuntu-latest
 
     steps:
