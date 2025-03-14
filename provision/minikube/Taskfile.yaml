@@ -72,7 +72,7 @@ tasks:
       - kubectl create namespace monitoring || true
       - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --version 67.9.0 -f monitoring.yaml --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io --set prometheus.prometheusSpec.retention={{.KB_RETENTION}}
+      - helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --version 69.7.3 -f monitoring.yaml --set grafana."grafana\.ini".server.root_url=https://grafana.{{.IP}}.nip.io --set prometheus.prometheusSpec.retention={{.KB_RETENTION}}
     sources:
       - monitoring.yaml
       - .task/subtask-{{.TASK}}.yaml
@@ -102,7 +102,7 @@ tasks:
       - helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
       - helm repo update
       - >
-        helm upgrade --install jaeger jaegertracing/jaeger --version 3.1.2 -n monitoring -f ../minikube/jaeger/values.yaml
+        helm upgrade --install jaeger jaegertracing/jaeger --version 3.4.0 -n monitoring -f ../minikube/jaeger/values.yaml
         --set allInOne.extraEnv[0].value={{.KB_RETENTION}}
     sources:
       - jaeger/**/*.*
@@ -133,8 +133,8 @@ tasks:
       - helm repo update
       # A loki update might fail as a stateful set can't be updated. If that fails, uninstall and re-install.
       - >
-        bash -c "helm upgrade --install loki grafana/loki --version 3.3.2 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}}
-        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki --version 3.3.2 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}})"
+        bash -c "helm upgrade --install loki grafana/loki --version 6.27.0 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}}
+        || (helm delete loki -n monitoring && helm upgrade --install loki grafana/loki --version 6.27.0 -n monitoring -f loki.yaml --set tableManager.retention_period={{.KB_RETENTION}})"
     sources:
       - loki.yaml
       - .task/subtask-{{.TASK}}.yaml
@@ -147,7 +147,7 @@ tasks:
     cmds:
       - helm repo add grafana https://grafana.github.io/helm-charts
       - helm repo update
-      - helm upgrade --install promtail grafana/promtail --version 6.3.0 -n monitoring -f promtail.yaml
+      - helm upgrade --install promtail grafana/promtail --version 6.16.6 -n monitoring -f promtail.yaml
     sources:
       - promtail.yaml
       - .task/subtask-{{.TASK}}.yaml

@@ -11,6 +11,10 @@ spec:
   # Use pod target labels "as is" without any renaming
   # podTargetLabels:
   #   - app
+  # Since at least Keycloak 26.2 and the latest Quarkus 3.19 version, it requires "OpenMetricsText1.0.0" to retrieve exemplars,
+  # as at least some of the other protocols don't support exemplars.
+  scrapeProtocols:
+    - OpenMetricsText1.0.0
   podMetricsEndpoints:
     - port: management
       scheme: https

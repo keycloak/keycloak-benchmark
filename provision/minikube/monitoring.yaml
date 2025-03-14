@@ -60,7 +60,7 @@ grafana:
             filterByTraceID: true,
             mapTagNamesEnabled: true
             mappedTags:
-              - key: "hostname"
+              - key: "host.name"
                 value: "pod"
             spanStartTimeShift: "-1h"
             spanEndTimeShift: "1h"
@@ -75,7 +75,7 @@ grafana:
           maxLines: 1000
           derivedFields:
             - datasourceUid: PC9A941E8F2E49454
-              matcherRegex: '"trace_id":"(\w*)"'
+              matcherRegex: '"traceId":"(\w*)"'
               name: traceID
               # url will be interpreted as query for the datasource
               url: '$${__value.raw}'
