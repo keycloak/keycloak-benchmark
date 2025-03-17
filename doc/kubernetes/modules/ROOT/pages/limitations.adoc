@@ -22,8 +22,8 @@ Due to that, the PVC sizes will not be checked and one service might fill the di
 == Jaeger and sampling of tracing
 
 The data collected for each trace are large and can lead to a fast out-of-memory situation with the Jaeger Pod.
-To minimize the amount of data collected, the value `OTEL_TRACES_SAMPLER_ARG` is set a 0.01 to trace only one out of a thousand requests.
-Tracing is disabled by default and can be enabled in Keycloak's helm chart's `values.yaml` file.
+To minimize the amount of data collected, the value `OTEL_TRACES_SAMPLER_ARG` is set a 0.01 to trace only one out of a hundred requests.
+Tracing is disabled by default and can be enabled in Keycloak's Helm chart's `values.yaml` file.
 
 As an alternative tracing solution, Tempo was considered.
 While traces are submitted via OTEL successfully and the search by trace ID works as expected, the search for traces (currently beta) doesn't return some traces (for example deletion of users).
@@ -31,7 +31,7 @@ Therefore, for now, Jaeger tracing is used.
 
 == Cryostat for JFR recordings
 
-The contents of the helm chart have been created originally by the Cryostat operator.
+The contents of the Helm chart have been created originally by the Cryostat operator.
 When analyzing the resources created by the operator in version 2.0, there was no supported way to add the environment variables needed to the cryostat-deployment discovered.
 Due to that, this has now been extracted and placed here as a Helm chart.
 
