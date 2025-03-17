@@ -131,14 +131,14 @@ task reset-keycloak
 
 == Deploying providers to minikube
 
-Keycloak be extended by providers.
+Keycloak can be extended by providers.
 This is also supported in this setup.
 
 All providers JARs need to be placed in `keycloak/providers`.
 
 After updating the files there, run `task`.
-Keycloak restarts and the providers is then available.
-https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this uses a ConfigMap to place all information Kubernetes, the combined size of all providers encoded as base64 is 1 MiB].
+Keycloak restarts and the providers are then available.
+https://kubernetes.io/docs/concepts/configuration/configmap/#motivation[As this uses a ConfigMap to place all information to be available in Kubernetes, the maximum combined size of all providers encoded as base64 is 1 MiB].
 
 The dataprovider module is deployed by default.
 
@@ -160,7 +160,7 @@ To run the benchmarks using Gatling on your local machine and to forward the met
 export GRAPHITE_TCP_ADDR=$(minikube ip)
 ----
 
-The mapping of Gatling's metrics to Prometheus a metric name and labels is configured in `graphite_mapping.yaml`.
+The mapping of Gatling's metrics to Prometheus, including a metric name and labels, is configured in `graphite_mapping.yaml`.
 Once the test runs, the metrics are available as `gatling_users` and `gatling_requests`.
 
 This setup assumes that only one load driver is running.
@@ -177,7 +177,7 @@ If they would, this would be a security concern due to the default passwords and
 
 To connect to Keycloak and other services remotely, one way is to use SSH port forwarding.
 
-As Keycloak is quick specific about the configured port and IP address, the port forwarding needs to bind the same port as on minikube.
+As Keycloak is quite specific about the configured port and IP address, the port forwarding needs to bind the same port as on minikube.
 As it is running on minikube with port 443, this requires running SSH as root so that it can bind port 443 locally.
 
 Given the IP address of minikube on the remote host retrieved by `mininkube ip` with content of `192.168.39.19` the following steps work.
@@ -193,7 +193,7 @@ Whenever the minikube instance on the remote host is re-created, it receives a d
 127.0.0.1 kubebox.192.168.39.19.nip.io grafana.192.168.39.19.nip.io keycloak.192.168.39.19.nip.io
 ----
 
-. Put the current user's SSH keys in for the root user, so that `sudo ssh` has access to them.
+. Put the current user's SSH keys in `/root/.ssh` for the root user, so that `sudo ssh` has access to them.
 
 . Run SSH with port forwarding:
 +
