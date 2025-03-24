@@ -106,9 +106,17 @@ Never use it during a load test as it slows down Gatling.
 
 | [.nowrap]`--http-proxy`
 | (not set)
-| If set, will proxy all HTTP requests to a proxy tool of your choice and the current default proxy host and port are `127.0.0.1`, `8888` respectively. These are currently not configurable.
+| If set, will proxy all HTTP requests to a proxy (tool) of your choice.
 
 Never use it during a load test as it slows down Gatling to be able to proxy the requests to a proxy client and comes with the usual proxy nuances that we have to be careful, in general.
+
+| [.nowrap]`--http-proxy-host`
+| `127.0.0.1`
+| If `--http-proxy` is set to `true`, this will set the proxy host, or default to `127.0.0.1`.
+
+| [.nowrap]`--http-proxy-port`
+| `8888`
+| If `--http-proxy` is set to `true`, this will set the proxy port, or default to `8888`.
 
 | [.nowrap]`--sla-error-percentage`
 | `0`
@@ -187,7 +195,7 @@ This results in the following values being used in the scenarios:
 [[realm-prefix]][.nowrap]`--realm-prefix`
 | `realm-`
 | Sets the prefix for the realm name.
-With a value of `myrealm` it uses `myrealm-0`, `myrealm-1`, ....
+With a value of `myrealm-` it uses `myrealm-0`, `myrealm-1`, ....
 
 If not set on the CLI, realm names use the `realm-` prefix. For example: `realm-0`, `realm-1` ....
 
@@ -197,11 +205,39 @@ If not set on the CLI, realm names use the `realm-` prefix. For example: `realm-
 
 If not set and assuming that <<realm-prefix,`--realm-prefix`>> is not set, the realm names are numbered starting with `realm-0`.
 
+| [.nowrap]`--user-index-offset`
+| `0`
+| Sets the index offset for users and user passwords.
+With a value of `1` it uses `user-1`, `user-2`, ....
+
+If not set on the CLI, the index will start at `0`. For example: `user-0`, `user-1` ....
+
+| [.nowrap]`--username-prefix`
+| `user-`
+| Sets the prefix for the user name.
+With a value of `myuser-` it uses `myuser-0`, `myuser-1`, ....
+
+If not set on the CLI, user names use the `user-` prefix. For example: `user-0`, `user-1` ....
+
 | [.nowrap]`--username`
 | (not set)
 | If set, tests run using a single username set in this parameter.
 
 If not set, the usernames are numbered starting with `user-0`.
+
+| [.nowrap]`--user-password-prefix`
+| `user-`
+| Sets the prefix for the user password.
+With a value of `myuser-` it uses `myuser-0-password`, `myuser-1-password`, ....
+
+If not set on the CLI, user passwords use the `user-` prefix. For example: `user-0-password`, `user-1-password` ....
+
+| [.nowrap]`--user-password-suffix`
+| `-password`
+| Sets the suffix for the user password.
+With a value of `-pass` it uses `user-0-pass`, `user-1-pass`, ....
+
+If not set on the CLI, user passwords use the `-password` suffix. For example: `user-0-password`, `user-1-password` ....
 
 | [.nowrap]`--user-password`
 | (not set)
