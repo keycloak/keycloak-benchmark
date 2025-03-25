@@ -30,7 +30,7 @@ abstract class CommonSimulation extends Simulation {
 
     if (Config.httpProxy) {
 
-      default = default.proxy(Proxy("127.0.0.1", 8888))
+      default = default.proxy(Proxy(Config.httpProxyHost, Config.httpProxyPort))
 
     }
 
