@@ -101,33 +101,3 @@ else
     exit 1
   fi
 fi
-
-if [[ "$KC_WORKAROUND_28638" == "true" ]]; then
-  echo "Applying post-install workaround for issue #28638 https://github.com/keycloak/keycloak/issues/28638"
-
-  echo "  looking up keycloak-operator-role for \"$CSV\""
-  attempts=30
-  for a in $(seq $attempts); do
-    keycloakOperatorRole=$(kubectl -n $INSTALL_NAMESPACE get role -l olm.owner=$CSV -ojson | jq -r '.items[0].metadata.name')
-    if [[ $keycloakOperatorRole == ${PRODUCT}* ]]; then
-      echo "  found: $keycloakOperatorRole"
-      break;
-    elif [ $a -ge $attempts ]; then
-      echo "  ERROR: Role not found after $attempts attempts."
-      exit 3
-    fi
-    sleep 1
-  done
-  echo "  adding configmaps permissions to the role"
-  kubectl -n $INSTALL_NAMESPACE patch role $keycloakOperatorRole --type json -p '[{"op":"add","path":"/rules/-","value":{"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch"]}}]'
-
-  echo "  also adding configmaps permissions to the role definition in CSV \"$CSV\""
-  kubectl -n $INSTALL_NAMESPACE patch csv $CSV --type json -p '[{"op":"add","path":"/spec/install/spec/permissions/0/rules/-","value":{"apiGroups":[""],"resources":["configmaps"],"verbs":["get","list","watch"]}}]'
-
-  echo "  looking up operator pod"
-  operatorPod=$(kubectl -n $INSTALL_NAMESPACE get pods -oname | grep $PRODUCT | head -1)
-  echo "  found: $operatorPod, rebooting"
-  kubectl -n $INSTALL_NAMESPACE delete $operatorPod
-
-  echo "Workaround applied."
-fi
