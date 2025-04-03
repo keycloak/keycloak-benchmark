@@ -7,7 +7,7 @@ fi
 
 WORKSPACE=$1
 echo "Workspace: ${WORKSPACE}"
-tofu init
+tofu init -upgrade
 if tofu workspace select ${WORKSPACE}; then
   tofu state pull
   OUTPUTS=$(tofu output)
