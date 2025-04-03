@@ -28,7 +28,7 @@ for POD in $ALL_PODS; do
   START=$(date +%s)
 
   if [[ "$POD_LABEL" == "keycloak" ]]; then
-    kubectl wait --for=condition=Available --timeout=120s deployments.apps/keycloak-operator -n "${PROJECT}" || true
+    kubectl wait --for=condition=Available --timeout=120s deployments.apps/${KC_OPERATOR_NAME:-keycloak-operator} -n "${PROJECT}" || true
     kubectl wait --for=condition=Ready --timeout=120s keycloaks.k8s.keycloak.org/keycloak -n "${PROJECT}" || true
   elif [[ "$POD_LABEL" == "infinispan-pod" ]]; then
     kubectl wait --for condition=WellFormed --timeout=120s infinispans.infinispan.org -n "${PROJECT}" infinispan || true
