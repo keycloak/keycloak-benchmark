@@ -50,12 +50,17 @@ tasks:
       vars:
         - NAMESPACE
         - KUBECONFIG
+    vars:
+      RELATED_IMAGE_KEYCLOAK:
+        sh: KUBECONFIG="{{.KUBECONFIG}}" kubectl -n "{{.NAMESPACE}}" get deployment/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} -ojson | jq -r '.spec.template.spec.containers[0].env[] | select(.name=="RELATED_IMAGE_KEYCLOAK").value' 2>/dev/null || echo ""
     cmds:
       - KUBECONFIG="{{.KUBECONFIG}}" oc create namespace "{{.NAMESPACE}}" || true
+      - echo "RELATED_IMAGE_KEYCLOAK={{.RELATED_IMAGE_KEYCLOAK}}"
       - >
         KUBECONFIG="{{.KUBECONFIG}}" helm upgrade --install keycloak-build-config --namespace "{{.NAMESPACE}}" ./keycloak-image-helm
         --set namespace={{.NAMESPACE}}
         --set customImage={{if .KC_REPOSITORY}}true{{else}}false{{end}}
+        {{ if .RELATED_IMAGE_KEYCLOAK }}--set keycloakImage={{.RELATED_IMAGE_KEYCLOAK}}{{end}}
         {{ if eq .KC_USE_AWS_JDBC_WRAPPER "false"}}--set useAWSJDBCWrapper={{.KC_USE_AWS_JDBC_WRAPPER}}{{end}}
         {{ if .KC_AWS_JDBC_WRAPPER_URL}}--set jdbcWrapperURL={{.KC_AWS_JDBC_WRAPPER_URL}}{{end}}
     status:
@@ -115,9 +120,11 @@ tasks:
         - KUBECONFIG
     preconditions:
       - test -f {{.KUBECONFIG}}
+      - sh: test -z "{{.KC_REPOSITORY}}"
+        msg: KC_REPOSITORY cannot be used when installing Keycloak Operator via OLM
     cmds:
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl create namespace "{{.NAMESPACE}}" || true
-      - INSTALL_NAMESPACE="{{.NAMESPACE}}" ./olm.sh
+      - KUBECONFIG="{{.KUBECONFIG}}" INSTALL_NAMESPACE="{{.NAMESPACE}}" ./olm.sh
     env:
       CATALOG_SOURCE_NAMESPACE: '{{ default "openshift-marketplace" .KC_OPERATOR_CATALOG_SOURCE_NS }}'
       CATALOG_SOURCE: '{{ default "community-operators" .KC_OPERATOR_CATALOG_SOURCE }}'
@@ -142,7 +149,7 @@ tasks:
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl create namespace "{{.NAMESPACE}}" || true
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloaks.k8s.keycloak.org-v1.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloakrealmimports.k8s.keycloak.org-v1.yml
-      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} delete deployment/keycloak-operator || true
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} delete deployment/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} || true
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}kubernetes.yml
       - task: patch-keycloak-operator-image
         vars:
@@ -200,6 +207,10 @@ tasks:
       CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat .task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
       KC_USE_AWS_JDBC_WRAPPER: '{{ .KC_USE_AWS_JDBC_WRAPPER | default "true" }}'
     cmds:
+      - task: '{{ if eq .KC_OPERATOR_OLM "true" }}install-keycloak-operator-olm{{else}}no-op{{ end }}'
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.KUBECONFIG}}"
       - task: install-keycloak-build-configs
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
@@ -214,7 +225,7 @@ tasks:
           NAMESPACE: "{{.NAMESPACE}}"
           KUBECONFIG: "{{.KUBECONFIG}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: install-keycloak-operator
+      - task: '{{ if ne .KC_OPERATOR_OLM "true" }}install-keycloak-operator{{else}}no-op{{ end }}'
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
           KUBECONFIG: "{{.KUBECONFIG}}"

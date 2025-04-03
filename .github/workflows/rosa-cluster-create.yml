@@ -23,6 +23,15 @@ on:
       region:
         description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
+      infinispan_operator_olm_catalog_source:
+        type: string
+        default: community-operators
+      infinispan_operator_olm_name:
+        type: string
+        default: infinispan
+      infinispan_operator_olm_channel:
+        type: string
+        default: stable
 
   workflow_dispatch:
     inputs:
@@ -83,6 +92,9 @@ jobs:
           COMPUTE_MACHINE_TYPE: ${{ inputs.computeMachineType }}
           REPLICAS: ${{ inputs.replicas }}
           TF_VAR_rhcs_token: ${{ secrets.ROSA_TOKEN }}
+          OPERATOR_SOURCE: ${{ inputs.infinispan_operator_olm_catalog_source }}
+          OPERATOR_NAME: ${{ inputs.infinispan_operator_olm_name }}
+          OPERATOR_CHANNEL: ${{ inputs.infinispan_operator_olm_channel }}
 
       - name: Retrieve ROSA logs
         if: always()
