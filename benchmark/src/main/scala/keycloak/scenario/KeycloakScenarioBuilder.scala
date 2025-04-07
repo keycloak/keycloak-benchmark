@@ -599,6 +599,27 @@ class KeycloakScenarioBuilder {
     this
   }
 
+  def viewPagesOfClients(pageSize: Int, numberOfPages: Int): KeycloakScenarioBuilder = {
+    chainBuilder = chainBuilder
+      .repeat(numberOfPages, "page") {
+        exec(session => {
+          session.set("max", pageSize)
+            .set("first", session("page").as[Int] * pageSize)
+        })
+          .doIf(s => needTokenRefresh(s)) {
+            getServiceAccountTokenExec()
+          }
+          .exec(http("#{realm}/clients?first=#{first}&max=#{max}")
+            .get(ADMIN_ENDPOINT + "/clients")
+            .header("Authorization", "Bearer #{token}")
+            .queryParam("first", "#{first}")
+            .queryParam("max", "#{max}")
+            .check(status.is(200)))
+          .exitHereIfFailed
+      }
+    this
+  }
+
   def createUser(): KeycloakScenarioBuilder = {
     chainBuilder = chainBuilder
       .feed(Iterator.continually(Map("username" -> randomUUID())))

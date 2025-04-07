@@ -8,7 +8,7 @@ class UserCrawl extends CommonSimulation {
 
   val userCrawlScenarioBuilder = new KeycloakScenarioBuilder()
     .serviceAccountToken()
-    .viewPagesOfUsers(Config.userPageSize, Config.userNumberOfPages)
+    .viewPagesOfUsers(Config.pagesSize, Config.pagesTotal)
 
   val userCrawlScenario = scenario("User Crawl").exec(userCrawlScenarioBuilder.chainBuilder)
 

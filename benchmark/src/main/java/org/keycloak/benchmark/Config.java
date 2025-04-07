@@ -171,14 +171,14 @@ public class Config {
 
     // user-crawl-scenario properties
     /**
-     * The amount of users to be requested for each page. This number is only used in the user crawl scenario.
+     * The amount of entries to be requested for each page. This number is only used in scenarios that support pagination.
      */
-    public static final int userPageSize = Integer.getInteger("user-page-size", 20);
+    public static final int pagesSize = Integer.getInteger("pages-size", 20);
 
     /**
-     * The number of pages to iterate over. This number is only used in the user crawl scenario.
+     * The number of pages to iterate over. This number is only used in scenarios that support pagination.
      */
-    public static final int userNumberOfPages = Integer.getInteger("user-number-of-pages", 10);
+    public static final int pagesTotal = Integer.getInteger("pages-total", 10);
 
     // join-group-scenario properties
     /**
