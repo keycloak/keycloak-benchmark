@@ -9,7 +9,7 @@ WORKSPACE=$1
 TOFU_CMD=$2
 
 echo "Workspace: ${WORKSPACE}"
-tofu init -upgrade
+tofu init
 tofu workspace new ${WORKSPACE} || echo "Workspace ${WORKSPACE} already exists"
 export TF_WORKSPACE=${WORKSPACE}
 echo ${TOFU_CMD}
