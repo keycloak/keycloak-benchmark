@@ -63,10 +63,8 @@ spec:
   expose:
     type: Route
   configMapName: "cluster-config"
-  {{- if .Values.image }}
-  image: {{ .Values.image | default .Values.defaultImage }}
-  {{- end}}
-  {{- if .Values.version }}
+  {{- if eq .Values.useCustomImage "true" }}
+  image: {{ .Values.image }}
   version: {{ .Values.version }}
   {{- end}}
   configListener:
