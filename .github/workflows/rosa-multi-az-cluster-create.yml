@@ -43,6 +43,28 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
+      keycloak_operator_olm:
+        type: boolean
+        default: false
+      keycloak_operator_olm_catalog_source:
+        type: string
+        default: community-operators
+      keycloak_operator_olm_name:
+        type: string
+        default: keycloak-operator
+      keycloak_operator_olm_channel:
+        type: string
+      keycloak_operator_olm_version:
+        type: string
+      infinispan_use_custom_image:
+        type: boolean
+        default: true
+      infinispan_operator_olm_catalog_source:
+        type: string
+        default: community-operators
+      infinispan_operator_olm_name:
+        type: string
+        default: infinispan
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -115,6 +137,8 @@ jobs:
       clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
       region: ${{ needs.meta.outputs.region }}
       availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
+      infinispan_operator_olm_catalog_source: ${{ inputs.infinispan_operator_olm_catalog_source }}
+      infinispan_operator_olm_name: ${{ inputs.infinispan_operator_olm_name }}
     secrets: inherit
 
   deploy-keycloak:
@@ -182,6 +206,11 @@ jobs:
           AURORA_REGION: ${{ env.REGION }}
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_OPERATOR_OLM: ${{ inputs.keycloak_operator_olm }}
+          KC_OPERATOR_CATALOG_SOURCE: ${{ inputs.keycloak_operator_olm_catalog_source }}
+          KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_olm_name }}
+          KC_OPERATOR_CHANNEL: ${{ inputs.keycloak_operator_olm_channel }}
+          KC_OPERATOR_VERSION: ${{ inputs.keycloak_operator_olm_version }}
           KC_ACTIVE_ACTIVE: ${{ inputs.activeActive }}
           KC_CPU_REQUESTS: 6
           KC_INSTANCES: 3
@@ -200,6 +229,7 @@ jobs:
           CROSS_DC_TX_MODE: "NONE"
           KC_REPOSITORY: ${{ inputs.keycloakRepository }}
           KC_BRANCH: ${{ inputs.keycloakBranch }}
+          CROSS_DC_IMAGE_USE_CUSTOM: ${{ inputs.infinispan_use_custom_image }}
 
       - name: Create Accelerator Loadbalancer
         if: ${{ inputs.activeActive }}
@@ -225,6 +255,11 @@ jobs:
           AURORA_REGION: ${{ env.REGION }}
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_OPERATOR_OLM: ${{ inputs.keycloak_operator_olm }}
+          KC_OPERATOR_CATALOG_SOURCE: ${{ inputs.keycloak_operator_olm_catalog_source }}
+          KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_olm_name }}
+          KC_OPERATOR_CHANNEL: ${{ inputs.keycloak_operator_olm_channel }}
+          KC_OPERATOR_VERSION: ${{ inputs.keycloak_operator_olm_version }}
           KC_CPU_REQUESTS: 6
           KC_INSTANCES: 3
           KC_DISABLE_STICKY_SESSION: true
@@ -240,3 +275,4 @@ jobs:
           MULTI_AZ: "true"
           KC_REPOSITORY: ${{ inputs.keycloakRepository }}
           KC_BRANCH: ${{ inputs.keycloakBranch }}
+          CROSS_DC_IMAGE_USE_CUSTOM: ${{ inputs.infinispan_use_custom_image }}
