@@ -3,8 +3,12 @@
 # Declare variables to be passed into your templates.
 
 replicas: 3
-defaultImage: quay.io/infinispan/server:15.0.14.Final
-# defaultImage: quay.io/infinispan-test/server:15.0.x
+# When 'useCustomImage' is 'true' the values of 'image' and 'version' will be set in the CR spec.
+# When 'useCustomImage' is 'false' then operator defaults will be used.
+# Values of 'image' and 'version' should be compatible with the deployed variant and version of Keycloak.
+useCustomImage: true
+image: quay.io/infinispan/server:15.0.14.Final
+version: 15.0.14
 cacheDefaults:
   owners: 2
   # SYNC or ASYNC

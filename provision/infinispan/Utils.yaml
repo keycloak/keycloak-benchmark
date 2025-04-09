@@ -61,6 +61,7 @@ tasks:
         - ROSA_CLUSTER_NAME
         - NAMESPACE
     vars:
+      CROSS_DC_IMAGE_USE_CUSTOM: '{{ default "true" .CROSS_DC_IMAGE_USE_CUSTOM }}' # When true use Helm 'image' and 'version' vars. When false use operator-default.
       CROSS_DC_SA_TOKEN_SECRET: '{{.CROSS_DC_SA_TOKEN_SECRET | default "xsite-token-secret"}}'
       CROSS_DC_JGRP_TS_SECRET: '{{.CROSS_DC_JGRP_TS_SECRET | default "xsite-truststore-secret"}}'
       CROSS_DC_JGRP_KS_SECRET: '{{.CROSS_DC_JGRP_KS_SECRET | default "xsite-keystore-secret"}}'
@@ -107,7 +108,9 @@ tasks:
         --set cacheDefaults.xsiteFailurePolicy={{.CROSS_DC_XSITE_FAIL_POLICY | default "FAIL" }}
         --set cacheDefaults.txMode={{.CROSS_DC_TX_MODE | default "NON_XA" }}
         --set cacheDefaults.txLockMode={{.CROSS_DC_TX_LOCK_MODE | default "PESSIMISTIC" }}
+        --set useCustomImage={{.CROSS_DC_IMAGE_USE_CUSTOM}}
         --set image={{.CROSS_DC_IMAGE}}
+        --set version={{.CROSS_DC_IMAGE_VERSION}}
         --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
         --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}
         --set createSessionsCaches={{.CROSS_DC_VOLATILE_SESSIONS}}
