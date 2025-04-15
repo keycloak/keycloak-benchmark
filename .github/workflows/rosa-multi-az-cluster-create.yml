@@ -56,15 +56,15 @@ on:
         type: string
       keycloak_operator_olm_version:
         type: string
+      infinispan_use_custom_image:
+        type: boolean
+        default: true
       infinispan_operator_olm_catalog_source:
         type: string
         default: community-operators
       infinispan_operator_olm_name:
         type: string
         default: infinispan
-      infinispan_operator_olm_channel:
-        type: string
-        default: stable
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -139,7 +139,6 @@ jobs:
       availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
       infinispan_operator_olm_catalog_source: ${{ inputs.infinispan_operator_olm_catalog_source }}
       infinispan_operator_olm_name: ${{ inputs.infinispan_operator_olm_name }}
-      infinispan_operator_olm_channel: ${{ inputs.infinispan_operator_olm_channel }}
     secrets: inherit
 
   deploy-keycloak:
@@ -230,6 +229,7 @@ jobs:
           CROSS_DC_TX_MODE: "NONE"
           KC_REPOSITORY: ${{ inputs.keycloakRepository }}
           KC_BRANCH: ${{ inputs.keycloakBranch }}
+          CROSS_DC_IMAGE_USE_CUSTOM: ${{ inputs.infinispan_use_custom_image }}
 
       - name: Create Accelerator Loadbalancer
         if: ${{ inputs.activeActive }}
@@ -275,3 +275,4 @@ jobs:
           MULTI_AZ: "true"
           KC_REPOSITORY: ${{ inputs.keycloakRepository }}
           KC_BRANCH: ${{ inputs.keycloakBranch }}
+          CROSS_DC_IMAGE_USE_CUSTOM: ${{ inputs.infinispan_use_custom_image }}

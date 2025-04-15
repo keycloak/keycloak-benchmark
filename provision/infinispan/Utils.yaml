@@ -107,8 +107,12 @@ tasks:
         --set cacheDefaults.txMode={{.CROSS_DC_TX_MODE | default "NON_XA" }}
         --set cacheDefaults.txLockMode={{.CROSS_DC_TX_LOCK_MODE | default "PESSIMISTIC" }}
         --set useCustomImage={{.CROSS_DC_IMAGE_USE_CUSTOM}}
+        {{if .CROSS_DC_IMAGE}}
         --set image={{.CROSS_DC_IMAGE}}
+        {{end}}
+        {{if .CROSS_DC_IMAGE_VERSION}}
         --set version={{.CROSS_DC_IMAGE_VERSION}}
+        {{end}}
         --set fd.interval={{.CROSS_DC_FD_INTERVAL}}
         --set fd.timeout={{.CROSS_DC_FD_TIMEOUT}}
         --set createSessionsCaches={{.CROSS_DC_VOLATILE_SESSIONS}}
