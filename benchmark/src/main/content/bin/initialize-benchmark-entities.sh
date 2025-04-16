@@ -58,10 +58,10 @@ function create_oidc_client {
   #Create the client application with OIDC for Auth Code scenarios with confidential client secret
   CID=$(kcadm.sh create clients -r $REALM_NAME -i -f - <<EOF
 {
-  "clientId": "${CLIENT_ID}",
+  "clientId": "client-0",
   "enabled": true,
   "clientAuthenticatorType": "client-secret",
-  "secret": "${CLIENT_ID}-secret",
+  "secret": "client-0-secret",
   "redirectUris": [
     "*"
   ],
@@ -74,7 +74,7 @@ function create_oidc_client {
 }
 EOF
 )
-  echo "INFO: Created New ${CLIENT_ID} Client"
+  echo "INFO: Created New client-0 Client"
 }
 
 function create_user {
