@@ -4,9 +4,36 @@ on:
   schedule:
     - cron: '0 5 * * 1-5' # Runs At 05:00 UTC on every day-of-week from Monday through Friday.
   workflow_dispatch:
-
-# env:
-#   CLUSTER_PREFIX: gh-keycloak
+    inputs:
+      clusterPrefix:
+        type: string
+        default: gh-keycloak
+      region:
+        type: string
+        default: eu-west-1
+      keycloak_operator_olm:
+        type: boolean
+        default: false
+      keycloak_operator_olm_catalog_source:
+        type: string
+        default: community-operators
+      keycloak_operator_olm_name:
+        type: string
+        default: keycloak-operator
+      keycloak_operator_olm_channel:
+        type: string
+      keycloak_operator_olm_version:
+        type: string
+      infinispan_use_custom_image:
+        type: boolean
+        default: true
+        description: Use Keycloak-specific version of Infinispan server. When false, use operator default.
+      infinispan_operator_olm_catalog_source:
+        type: string
+        default: community-operators
+      infinispan_operator_olm_name:
+        type: string
+        default: infinispan
 
 jobs:
   keycloak-deploy-active-active:
@@ -14,10 +41,18 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       enableMultiSiteFeature: true
       enableExternalInfinispanFeature: false
       activeActive: true
+      keycloak_operator_olm: ${{ inputs.keycloak_operator_olm }}
+      keycloak_operator_olm_catalog_source: ${{ inputs.keycloak_operator_olm_catalog_source }}
+      keycloak_operator_olm_name: ${{ inputs.keycloak_operator_olm_name }}
+      keycloak_operator_olm_channel: ${{ inputs.keycloak_operator_olm_channel }}
+      keycloak_operator_olm_version: ${{ inputs.keycloak_operator_olm_version }}
+      infinispan_use_custom_image: ${{ inputs.infinispan_use_custom_image }}
+      infinispan_operator_olm_catalog_source: ${{ inputs.infinispan_operator_olm_catalog_source }}
+      infinispan_operator_olm_name: ${{ inputs.infinispan_operator_olm_name }}
     secrets: inherit
 
   run-active-active-health-checks-after-deploy:
@@ -26,9 +61,8 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -37,7 +71,7 @@ jobs:
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipEmbeddedCaches: true
       skipRemoteCaches: true
     secrets: inherit
@@ -48,9 +82,8 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -58,8 +91,10 @@ jobs:
     needs: run-active-active-health-checks-after-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       outputArchiveSuffix: 'active-active'
+      region: ${{ inputs.region }}
+      keycloak_operator_name: ${{ inputs.keycloak_operator_olm_name }}
     secrets: inherit
 
   run-active-active-health-checks-after-benchmarks:
@@ -68,9 +103,8 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -80,7 +114,7 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipAuroraDeletion: true
       activeActive: true
     secrets: inherit
@@ -91,11 +125,19 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       enableMultiSiteFeature: true
       enableExternalInfinispanFeature: true
       activeActive: true
       createCluster: false
+      keycloak_operator_olm: ${{ inputs.keycloak_operator_olm }}
+      keycloak_operator_olm_catalog_source: ${{ inputs.keycloak_operator_olm_catalog_source }}
+      keycloak_operator_olm_name: ${{ inputs.keycloak_operator_olm_name }}
+      keycloak_operator_olm_channel: ${{ inputs.keycloak_operator_olm_channel }}
+      keycloak_operator_olm_version: ${{ inputs.keycloak_operator_olm_version }}
+      infinispan_use_custom_image: ${{ inputs.infinispan_use_custom_image }}
+      infinispan_operator_olm_catalog_source: ${{ inputs.infinispan_operator_olm_catalog_source }}
+      infinispan_operator_olm_name: ${{ inputs.infinispan_operator_olm_name }}
     secrets: inherit
 
   run-active-active-volatile-health-checks-after-deploy:
@@ -104,9 +146,8 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -116,7 +157,7 @@ jobs:
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipEmbeddedCaches: true
       skipRemoteCaches: false
     secrets: inherit
@@ -127,9 +168,8 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -138,9 +178,11 @@ jobs:
     name: Benchmark Volatile Active/Active
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipCreateDataset: true
-      outputArchiveSuffix: 'active-active-volatile'
+      outputArchiveSuffix: 'active-passive'
+      region: ${{ inputs.region }}
+      keycloak_operator_name: ${{ inputs.keycloak_operator_olm_name }}
     secrets: inherit
 
   run-active-active-volatile-health-checks-after-benchmarks:
@@ -149,9 +191,8 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 

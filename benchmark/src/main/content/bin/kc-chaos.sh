@@ -32,7 +32,7 @@ while true; do
 
   START=$(date +%s)
 
-  kubectl wait --for=condition=Available --timeout=600s deployments.apps/keycloak-operator -n "${PROJECT}" || true
+  kubectl wait --for=condition=Available --timeout=600s deployments.apps/${KC_OPERATOR_NAME:-keycloak-operator} -n "${PROJECT}" || true
   kubectl wait --for=condition=Ready --timeout=600s keycloaks.k8s.keycloak.org/keycloak -n "${PROJECT}" || true
 
   END=$(date +%s)
