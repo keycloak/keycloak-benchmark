@@ -23,21 +23,23 @@ module "global_accelerator" {
 
   listeners = {
     listener_1 = {
-      endpoint_group = {
-        endpoint_group_region   = var.aws_region
-        traffic_dial_percentage = 100
+      endpoint_groups = {
+        group_1 = {
+          endpoint_group_region   = var.aws_region
+          traffic_dial_percentage = 100
 
-        endpoint_configuration = [
-          {
-            client_ip_preservation_enabled = false
-            endpoint_id                    = data.aws_lb.site_a.arn
-            weight                         = 128
-          }, {
-            client_ip_preservation_enabled = false
-            endpoint_id                    = data.aws_lb.site_b.arn
-            weight                         = 128
-          }
-        ]
+          endpoint_configuration = [
+            {
+              client_ip_preservation_enabled = false
+              endpoint_id                    = data.aws_lb.site_a.arn
+              weight                         = 128
+            }, {
+              client_ip_preservation_enabled = false
+              endpoint_id                    = data.aws_lb.site_b.arn
+              weight                         = 128
+            }
+          ]
+        }
       }
       port_ranges = [
         {

@@ -5,7 +5,10 @@ inputs:
   project:
     description: OpenShift project where Keycloak is running
     required: true
-
+  keycloak_operator_name:
+    type: string
+    default: keycloak-operator
+    
 runs:
   using: "composite"
   steps:
@@ -15,3 +18,4 @@ runs:
       run: ./kc-rolling-restart.sh
       env:
         POD_LABEL: "keycloak"
+        KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_name }}

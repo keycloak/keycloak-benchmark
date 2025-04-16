@@ -33,7 +33,7 @@ for SERVICE in "${!SERVICES[@]}"; do
 
   if [ "${SERVICE}" == "keycloak-keycloak.${HOST}" ]
   then
-    kubectl wait --for=condition=Available --timeout=300s deployments.apps/keycloak-operator -n keycloak
+    kubectl wait --for=condition=Available --timeout=300s deployments.apps/${KC_OPERATOR_NAME:-keycloak-operator} -n keycloak
     kubectl wait --for=condition=Ready --timeout=300s  keycloak/keycloak -n keycloak
     kubectl wait --for=condition=RollingUpdate=False --timeout=1200s keycloak/keycloak -n keycloak
   fi

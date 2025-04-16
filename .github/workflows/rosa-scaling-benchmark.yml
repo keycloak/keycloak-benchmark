@@ -3,10 +3,6 @@ name: ROSA Cluster - Scaling Benchmark
 on:
   workflow_call:
     inputs:
-      clusterName:
-        description: 'Name of the cluster'
-        type: string
-        default: 'gh-keycloak-a'
       clusterPrefix:
         description: 'Cluster prefix'
         type: string
@@ -43,13 +39,12 @@ on:
         description: 'Suffix for the output archive'
         type: string
         default: ''
+      keycloak_operator_name:
+        type: string
+        default: keycloak-operator
 
   workflow_dispatch:
     inputs:
-      clusterName:
-        description: 'Name of the cluster'
-        type: string
-        default: 'gh-keycloak-a'
       clusterPrefix:
         description: 'Cluster prefix'
         type: string
@@ -86,8 +81,11 @@ on:
         description: 'Suffix for the output archive'
         type: string
         default: '1'
+      keycloak_operator_name:
+        type: string
+        default: keycloak-operator
 
-concurrency: cluster_${{ github.event.inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+concurrency: cluster_${{ inputs.clusterPrefix }}-a
 
 env:
   PROJECT_PREFIX: runner- # same as default
@@ -150,7 +148,7 @@ jobs:
         working-directory: provision/infinispan
         run: task crossdc-disconnect
         env:
-          ROSA_CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+          ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
           NAMESPACE: ${{ env.PROJECT }}
 
       - name: Create Keycloak dataset with "${{ inputs.usersPerRealm }}" users and "${{ env.CLIENTS_PER_REALM }}" clients
@@ -169,13 +167,14 @@ jobs:
         working-directory: provision/infinispan
         run: task crossdc-connect
         env:
-          ROSA_CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
+          ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
           NAMESPACE: ${{ env.PROJECT }}
 
       - name: Restart Keycloak Pods after dataset creation
         uses: ./.github/actions/keycloak-restart-pods
         with:
           project: ${{ env.PROJECT }}
+          keycloak_operator_name: ${{ inputs.keycloak_operator_name }}
 
       - name: Create AWS EC2 instances
         id: create_aws_ec2_instances
@@ -452,37 +451,4 @@ jobs:
         uses: ./.github/actions/ec2-delete-instances
         with:
           region: ${{ inputs.region }}
-
-  archive:
-    name: Commit results to Git repository
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    needs:
-      - run
-    steps:
-      - name: Checkout repository for results
-        uses: actions/checkout@v4
-        with:
-          ref: 'result-data'
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: final-report-json-${{ inputs.outputArchiveSuffix }}
-
-      - name: Commit result-summary
-        shell: bash
-        env:
-          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          DATE_FOLDER=rosa_scalability/$(date +"%Y/%m/%d")
-          mkdir -p ${DATE_FOLDER}
-          mv *.json ${DATE_FOLDER}
-          git add .
-          git commit -m "generated"
-          git push
 

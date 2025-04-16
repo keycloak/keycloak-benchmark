@@ -24,6 +24,8 @@
 # Also note that OLM doesn't support downgrades. In these cases it is necessary 
 # to install from scratch.
 #
+# WAIT_FOR_DEPLOYMENT - When set to true (default) the script will wait for the operator deployment to be created and available.
+#
 
 function requireVariableToBeSet { if [ -z "${!1}" ]; then echo "ERROR: Variable $1 is not set." >&2; exit 1; fi }
 
@@ -36,6 +38,8 @@ export INSTALL_NAMESPACE
 export CATALOG_SOURCE_NAMESPACE
 export CATALOG_SOURCE
 export PRODUCT
+
+WAIT_FOR_DEPLOYMENT=${WAIT_FOR_DEPLOYMENT:-true}
 
 echo "Looking up package manifest for product \"$PRODUCT\" in catalog \"$CATALOG_SOURCE\", namespace \"$CATALOG_SOURCE_NAMESPACE\"."
 packageManifest=$(kubectl -n "$CATALOG_SOURCE_NAMESPACE" get packagemanifests --field-selector=metadata.name=$PRODUCT -ojson | jq -r ".items[] | select (.status.catalogSource==\"$CATALOG_SOURCE\")")
@@ -100,6 +104,22 @@ else
     kubectl -n $INSTALL_NAMESPACE get subscriptions/$PRODUCT -ojson | jq .status.conditions
     exit 1
   fi
+fi
+
+if $WAIT_FOR_DEPLOYMENT; then
+  deploymentAvailable=false
+  attempts=30
+  echo "Waiting for deployment/$PRODUCT to be created."
+  for a in $(seq $attempts); do
+    if kubectl -n $INSTALL_NAMESPACE get deployment/$PRODUCT -oname; then
+      echo "Waiting for deployment/$PRODUCT to become available."
+      kubectl -n $INSTALL_NAMESPACE wait deployment/$PRODUCT --for=condition=Available=true --timeout=30s
+      deploymentAvailable=true
+      break
+    fi
+    sleep 1
+  done
+  if ! $deploymentAvailable; then echo "ERROR: Waiting for deployment/$PRODUCT to become available timed out."; exit 1; fi
 fi
 
 if [[ "$KC_WORKAROUND_28638" == "true" ]]; then
