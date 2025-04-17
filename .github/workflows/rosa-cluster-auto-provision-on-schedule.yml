@@ -28,7 +28,6 @@ jobs:
       activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -50,7 +49,6 @@ jobs:
       activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -58,7 +56,7 @@ jobs:
     needs: run-active-active-health-checks-after-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       outputArchiveSuffix: 'active-active'
     secrets: inherit
 
@@ -70,7 +68,6 @@ jobs:
       activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -106,7 +103,6 @@ jobs:
       activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -129,7 +125,6 @@ jobs:
       activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
@@ -138,7 +133,7 @@ jobs:
     name: Benchmark Volatile Active/Active
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterName: gh-keycloak-a # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
       skipCreateDataset: true
       outputArchiveSuffix: 'active-active-volatile'
     secrets: inherit
@@ -151,7 +146,6 @@ jobs:
       activeActive: true
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       project: runner-keycloak
-      region: eu-west-1
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
