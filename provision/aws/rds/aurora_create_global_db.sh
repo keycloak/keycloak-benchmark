@@ -41,8 +41,6 @@ export AURORA_DATABASE_NAME=""
 for (( i = 0 ; i < ${#GLOBAL_REGIONS[@]} ; i++ )) ; do
   REGION=${GLOBAL_REGIONS[i]}
   export AURORA_CLUSTER=${AURORA_GLOBAL_CLUSTER}-${REGION}
-  # Aurora Global DBs must use one of the memory optimized classes
-  export AURORA_INSTANCE_CLASS="db.r6g.large"
   export AURORA_REGION=${REGION}
 
   if [ "${REGION}" != "${PRIMARY_REGION}" ]; then
