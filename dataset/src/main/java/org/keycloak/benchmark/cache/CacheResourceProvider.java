@@ -29,7 +29,6 @@ import jakarta.ws.rs.Produces;
 
 import org.infinispan.Cache;
 import org.infinispan.client.hotrod.RemoteCache;
-import org.infinispan.context.Flag;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.TaskResponse;
@@ -87,17 +86,7 @@ public class CacheResourceProvider implements RealmResourceProvider {
             cacheSizes.put(cacheName, size);
         }
 
-        Map<String, Integer> remoteCacheSizes = new LinkedHashMap<>();
-        for (String cacheName : CACHE_NAMES) {
-            Cache cache = mgr.getCache(cacheName);
-            RemoteCache remoteCache = InfinispanUtil.getRemoteCache(cache);
-            if (remoteCache != null) {
-                int size = remoteCache.size();
-                remoteCacheSizes.put(remoteCache.getName(), size);
-            }
-        }
-
-        return new CacheSizesRepresentation(cacheSizes, remoteCacheSizes);
+        return new CacheSizesRepresentation(cacheSizes);
     }
 
     @GET

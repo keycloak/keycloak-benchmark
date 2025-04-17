@@ -28,13 +28,10 @@ public class CacheSizesRepresentation {
 
     private Map<String, Integer> cacheSizes = new HashMap<>();
 
-    private Map<String, Integer > remoteCacheSizes = new HashMap<>();
-
     public CacheSizesRepresentation() {}
 
-    public CacheSizesRepresentation(Map<String, Integer> cacheSizes, Map<String, Integer> remoteCacheSizes) {
+    public CacheSizesRepresentation(Map<String, Integer> cacheSizes) {
         this.cacheSizes = cacheSizes;
-        this.remoteCacheSizes = remoteCacheSizes;
     }
 
     public Map<String, Integer> getCacheSizes() {
@@ -45,11 +42,4 @@ public class CacheSizesRepresentation {
         this.cacheSizes = cacheSizes;
     }
 
-    public Map<String, Integer> getRemoteCacheSizes() {
-        return remoteCacheSizes;
-    }
-
-    public void setRemoteCacheSizes(Map<String, Integer> remoteCacheSizes) {
-        this.remoteCacheSizes = remoteCacheSizes;
-    }
 }
