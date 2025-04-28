@@ -153,10 +153,6 @@ spec:
       secret:
         name: remote-store-secret
         key: password
-    {{- if .Values.infinispan.site }}
-    - name: spi-connections-infinispan-quarkus-site-name # <5>
-      value: {{ .Values.infinispan.site }}
-    {{ end }}
     # end::keycloak-ispn[]
 {{- end }}
 {{- if .Values.keycloakDocumentation }}
@@ -175,10 +171,6 @@ spec:
       secret:
         name: remote-store-secret
         key: password
-    {{- if .Values.infinispan.site }}
-    - name: spi-connections-infinispan-quarkus-site-name
-      value: {{ .Values.infinispan.site }}
-    {{ end }}
 {{- end }}
 {{- if .Values.infinispan.jgroupsTls }}
     - name: cache-embedded-mtls-enabled

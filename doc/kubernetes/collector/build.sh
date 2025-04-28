@@ -22,7 +22,6 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set infinispan.remoteStore.enabled=false \
   --set infinispan.remoteStore.host=infinispan.keycloak.svc \
   --set infinispan.remoteStore.password=secure_password \
-  --set infinispan.site=keycloak \
   --set jvmDebug=false \
   --set cryostat=false \
   --set instances=3 \
@@ -55,7 +54,6 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
   --set infinispan.remoteStore.enabled=true \
   --set infinispan.remoteStore.host=infinispan.keycloak.svc \
   --set infinispan.remoteStore.password=secure_password \
-  --set infinispan.site=keycloak \
   | yq \
   | sed -E 's|[-A-Za-z0-9+/=]{1000,}|...|g' \
   > ${BUILDDIR}/helm/keycloak-ispn.yaml
