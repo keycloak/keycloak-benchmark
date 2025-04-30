@@ -251,7 +251,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         return KeycloakModelUtils.runJobInTransactionWithResult(baseSession.getKeycloakSessionFactory(), baseSession.getContext(), session -> {
             RealmModel realm = session.realms().getRealmByName(realmName);
             return session.groups().getGroupsCount(realm, false);
-        }, false, "dataset:get-groups-count");
+        }, "dataset:get-groups-count");
     }
 
     protected Response handleDatasetException(DatasetException de) {
