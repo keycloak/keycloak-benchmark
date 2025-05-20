@@ -210,7 +210,7 @@ tasks:
     vars:
       CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat ../keycloak-tasks/.task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
     cmds:
-      - task: '{{ if eq .KC_OPERATOR_OLM "true" }}keycloak:install-keycloak-operator-olm{{else}}no-op{{ end }}'
+      - task: '{{ if eq .KC_OPERATOR_OLM "true" }}keycloak:install-keycloak-operator-olm{{else}}keycloak:no-op{{ end }}'
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
       - task: keycloak:install-keycloak-build-configs
@@ -221,7 +221,7 @@ tasks:
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
           ROSA_CLUSTER_NAME: "current"
-      - task: '{{ if ne .KC_OPERATOR_OLM "true" }}keycloak:install-keycloak-operator{{else}}no-op{{ end }}'
+      - task: '{{ if ne .KC_OPERATOR_OLM "true" }}keycloak:install-keycloak-operator{{else}}keycloak:no-op{{ end }}'
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
       - >
