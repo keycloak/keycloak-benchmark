@@ -215,11 +215,11 @@ tasks:
     dir: ..
     cmds:
       # remove temporary folders to be extra safe
-      - rm -rf keycloak-cli/keycloak-999.0.0-SNAPSHOT
+      - rm -rf keycloak-cli/keycloak-{{.KC_OPERATOR_TAG }}
       - rm -rf keycloak-cli/keycloak
       - unzip -o -q keycloak-cli/keycloak.zip -d keycloak-cli
       # the output folder depends on the version we're about to unpack
-      - mv keycloak-cli/keycloak-999.0.0-SNAPSHOT keycloak-cli/keycloak
+      - mv keycloak-cli/keycloak-{{.KC_OPERATOR_TAG }} keycloak-cli/keycloak
     sources:
       - keycloak-cli/keycloak.zip
       - minikube/.task/subtask-{{.TASK}}.yaml
