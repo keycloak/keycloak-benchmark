@@ -61,10 +61,6 @@ spec:
     samplerRatio: {{ .Values.otelSamplingPercentage }}
     samplerType: "parentbased_traceidratio"
   {{- end }}
-  {{- if .Values.networkPolicy.enabled }}
-  networkPolicy:
-    enabled: true
-  {{- end }}
 {{ if .Values.keycloakImage }}
   image: {{ .Values.keycloakImage }} # <2>
   startOptimized: {{ .Values.startOptimized }} # <2>
