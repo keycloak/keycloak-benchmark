@@ -42,9 +42,29 @@ public class Config {
     public static final String userName = System.getProperty("username");
 
     /**
+     * Sets the prefix for usernames. If not set, usernames use the {@code user-} prefix. Eg.: user-0, user-1.
+     */
+    public static final String userNamePrefix = System.getProperty("username-prefix", "user-");
+
+    /**
+     * Sets the index offset for users and user passwords. If not set, index starts at {@code 0}. Eg.: user-0, user-1.
+     */
+    public static final int userIndexOffset = Integer.getInteger("user-index-offset", 0);
+
+    /**
      * If set, tests running using a single user are going to use the password defined in {@code user-password}.
      */
     public static final String userPassword = System.getProperty("user-password");
+
+    /**
+     * Sets the prefix for passwords. If not set, passwords use the {@code user-} prefix. Eg.: user-0-password, user-1-password.
+     */
+    public static final String userPasswordPrefix = System.getProperty("user-password-prefix", "user-");
+
+    /**
+     * Sets the suffix for passwords. If not set, passwords use the {@code -password} suffix. Eg.: user-0-password, user-1-password.
+     */
+    public static final String userPasswordSuffix = System.getProperty("user-password-suffix", "-password");
 
     /**
      * If set, tests are going to run using a single client with the given {@code client-id}
@@ -153,6 +173,8 @@ public class Config {
      */
     public static final boolean shareConnections = Boolean.getBoolean("share-connections");
     public static final boolean httpProxy = Boolean.getBoolean("http-proxy");
+    public static final String httpProxyHost = System.getProperty("http-proxy-host", "127.0.0.1");
+    public static final int httpProxyPort = Integer.getInteger("http-proxy-port", 8888);
 
     public static final boolean useAllLocalAddresses = Boolean.getBoolean("use-all-local-addresses");
 

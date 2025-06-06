@@ -59,20 +59,20 @@ class KeycloakScenarioBuilder {
     val serverUrl = Config.serverUrisList.iterator().next()
     val realmIndex = String.valueOf(Random.nextInt(Config.numOfRealms))
     val clientIndex = String.valueOf(Random.nextInt(Config.numClientsPerRealm))
-    val userIndex = String.valueOf(Random.nextInt(Config.numUsersPerRealm))
+    val userIndex = String.valueOf(Random.nextInt(Config.numUsersPerRealm) + Config.userIndexOffset)
     var realmName = Config.realmPrefix.concat(realmIndex)
 
     if (Config.realmName != null) {
       realmName = Config.realmName
     }
 
-    var userName = "user-".concat(userIndex)
+    var userName = Config.userNamePrefix.concat(userIndex)
 
     if (Config.userName != null) {
       userName = Config.userName
     }
 
-    var userPassword = "user-".concat(userIndex).concat("-password")
+    var userPassword = Config.userPasswordPrefix.concat(userIndex).concat(Config.userPasswordSuffix)
 
     if (Config.userPassword != null) {
       userPassword = Config.userPassword
