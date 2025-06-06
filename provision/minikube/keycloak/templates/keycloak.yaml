@@ -172,22 +172,6 @@ spec:
         name: remote-store-secret
         key: password
 {{- end }}
-{{- if .Values.infinispan.jgroupsTls }}
-    - name: cache-embedded-mtls-enabled
-      value: "true"
-    - name: cache-embedded-mtls-key-store-file
-      value: /etc/cache-embedded-mtls/keystore.p12
-    - name: cache-embedded-mtls-key-store-password
-      secret:
-        name: keycloak-jgroups-pkcs12-password
-        key: password
-    - name: cache-embedded-mtls-trust-store-file
-      value: /etc/cache-embedded-mtls/truststore.p12
-    - name: cache-embedded-mtls-trust-store-password
-      secret:
-        name: keycloak-jgroups-pkcs12-password
-        key: password
-{{- end }}
 {{ if .Values.useAWSJDBCWrapper }}
     - name: db-driver
       value: software.amazon.jdbc.Driver
@@ -272,8 +256,3 @@ spec:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
-{{ if .Values.infinispan.jgroupsTls }}
-          - name: cache-embedded-mtls-volume
-            secret:
-              secretName: keycloak-jgroups
-{{ end }}

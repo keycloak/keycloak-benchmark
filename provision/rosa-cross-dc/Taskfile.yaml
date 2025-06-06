@@ -20,7 +20,6 @@ vars:
   ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
   KEYCLOAK_MASTER_PASSWORD:
     sh: aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager
-  KC_JGROUPS_TLS: '{{default "true" .KC_JGROUPS_TLS}}'
 
 dotenv: [ '.env' ]
 
