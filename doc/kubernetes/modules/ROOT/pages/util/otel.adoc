@@ -1,19 +1,15 @@
+[#tracing-and-additional-metrics-with-opentelemetry]
 = Tracing and additional metrics with OpenTelemetry
 :description: Collect traces and additional metrics using OpenTelemetry during development and performance runs.
 
 {description}
 
-== About OpenTelemetry
+[NOTE]
+====
+This setup is only for load tests with the Keycloak Benchmark Project.
 
-OpenTelemetry provides high-quality, ubiquitous, and portable telemetry to enable effective observability.
-
-This project uses it to collect traces from Keycloak:
-
-* The traces allow insights into Keycloak and break down a request into a tree of internal and database calls.
-
-This uses the built-in OpenTelemetry functionality which is available in Keycloak 26 and later.
-
-Visit the https://opentelemetry.io/[OpenTelemetry website] for more information about the tool, and the sections below on how to access and use this information.
+To find more about how to use tracing in Keycloak, visit the https://www.keycloak.org/observability/tracing[Observability Guide on tracing].
+====
 
 == Setting up OpenTelemetry
 
@@ -58,18 +54,3 @@ To start a search with the latest timestamp, click on **Search** in the menu too
 [.shadow]
 image::util/otel-jaeger-search-traces.png[]
 
-=== Trace IDs in logs
-
-Once the Java agent is active, it creates trace IDs in all log lines in the MDC (mapped diagnostic context):
-
-====
-\... "mdc":{"sampled":"true", "trace_id":"72b9fd1ac7229d417655a9c5e240e23b", "span_id":"6612116ac4f97aaa"} ...
-====
-
-When searching for logs in Grafana in Loki, there is a link to the connected trace which will then show on the right.
-
-Please note that this will work only on recorded traces which have a `trace_flag` logged with `01`.
-
-[.shadow]
-.Link from logs to traces
-image::util/otel-from-log-to-trace.png[]
