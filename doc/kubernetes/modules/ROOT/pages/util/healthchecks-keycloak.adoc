@@ -4,103 +4,11 @@ When customers run the https://www.keycloak.org/high-availability/introduction[c
 
 This page attempts to provide an overview of such URLs, Kubernetes resources and Health check endpoints derived from a cross-site setup of Keycloak.
 
-== Overview
+Find out more about Keycloak's health checks https://www.keycloak.org/observability/health[in the observability guide].
 
-A Proactive monitoring strategy, aiming to detect and alert on issues before they impact users is key for a highly resilient and highly available Keycloak application.
+Details on how to check the availability in a multi-site have been moved https://www.keycloak.org/high-availability/health-checks-multi-site[to the official multi-site docs].
 
-Health checks across various architectural components (like application health, load balancing, caching, and overall system status) are critical for:
-
-* *Ensuring High Availability*: By verifying that all sites and the load balancer are operational, it helps guarantee that the system can handle requests even if one site goes down.
-* *Maintaining Performance*: Checking the health and distribution of the Infinispan cache ensures that Keycloak can maintain optimal performance by efficiently handling sessions and other temporary data.
-* *Operational Resilience*: By continuously monitoring the health of both Keycloak and its dependencies within the OpenShift environment, the system can quickly identify and possibly auto-remediate issues, reducing downtime.
-
-== How to set it up
-
-Prerequisite:
-
-. xref:prerequisite/prerequisite-openshift.adoc[Openshift CLI is installed and configured].
-
-. Install https://jqlang.github.io/jq/download/[jq] if it is not available on your OS already.
-
-== More on the specific Health Checks
-
-=== Keycloak Load Balancer and Sites
-
-Verifies the health of the Keycloak application through its load balancer and both primary and backup sites. This ensures that Keycloak is accessible and that the load balancing mechanism is functioning correctly across different geographical or network locations.
-
-This command returns the health status of the Keycloak application's connection to its configured database, thus confirming the reliability of db connections.
-This is only available on the management port, and not available from the external URL.
-In a Kubernetes setup, the sub-status `health/ready` is checked periodically to make the Pod as ready.
-
-[source,bash]
-----
-curl -s https://keycloak:managementport/health
-----
-
-This command verifies the `lb-check` endpoint of the load balancer and ensures the Keycloak application cluster is up and running.
-[source,bash]
-----
-curl -s https://keycloak-load-balancer-url/lb-check
-----
-
-These commands will return the running status of the Site A and Site B of the Keycloak in a cross-site setup (be it Active/Passive or Active/Active).
-
-[source,bash]
-----
-curl -s https://keycloak_site_a_url/lb-check
-curl -s https://keycloak_site_b_url/lb-check
-----
-
-=== Infinispan Cache Health
-Check the health of the default cache manager and individual caches in an external Infinispan cluster.
-This is vital for Keycloak performance and reliability,
-as Infinispan is often used for distributed caching and session clustering in Keycloak deployments.
-
-This command returns the overall health of the Infinispan cache manager, this is useful as the Admin user doesn't need to provide user credentials to get the health status.
-[source,bash]
-----
-curl -s https://infinispan_rest_url/rest/v2/cache-managers/default/health/status
-----
-
-Whereas for these health checks, Admin user needs to provide the infinispan user credentials as part of the request to peek into the overall health of the external Infinispan cluster caches.
-[source,bash]
-----
-curl -u <infinispan_user>:<infinispan_pwd> -s https://infinispan_rest_url/rest/v2/cache-managers/default/health \
- | jq 'if .cluster_health.health_status == "HEALTHY" and (all(.cache_health[].status; . == "HEALTHY")) then "HEALTHY" else "UNHEALTHY" end'
-----
-
-Optionally you can run the above command without the `jq` filter `'if .cluster_health.health_status == "HEALTHY" and (all(.cache_health[].status; . == "HEALTHY")) then "HEALTHY" else "UNHEALTHY" end'` to see the full details, this filter is a convenience to compute the overall health based on the individual cache health.
-
-=== Infinispan Cluster Distribution
-Assesses the distribution health of the Infinispan cluster, ensuring that the cluster's nodes are correctly distributing data. This step is essential for the scalability and fault tolerance of the caching layer.
-
-You can modify the `expectedCount 3` argument to match the total nodes in the cluster and validate if they are healthy or not.
-[source,bash]
-----
-curl <infinispan_user>:<infinispan_pwd> -s https://infinispan_rest_url/rest/v2/cluster\?action\=distribution \
- | jq --argjson expectedCount 3 'if map(select(.node_addresses | length > 0)) | length == $expectedCount then "HEALTHY" else "UNHEALTHY" end'
-----
-
-=== Overall Infinispan System Health
-Uses OpenShift's CLI tool to query the health status of Infinispan clusters and the Keycloak service in the specified namespace. This comprehensive check ensures that all components of the Keycloak deployment are operational and correctly configured within the OpenShift environment.
-
-[source,bash]
-----
-oc get infinispan -n <NAMESPACE> -o json  \
-| jq '.items[].status.conditions' \
-| jq 'map({(.type): .status})' \
-| jq 'reduce .[] as $item ([]; . + [keys[] | select($item[.] != "True")]) | if length == 0 then "HEALTHY" else "UNHEALTHY: " + (join(", ")) end'
-----
-
-=== Keycloak Readiness in Openshift
-Specifically, checks for the readiness and rolling update conditions of Keycloak deployments in Red Hat OpenShift, ensuring that the Keycloak instances are fully operational and not undergoing updates that could impact availability.
-
-[source,bash]
-----
-oc wait --for=condition=Ready --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n <NAMESPACE>
-oc wait --for=condition=RollingUpdate=False --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n <NAMESPACE>
-----
-==== Optional Bash script
+== Optional Bash script
 You can use the link:{github-files}/provision/rosa-cross-dc/cross-site-health-checks.sh[cross-site-health-checks.sh] script and extend it to perform the necessary checks and integrate this into your monitoring architecture.
 
 To run the script, as a pre-requisite,
