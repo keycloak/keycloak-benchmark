@@ -1,18 +1,13 @@
-name: ROSA Daily Scheduled Run
+name: Multi-AZ Clusters - Run Tests
 
 on:
-  schedule:
-    - cron: '0 5 * * 1-5' # Runs At 05:00 UTC on every day-of-week from Monday through Friday.
   workflow_dispatch:
-
-# env:
-#   CLUSTER_PREFIX: gh-keycloak
 
 jobs:
   keycloak-deploy-active-active:
     name: ROSA Scheduled Create Active/Active cluster with External Infinispan and Persistent Sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-create.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       enableMultiSiteFeature: true
@@ -75,7 +70,7 @@ jobs:
     needs: run-active-active-health-checks-after-benchmarks
     name: Undeploy Keycloak A/A deployment on the multi-az cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-cluster-undeploy.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-undeploy.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       skipAuroraDeletion: true
@@ -86,7 +81,7 @@ jobs:
     needs: keycloak-undeploy-active-active
     name: Deploy Volatile Active/Active
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-cluster-create.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-create.yml
     with:
       clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
       enableMultiSiteFeature: true
