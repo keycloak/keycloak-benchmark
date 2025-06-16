@@ -21,7 +21,7 @@ set_environment_variables () {
   if ( minikube version &>/dev/null ); then
     KEYCLOAK_URI="https://keycloak-keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   fi
-  REALM_PREFIX="realm"
+  REALM_PREFIX="realm-"
   STATUS_TIMEOUT="120"
   CREATE_TIMEOUT="3600"
   THREADS="-1"
@@ -210,7 +210,7 @@ main () {
       if [ -z "$HASH_ALGORITHM" ];  then HA_PARAM=""; HASH_ALGORITHM="default";  else HA_PARAM="&password-hash-algorithm=$HASH_ALGORITHM"; fi
       if [ -z "$HASH_ITERATIONS" ]; then HI_PARAM=""; HASH_ITERATIONS="default"; else HI_PARAM="&password-hash-iterations=$HASH_ITERATIONS"; fi
       echo "Creating $REALM_COUNT realms with $CLIENTS_COUNT clients and $USERS_COUNT users with $HASH_ITERATIONS password-hashing iterations using the $HASH_ALGORITHM algorithm."
-      execute_command "create-realms?count=$REALM_COUNT&clients-per-realm=$CLIENTS_COUNT&users-per-realm=$USERS_COUNT&unique-credential-count=$UNIQUE_CREDENTIALS$HI_PARAM$HA_PARAM"
+      execute_command "create-realms?count=$REALM_COUNT&clients-per-realm=$CLIENTS_COUNT&users-per-realm=$USERS_COUNT&unique-credential-count=$UNIQUE_CREDENTIALS&realm-prefix=$REALM_PREFIX$HI_PARAM$HA_PARAM"
       exit 0
       ;;
     create-clients)
