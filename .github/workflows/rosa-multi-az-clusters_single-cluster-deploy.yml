@@ -1,0 +1,98 @@
+name: Multi-AZ Clusters - Single-Cluster - Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix to be used when creating the clusters'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      keycloakBranch:
+        description: 'The branch to deploy Keycloak from. If not set nightly image is used'
+        type: string
+  workflow_call:
+    inputs:
+      clusterPrefix:
+        description: 'The prefix to be used when creating the clusters'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      keycloakRepository:
+        description: 'The repository to deploy Keycloak from. If not set nightly image is used'
+        type: string
+      keycloakBranch:
+        description: 'The branch to deploy Keycloak from. If not set nightly image is used'
+        type: string
+
+env:
+  CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
+  REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
+
+jobs:
+
+  single-cluster-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_wrapper: false
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Login to OpenShift cluster A
+        shell: bash
+        run: ./rosa_oc_login.sh
+        working-directory: provision/aws
+        env:
+          CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
+          KUBECONFIG: ./kubeconfig
+
+      - name: Deploy Single-Cluster Keycloak
+        working-directory: provision/openshift
+        run: task
+        env:
+          KUBECONFIG: ../aws/kubeconfig
+          KC_REPOSITORY: ${{ inputs.keycloakRepository }}
+          KC_BRANCH: ${{ inputs.keycloakBranch }}
+          KC_DISABLE_STICKY_SESSION: true
+          KC_MEMORY_REQUESTS_MB: 3000
+          KC_MEMORY_LIMITS_MB: 4000
+          KC_CPU_REQUESTS: 6
+          KC_CPU_LIMITS: 6
+          KC_INSTANCES: 3
+          KC_DB_POOL_INITIAL_SIZE: 30
+          KC_DB_POOL_MAX_SIZE: 30
+          KC_DB_POOL_MIN_SIZE: 30
+
+      - name: create-env-configmap
+        working-directory: provision/openshift
+        run: task create-env-configmap
+        env:
+          KUBECONFIG: ../aws/kubeconfig

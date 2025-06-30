@@ -1,0 +1,368 @@
+name: Multi-AZ Clusters - Single-Cluster - Run Scaling Benchmark
+
+on:
+  workflow_call:
+    inputs:
+      clusterPrefix:
+        description: 'Cluster prefix'
+        type: string
+        default: 'gh-keycloak'
+      region:
+        description: 'Name of the region where EC2 instances should be installed'
+        type: string
+        default: 'eu-west-1'
+      usersPerRealm:
+        description: 'Number of users for the scenario in DB'
+        type: number
+        default: 100000
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: number
+        default: 10800
+      numberOfUsersPerSecond:
+        description: 'User logins per second'
+        type: number
+        default: 150
+      numberOfClientsPerSecond:
+        description: 'Client credential grants per second'
+        type: number
+        default: 750
+      measurement:
+        description: 'Measurement period (seconds)'
+        type: number
+        default: 600
+      skipCreateDataset:
+        description: 'Skip creating dataset'
+        type: boolean
+        default: false
+      outputArchiveSuffix:
+        description: 'Suffix for the output archive'
+        type: string
+        default: 'single-cluster'
+      keycloak_operator_name:
+        type: string
+        default: keycloak-operator
+
+  workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        description: 'Cluster prefix'
+        type: string
+        default: 'gh-keycloak'
+      region:
+        description: 'Name of the region where EC2 instances should be installed'
+        type: string
+        default: 'eu-west-1'
+      usersPerRealm:
+        description: 'Number of users for the scenario in DB'
+        type: number
+        default: 100000
+      maxWaitEntityCreation:
+        description: 'Maximum number of seconds to wait for creation of entities'
+        type: number
+        default: 10800
+      numberOfUsersPerSecond:
+        description: 'User logins per second'
+        type: number
+        default: 150
+      numberOfClientsPerSecond:
+        description: 'Client credential grants per second'
+        type: number
+        default: 750
+      measurement:
+        description: 'Measurement period (seconds)'
+        type: number
+        default: 600
+      skipCreateDataset:
+        description: 'Skip creating dataset'
+        type: boolean
+        default: false
+      outputArchiveSuffix:
+        description: 'Suffix for the output archive'
+        type: string
+        default: 'single-cluster'
+      keycloak_operator_name:
+        type: string
+        default: keycloak-operator
+
+concurrency: cluster_${{ inputs.clusterPrefix }}-a
+
+env:
+  PROJECT_PREFIX: runner- # same as default
+  PROJECT: runner-keycloak
+  ANSIBLE_CUSTOM_VARS_ARG: '-e @env_rosa_benchmark.yml'
+  CLIENTS_PER_REALM: 10000
+
+jobs:
+  run:
+    name: Run Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ inputs.clusterPrefix }}-a
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Cache Maven Wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            .mvn/wrapper/maven-wrapper.jar
+          key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('**/maven-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-wrapper-
+
+      - name: Build with Maven
+        run: |
+          ./mvnw -B clean package -DskipTests -pl benchmark
+          tar xfvz benchmark/target/keycloak-benchmark-*.tar.gz
+          mv keycloak-benchmark-* keycloak-benchmark
+
+      - name: Get URLs
+        uses: ./.github/actions/get-keycloak-url
+        with:
+          project: ${{ env.PROJECT }}
+
+      - name: Create Keycloak dataset with "${{ inputs.usersPerRealm }}" users and "${{ env.CLIENTS_PER_REALM }}" clients
+        if: ${{ !inputs.skipCreateDataset }}
+        uses: ./.github/actions/keycloak-create-dataset
+        with:
+          project: ${{ env.PROJECT }}
+          users: ${{ inputs.usersPerRealm }}
+          clients: 100
+          clientsPerRealm: ${{ env.CLIENTS_PER_REALM }}
+          createClientForSpecificRealm: true
+          maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
+
+      - name: Restart Keycloak Pods after dataset creation
+        uses: ./.github/actions/keycloak-restart-pods
+        with:
+          project: ${{ env.PROJECT }}
+          keycloak_operator_name: ${{ inputs.keycloak_operator_name }}
+
+      - name: Create AWS EC2 instances
+        id: create_aws_ec2_instances
+        uses: ./.github/actions/ec2-create-instances
+        with:
+          region: ${{ inputs.region }}
+
+      - name: Prepare horreum report
+        uses: ./.github/actions/prepare-horreum-report
+        with:
+          createReportFile: true
+
+
+      - name: Run Memory Usage Total Query Before Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runMemoryUsageTotal: true
+          output: memory_create_sessions
+      - name: Testing memory for creating sessions
+        id: kcb-authorization-code-1
+        run: >
+          ./benchmark.sh ${{ inputs.region }}
+          --scenario=keycloak.scenario.authentication.AuthorizationCode
+          --server-url=${{ env.KEYCLOAK_URL }}
+          --realm-name=realm-0
+          --users-per-sec=${{ inputs.numberOfUsersPerSecond }}
+          --ramp-up=20
+          --logout-percentage=0
+          --measurement=${{ inputs.measurement }}
+          --users-per-realm=${{ inputs.usersPerRealm }}
+          --clients-per-realm=${{ env.CLIENTS_PER_REALM }}
+          --log-http-on-failure
+          --sla-error-percentage=0.001
+        continue-on-error: true
+        working-directory: ansible
+      - name: Run Memory Usage Total Query After Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runMemoryUsageTotal: true
+          output: memory_create_sessions
+      - name: Calculate number of active sessions
+        id: active_sessions_count
+        env:
+          USERS_PER_SEC: ${{ inputs.numberOfUsersPerSecond }}
+          TIME_IN_SEC: ${{ inputs.measurement }}
+        run: echo "active_sessions=$(awk "BEGIN {print $USERS_PER_SEC*$TIME_IN_SEC; exit}")" >> $GITHUB_OUTPUT
+      - name: Calculate and Store Memory Usage Total For Active User Sessions
+        uses: ./.github/actions/prometheus-metrics-calc
+        with:
+          input: memory_create_sessions
+          performedTestName: 'memoryUsageTest'
+          calculatedMetricName: 'activeSessionsPer500MbPerPod' #as a unit for memory calculation is chosen 500MB memory size to find out how much user sessions so much memory can handle.
+          criteriaValue: ${{ steps.active_sessions_count.outputs.active_sessions }}
+          isvCPU: false
+          isMemory: true
+
+      - name: Run CPU sec Util Query Before Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: user_logins_vCpu
+      - name: Testing CPU usage for user logins
+        id: kcb-authorization-code-2
+        run: >
+          ./benchmark.sh ${{ inputs.region }}
+          --scenario=keycloak.scenario.authentication.AuthorizationCode
+          --server-url=${{ env.KEYCLOAK_URL }}
+          --realm-name=realm-0
+          --users-per-sec=${{ inputs.numberOfUsersPerSecond }}
+          --ramp-up=20
+          --logout-percentage=100
+          --measurement=${{ inputs.measurement }}
+          --users-per-realm=${{ inputs.usersPerRealm }}
+          --clients-per-realm=${{ env.CLIENTS_PER_REALM }}
+          --log-http-on-failure
+          --sla-error-percentage=0.001
+        continue-on-error: true
+        working-directory: ansible
+      - name: Run CPU sec Util Query After Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: user_logins_vCpu
+      - name: Calculate and Store CPU sec Util For Ran Benchmark
+        uses: ./.github/actions/prometheus-metrics-calc
+        with:
+          input: user_logins_vCpu
+          performedTestName: 'cpuUsageForLoginsTest'
+          calculatedMetricName: 'userLoginsPerSecPer1vCpuPerPod'
+          criteriaValue: ${{ inputs.numberOfUsersPerSecond }}
+          measurementInterval: ${{ inputs.measurement }}
+          isvCPU: true
+          isMemory: false
+
+      - name: Run CPU sec Util Query Before Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: client_credential_grants_vCpu
+      - name: Testing CPU usage for client credential grants
+        id: kcb-client-secret
+        run: >
+          ./benchmark.sh ${{ inputs.region }}
+          --scenario=keycloak.scenario.authentication.ClientSecret
+          --server-url=${{ env.KEYCLOAK_URL }}
+          --realm-name=realm-0
+          --users-per-sec=${{ inputs.numberOfClientsPerSecond }}
+          --ramp-up=20
+          --measurement=${{ inputs.measurement }}
+          --users-per-realm=${{ inputs.usersPerRealm }}
+          --clients-per-realm=${{ env.CLIENTS_PER_REALM }}
+          --log-http-on-failure
+          --sla-error-percentage=0.001
+        continue-on-error: true
+        working-directory: ansible
+      - name: Run CPU sec Util Query After Benchmark on Cluster 1
+        uses: ./.github/actions/prometheus-run-queries
+        with:
+          project: ${{ env.PROJECT }}
+          runCpuSecsUtil: true
+          output: client_credential_grants_vCpu
+      - name: Calculate and Store CPU usage For Ran Benchmark
+        uses: ./.github/actions/prometheus-metrics-calc
+        with:
+          input: client_credential_grants_vCpu
+          performedTestName: 'cpuUsageForCredentialGrantsTest'
+          calculatedMetricName: 'credentialGrantsPerSecPer1vCpu'
+          criteriaValue: ${{ inputs.numberOfClientsPerSecond }}
+          measurementInterval: ${{ inputs.measurement }}
+          isvCPU: true
+          isMemory: false
+
+
+      - name: Finalize horreum report
+        uses: ./.github/actions/prepare-horreum-report
+        with:
+          createReportFile: false
+
+      - name: Archive Gatling reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gatling-results-${{ inputs.outputArchiveSuffix }}
+          path: ansible/files/benchmark/*/results
+          retention-days: 5
+
+      - name: Archive Gatling stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: summary-${{ inputs.outputArchiveSuffix }}
+          path: ansible/files/benchmark/*/results/*/js/stats.json
+          retention-days: 5
+
+      - name: Archive Calculated Metrics summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-report-json-${{ inputs.outputArchiveSuffix }}
+          path: |
+            result-*.json
+          retention-days: 5
+
+      - name: Delete EC2 instances
+        if: ${{ always() && steps.create_aws_ec2_instances.conclusion != 'skipped' }}
+        uses: ./.github/actions/ec2-delete-instances
+        with:
+          region: ${{ inputs.region }}
+
+#  archive:
+#    name: Commit results to Git repository
+#    if: github.repository == 'keycloak/keycloak-benchmark'
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: write
+#      actions: write
+#    needs:
+#      - run
+#    steps:
+#      - name: Checkout repository for results
+#        uses: actions/checkout@v4
+#        with:
+#          ref: 'result-data'
+#
+#      - uses: actions/download-artifact@v4
+#        with:
+#          name: final-report-json-${{ inputs.outputArchiveSuffix }}
+#
+#      - name: Commit result-summary
+#        shell: bash
+#        env:
+#          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+#          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+#          git config --global user.name "github-actions[bot]"
+#          DATE_FOLDER=rosa_scalability/$(date +"%Y/%m/%d")
+#          mkdir -p ${DATE_FOLDER}
+#          mv *.json ${DATE_FOLDER}
+#          git add .
+#          git commit -m "generated"
+#          git push
+#
