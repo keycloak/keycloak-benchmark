@@ -294,7 +294,7 @@ tasks:
       TIMEOUT: "{{.TIMEOUT | default 1200}}"
     cmds:
       - echo "Waiting for Keycloak condition in ROSA cluster {{.ROSA_CLUSTER_NAME}} for {{.TIMEOUT}} seconds"
-      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=Available --timeout={{.TIMEOUT}}s deployments.apps/{{ .KC_OPERATOR_NAME }} -n "{{.NAMESPACE}}"
+      - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=Available --timeout={{.TIMEOUT}}s deployments.apps/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} -n "{{.NAMESPACE}}"
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=Ready --timeout={{.TIMEOUT}}s keycloaks.k8s.keycloak.org/keycloak -n "{{.NAMESPACE}}"
       - KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" oc wait --for=condition=RollingUpdate=False --timeout={{.TIMEOUT}}s keycloaks.k8s.keycloak.org/keycloak -n "{{.NAMESPACE}}"
     preconditions:
