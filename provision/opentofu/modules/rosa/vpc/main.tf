@@ -127,7 +127,7 @@ module "vpc" {
   depends_on = [resource.null_resource.validations]
 
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 4.0.0"
+  version = "~> 5.0.0"
 
   name = "${var.cluster_name}-vpc"
   cidr = var.vpc_cidr
