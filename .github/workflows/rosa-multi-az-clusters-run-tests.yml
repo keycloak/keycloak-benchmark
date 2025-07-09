@@ -2,15 +2,29 @@ name: Multi-AZ Clusters - Run Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      clusterPrefix:
+        type: string
+        default: gh-keycloak
+      region:
+        type: string
+        default: eu-west-1
   workflow_call:
-
+    inputs:
+      clusterPrefix:
+        type: string
+        default: gh-keycloak
+      region:
+        type: string
+        default: eu-west-1
 jobs:
   keycloak-deploy-active-active:
     name: ROSA Scheduled Create Active/Active cluster with External Infinispan and Persistent Sessions
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-clusters-create.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-create-and-deploy-keycloak.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      region: ${{ inputs.region }}
       enableMultiSiteFeature: true
       enableExternalInfinispanFeature: false
       activeActive: true
@@ -22,7 +36,7 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
     secrets: inherit
@@ -32,7 +46,7 @@ jobs:
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipEmbeddedCaches: true
       skipRemoteCaches: true
     secrets: inherit
@@ -43,7 +57,7 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
     secrets: inherit
@@ -52,7 +66,8 @@ jobs:
     needs: run-active-active-health-checks-after-functional-tests
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      region: ${{ inputs.region }}
       outputArchiveSuffix: 'active-active'
     secrets: inherit
 
@@ -62,7 +77,7 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
     secrets: inherit
@@ -73,7 +88,7 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-clusters-undeploy.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipAuroraDeletion: true
       activeActive: true
     secrets: inherit
@@ -82,9 +97,10 @@ jobs:
     needs: keycloak-undeploy-active-active
     name: Deploy Volatile Active/Active
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-clusters-create.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-create-and-deploy-keycloak.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      region: ${{ inputs.region }}
       enableMultiSiteFeature: true
       enableExternalInfinispanFeature: true
       activeActive: true
@@ -97,7 +113,7 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
     secrets: inherit
@@ -108,7 +124,7 @@ jobs:
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       skipEmbeddedCaches: true
       skipRemoteCaches: false
     secrets: inherit
@@ -119,7 +135,7 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
     secrets: inherit
@@ -129,7 +145,8 @@ jobs:
     name: Benchmark Volatile Active/Active
     uses: ./.github/workflows/rosa-scaling-benchmark.yml
     with:
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }}-a -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      region: ${{ inputs.region }}
       skipCreateDataset: true
       outputArchiveSuffix: 'active-active-volatile'
     secrets: inherit
@@ -140,7 +157,7 @@ jobs:
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
-      clusterPrefix: gh-keycloak # ${{ env.CLUSTER_PREFIX }} -- unfortunately 'env.' doesn't work here
+      clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
     secrets: inherit
