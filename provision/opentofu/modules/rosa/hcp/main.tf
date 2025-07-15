@@ -38,6 +38,7 @@ module "vpc" {
   subnet_azs         = local.azs
   subnet_cidr_prefix = var.subnet_cidr_prefix
   vpc_cidr           = var.vpc_cidr
+  single_az_only     = var.single_az_only
 }
 
 data "aws_caller_identity" "current" {

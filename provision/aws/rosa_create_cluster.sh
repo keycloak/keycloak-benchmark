@@ -13,6 +13,9 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/rosa_common.sh
 
 AWS_ACCOUNT=${AWS_ACCOUNT:-$(aws sts get-caller-identity --query "Account" --output text)}
+# Create an OpenShift cluster in a single zone or multiple zones?
+# Defaults to single zone cluster.
+USE_SINGLE_AZ=${USE_SINGLE_AZ:-"true"}
 
 requiredEnv AWS_ACCOUNT CLUSTER_NAME REGION CIDR
 
@@ -44,6 +47,7 @@ else
     -var availability_zones=${AVAILABILITY_ZONES} \
     -var cluster_name=${CLUSTER_NAME} \
     -var region=${REGION} \
+    -var single_az_only=${USE_SINGLE_AZ} \
     -var subnet_cidr_prefix=28"
 
   if [ -n "${COMPUTE_MACHINE_TYPE}" ]; then
@@ -62,7 +66,7 @@ else
 fi
 
 SCALING_MACHINE_POOL=$(rosa list machinepools -c "${CLUSTER_NAME}" -o json | jq -r '.[] | select(.id == "scaling") | .id')
-if [[ "${SCALING_MACHINE_POOL}" != "scaling" ]]; then
+if [[ "${SCALING_MACHINE_POOL}" != "scaling" ]] && [[ "${USE_SINGLE_AZ}" == "true" ]]; then
     rosa create machinepool -c "${CLUSTER_NAME}" --instance-type "${COMPUTE_MACHINE_TYPE:-c7g.2xlarge}" --max-replicas 15 --min-replicas 1 --name scaling --enable-autoscaling --autorepair
 fi
 
