@@ -32,6 +32,7 @@ vars:
   KC_BRANCH: '{{default "" .KC_BRANCH}}'
   KC_GRAFANA_DASHBOARDS_REPOSITORY: '{{default "https://github.com/keycloak/keycloak-grafana-dashboard.git" .KC_GRAFANA_DASHBOARDS_REPOSITORY}}'
   KC_GRAFANA_DASHBOARDS_BRANCH: '{{default "main" .KC_GRAFANA_DASHBOARDS_BRANCH}}'
+  KC_STRETCH_CLUSTER: '{{default "false" .KC_STRETCH_CLUSTER}}'
 tasks:
 
   split:
@@ -78,6 +79,7 @@ tasks:
       - echo {{.KC_EXTERNAL_INFINISPAN}} > .task/var-KC_EXTERNAL_INFINISPAN
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
+      - echo {{.KC_STRETCH_CLUSTER}} > .task/var-KC_STRETCH_CLUSTER
       - |
         jq -n --arg cpu_requests_per_pod "{{ .KC_CPU_REQUESTS }}" \
           --arg cpu_limits_per_pod "{{ .KC_CPU_LIMITS }}" \
@@ -97,6 +99,7 @@ tasks:
           --arg kc_branch "{{ .KC_BRANCH }}" \
           --argjson is_multi_az "{{ .MULTI_AZ }}" \
           --argjson is_active_passive "{{ .KC_IS_ACTIVE_PASSIVE }}" \
+          --argjson is_stretch_cluster "{{ .KC_STRETCH_CLUSTER }}" \
           '. + { "numOfPods": ($num_of_pods|tonumber), "cpuRequestsPerPod": ($cpu_requests_per_pod|tonumber),
                              "cpuLimitsPerPod": (if ($cpu_limits_per_pod | length) == 0 then null else ($cpu_limits_per_pod | tonumber?) end),
                              "stickySessionDisabled": ($sticky_sessions),
@@ -114,6 +117,7 @@ tasks:
                              },
                             "isMultiAZ": ($is_multi_az),
                             "isActivePassive": ($is_active_passive),
+                            "isStretchCluster": ($is_stretch_cluster),
                             "keycloakOperatorTag": ($kc_operator_tag),
                             "keycloakRepository": ($kc_repo),
                             "keycloakBranch": ($kc_branch),
@@ -148,6 +152,7 @@ tasks:
       - test "{{.KC_EXTERNAL_INFINISPAN}}" == "$(cat .task/var-KC_EXTERNAL_INFINISPAN)"
       - test "{{.KC_HOSTNAME_OVERRIDE}}" == "$(cat .task/var-KC_HOSTNAME_OVERRIDE)"
       - test "{{.KC_HEALTH_HOSTNAME}}" == "$(cat .task/var-KC_HEALTH_HOSTNAME)"
+      - test "{{.KC_STRETCH_CLUSTER}}" == "$(cat .task/var-KC_STRETCH_CLUSTER)"
 
   mvnw:
     dir: ../..
