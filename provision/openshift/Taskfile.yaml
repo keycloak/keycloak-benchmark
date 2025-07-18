@@ -215,7 +215,6 @@ tasks:
       - task: keycloak:install-keycloak-build-configs
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
-#          KUBECONFIG: "{{.KUBECONFIG}}"
       - task: '{{if .KC_REPOSITORY}}keycloak:prepare-custom-images{{else}}keycloak:no-op{{end}}'
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
