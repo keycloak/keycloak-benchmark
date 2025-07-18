@@ -25,7 +25,6 @@ declare -A SERVICES=( \
  ["jaeger.${HOST}"]="api/services" \
  ["kubebox.${HOST}"]="" \
  ["cryostat.${HOST}"]="" \
- ["sqlpad.${HOST}"]="" \
  )
 
 for SERVICE in "${!SERVICES[@]}"; do
