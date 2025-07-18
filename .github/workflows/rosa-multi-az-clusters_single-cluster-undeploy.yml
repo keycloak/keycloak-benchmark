@@ -40,18 +40,11 @@ jobs:
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
 
-      - name: Login to OpenShift cluster A
-        shell: bash
-        run: ./rosa_oc_login.sh
-        working-directory: provision/aws
-        env:
-          CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
-          KUBECONFIG: ./kubeconfig
-          
       - name: Undeploy Single-Cluster Keycloak
-        working-directory: provision/openshift
+        working-directory: provision/rosa-cross-dc
         run: |
-          task uninstall-keycloak
+          task undeploy-single-cluster
         env:
           KUBECONFIG: ../aws/kubeconfig
+          ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
 

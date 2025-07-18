@@ -66,19 +66,15 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Login to OpenShift cluster A
-        shell: bash
-        run: ./rosa_oc_login.sh
-        working-directory: provision/aws
-        env:
-          CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
-          KUBECONFIG: ./kubeconfig
-
       - name: Deploy Single-Cluster Keycloak
-        working-directory: provision/openshift
-        run: task
+        working-directory: provision/rosa-cross-dc
+        run: task single-cluster
         env:
+          AURORA_CLUSTER: ${{ inputs.clusterPrefix }}
+          AURORA_REGION: ${{ inputs.region }}
           KUBECONFIG: ../aws/kubeconfig
+          ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
+          ROSA_CLUSTER_NAME_1: ${{ inputs.clusterPrefix }}-a
           KC_REPOSITORY: ${{ inputs.keycloakRepository }}
           KC_BRANCH: ${{ inputs.keycloakBranch }}
           KC_DISABLE_STICKY_SESSION: true
@@ -91,8 +87,3 @@ jobs:
           KC_DB_POOL_MAX_SIZE: 30
           KC_DB_POOL_MIN_SIZE: 30
 
-      - name: create-env-configmap
-        working-directory: provision/openshift
-        run: task create-env-configmap
-        env:
-          KUBECONFIG: ../aws/kubeconfig
