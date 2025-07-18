@@ -1,4 +1,4 @@
-name: Multi-AZ Clusters - Create and Deploy Keycloak
+name: Multi-AZ Clusters - Deploy
 
 on:
   workflow_dispatch:
@@ -9,10 +9,6 @@ on:
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
-      createCluster:
-        description: 'Check to Create Cluster.'
-        type: boolean
-        default: true
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -31,10 +27,6 @@ on:
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
-      computeMachineType:
-        description: 'Instance type for the compute nodes'
-        default: 'c7g.2xlarge'
-        type: string
   workflow_call:
     inputs:
       clusterPrefix:
@@ -43,10 +35,6 @@ on:
       region:
         description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
-      createCluster:
-        description: 'Check to Create Cluster.'
-        type: boolean
-        default: true
       keycloak_operator_olm:
         type: boolean
         default: false
@@ -63,12 +51,6 @@ on:
       infinispan_use_custom_image:
         type: boolean
         default: true
-      infinispan_operator_olm_catalog_source:
-        type: string
-        default: community-operators
-      infinispan_operator_olm_name:
-        type: string
-        default: infinispan
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -87,10 +69,6 @@ on:
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
-      computeMachineType:
-        description: 'Instance type for the compute nodes'
-        default: 'c7g.2xlarge'
-        type: string
 
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
@@ -99,60 +77,9 @@ env:
   KC_MULTI_SITE: ${{ inputs.enableMultiSiteFeature }}
 
 jobs:
-  # Workaround required for passing env variables to reusable workflow declarations as ${{ env.* }} is not available
-  meta:
-    runs-on: ubuntu-latest
-    outputs:
-      clusterPrefix: ${{ env.CLUSTER_PREFIX }}
-      region: ${{ env.REGION }}
-      cidrA: ${{ steps.cidr.outputs.CIDR_A }}
-      cidrB: ${{ steps.cidr.outputs.CIDR_B }}
-    concurrency:
-      group: multi-az-meta
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup ROSA CLI
-        uses: ./.github/actions/rosa-cli-setup
-        with:
-          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
-          rosa-token: ${{ secrets.ROSA_TOKEN }}
-
-      - name: Calculate Cluster CIDR
-        id: cidr
-        run: |
-          set -x
-          CIDRS=$(./rosa_machine_cidr.sh)
-          echo "CIDR_A=$(echo ${CIDRS} | jq -r .cidr_a )" >> ${GITHUB_OUTPUT}
-          echo "CIDR_B=$(echo ${CIDRS} | jq -r .cidr_b )" >> ${GITHUB_OUTPUT}
-        working-directory: provision/aws
-        env:
-          CLUSTER_PREFIX: ${{ env.CLUSTER_PREFIX }}
-
-  cluster:
-    if: ${{ inputs.createCluster }}
-    needs: meta
-    strategy:
-      matrix:
-        availabilityZone: [ a, b ]
-      fail-fast: false
-    uses: ./.github/workflows/rosa-cluster-create.yml
-    with:
-      cidr: ${{ matrix.availabilityZone == 'a' && needs.meta.outputs.cidrA || needs.meta.outputs.cidrB }}
-      clusterName: ${{ needs.meta.outputs.clusterPrefix }}-${{ matrix.availabilityZone }}
-      region: ${{ needs.meta.outputs.region }}
-      availabilityZones: ${{ needs.meta.outputs.region }}${{ matrix.availabilityZone }}
-      infinispan_operator_olm_catalog_source: ${{ inputs.infinispan_operator_olm_catalog_source }}
-      infinispan_operator_olm_name: ${{ inputs.infinispan_operator_olm_name }}
-    secrets: inherit
 
   deploy-keycloak:
     runs-on: ubuntu-latest
-    if: ${{ (always() && needs.cluster.result == 'skipped' && !inputs.createCluster) || success()}}
-    needs: [cluster]
 
     steps:
       - name: Checkout repository
@@ -214,7 +141,6 @@ jobs:
           KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_olm_name }}
           KC_OPERATOR_CHANNEL: ${{ inputs.keycloak_operator_olm_channel }}
           KC_OPERATOR_VERSION: ${{ inputs.keycloak_operator_olm_version }}
-          KC_ACTIVE_ACTIVE: ${{ inputs.activeActive }}
           KC_CPU_REQUESTS: 6
           KC_CPU_LIMITS: 6
           KC_INSTANCES: 3

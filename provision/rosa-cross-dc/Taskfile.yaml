@@ -260,7 +260,6 @@ tasks:
     requires:
       vars:
         - ROSA_CLUSTER_NAME
-        - KC_HOSTNAME_OVERRIDE
     cmds:
       - task: create-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-peering-connection
         vars:
@@ -281,6 +280,7 @@ tasks:
           KC_CUSTOM_INFINISPAN_CONFIG: "false"
           KC_ISPN_CLUSTER: "infinispan"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+          KC_REMOTE_STORE: "{{.KC_REMOTE_STORE}}"
 
   wait-keycloak:
     desc: "Waits for Keycloak conditions"
@@ -322,6 +322,32 @@ tasks:
     preconditions:
       - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
 
+  single-cluster:
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - AURORA_CLUSTER
+    cmds:
+      - task: ispn:rosa-oc-login
+      - task: common:datasetprovider
+      - task: create-aurora
+      - task: fetch-single-aurora-endpoint
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+
   active-active:
     desc: "Deploys Infinispan, Aurora DB and Keycloak in a Active/Active deployment using ROSA clusters"
     deps:
@@ -351,10 +377,12 @@ tasks:
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           KC_HOSTNAME_OVERRIDE: "{{.ACCELERATOR_DNS}}"
+          KC_REMOTE_STORE: true
       - task: deploy-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           KC_HOSTNAME_OVERRIDE: "{{.ACCELERATOR_DNS}}"
+          KC_REMOTE_STORE: true
       - task: wait-cryostat
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
@@ -402,11 +430,13 @@ tasks:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_1}}"
+          KC_REMOTE_STORE: true
       - task: deploy-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
           KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
+          KC_REMOTE_STORE: true
       - task: deploy-route53-failover-lambda
         vars:
           KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_1}}"
@@ -428,6 +458,25 @@ tasks:
       - task: create-env-configmap
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  undeploy-single-cluster:
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
 
   undeploy:
     desc: "Undeploy Infinispan and Keycloak in a Active/Passive deployment"
