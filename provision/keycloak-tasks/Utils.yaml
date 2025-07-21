@@ -198,11 +198,11 @@ tasks:
     internal: true
     requires:
       vars:
-        - NAMESPACE
-        - ROSA_CLUSTER_NAME
         - KUBECONFIG
+        - NAMESPACE
         - KC_HOSTNAME_SUFFIX
         - KC_ADMIN_PASSWORD
+        - ROSA_CLUSTER_NAME
     vars:
       CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat .task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
       KC_USE_AWS_JDBC_WRAPPER: '{{ .KC_USE_AWS_JDBC_WRAPPER | default "true" }}'
