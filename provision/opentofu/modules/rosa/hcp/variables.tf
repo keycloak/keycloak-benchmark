@@ -70,3 +70,9 @@ variable "replicas" {
   default  = 6
   nullable = false
 }
+
+variable "single_az_only" {
+  description = "Only create subnets in a single availability zone"
+  type        = bool
+  default     = true
+}
