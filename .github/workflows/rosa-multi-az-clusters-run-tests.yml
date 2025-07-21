@@ -17,11 +17,23 @@ on:
       region:
         type: string
         default: eu-west-1
+
 jobs:
-  keycloak-deploy-active-active:
-    name: ROSA Scheduled Create Active/Active cluster with External Infinispan and Persistent Sessions
+
+  create-rosa-clusters:
+    name: Create Multi-AZ ROSA clusters
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-clusters-create-and-deploy-keycloak.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-create.yml
+    with:
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      region: ${{ inputs.region }}
+    secrets: inherit
+
+  keycloak-deploy-active-active:
+    needs: create-rosa-clusters
+    name: Deploy Active/Active
+    if: success() && (github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark')
+    uses: ./.github/workflows/rosa-multi-az-clusters-deploy.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
@@ -97,14 +109,13 @@ jobs:
     needs: keycloak-undeploy-active-active
     name: Deploy Volatile Active/Active
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: ./.github/workflows/rosa-multi-az-clusters-create-and-deploy-keycloak.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters-deploy.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
       enableMultiSiteFeature: true
       enableExternalInfinispanFeature: true
       activeActive: true
-      createCluster: false
     secrets: inherit
 
   run-active-active-volatile-health-checks-after-deploy:
@@ -162,3 +173,43 @@ jobs:
       expectedInfinispanNodeCount: '3'
     secrets: inherit
 
+  keycloak-undeploy-active-active-volatile:
+    needs: run-active-active-volatile-health-checks-after-benchmarks
+    name: Undeploy Keycloak A/A deployment
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-clusters-undeploy.yml
+    with:
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      skipAuroraDeletion: true
+      activeActive: true
+    secrets: inherit
+
+  # single-site stuff
+
+  keycloak-deploy-single-site:
+    needs: keycloak-undeploy-active-active-volatile
+    name: Deploy Single Cluster
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-clusters_single-cluster-deploy.yml
+    with:
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+    secrets: inherit
+
+  run-scaling-benchmark-single-site:
+    needs: keycloak-deploy-single-site
+    name: Benchmark for single-cluster deployment
+    uses: ./.github/workflows/rosa-multi-az-clusters_single-cluster-run-benchmark.yml
+    with:
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+      region: ${{ inputs.region }}
+      outputArchiveSuffix: 'single-cluster'
+    secrets: inherit
+
+  keycloak-undeploy-single-cluster:
+    needs: run-scaling-benchmark-single-site
+    name: Undeploy Single Cluster
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-multi-az-clusters_single-cluster-undeploy.yml
+    with:
+      clusterPrefix: ${{ inputs.clusterPrefix }}
+    secrets: inherit

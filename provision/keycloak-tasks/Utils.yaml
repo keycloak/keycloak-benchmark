@@ -253,10 +253,8 @@ tasks:
         --set metaspaceMaxMB={{ .KC_METASPACE_MAX_MB }}
         --set infinispan.customConfig={{ .KC_CUSTOM_INFINISPAN_CONFIG }}
         --set infinispan.configFile={{ .KC_CUSTOM_INFINISPAN_CONFIG_FILE }}
-        --set infinispan.remoteStore.enabled=true
+        --set infinispan.remoteStore.enabled={{ .KC_REMOTE_STORE }}
         --set infinispan.remoteStore.host=infinispan.{{.KC_ISPN_NAMESPACE}}.svc
-        --set infinispan.remoteStore.port=11222
-        --set infinispan.remoteStore.username=developer
         --set infinispan.remoteStore.password={{ .RS_HOT_ROD_PASSWORD | default .KEYCLOAK_MASTER_PASSWORD }}
         --set cryostat={{ .KC_CRYOSTAT }}
         --set environment=openshift
