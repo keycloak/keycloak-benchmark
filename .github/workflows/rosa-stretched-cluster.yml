@@ -1,0 +1,189 @@
+name: ROSA Stretched Cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      createCluster:
+        description: 'Check to Create Cluster.'
+        type: boolean
+        default: true
+      createAurora:
+        description: 'Check to Create Aurora Database.'
+        type: boolean
+        default: true
+      createKeycloak:
+        description: 'Check to Create Keycloak.'
+        type: boolean
+        default: true
+      clusterName:
+        description: 'The multi-az OpenShift cluster name'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      availabilityZones:
+        description: 'A comma-separated list of availability zone suffixes, in the region, to deploy the OpenShift cluster.'
+        type: string
+        required: true
+        default: "a,b,c"
+
+jobs:
+  meta:
+    name: Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      cidr: ${{ steps.cluster.outputs.CIDR }}
+      clusterName: ${{ steps.cluster.outputs.CLUSTER_NAME }}
+      region: ${{ steps.cluster.outputs.REGION }}
+      availabilityZones: ${{ steps.cluster.outputs.ZONES }}
+      numberOfZones: ${{ steps.cluster.outputs.NUMBER_ZONES }}
+    concurrency:
+      group: multi-az-meta
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Compute Cluster Info
+        id: cluster
+        working-directory: provision/aws
+        run: |
+          CLUSTER_NAME=${{ inputs.clusterName || format('gh-{0}-az', github.repository_owner) }}
+          REGION=${{ inputs.region || vars.AWS_DEFAULT_REGION }}
+          ZONES=$(./prefix_region_to_zones.sh "${REGION}" "${{ inputs.availabilityZones }}")
+          CIDR=$(CLUSTER_PREFIX=${CLUSTER_NAME} ./rosa_machine_cidr.sh | jq -r .cidr_a)
+          IFS=, read -r -a AZS_ARRAY <<< "${ZONES}"
+          NUMBER_ZONES="${#AZS_ARRAY[@]}"
+
+          echo "CLUSTER_NAME=${CLUSTER_NAME}" >> ${GITHUB_OUTPUT}
+          echo "REGION=${REGION}" >> ${GITHUB_OUTPUT}
+          echo "ZONES=${ZONES}" >> ${GITHUB_OUTPUT}
+          echo "CIDR=${CIDR}" >> ${GITHUB_OUTPUT}
+          echo "NUMBER_ZONES=${NUMBER_ZONES}" >> ${GITHUB_OUTPUT}
+
+  cluster:
+    name: Create Openshift Cluster
+    if: ${{ inputs.createCluster }}
+    needs: meta
+    uses: ./.github/workflows/rosa-cluster-create.yml
+    with:
+      cidr: ${{ needs.meta.outputs.cidr }}
+      clusterName: ${{ needs.meta.outputs.clusterName }}
+      region: ${{ needs.meta.outputs.region }}
+      availabilityZones: ${{ needs.meta.outputs.availabilityZones }}
+      useSingleAz: false
+    secrets: inherit
+
+  monitoring:
+    name: Install Monitoring
+    if: ${{ inputs.createCluster }}
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - cluster
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Login to OpenShift cluster
+        uses: ./.github/actions/oc-keycloak-login
+        with:
+          clusterName: ${{ needs.meta.outputs.clusterName }}
+
+      - name: Install Monitoring
+        run: task monitoring
+        working-directory: provision/openshift
+
+  aurora:
+    name: Install Aurora Database
+    needs: meta
+    if: ${{ inputs.createAurora }}
+    uses: ./.github/workflows/aurora-create-database.yml
+    with:
+      name: ${{ needs.meta.outputs.clusterName }}
+      region: ${{ needs.meta.outputs.region }}
+      instances: ${{ needs.meta.outputs.numberOfZones }}
+    secrets: inherit
+
+  connection:
+    name: Aurora Peering Connection
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - cluster
+      - aurora
+    if: ${{ always() && !cancelled() && inputs.createAurora && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Create peering connection between DataBase and OpenShit
+        uses: ./.github/actions/aurora-create-peering-connection
+        with:
+          name: ${{ needs.meta.outputs.clusterName }}
+          region: ${{ needs.meta.outputs.region }}
+          clusterName: ${{ needs.meta.outputs.clusterName }}
+
+  keycloak:
+    name: Install Keycloak
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - connection
+    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.connection.result == 'skipped' || needs.connection.result == 'success') }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Task
+        uses: ./.github/actions/task-setup
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Deploy Keycloak
+        run: task deploy-keycloak
+        working-directory: provision/keycloak-stretched
+        env:
+          ROSA_CLUSTER_NAME: ${{ needs.meta.outputs.clusterName }}
+          AURORA_CLUSTER: ${{ needs.meta.outputs.clusterName }}
+          AURORA_REGION: ${{ needs.meta.outputs.region }}
+          KC_NAMESPACE_PREFIX: runner-

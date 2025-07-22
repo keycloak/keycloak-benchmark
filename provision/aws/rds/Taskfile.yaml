@@ -1,0 +1,74 @@
+# https://taskfile.dev
+version: '3'
+
+tasks:
+
+  create-peering-connection:
+    desc: "Creates Aurora Peering Connection"
+    silent: false
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    env:
+      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
+      AURORA_REGION: "{{.AURORA_REGION}}"
+      CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+    cmd: ./aurora_create_peering_connection.sh
+    dir: "{{.TASKFILE_DIR}}"
+
+  delete-peering-connection:
+    desc: "Deletes Aurora Peering Connection"
+    silent: false
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    env:
+      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
+      AURORA_REGION: "{{.AURORA_REGION}}"
+      CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+    cmd: ./aurora_delete_peering_connection.sh
+    dir: "{{.TASKFILE_DIR}}"
+
+  create-aurora:
+    desc: "Creates a single region Aurora Database"
+    requires:
+      vars:
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    env:
+      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
+      AURORA_REGION: "{{.AURORA_REGION}}"
+      AURORA_INSTANCES: "{{.AURORA_INSTANCES | default 2}}"
+    cmd: ./aurora_create.sh
+    dir: "{{.TASKFILE_DIR}}"
+
+  delete-aurora:
+    desc: "Deletes a single region Aurora Database"
+    requires:
+      vars:
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    env:
+      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
+      AURORA_REGION: "{{.AURORA_REGION}}"
+    cmd: ./aurora_delete.sh
+    dir: "{{.TASKFILE_DIR}}"
+
+  get-aurora-endpoint:
+    desc: "Fetches the Aurora Database endpoint and stores it in a file"
+    requires:
+      vars:
+        - AURORA_CLUSTER
+        - AURORA_REGION
+        - OUTPUT_FILE
+    env:
+      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
+      AURORA_REGION: "{{.AURORA_REGION}}"
+    cmd: ./aurora_endpoint.sh > "{{.OUTPUT_FILE}}"
+    dir: "{{.TASKFILE_DIR}}"
+    generates:
+      - "{{.OUTPUT_FILE}}"

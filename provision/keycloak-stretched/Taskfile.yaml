@@ -1,0 +1,181 @@
+# https://taskfile.dev
+
+version: '3'
+
+includes:
+  rds:
+    taskfile: ../aws/rds/Taskfile.yaml
+    internal: true
+  keycloak:
+    taskfile: ../keycloak-tasks/Utils.yaml
+    dir: ../keycloak-tasks/
+    internal: true
+  ispn:
+    taskfile: ../infinispan/Utils.yaml
+    dir: ../infinispan/
+    internal: true
+  common:
+    taskfile: ../common
+    internal: true
+
+output: prefixed
+dotenv: [ '.env' ]
+set: [ pipefail ]
+
+env:
+  KC_DATABASE: "aurora-postgres"
+  KC_CUSTOM_INFINISPAN_CONFIG: "false"
+  KC_STRETCH_CLUSTER: "true"
+  KC_CPU_REQUESTS: 6
+  KC_CPU_LIMITS: 6
+  KC_INSTANCES: 3
+  KC_DISABLE_STICKY_SESSION: "true"
+  KC_CRYOSTAT: "true"
+  KC_IS_ACTIVE_PASSIVE: "false"
+  KC_EXTERNAL_INFINISPAN: "false"
+  KC_MEMORY_REQUESTS_MB: 3000
+  KC_MEMORY_LIMITS_MB: 4000
+  KC_DB_POOL_INITIAL_SIZE: 30
+  KC_DB_POOL_MAX_SIZE: 30
+  KC_DB_POOL_MIN_SIZE: 30
+  KC_ADMIN_PASSWORD:
+    sh: "aws secretsmanager get-secret-value --region eu-central-1 --secret-id keycloak-master-password --query SecretString --output text --no-cli-pager || echo admin"
+
+tasks:
+
+  deploy-aurora:
+    desc: "Creates a single region Aurora Database"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    cmds:
+      - task: rds:create-aurora
+        vars:
+          AURORA_INSTANCES: "{{.AURORA_INSTANCES | default 3}}"
+      - task: rds:create-peering-connection
+
+  undeploy-aurora:
+    desc: "Deletes a single region Aurora Database"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    cmds:
+      - task: rds:delete-peering-connection
+      - task: rds:delete-aurora
+
+  deploy-keycloak:
+    desc: "Deploys Keycloak in OpenShift"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - AURORA_CLUSTER
+        - AURORA_REGION
+        - KC_NAMESPACE_PREFIX
+    env:
+      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
+      AURORA_REGION: "{{.AURORA_REGION}}"
+      ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+    vars:
+      TMP_DIR: "{{.TASKFILE_DIR}}/.task"
+      AURORA_ENDPOINT_FILE: "{{.TMP_DIR}}/aurora-endpoint"
+      ISPN_DIR: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg"
+    cmds:
+      - task: common:env
+      - task: common:datasetprovider
+      - test -d "{{.TMP_DIR}}" || mkdir "{{.TMP_DIR}}"
+      - task: rds:get-aurora-endpoint
+        vars:
+          OUTPUT_FILE: "{{.AURORA_ENDPOINT_FILE}}"
+      - task: ispn:rosa-oc-login
+      - task: keycloak:install-keycloak
+        vars:
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+          KUBECONFIG: "{{.ISPN_DIR}}/{{.ROSA_CLUSTER_NAME}}"
+          KC_HOSTNAME_SUFFIX:
+            sh: cat {{.ISPN_DIR}}/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
+          KC_DATABASE_URL:
+            sh: cat {{.AURORA_ENDPOINT_FILE}}
+      - task: create-env-configmap
+      - task: wait-cryostat
+      - task: wait-keycloak
+
+
+  undeploy-keycloak:
+    desc: "Undeploy Keycloak in OpenShift"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - KC_NAMESPACE_PREFIX
+    vars:
+      ISPN_DIR: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg"
+    cmds:
+      - task: ispn:rosa-oc-login
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/{{.ROSA_CLUSTER_NAME}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+
+  wait-keycloak:
+    desc: "Waits for Keycloak conditions"
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - KC_NAMESPACE_PREFIX
+    vars:
+      NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      TIMEOUT: "{{.TIMEOUT | default 1200}}"
+    env:
+      KUBECONFIG: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+    cmds:
+      - echo "Waiting for Keycloak condition in ROSA cluster {{.ROSA_CLUSTER_NAME}} for {{.TIMEOUT}} seconds"
+      - kubectl wait --for=condition=Available --timeout={{.TIMEOUT}}s deployments.apps/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} -n "{{.NAMESPACE}}"
+      - kubectl wait --for=condition=Ready --timeout={{.TIMEOUT}}s keycloaks.k8s.keycloak.org/keycloak -n "{{.NAMESPACE}}"
+      - kubectl wait --for=condition=RollingUpdate=False --timeout={{.TIMEOUT}}s keycloaks.k8s.keycloak.org/keycloak -n "{{.NAMESPACE}}"
+    preconditions:
+      - test -f "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  wait-cryostat:
+    desc: "Waits for Cryostat conditions"
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - KC_NAMESPACE_PREFIX
+    vars:
+      NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      TIMEOUT: "{{.TIMEOUT | default 1200}}"
+    env:
+      KUBECONFIG: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+    cmds:
+      - |
+        if [ "{{.KC_CRYOSTAT}}" != "false" ]; then
+        echo "Waiting for Cryostat condition in ROSA cluster {{.ROSA_CLUSTER_NAME}} for {{.TIMEOUT}} seconds"
+        kubectl wait --for=condition=MainDeploymentProgressing --timeout={{.TIMEOUT}}s cryostats.operator.cryostat.io/cryostat -n "{{.NAMESPACE}}"
+        kubectl wait --for=condition=MainDeploymentAvailable --timeout={{.TIMEOUT}}s cryostats.operator.cryostat.io/cryostat -n "{{.NAMESPACE}}"
+        kubectl wait --for=condition=TLSSetupComplete --timeout={{.TIMEOUT}}s cryostats.operator.cryostat.io/cryostat -n "{{.NAMESPACE}}"
+        exit 0
+        fi
+    preconditions:
+      - test -f "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+
+  create-env-configmap:
+    internal: true
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - KC_NAMESPACE_PREFIX
+        - ENV_DATA_JSON_PATH
+    env:
+      KUBECONFIG: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"
+    cmds:
+      - echo "Creating configmap with environment data."
+      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak delete configmap env-config --ignore-not-found
+      - kubectl -n {{.KC_NAMESPACE_PREFIX}}keycloak create configmap env-config --from-file={{.ENV_DATA_JSON_PATH}}
+    preconditions:
+      - test -f "{{.ENV_DATA_JSON_PATH}}"
+      - test -f "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}"

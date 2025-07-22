@@ -17,6 +17,30 @@ on:
       instanceClass:
         description: 'Instance class for the Aurora DB'
         type: string
+      instances:
+        description: 'The number of Aurora DB instances'
+        type: string
+        default: "2"
+  workflow_call:
+    inputs:
+      name:
+        description: 'The name of the Aurora DB cluster'
+        type: string
+        required: true
+      region:
+        description: 'The AWS region used to host the Aurora DB'
+        type: string
+        required: true
+      engineVersion:
+        description: 'The Postgres engine version to use'
+        type: string
+      instanceClass:
+        description: 'Instance class for the Aurora DB'
+        type: string
+      instances:
+        description: 'The number of Aurora DB instances'
+        type: string
+        default: "2"
 
 jobs:
   prepare:
@@ -41,3 +65,4 @@ jobs:
           region: ${{ inputs.region }}
           engineVersion: ${{ inputs.engineVersion }}
           instanceClass: ${{ inputs.instanceClass }}
+          instances: ${{ inputs.instances }}
