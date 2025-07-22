@@ -5,6 +5,9 @@ inputs:
   region:
     description: 'The AWS region used to delete the EC2 instances.'
     required: true
+  clusterId:
+    description: 'The unique ID for the EC2 instances cluster.'
+    default: ${{ github.repository_owner }}
 
 runs:
   using: composite
@@ -15,3 +18,5 @@ runs:
         source .venv/bin/activate
         ./aws_ec2.sh delete ${{ inputs.region }}
       working-directory: ansible
+      env:
+        CLUSTER_ID: ${{ inputs.clusterId }}
