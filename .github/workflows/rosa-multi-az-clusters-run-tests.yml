@@ -190,7 +190,7 @@ jobs:
     needs: keycloak-undeploy-active-active-volatile
     name: Deploy Single Cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: rosa-multi-az-clusters_single-site-deploy.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters_single-site-deploy.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
     secrets: inherit
@@ -198,7 +198,7 @@ jobs:
   run-scaling-benchmark-single-site:
     needs: keycloak-deploy-single-site
     name: Benchmark for single-site deployment
-    uses: rosa-multi-az-clusters_single-site-run-benchmark.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters_single-site-run-benchmark.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
@@ -209,7 +209,7 @@ jobs:
     needs: run-scaling-benchmark-single-site
     name: Undeploy Single Cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    uses: rosa-multi-az-clusters_single-site-undeploy.yml
+    uses: ./.github/workflows/rosa-multi-az-clusters_single-site-undeploy.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
     secrets: inherit
