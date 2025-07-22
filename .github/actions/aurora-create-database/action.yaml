@@ -12,6 +12,9 @@ inputs:
     description: 'The Postgres engine version to use'
   instanceClass:
     description: 'Instance class for the Aurora DB'
+  instances:
+    description: 'The number of Aurora DB instances'
+    default: "2"
 
 runs:
   using: "composite"
@@ -25,3 +28,4 @@ runs:
         AURORA_ENGINE_VERSION: ${{ inputs.engineVersion }}
         AURORA_INSTANCE_CLASS: ${{ inputs.instanceClass }}
         AWS_REGION: ${{ inputs.region }}
+        AURORA_INSTANCES: ${{ inputs.instances }}

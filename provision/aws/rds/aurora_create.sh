@@ -49,8 +49,9 @@ while true; do
     break
   fi
 done
-AURORA_SUBNET_A_CIDR=${AURORA_VPC_RANGE}.0/25 # 0-127
-AURORA_SUBNET_B_CIDR=${AURORA_VPC_RANGE}.128/25 # 128-255
+AURORA_SUBNET_A_CIDR=${AURORA_VPC_RANGE}.0/26 # 0-63
+AURORA_SUBNET_B_CIDR=${AURORA_VPC_RANGE}.64/26 # 64-127
+AURORA_SUBNET_C_CIDR=${AURORA_VPC_RANGE}.128/26 # 128-191
 
 # Create the Aurora VPC
 AURORA_VPC=$(aws ec2 create-vpc \
@@ -77,6 +78,14 @@ SUBNET_B=$(aws ec2 create-subnet \
   | jq -r '.Subnet.SubnetId'
 )
 
+SUBNET_C=$(aws ec2 create-subnet \
+  --availability-zone "${AWS_REGION}c" \
+  --vpc-id ${AURORA_VPC} \
+  --cidr-block ${AURORA_SUBNET_C_CIDR} \
+  --output json \
+  | jq -r '.Subnet.SubnetId'
+)
+
 AURORA_PUBLIC_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
   --filters Name=vpc-id,Values=${AURORA_VPC} \
   --output json \
@@ -91,11 +100,15 @@ aws ec2 associate-route-table \
   --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
   --subnet-id ${SUBNET_B}
 
+aws ec2 associate-route-table \
+  --route-table-id ${AURORA_PUBLIC_ROUTE_TABLE_ID} \
+  --subnet-id ${SUBNET_C}
+
 # Create Aurora Subnet Group
 aws rds create-db-subnet-group \
   --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} \
   --db-subnet-group-description "Aurora DB Subnet Group" \
-  --subnet-ids ${SUBNET_A} ${SUBNET_B}
+  --subnet-ids ${SUBNET_A} ${SUBNET_B} ${SUBNET_C}
 
 # Create an Aurora VPC Security Group
 AURORA_SECURITY_GROUP_ID=$(aws ec2 create-security-group \
@@ -123,7 +136,7 @@ aws rds create-db-cluster \
     ${AURORA_GLOBAL_CLUSTER_IDENTIFIER}
 
 # For now only two AZs in each region are supported due to the two subnets created above
-AZS=("${AWS_REGION}a" "${AWS_REGION}b")
+AZS=("${AWS_REGION}a" "${AWS_REGION}b" "${AWS_REGION}c")
 
 for i in $( seq ${AURORA_INSTANCES} ); do
   aws rds create-db-instance \
