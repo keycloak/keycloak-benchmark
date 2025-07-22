@@ -5,6 +5,9 @@ inputs:
   region:
     description: 'The AWS region used to host the EC2 instances.'
     required: true
+  clusterId:
+    description: 'The unique ID for the EC2 instances cluster.'
+    default: ${{ github.repository_owner }}
 
 runs:
   using: composite
@@ -24,3 +27,5 @@ runs:
       run: |
         ./aws_ec2.sh create ${{ inputs.region }}
       working-directory: ansible
+      env:
+        CLUSTER_ID: ${{ inputs.clusterId }}

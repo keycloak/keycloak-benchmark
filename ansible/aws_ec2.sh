@@ -9,6 +9,8 @@ fi
 OPERATION=$1
 REGION=$2
 
+CLUSTER_ID=${CLUSTER_ID:-$USER}
+
 case $OPERATION in
   requirements)
     ansible-galaxy collection install -r requirements.yml
@@ -16,7 +18,7 @@ case $OPERATION in
   ;;
   create|delete|start|stop)
     if [ -f "env.yml" ]; then ANSIBLE_CUSTOM_VARS_ARG="-e @env.yml"; fi
-    ansible-playbook aws_ec2.yml -v -e "region=$REGION" -e "operation=$OPERATION" $ANSIBLE_CUSTOM_VARS_ARG "${@:3}"
+    ansible-playbook aws_ec2.yml -v -e "region=$REGION" -e "operation=$OPERATION" -e "cluster_identifier=${CLUSTER_ID}" $ANSIBLE_CUSTOM_VARS_ARG "${@:3}"
   ;;
   *)
     echo "Invalid option!"

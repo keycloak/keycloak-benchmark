@@ -9,7 +9,8 @@ fi
 REGION=$1
 KCB_PARAMS=${@:2}
 
-CLUSTER_NAME=${CLUSTER_NAME:-"benchmark_$(whoami)"}
+CLUSTER_ID=${CLUSTER_ID:-$USER}
+CLUSTER_NAME=${CLUSTER_NAME:-"benchmark_$CLUSTER_ID"}
 
 if [ -f "env.yml" ]; then ANSIBLE_CUSTOM_VARS_ARG="-e @env.yml"; fi
 
