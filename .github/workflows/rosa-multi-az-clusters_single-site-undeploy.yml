@@ -1,4 +1,4 @@
-name: Multi-AZ Clusters - Single-Cluster - Undeploy
+name: Multi-AZ Clusters - Single-Site - Undeploy
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ env:
   REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
 
 jobs:
-  single-cluster-undeploy:
+  single-site-undeploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,10 +40,10 @@ jobs:
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
 
-      - name: Undeploy Single-Cluster Keycloak
+      - name: Undeploy Single-Site Keycloak
         working-directory: provision/rosa-cross-dc
         run: |
-          task undeploy-single-cluster
+          task undeploy-single-site
         env:
           KUBECONFIG: ../aws/kubeconfig
           ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a

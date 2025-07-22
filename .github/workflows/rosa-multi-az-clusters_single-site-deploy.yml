@@ -1,4 +1,4 @@
-name: Multi-AZ Clusters - Single-Cluster - Deploy
+name: Multi-AZ Clusters - Single-Site - Deploy
 
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ env:
 
 jobs:
 
-  single-cluster-deploy:
+  single-site-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -66,9 +66,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Deploy Single-Cluster Keycloak
+      - name: Deploy Single-Site Keycloak
         working-directory: provision/rosa-cross-dc
-        run: task single-cluster
+        run: task single-site
         env:
           AURORA_CLUSTER: ${{ inputs.clusterPrefix }}
           AURORA_REGION: ${{ inputs.region }}
