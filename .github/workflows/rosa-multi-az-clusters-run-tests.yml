@@ -4,17 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       clusterPrefix:
+        description: 'The ROSA cluster prefix.'
         type: string
         default: gh-keycloak
       region:
+        description: 'Name of the region where EC2 instances should be installed'
         type: string
         default: eu-west-1
   workflow_call:
     inputs:
       clusterPrefix:
+        description: 'The ROSA cluster prefix.'
         type: string
         default: gh-keycloak
       region:
+        description: 'Name of the region where EC2 instances should be installed'
         type: string
         default: eu-west-1
 
@@ -76,7 +80,7 @@ jobs:
 
   run-scaling-benchmark-active-active:
     needs: run-active-active-health-checks-after-functional-tests
-    uses: ./.github/workflows/rosa-scaling-benchmark.yml
+    uses: ./.github/workflows/rosa-multi-cluster-benchmark.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
@@ -154,7 +158,7 @@ jobs:
   run-scaling-benchmark-active-active-volatile:
     needs: run-active-active-volatile-health-checks-after-functional-tests
     name: Benchmark Volatile Active/Active
-    uses: ./.github/workflows/rosa-scaling-benchmark.yml
+    uses: ./.github/workflows/rosa-multi-cluster-benchmark.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
@@ -198,9 +202,9 @@ jobs:
   run-scaling-benchmark-single-site:
     needs: keycloak-deploy-single-site
     name: Benchmark for single-site deployment
-    uses: ./.github/workflows/rosa-multi-az-clusters_single-site-run-benchmark.yml
+    uses: ./.github/workflows/rosa-single-cluster-benchmark.yml
     with:
-      clusterPrefix: ${{ inputs.clusterPrefix }}
+      clusterPrefix: ${{ inputs.clusterPrefix }}-a
       region: ${{ inputs.region }}
       outputArchiveSuffix: 'single-site'
     secrets: inherit
