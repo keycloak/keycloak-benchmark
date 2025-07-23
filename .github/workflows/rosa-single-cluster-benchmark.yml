@@ -1,12 +1,15 @@
-name: ROSA Cluster - Scaling Benchmark
+name: Run Benchmark - Single ROSA cluster
+
+# Runs 3 benchmarks scenarios against a single ROSA cluster deployment.
+# It logs in into the cluster to retrieve the Keycloak URL and to monitor the CPU and memory utilization.
 
 on:
   workflow_call:
     inputs:
-      clusterPrefix:
-        description: 'Cluster prefix'
+      clusterName:
+        description: 'The ROSA cluster name.'
         type: string
-        default: 'gh-keycloak'
+        default: 'gh-keycloak-a'
       region:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
@@ -38,17 +41,18 @@ on:
       outputArchiveSuffix:
         description: 'Suffix for the output archive'
         type: string
-        default: ''
-      keycloak_operator_name:
+        default: 'single-site'
+      keycloakOperatorName:
+        description: "Keycloak Operator deployment name"
         type: string
         default: keycloak-operator
 
   workflow_dispatch:
     inputs:
-      clusterPrefix:
-        description: 'Cluster prefix'
+      clusterName:
+        description: 'The ROSA cluster name.'
         type: string
-        default: 'gh-keycloak'
+        default: 'gh-keycloak-a'
       region:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
@@ -80,12 +84,13 @@ on:
       outputArchiveSuffix:
         description: 'Suffix for the output archive'
         type: string
-        default: '1'
-      keycloak_operator_name:
+        default: 'single-site'
+      keycloakOperatorName:
+        description: "Keycloak Operator deployment name"
         type: string
         default: keycloak-operator
 
-concurrency: cluster_${{ inputs.clusterPrefix }}-a
+concurrency: cluster_${{ inputs.clusterName }}
 
 env:
   PROJECT_PREFIX: runner- # same as default
@@ -112,7 +117,7 @@ jobs:
       - name: Login to OpenShift cluster
         uses: ./.github/actions/oc-keycloak-login
         with:
-          clusterName: ${{ inputs.clusterPrefix }}-a
+          clusterName: ${{ inputs.clusterName }}
 
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
@@ -144,13 +149,6 @@ jobs:
         with:
           project: ${{ env.PROJECT }}
 
-      - name: Take Backup offline
-        working-directory: provision/infinispan
-        run: task crossdc-disconnect
-        env:
-          ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
-          NAMESPACE: ${{ env.PROJECT }}
-
       - name: Create Keycloak dataset with "${{ inputs.usersPerRealm }}" users and "${{ env.CLIENTS_PER_REALM }}" clients
         if: ${{ !inputs.skipCreateDataset }}
         uses: ./.github/actions/keycloak-create-dataset
@@ -162,19 +160,11 @@ jobs:
           createClientForSpecificRealm: true
           maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
 
-      - name: Bring Backup online
-        if: ${{ always() }}
-        working-directory: provision/infinispan
-        run: task crossdc-connect
-        env:
-          ROSA_CLUSTER_NAME: ${{ inputs.clusterPrefix }}-a
-          NAMESPACE: ${{ env.PROJECT }}
-
       - name: Restart Keycloak Pods after dataset creation
         uses: ./.github/actions/keycloak-restart-pods
         with:
           project: ${{ env.PROJECT }}
-          keycloak_operator_name: ${{ inputs.keycloak_operator_name }}
+          keycloakOperatorName: ${{ inputs.keycloakOperatorName }}
 
       - name: Create AWS EC2 instances
         id: create_aws_ec2_instances
@@ -187,19 +177,8 @@ jobs:
         with:
           createReportFile: true
 
+
       - name: Run Memory Usage Total Query Before Benchmark on Cluster 1
-        uses: ./.github/actions/prometheus-run-queries
-        with:
-          project: ${{ env.PROJECT }}
-          runMemoryUsageTotal: true
-          output: memory_create_sessions
-
-      - name: Login to OpenShift cluster 2
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-b
-
-      - name: Run Memory Usage Total Query Before Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -226,24 +205,7 @@ jobs:
         env:
           CLUSTER_ID: ${{ github.run_id }}
 
-      - name: Login to OpenShift cluster 1
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-a
-
       - name: Run Memory Usage Total Query After Benchmark on Cluster 1
-        uses: ./.github/actions/prometheus-run-queries
-        with:
-          project: ${{ env.PROJECT }}
-          runMemoryUsageTotal: true
-          output: memory_create_sessions
-
-      - name: Login to OpenShift cluster 2
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-b
-
-      - name: Run Memory Usage Total Query After Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -267,24 +229,8 @@ jobs:
           isvCPU: false
           isMemory: true
 
-      - name: Login to OpenShift cluster 1
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-a
 
       - name: Run CPU sec Util Query Before Benchmark on Cluster 1
-        uses: ./.github/actions/prometheus-run-queries
-        with:
-          project: ${{ env.PROJECT }}
-          runCpuSecsUtil: true
-          output: user_logins_vCpu
-
-      - name: Login to OpenShift cluster 2
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-b
-
-      - name: Run CPU sec Util Query Before Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -311,24 +257,7 @@ jobs:
         env:
           CLUSTER_ID: ${{ github.run_id }}
 
-      - name: Login to OpenShift cluster 1
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-a
-
       - name: Run CPU sec Util Query After Benchmark on Cluster 1
-        uses: ./.github/actions/prometheus-run-queries
-        with:
-          project: ${{ env.PROJECT }}
-          runCpuSecsUtil: true
-          output: user_logins_vCpu
-
-      - name: Login to OpenShift cluster 2
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-b
-
-      - name: Run CPU sec Util Query After Benchmark on Cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -346,24 +275,8 @@ jobs:
           isvCPU: true
           isMemory: false
 
-      - name: Login to OpenShift cluster 1
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-a
 
       - name: Run CPU sec Util Query Before Benchmark on Cluster 1
-        uses: ./.github/actions/prometheus-run-queries
-        with:
-          project: ${{ env.PROJECT }}
-          runCpuSecsUtil: true
-          output: client_credential_grants_vCpu
-
-      - name: Login to OpenShift cluster 2
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-b
-
-      - name: Run CPU sec Util Query Before Benchmark on cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -389,24 +302,7 @@ jobs:
         env:
           CLUSTER_ID: ${{ github.run_id }}
 
-      - name: Login to OpenShift cluster 1
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-a
-
       - name: Run CPU sec Util Query After Benchmark on Cluster 1
-        uses: ./.github/actions/prometheus-run-queries
-        with:
-          project: ${{ env.PROJECT }}
-          runCpuSecsUtil: true
-          output: client_credential_grants_vCpu
-
-      - name: Login to OpenShift cluster 2
-        uses: ./.github/actions/oc-keycloak-login
-        with:
-          clusterName: ${{ inputs.clusterPrefix }}-b
-
-      - name: Run CPU sec Util Query After Benchmark on cluster 2
         uses: ./.github/actions/prometheus-run-queries
         with:
           project: ${{ env.PROJECT }}
@@ -424,6 +320,7 @@ jobs:
           isvCPU: true
           isMemory: false
 
+
       - name: Finalize horreum report
         uses: ./.github/actions/prepare-horreum-report
         with:
@@ -437,7 +334,7 @@ jobs:
           path: ansible/files/benchmark/*/results
           retention-days: 5
 
-      - name: Archive Summary
+      - name: Archive Gatling stats
         uses: actions/upload-artifact@v4
         with:
           name: summary-${{ inputs.outputArchiveSuffix }}

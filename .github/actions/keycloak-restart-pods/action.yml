@@ -3,12 +3,12 @@ description: Restart Keycloak Pods and wait
 
 inputs:
   project:
-    description: OpenShift project where Keycloak is running
+    description: "OpenShift project where Keycloak is running"
     required: true
-  keycloak_operator_name:
-    type: string
+  keycloakOperatorName:
+    description: "Keycloak Operator deployment name"
     default: keycloak-operator
-    
+
 runs:
   using: "composite"
   steps:
@@ -18,4 +18,4 @@ runs:
       run: ./kc-rolling-restart.sh
       env:
         POD_LABEL: "keycloak"
-        KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_name }}
+        KC_OPERATOR_NAME: ${{ inputs.keycloakOperatorName }}
