@@ -223,6 +223,8 @@ jobs:
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
+        env:
+          CLUSTER_ID: ${{ github.run_id }}
 
       - name: Login to OpenShift cluster 1
         uses: ./.github/actions/oc-keycloak-login
@@ -306,6 +308,8 @@ jobs:
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
+        env:
+          CLUSTER_ID: ${{ github.run_id }}
 
       - name: Login to OpenShift cluster 1
         uses: ./.github/actions/oc-keycloak-login
@@ -382,6 +386,8 @@ jobs:
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
+        env:
+          CLUSTER_ID: ${{ github.run_id }}
 
       - name: Login to OpenShift cluster 1
         uses: ./.github/actions/oc-keycloak-login

@@ -197,6 +197,8 @@ jobs:
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
+        env:
+          CLUSTER_ID: ${{ github.run_id }}
 
       - name: Run Memory Usage Total Query After Benchmark on Cluster 1
         uses: ./.github/actions/prometheus-run-queries
@@ -247,6 +249,8 @@ jobs:
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
+        env:
+          CLUSTER_ID: ${{ github.run_id }}
 
       - name: Run CPU sec Util Query After Benchmark on Cluster 1
         uses: ./.github/actions/prometheus-run-queries
@@ -290,6 +294,8 @@ jobs:
           --sla-error-percentage=0.001
         continue-on-error: true
         working-directory: ansible
+        env:
+          CLUSTER_ID: ${{ github.run_id }}
 
       - name: Run CPU sec Util Query After Benchmark on Cluster 1
         uses: ./.github/actions/prometheus-run-queries
