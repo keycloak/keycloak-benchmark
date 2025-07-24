@@ -14,3 +14,20 @@ jobs:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-clusters-run-tests.yml
     secrets: inherit
+
+  rosa-stretched-cluster:
+    name: Stretched Cluster - Create
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-stretched-cluster.yml
+    secrets: inherit
+
+  rosa-stretched-cluster-benchmark:
+    name: Stretched Cluster - Benchmark
+    needs:
+      - rosa-stretched-cluster
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
+    uses: ./.github/workflows/rosa-single-cluster-benchmark.yml
+    with:
+      clusterName: ${{ format('gh-{0}-az', github.repository_owner) }}
+      outputArchiveSuffix: "stretched-cluster"
+      clusterIdSuffix: "_sc"
