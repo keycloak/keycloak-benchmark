@@ -47,14 +47,21 @@ runs:
         num2=${lines[2]}
         num3=${lines[1]}
         num4=${lines[3]}
-        #calculating the difference of cumulative metric (changed during the benchmark execution)
-        difference_cluster_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
-        difference_cluster_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
-
-        # averaging the differences between the two clusters
-        average_difference=$(awk "BEGIN {print ($difference_cluster_1 + $difference_cluster_2) / 2; exit}")
-        #the script calculates vCPU need to calculate the vcpu number from CPU seconds metrics for the interval during which the test was running
-        metric_count_in_interval=$(awk "BEGIN {print $average_difference/$TIME_INTERVAL; exit}")
+        if [[ ${#lines[@]} == 2 ]]; then
+          #calculating the average metric per pod
+          metric_count_in_interval=$(awk "BEGIN {print ($num3 - $num1)/$TIME_INTERVAL; exit}")
+        elif [[ ${#lines[@]} == 4 ]]; then
+          #calculating the difference of cumulative metric (changed during the benchmark execution)
+          difference_cluster_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
+          difference_cluster_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
+          # averaging the differences between the two clusters
+          average_difference=$(awk "BEGIN {print ($difference_cluster_1 + $difference_cluster_2) / 2; exit}")
+          #the script calculates vCPU need to calculate the vcpu number from CPU seconds metrics for the interval during which the test was running
+          metric_count_in_interval=$(awk "BEGIN {print $average_difference/$TIME_INTERVAL; exit}")
+        else
+          echo "Unexpected number of lines. Expected 2 or 4 lines input but got ${#lines[@]}"
+          exit 1
+        fi
         #calculating the average metric per pod
         metric_per_pod=$(awk "BEGIN {print $metric_count_in_interval/$POD_NUM; exit}")
         #Calculating the final number, i.e. how many of specified criteria (e.g. user logins/sec, client credential grants, etc)
@@ -77,14 +84,21 @@ runs:
         num2=${lines[2]}
         num3=${lines[1]}
         num4=${lines[3]}
-        #calculating the difference of cumulative metric (changed during the benchmark execution)
-        difference_cluster_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
-        difference_cluster_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
-
-        # averaging the differences between the two clusters
-        average_difference=$(awk "BEGIN {print ($difference_cluster_1 + $difference_cluster_2) / 2; exit}")
-        #calculating the average metric per pod
-        metric_per_pod=$(awk "BEGIN {print $average_difference/$POD_NUM; exit}")
+        if [[ ${#lines[@]} == 2 ]]; then
+          #calculating the average metric per pod
+          metric_per_pod=$(awk "BEGIN {print ($num3 - $num1)/$POD_NUM; exit}")
+        elif [[ ${#lines[@]} == 4 ]]; then
+          #calculating the difference of cumulative metric (changed during the benchmark execution)
+          difference_cluster_1=$(awk "BEGIN {print ($num2 - $num1); exit}")
+          difference_cluster_2=$(awk "BEGIN {print ($num4 - $num3); exit}")
+          # averaging the differences between the two clusters
+          average_difference=$(awk "BEGIN {print ($difference_cluster_1 + $difference_cluster_2) / 2; exit}")
+          #calculating the average metric per pod
+          metric_per_pod=$(awk "BEGIN {print $average_difference/$POD_NUM; exit}")
+        else
+          echo "Unexpected number of lines. Expected 2 or 4 lines input but got ${#lines[@]}"
+          exit 1
+        fi
         #Calculating the final number, i.e. based on current environment setup how many of specified criteria (e.g. user active session, etc)
         #can be handled with 500Mb per pod based on the number calculated above. The result is number rounded down.
         result=$(awk "BEGIN {print int($CRITERIA_VALUE*500/$metric_per_pod); exit}")
