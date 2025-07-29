@@ -24,7 +24,30 @@ on:
       availabilityZones:
         description: 'A comma-separated list of availability zone suffixes, in the region, to deploy the OpenShift cluster.'
         type: string
-        required: true
+        default: "a,b,c"
+  workflow_call:
+    inputs:
+      createCluster:
+        description: 'Check to Create Cluster.'
+        type: boolean
+        default: true
+      createAurora:
+        description: 'Check to Create Aurora Database.'
+        type: boolean
+        default: true
+      createKeycloak:
+        description: 'Check to Create Keycloak.'
+        type: boolean
+        default: true
+      clusterName:
+        description: 'The multi-az OpenShift cluster name'
+        type: string
+      region:
+        description: 'The AWS region to create both clusters in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
+        type: string
+      availabilityZones:
+        description: 'A comma-separated list of availability zone suffixes, in the region, to deploy the OpenShift cluster.'
+        type: string
         default: "a,b,c"
 
 jobs:
