@@ -27,6 +27,7 @@ jobs:
       - rosa-stretched-cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-single-cluster-benchmark.yml
+    secrets: inherit
     with:
       clusterName: ${{ format('gh-{0}-az', github.repository_owner) }}
       outputArchiveSuffix: "stretched-cluster"
