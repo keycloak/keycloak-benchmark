@@ -43,41 +43,104 @@ The chaos script also collects information about the Keycloak failures, Keycloak
 
 == Running the failure test using Krkn Chaos testing framework
 
-We integrated a Chaos testing framework https://krkn-chaos.github.io/krkn/[krkn] as part of a Taskfile https://github.com/keycloak/keycloak-benchmark/blob/main/provision/rosa-cross-dc/Chaos.yaml[Chaos.yaml] and created individual tasks to run the `pod-scenarios` test against different components within the multi-site setup of Keycloak on Kubernetes.
+We integrated a Chaos testing framework https://krkn-chaos.github.io/krkn/[krkn] as part of a Taskfile https://github.com/keycloak/keycloak-benchmark/blob/main/provision/kraken-chaos/Taskfile.yaml[Taskfile.yaml] and created individual tasks to run the `pod-scenarios` test against different components within the multi-site setup of Keycloak on Kubernetes.
 It focuses on simulating Pod failure scenarios for Keycloak and Infinispan applications.
 
 === Preparations
 
-* This Taskfile requires Podman/Docker to be installed and configured on the system.
-* The Kubernetes configuration file for the ROSA cluster must be available in the specified `ISPN_DIR` directory.
+* This Taskfile requires Podman to be installed and configured on the system.
 * Make sure to set the required environment variables before running the tasks.
 * You can customize the behavior of the tasks by overriding the default values for the variables.
 
-==== kraken-pod-scenarios
-This is an internal task that provides the core functionality for running Kraken pod failure scenarios. It uses the pod-scenarios image from the https://github.com/krkn-chaos/krkn-hub/tree/main[krkn-chaos/krkn-hub] repository. The task requires the following variables:
+=== Pod failure scenario
 
-`ROSA_CLUSTER_NAME`:: The name of the ROSA cluster
+This is an internal task that provides the core functionality for running Kraken pod failure scenarios.
+It uses the pod-scenarios image from the https://github.com/krkn-chaos/krkn-hub/tree/main[krkn-chaos/krkn-hub] repository.
+The task requires the following variables:
+
+`ROSA_CLUSTER_NAME`:: The name of the ROSA cluster (if `ROSA_LOGIN` is set to `true`)
+`NAMESPACE`:: The Kubernetes namespace.
 `POD_LABEL`:: A label selector to identify the target pods
 `EXPECTED_POD_COUNT`:: The expected number of pods after the disruption
-`ISPN_DIR`:: The directory containing the Infinispan configuration
 
-The task sets some default values for variables like `DEFAULT_NAMESPACE`, `DISRUPTION_COUNT`, `WAIT_DURATION`, and `ITERATIONS`. It also has a precondition to ensure the existence of the Kubernetes configuration file.
+Optionally, the following variables may be set too:
 
-==== kill-gossip-router
+`ROSA_LOGIN` (default: `true`):: If `true`, it uses `rosa` and `oc login` to authenticate into the OpenShift cluster.
+`KUBECONFIG`:: If `ROSA_LOGIN` is set to `false`, set this variable to the authenticated Kubernetes cluster.
+`DISRUPTION_COUNT` (default 1):: The number of Pods to kill.
+`WAIT_DURATION` (default 30):: The waiting time in seconds before starting the next iteration (if `ITERATIONS` > 1).
+`ITERATIONS` (default 1):: How many times the scenario is run. Each iteration kills one or more Pods.
+`POD_LABEL` (depends on the task):: A label selector to identify the target pods.
+`EXPECTED_POD_COUNT` (depends on the task):: The expected number of pods before the disruption.
+
+==== Infinispan Gossip Router Pod failure
+
 This task kills the JGroups Gossip Router pod in the Infinispan cluster. It calls the `kraken-pod-scenarios` task with specific values for `POD_LABEL`, `DISRUPTION_COUNT`, and `EXPECTED_POD_COUNT`.
+
+To execute the task, run the following command.
+
+[source,bash]
+----
+task kill-gossip-router
+----
 
 [WARNING]
 ====
 Right now, the `kill-gossip-router` task fails with an `timeout while waiting for pods to come up` error message, which needs to be fixed and currently tracked under https://github.com/keycloak/keycloak-benchmark/issues/943[a GitHub issue].
 ====
 
-==== kill-infinispan
+==== Infinispan Pod failure
 This task kills a random Infinispan pod. It calls the kraken-pod-scenarios task with appropriate values for  `POD_LABEL`, `DISRUPTION_COUNT`, and `EXPECTED_POD_COUNT`. The default value for `EXPECTED_POD_COUNT` is calculated based on the `CROSS_DC_ISPN_REPLICAS` variable (or 3 if not set).
 
-==== kill-keycloak
+To execute the task, run the following command.
+
+[source,bash]
+----
+task kill-infinispan
+----
+
+==== Keycloak Pod failure
 This task kills a random Keycloak pod. It calls the kraken-pod-scenarios task with specific values for  `POD_LABEL`, `DISRUPTION_COUNT`, and `EXPECTED_POD_COUNT`. The default value for `EXPECTED_POD_COUNT` is calculated based on the `KC_INSTANCES` variable (or 1 if not set).
 
+To execute the task, run the following command.
 
+[source,bash]
+----
+task kill-keycloak
+----
+
+=== Zone Outage scenario
+
+This task disrupts the network and isolates one of the availability zones.
+It uses the pod-scenarios image from the https://github.com/krkn-chaos/krkn-hub/tree/main[krkn-chaos/krkn-hub] repository.
+
+To execute the task, run the following command.
+
+[source,bash]
+----
+task zone-outage
+----
+
+The task requires the following variables:
+
+`ROSA_CLUSTER_NAME`:: The name of the ROSA cluster to fetch the node and its subnets.
+`REGION`:: The AWS region where the multi-az cluster is deployed.
+
+Optionally, the following variables may be set too:
+
+`AVAILABILITY_ZONE`:: It defaults to the `a` suffixed availability zone. Sets the availability zone name, for example `eu-west-1b`. This availability zone will be isolated for the remaining ones.
+`ROSA_LOGIN` (default: `true`):: If `true`, it uses `rosa` and `oc login` to authenticate into the OpenShift cluster.
+`KUBECONFIG`:: If `ROSA_LOGIN` is set to `false`, set this variable to the authenticated Kubernetes cluster.
+`DURATION` (default 120):: It sets the duration of the outage in seconds.
+`WAIT_DURATION` (default 30):: The waiting time in seconds before starting the next iteration (if `ITERATIONS` > 1).
+`ITERATIONS` (default 1):: How many times the scenario is run.
+
+[NOTE]
+====
+This task requires the `aws` CLI tool to be installed and authenticated.
+
+It uses the `aws configure get <key>` to pass the credentials into the Kraken Chaos container, as environment variables.
+====
 === Limitations
 
 * Currently, we are not able to peek into the Krkn report which gets generated inside the kraken pod but gets removed as its ephemeral storage. This is currently planned to be fixed and tracked in https://github.com/keycloak/keycloak-benchmark/issues/942[a GitHub issue].

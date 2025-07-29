@@ -1,0 +1,139 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  kraken-pod-scenarios:
+    # Documentation about the options
+    # https://github.com/krkn-chaos/krkn-hub/blob/main/docs/pod-scenarios.md
+    # https://github.com/krkn-chaos/krkn-hub/blob/main/docs/all_scenarios_env.md
+    internal: true
+    requires:
+      vars:
+        - KUBECONFIG
+        - POD_LABEL
+        - EXPECTED_POD_COUNT
+        - NAMESPACE
+    cmds:
+      - test -d .task || mkdir -p .task
+      - task: '{{if eq .ROSA_LOGIN "true"}}rosa-oc-login{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - chmod 644 "{{.KUBECONFIG}}" # kraken-chaos uses a docker image, which must have permission to read the kubeconfig file.
+      - >
+        podman run --rm --net=host
+        -v "{{.KUBECONFIG}}:/root/.kube/config:Z"
+        -e NAMESPACE={{.NAMESPACE}}
+        -e POD_LABEL={{.POD_LABEL}}
+        -e DISRUPTION_COUNT={{.DISRUPTION_COUNT | default 1}}
+        -e EXPECTED_POD_COUNT={{.EXPECTED_POD_COUNT}}
+        -e WAIT_DURATION={{.WAIT_DURATION | default 30}}
+        -e ITERATIONS={{.ITERATIONS | default 1}}
+        quay.io/redhat-chaos/krkn-hub:pod-scenarios
+
+  zone-outage-scenarios:
+    # Docs: https://krkn-chaos.dev/docs/scenarios/zone-outage-scenarios/zone-outage-scenarios-krkn-hub/
+    internal: true
+    silent: true # prints aws credentials if false
+    requires:
+      vars:
+        - KUBECONFIG
+        - REGION
+        - AVAILABILITY_ZONE
+    vars:
+      VPC_ID:
+        sh: aws ec2 describe-vpcs --region "{{.REGION}}" --filters "Name=tag:cluster_name,Values={{.ROSA_CLUSTER_NAME}}" --query "Vpcs[0].VpcId" --output text
+      SUBNET_ID:
+        sh: aws ec2 describe-subnets --region "{{.REGION}}" --filters "Name=tag:cluster_name,Values={{.ROSA_CLUSTER_NAME}}" "Name=availabilityZone,Values={{.AVAILABILITY_ZONE}}" --query "Subnets[*].SubnetId" --output json | jq -r 'join(",")'
+      AWS_ACCESS_KEY_ID:
+        sh: aws configure get aws_access_key_id
+      AWS_SECRET_ACCESS_KEY:
+        sh: aws configure get aws_secret_access_key
+    cmds:
+      - test -d .task || mkdir -p .task
+      - task: '{{if eq .ROSA_LOGIN "true"}}rosa-oc-login{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - chmod 644 "{{.KUBECONFIG}}" # kraken-chaos uses a docker image, which must have permission to read the kubeconfig file.
+      - >
+        podman run --net=host
+        -v "{{.KUBECONFIG}}:/home/krkn/.kube/config:Z"
+        -e CLOUD_TYPE="aws"
+        -e DURATION="{{.DURATION | default 120}}"
+        -e VPC_ID="{{.VPC_ID}}"
+        -e SUBNET_ID="[{{.SUBNET_ID}}]"
+        -e WAIT_DURATION="{{.WAIT_DURATION | default 30}}"
+        -e ITERATIONS="{{.ITERATIONS | default 1}}"
+        -e AWS_ACCESS_KEY_ID="{{.AWS_ACCESS_KEY_ID}}"
+        -e AWS_SECRET_ACCESS_KEY="{{.AWS_SECRET_ACCESS_KEY}}"
+        -e AWS_DEFAULT_REGION="{{.REGION}}"
+        quay.io/krkn-chaos/krkn-hub:zone-outages
+
+  no-op:
+    internal: true
+
+  rosa-oc-login:
+    internal: true
+    requires:
+      vars:
+        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+      CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+    cmd: "{{.TASKFILE_DIR}}/../aws/rosa_oc_login.sh"
+
+  kill-gossip-router:
+    desc: "Kills the JGroups Gossip Router pod"
+    requires:
+      vars:
+        - NAMESPACE
+    cmd:
+      task: kraken-pod-scenarios
+      vars:
+        POD_LABEL: 'app=infinispan-router-pod,clusterName={{.CLUSTER_NAME | default "infinispan"}}'
+        DISRUPTION_COUNT: '{{.DISRUPTION_COUNT | default 1}}'
+        EXPECTED_POD_COUNT: '{{.EXPECTED_POD_COUNT | default 1}}'
+        KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+        ROSA_LOGIN: '{{.ROSA_LOGIN | default "true"}}'
+
+  kill-infinispan:
+    desc: "Kills a random Infinispan pod"
+    requires:
+      vars:
+        - NAMESPACE
+    cmd:
+      task: kraken-pod-scenarios
+      vars:
+        POD_LABEL: 'app=infinispan-pod,clusterName={{.CLUSTER_NAME | default "infinispan"}}'
+        DISRUPTION_COUNT: '{{.DISRUPTION_COUNT | default 1}}'
+        EXPECTED_POD_COUNT: '{{.EXPECTED_POD_COUNT | default .CROSS_DC_ISPN_REPLICAS | default 3}}'
+        KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+        ROSA_LOGIN: '{{.ROSA_LOGIN | default "true"}}'
+
+  kill-keycloak:
+    desc: "Kills a random Keycloak pod"
+    requires:
+      vars:
+        - NAMESPACE
+    cmd:
+      task: kraken-pod-scenarios
+      vars:
+        POD_LABEL: 'app=keycloak'
+        DISRUPTION_COUNT: '{{.DISRUPTION_COUNT | default 1}}'
+        EXPECTED_POD_COUNT: '{{.EXPECTED_POD_COUNT | default .KC_INSTANCES | default 1}}'
+        KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+        ROSA_LOGIN: '{{.ROSA_LOGIN | default "true"}}'
+
+  zone-outage:
+    desc: "Disrupts a targeted zone in the public cloud by blocking egress and ingress traffic"
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME
+        - REGION
+    cmd:
+      task: zone-outage-scenarios
+      vars:
+        KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+        ROSA_LOGIN: '{{.ROSA_LOGIN | default "true"}}'
+        AVAILABILITY_ZONE: '{{.REGION}}a'
