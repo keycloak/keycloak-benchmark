@@ -10,7 +10,7 @@ source ${SCRIPT_DIR}/aurora_common.sh
 
 # https://cloud.redhat.com/blog/using-vpc-peering-to-connect-an-openshift-service-on-an-aws-rosa-cluster-to-an-amazon-rds-mysql-database-in-a-different-vpc
 EXISTING_INSTANCES=$(aws rds describe-db-instances \
-  --query "DBInstances[?starts_with(DBInstanceIdentifier, '${AURORA_CLUSTER}')].DBInstanceIdentifier" \
+  --query "DBInstances[?starts_with(DBInstanceIdentifier, '${AURORA_CLUSTER}-instance')].DBInstanceIdentifier" \
   --output text
 )
 if [ -n "${EXISTING_INSTANCES}" ]; then
