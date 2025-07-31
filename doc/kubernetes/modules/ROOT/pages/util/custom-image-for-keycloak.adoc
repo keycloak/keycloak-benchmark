@@ -27,16 +27,8 @@ KC_CONTAINER_IMAGE=quay.io/keycloak/keycloak:20.0.1
 == Building a custom Keycloak image for minikube
 
 . Check out https://github.com/keycloak/keycloak[Keycloak's Git repository].
-. Build using `mvn clean install -DskipTests -am -pl quarkus/dist` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in folder `/quarkus/dist/target`.
-. Configure the minikube environment to use the locally built image.
-+
-.Example entry in the `.env` file
-----
-KC_CONTAINER_IMAGE=localhost/keycloak:local
-----
-+
-To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
-. Build the container, either with Podman or with Docker.
+. Build using `mvn clean install -DskipTests -am -pl quarkus/dist` to create a `keycloak-999.0.0-SNAPSHOT.tar.gz` in directory `/quarkus/dist/target`.
+. Build the image, either with Podman or with Docker.
 +
 .When running Podman
 [source,bash]
@@ -56,9 +48,21 @@ eval $(minikube docker-env)
 docker build --build-arg KEYCLOAK_DIST=$(ls keycloak-*.tar.gz) . -t localhost/keycloak:local
 ----
 +
-. Run `task` as usual to deploy the image.
+Note that the examples above push the image to Minikube image registry.
 +
-[source]
+. Go to directory `provision/minikube` in the https://github.com/keycloak/keycloak-benchmark[Keycloak Benchmark Git repository].
+. Configure the minikube environment to use the locally built image.
++
+.Example entry in the `.env` file
+----
+KC_CONTAINER_IMAGE=localhost/keycloak:local
+----
++
+To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
++
+. Run `task` as usual to deploy Keycloak with the custom image.
++
+[source,bash]
 ----
 task
 ----
@@ -81,17 +85,18 @@ oc new-build --strategy docker --binary --image registry.access.redhat.com/ubi9 
 oc start-build keycloak --from-dir . --follow
 ----
 +
+. Go to directory `provision/openshift` in the https://github.com/keycloak/keycloak-benchmark[Keycloak Benchmark Git repository].
 . Configure the OpenShift environment to use the custom image.
 +
-.Example entry in the `provision/openshift/.env` file
+.Example entry in the `.env` file
 ----
 KC_CONTAINER_IMAGE=image-registry.openshift-image-registry.svc:5000/<namespace>/keycloak:latest
 ----
 +
 To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
-. Run `task` as usual to deploy the image.
+. Run `task` as usual to deploy Keycloak with the custom image.
 +
-[source]
+[source,bash]
 ----
 task
 ----
@@ -126,11 +131,12 @@ docker login quay.io
 docker push $IMAGE_NAME
 ----
 +
+. Go to directory `provision/openshift` in the https://github.com/keycloak/keycloak-benchmark[Keycloak Benchmark Git repository].
 . Configure the OpenShift environment to use the custom image.
 +
 In the following example, replace `quay.io/namespace/repository:tag` with the registry and the image name you are using.
 +
-.Example entry in the `provision/openshift/.env` file
+.Example entry in the `.env` file
 ----
 KC_CONTAINER_IMAGE=quay.io/namespace/repository:tag
 ----
@@ -138,7 +144,7 @@ KC_CONTAINER_IMAGE=quay.io/namespace/repository:tag
 To learn more about the `.env` file, see xref:customizing-deployment.adoc[].
 . Run `task` as usual to deploy the image.
 +
-[source]
+[source,bash]
 ----
 task
 ----
