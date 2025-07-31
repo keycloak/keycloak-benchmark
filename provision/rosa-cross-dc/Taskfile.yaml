@@ -49,12 +49,7 @@ tasks:
       - .task/rosa-region-{{.ROSA_CLUSTER_NAME}}
 
   create-aurora:
-    cmds:
-      - task: create-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-aurora
-
-  create-single-aurora:
-    internal: true
-    desc: "Creates a single region Aurora Database"
+    desc: "Creates Aurora Database"
     requires:
       vars:
         - AURORA_CLUSTER
@@ -73,77 +68,26 @@ tasks:
           PROP_NAME: "databaseMode"
           PROP_VALUE: "single"
 
-  create-global-aurora:
-    internal: true
-    desc: "Creates a Global Aurora Database"
-    requires:
-      vars:
-        - AURORA_CLUSTER
-    env:
-      AURORA_GLOBAL_CLUSTER: "{{.AURORA_CLUSTER}}"
-      AURORA_INSTANCES: "{{default .AURORA_INSTANCES 1}}"
-    vars:
-      AURORA_GLOBAL_REGIONS: "$(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}}) $(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_2}})"
-    cmds:
-      - task: fetch-rosa-region
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-      - task: fetch-rosa-region
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
-      - echo "Deploying Global Aurora Database ({{.AURORA_GLOBAL_CLUSTER}}) in regions {{.AURORA_GLOBAL_REGIONS}}"
-      - AURORA_GLOBAL_REGIONS="{{ .AURORA_GLOBAL_REGIONS }}" ../aws/rds/aurora_create_global_db.sh
-      - task: update-env-configjson-with-new-values
-        vars:
-          PROP_NAME: "databaseMode"
-          PROP_VALUE: "global"
-
   delete-aurora:
     desc: "Deletes Aurora Database"
     requires:
       vars:
         - AURORA_CLUSTER
-    cmds:
-      - task: delete-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-aurora
-
-  delete-global-aurora:
-    internal: true
-    desc: "Deletes Global Aurora Database"
-    requires:
-      vars:
-        - AURORA_CLUSTER
-        - ROSA_CLUSTER_NAME_1
-        - ROSA_CLUSTER_NAME_2
-    cmds:
-      - task: delete-global-peering-connection
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-      - task: delete-global-peering-connection
-        vars:
-          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
-      - cmd: AURORA_GLOBAL_CLUSTER="{{ .AURORA_CLUSTER }}" ../aws/rds/aurora_delete_global_db.sh
-
-  delete-single-aurora:
-    internal: true
-    desc: "Deletes Single Aurora Database"
-    requires:
-      vars:
-        - AURORA_CLUSTER
         - ROSA_CLUSTER_NAME_1
         - ROSA_CLUSTER_NAME_2
     cmds:
       - task: fetch-rosa-region
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-      - task: delete-single-peering-connection
+      - task: delete-peering-connection
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
-      - task: delete-single-peering-connection
+      - task: delete-peering-connection
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - cmd: AURORA_CLUSTER="{{ .AURORA_CLUSTER }}" AURORA_REGION="$(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})" ../aws/rds/aurora_delete.sh
 
-  create-single-peering-connection:
+  create-peering-connection:
     internal: true
     desc: "Creates Aurora Peering Connection"
     silent: false
@@ -161,19 +105,7 @@ tasks:
     preconditions:
       - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
 
-  create-global-peering-connection:
-    internal: true
-    desc: "Creates Global Aurora Peering Connections"
-    silent: false
-    requires:
-      vars:
-        - ROSA_CLUSTER_NAME
-        - AURORA_CLUSTER
-    cmd: CLUSTER_NAME="{{.ROSA_CLUSTER_NAME}}" AURORA_GLOBAL_CLUSTER="{{.AURORA_CLUSTER}}" KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" SKIP_ROSA_LOGIN=true {{.RDS_DIR}}/aurora_create_global_peering_connections.sh
-    preconditions:
-      - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
-
-  delete-single-peering-connection:
+  delete-peering-connection:
     internal: true
     desc: "Deletes Aurora Peering Connection"
     silent: false
@@ -191,19 +123,7 @@ tasks:
     preconditions:
       - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
 
-  delete-global-peering-connection:
-    internal: true
-    desc: "Deletes Global Aurora Peering Connections"
-    silent: false
-    requires:
-      vars:
-        - ROSA_CLUSTER_NAME
-        - AURORA_CLUSTER
-    cmd: CLUSTER_NAME="{{.ROSA_CLUSTER_NAME}}" AURORA_GLOBAL_CLUSTER="{{.AURORA_CLUSTER}}" KUBECONFIG="{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}" SKIP_ROSA_LOGIN=true {{.RDS_DIR}}/aurora_delete_global_peering_connections.sh
-    preconditions:
-      - test -f {{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME}}
-
-  fetch-single-aurora-endpoint:
+  fetch-aurora-endpoint:
     internal: true
     requires:
       vars:
@@ -212,17 +132,6 @@ tasks:
     vars:
       AURORA_REGION: "$(cat .task/rosa-region-{{.ROSA_CLUSTER_NAME_1}})"
     cmd: AURORA_REGION={{.AURORA_REGION}} ../aws/rds/aurora_endpoint.sh > .task/aurora-endpoint-{{.AURORA_CLUSTER}}
-    generates:
-      - .task/aurora-endpoint-{{.AURORA_CLUSTER}}
-
-  fetch-global-aurora-endpoint:
-    internal: true
-    vars:
-      ROOT_DOMAIN: '{{default "keycloak-benchmark.com" .ROOT_DOMAIN}}'
-    requires:
-      vars:
-        - AURORA_CLUSTER
-    cmd: echo "{{ .AURORA_CLUSTER }}.aurora-global.{{ .ROOT_DOMAIN }}" > .task/aurora-endpoint-{{.AURORA_CLUSTER}}
     generates:
       - .task/aurora-endpoint-{{.AURORA_CLUSTER}}
 
@@ -261,7 +170,7 @@ tasks:
       vars:
         - ROSA_CLUSTER_NAME
     cmds:
-      - task: create-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-peering-connection
+      - task: create-peering-connection
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
       - task: keycloak:install-keycloak
@@ -334,7 +243,7 @@ tasks:
       - task: ispn:rosa-oc-login
       - task: common:datasetprovider
       - task: create-aurora
-      - task: fetch-single-aurora-endpoint
+      - task: fetch-aurora-endpoint
       - task: deploy-keycloak
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
@@ -366,9 +275,7 @@ tasks:
     cmds:
       - task: common:datasetprovider
       - task: create-aurora
-      # Using the CROSS_DC_MODE value to determine which aurora task to run, ASYNC --> global, SYNC --> single
-      # We expect to use ASYNC mode only in a cross region, cross site deployment and SYNC in a single region multi-az deployment.
-      - task: fetch-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-aurora-endpoint
+      - task: fetch-aurora-endpoint
       - task: deploy-infinispan-crossdc
         vars:
           OC_NAMESPACE_1: "{{.KC_ISPN_NAMESPACE}}"
@@ -418,9 +325,7 @@ tasks:
     cmds:
       - task: common:datasetprovider
       - task: create-aurora
-      # Using the CROSS_DC_MODE value to determine which aurora task to run, ASYNC --> global, SYNC --> single
-      # We expect to use ASYNC mode only in a cross region, cross site deployment and SYNC in a single region multi-az deployment.
-      - task: fetch-{{ ternary "global" "single" (eq .CROSS_DC_MODE "ASYNC") }}-aurora-endpoint
+      - task: fetch-aurora-endpoint
       - task: deploy-infinispan-crossdc
         vars:
           OC_NAMESPACE_1: "{{.KC_ISPN_NAMESPACE}}"

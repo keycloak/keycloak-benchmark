@@ -33,34 +33,6 @@ source ${SCRIPT_DIR}/aurora_common.sh
 # errors
 AWS_REGION=${AWS_REGION:-"eu-west-1"}
 
-# Remove Global Aurora Clusters first to prevent aurora_delete.sh being triggered on Global cluster instances
-GLOBAL_CLUSTERS=$(aws rds describe-global-clusters \
-  --query "GlobalClusters[*].GlobalClusterIdentifier" \
-  --output text
-)
-
-for AURORA_GLOBAL_CLUSTER in ${GLOBAL_CLUSTERS}; do
-  GLOBAL_CLUSTER_MEMBERS=$(aws rds describe-global-clusters \
-    --query "GlobalClusters[?GlobalClusterIdentifier=='${AURORA_GLOBAL_CLUSTER}']" \
-    | jq -r '.[]'
-  )
-  GLOBAL_CLUSTER_MEMBERS_ARNS=$(echo ${GLOBAL_CLUSTER_MEMBERS} | jq -r '.GlobalClusterMembers[].DBClusterArn')
-
-  KEEP_ALIVE=0
-  for AURORA_CLUSTER_ARN in ${GLOBAL_CLUSTER_MEMBERS_ARNS}; do
-    REGION=$(arnToRegion ${AURORA_CLUSTER_ARN})
-    KEEP_ALIVE=$((${KEEP_ALIVE} + $(keepAlive ${REGION} ${AURORA_CLUSTER_ARN})))
-  done
-
-  # If any of the Regional clusters associated with the Global cluster are tagged, don't attempt to remove the DB
-  if [ $((KEEP_ALIVE)) != "0" ]; then
-    continue
-  fi
-
-  export AURORA_GLOBAL_CLUSTER
-  ${SCRIPT_DIR}/aurora_delete_global_db.sh
-done
-
 # Remove Single Region Aurora Clusters
 REGIONS=$(aws ec2 describe-regions \
     --query "Regions[*].RegionName" \
