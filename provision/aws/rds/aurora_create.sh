@@ -119,14 +119,21 @@ AURORA_SECURITY_GROUP_ID=$(aws ec2 create-security-group \
   | jq -r '.GroupId'
 )
 
+if [ -z ${AURORA_GLOBAL_CLUSTER_BACKUP} ]; then
+  AURORA_MASTER_USER="--master-username ${AURORA_USERNAME} --master-user-password ${AURORA_PASSWORD}"
+  AURORA_DATABASE_NAME="--database-name keycloak"
+fi
+
 # Create the Aurora DB cluster and instance
 aws rds create-db-cluster \
     --db-cluster-identifier ${AURORA_CLUSTER} \
     ${AURORA_DATABASE_NAME} \
     --engine ${AURORA_ENGINE} \
     --engine-version ${AURORA_ENGINE_VERSION} \
+    ${AURORA_MASTER_USER} \
     --vpc-security-group-ids ${AURORA_SECURITY_GROUP_ID} \
-    --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME}
+    --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} \
+    ${AURORA_GLOBAL_CLUSTER_IDENTIFIER}
 
 # For now only two AZs in each region are supported due to the two subnets created above
 AZS=("${AWS_REGION}a" "${AWS_REGION}b" "${AWS_REGION}c")
