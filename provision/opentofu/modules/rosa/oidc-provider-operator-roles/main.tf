@@ -76,7 +76,7 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 
 module "aws_secrets_manager" {
   source  = "terraform-aws-modules/secrets-manager/aws"
-  version = ">=1.1.1"
+  version = ">=1.1.1, < 2.0.0"
 
   count = local.managed ? 0 : 1
 
