@@ -2,19 +2,19 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.opentofu.org/hashicorp/aws" {
-  version     = "6.8.0"
-  constraints = ">= 4.0.0, >= 5.0.0, >= 5.38.0, >= 6.2.0"
+  version     = "6.9.0"
+  constraints = ">= 4.0.0, >= 5.0.0, >= 5.38.0, >= 6.5.0"
   hashes = [
-    "h1:xSkXxNazF4zuEqdKPaMyHSbZ4CKSigA0ZzLONl21FJ8=",
-    "zh:07fa4cf26b0e3899f8ecce29804653bda1d6cb691e2203a3edc9ebec72b53828",
-    "zh:1f40c1a2266d5d5a4fb6f61acd509a03bb33e13c1879b39d3bb1f57797d322cc",
-    "zh:3a00203345c3928248c50ff8b3942c943593681b94013cbfadff3123f6e6e721",
-    "zh:58572f37fb7062a4bdcaffdb0be868e6a2e7faa05fce3e62159301b617991183",
-    "zh:819bee89482e8c64ae296dde10c0eb8bee3306724f8e2c53d3bb9d121bfd6201",
-    "zh:82f0e218666a208d96eedbf9ac202826478d01c47d7e078900d6b3bb6464b329",
-    "zh:8da69ef1235251c7c52d1737589c1fe86dac171a422fc0f444d2033ffa727b1c",
-    "zh:99efd059592c78bdfd5753ba33afe1cc71cd49ed11be3b1b3cd5b29b810e2b66",
-    "zh:aa163e1eb0374b4388f4e67ad6acc248562959cd753a45d66e177cf9b5e4a5f6",
+    "h1:VLZmZR3SlJem0eBTJl6xoESKEZXTa00JW5PYg4FOsr0=",
+    "zh:0020ac28a739e28829e72c6c342118086a9b877acd75129b4f4f5762f25c04d7",
+    "zh:4b5c990ea183813466f4a827f621793ab0644b3832c730651dea407d5fdb82fb",
+    "zh:4c3b277cff442b9eae6314072ed77287a1b2a5620a9f95064b1105b5e6d0ad34",
+    "zh:53154edce4270aa0380448b138b03705ae46cab34c30ff3bd4b800de56c52543",
+    "zh:5c2e48de8721fb9bd74c84646d411c58591fd35600ac2d2a8b25ab2ed6febb1b",
+    "zh:775bec149c691fe03d87105249c229b1563b2cbeb781e444ebbf3672129b0eb8",
+    "zh:b5f4021bdd50cfee9f876ecf423de42863d9bbed9f27af89bb09697f69bd42ec",
+    "zh:ce4be208ec14315fd715fe2efb194bbc3ff2de3e05549d5dcbbc4aef1fd5a58d",
+    "zh:ea22bf90e5ad8396477ed7358bee21bce0648a4e92c1392523a000e0d23fa942",
   ]
 }
 
@@ -76,7 +76,6 @@ provider "registry.opentofu.org/terraform-redhat/rhcs" {
   version     = "1.6.0"
   constraints = "1.6.0"
   hashes = [
-    "h1:6amHc5npl8eiTjiNTcmZUOT6YGdCSwHKVj/cFwWzI6Q=",
     "h1:cdcloXTIpCNYKGFfEX2YC6c1y7v22UIoVdzEwq5YgUY=",
     "zh:7c38e8243f45da13a4551239be473da210295181ec47c1e94cfed5dbbbe1f54b",
     "zh:7ece7b3c1039d600c7d4b22c635bbd0e8d24e942dc55cd6548c90f3defdc4ea6",
