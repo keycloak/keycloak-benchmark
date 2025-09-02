@@ -110,7 +110,7 @@ if [ "$DEBUG_MODE" = "true" ]; then
     fi
 fi
 
-CLASSPATH_OPTS="$DIRNAME/../lib/*"
+CLASSPATH_OPTS=$(find $DIRNAME/../lib -type f | paste -sd:)
 
 declare -A RESULT_CACHE
 
