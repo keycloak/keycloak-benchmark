@@ -50,10 +50,10 @@ tasks:
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" == "postgres+infinispan" ];
-        then kubectl delete deployment/postgres -n keycloak || exit 0;
+        then kubectl delete statefulset/postgres -n keycloak || exit 0;
              kubectl delete deployment/infinispan -n keycloak || exit 0;
         else
-             kubectl delete deployment/{{.KC_DATABASE}} -n keycloak || exit 0;
+             kubectl delete statefulset/{{.KC_DATABASE}} -n keycloak || exit 0;
         fi'
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
       - ./init-database.sh {{.KC_DATABASE}} reset
@@ -227,7 +227,7 @@ tasks:
       - >
         bash -c '
         if [ "{{.KC_DATABASE}}" != "none" ];
-        then kubectl get deployment/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        then kubectl get statefulset/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
