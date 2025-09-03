@@ -35,7 +35,7 @@ tasks:
     cmds:
       - bash -c "kubectl delete keycloaks.k8s.keycloak.org/keycloak -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
       - bash -c "kubectl delete deployment/keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
-      - bash -c "kubectl delete deployment/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
+      - bash -c "kubectl delete statefulset/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=keycloak
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
@@ -264,7 +264,7 @@ tasks:
       - >
         bash -c '
         if [[ "{{.KC_DATABASE}}" != "none" && "{{.KC_DATABASE}}" != "aurora-postgres" ]];
-        then kubectl get deployment/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        then kubectl get statefulset/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
         else echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
