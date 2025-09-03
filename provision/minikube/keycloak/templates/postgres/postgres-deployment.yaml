@@ -1,21 +1,36 @@
 {{ if or (eq .Values.database "postgres") (eq .Values.database "postgres+infinispan") }}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+  namespace: keycloak
+  labels:
+    app: postgres
+spec:
+  clusterIP: None
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app: postgres
+---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     app: postgres
   name: postgres
   namespace: {{ .Values.namespace }}
 spec:
-  progressDeadlineSeconds: 600
   replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: postgres
-  strategy:
-    type: Recreate
+  serviceName: postgres-headless
   template:
     metadata:
       labels:
@@ -32,9 +47,8 @@ spec:
               value: keycloak
           image: mirror.gcr.io/postgres:15
           volumeMounts:
-            # Using volume mount for PostgreSQL's data folder as it is otherwise not writable
-            - mountPath: /var/lib/postgresql
-              name: cache-volume
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
           resources:
             requests:
               cpu: "{{ .Values.cpuRequests }}"
@@ -58,11 +72,19 @@ spec:
           ports:
             - containerPort: 5432
               protocol: TCP
-      volumes:
-        - name: cache-volume
-          emptyDir: { }
       restartPolicy: Always
       # The rhel9/postgresql-13 is known to take ~30 seconds to shut down
       # As this is a deployment with ephemeral storage, there is no need to wait as the data will be gone anyway
       terminationGracePeriodSeconds: 0
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
 {{ end }}
