@@ -105,4 +105,8 @@
   shell: |
     RESULTS_DIR=$(realpath "{{ local_results_dir }}")
     cd "{{ local_kcb_home }}"
-    java -cp "lib/*" io.gatling.app.Gatling -ro $RESULTS_DIR -rf $RESULTS_DIR
+    CLASSPATH=$(find lib -type f | paste -sd:)
+    java -cp "${CLASSPATH}" io.gatling.app.Gatling -ro $RESULTS_DIR -rf $RESULTS_DIR
+  register: aggregate_report_result
+
+- debug: var=aggregate_report_result
