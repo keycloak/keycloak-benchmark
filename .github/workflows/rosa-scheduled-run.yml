@@ -4,31 +4,51 @@ on:
   schedule:
     - cron: '0 5 * * 1' # Runs At 05:00 UTC on Monday.
   workflow_dispatch:
-
-# env:
-#   CLUSTER_PREFIX: gh-keycloak
+    inputs:
+      clusterPrefix:
+        description: 'The ROSA cluster prefix.'
+        type: string
 
 jobs:
+  meta:
+    name: Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      clusterPrefix: ${{ steps.cluster.outputs.CLUSTER_PREFIX }}
+    steps:
+      - name: Compute Cluster Info
+        id: cluster
+        run: |
+          CLUSTER_PREFIX=${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
+          echo "CLUSTER_PREFIX=${CLUSTER_PREFIX}" >> ${GITHUB_OUTPUT}
+
   rosa-multi-az-clusters-run-tests:
     name: Multi-AZ Clusters - Run Tests
+    needs: meta
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-clusters-run-tests.yml
     secrets: inherit
+    with:
+      clusterPrefix: ${{ needs.meta.outputs.clusterPrefix }}
 
   rosa-stretched-cluster:
     name: Stretched Cluster - Create
+    needs: meta
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-stretched-cluster.yml
     secrets: inherit
+    with:
+      clusterName: "${{ needs.meta.outputs.clusterPrefix }}-az"
 
   rosa-stretched-cluster-benchmark:
     name: Stretched Cluster - Benchmark
     needs:
+      - meta
       - rosa-stretched-cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-single-cluster-benchmark.yml
     secrets: inherit
     with:
-      clusterName: ${{ format('gh-{0}-az', github.repository_owner) }}
+      clusterName: "${{ needs.meta.outputs.clusterPrefix }}-az"
       outputArchiveSuffix: "stretched-cluster"
       clusterIdPrefix: "sc_"
