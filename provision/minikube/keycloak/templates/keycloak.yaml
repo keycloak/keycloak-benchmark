@@ -60,7 +60,6 @@ spec:
 {{ end }}
   features:
     enabled:
-      - user-event-metrics
 {{- if .Values.multiSite }}
       - multi-site # <3>
 {{- end }}
@@ -135,8 +134,6 @@ spec:
     - name: log-console-output
       value: json
     - name: metrics-enabled # <5>
-      value: 'true'
-    - name: event-metrics-user-enabled
       value: 'true'
 {{- if .Values.infinispan.remoteStore.enabled }}
     # tag::keycloak-ispn[]
