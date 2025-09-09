@@ -1,0 +1,99 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+
+  # Optionally, use rosa_oc_login
+  rosa-oc-login:
+    internal: true
+    requires:
+      vars:
+        - KUBECONFIG
+        - ROSA_CLUSTER_NAME
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+      CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
+    cmd: "{{.TASKFILE_DIR}}/../aws/rosa_oc_login.sh"
+  no-op:
+    internal: true
+
+  install:
+    desc: "Installs Chaos-Mesh in a OpenShift cluster"
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+    vars:
+      CHAOS_MESH_VERSION: '{{.CHAOS_MESH_VERSION | default "2.7.2"}}'
+      NAMESPACE: '{{.NAMESPACE | default "chaos-mesh"}}'
+      ROSA_LOGIN: '{{.ROSA_LOGIN | default "false"}}'
+      KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+    cmds:
+      - test -d .task || mkdir -p .task
+      - task: '{{if eq .ROSA_LOGIN "true"}}rosa-oc-login{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - helm repo add chaos-mesh https://charts.chaos-mesh.org || true
+      - helm repo update
+      - oc new-project {{.NAMESPACE}} || true
+      # The command line to install chaos-mesh depends on the container runtimes in use.
+      # This command is for OpenShift.
+      - helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh --namespace {{.NAMESPACE}} --set chaosDaemon.runtime=crio --set chaosDaemon.socketPath=/var/run/crio/crio.sock --version {{.CHAOS_MESH_VERSION}}
+      # See https://chaos-mesh.org/docs/faqs/#while-trying-to-install-chaos-mesh-in-openshift-the-problems-regarding-authorization-blocked-the-installation-process
+      - oc adm policy add-scc-to-user privileged -n {{.NAMESPACE}} -z chaos-daemon
+
+  uninstall:
+    desc: "Uninstalls Chaos-Mesh in a OpenShift cluster"
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+    vars:
+      NAMESPACE: '{{.NAMESPACE | default "chaos-mesh"}}'
+      ROSA_LOGIN: '{{.ROSA_LOGIN | default "false"}}'
+      KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+    cmds:
+      - test -d .task || mkdir -p .task
+      - task: '{{if eq .ROSA_LOGIN "true"}}rosa-oc-login{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - helm uninstall chaos-mesh --namespace {{.NAMESPACE}}
+
+  start-delay:
+    desc: "Introduces an artificial network delay"
+    requires:
+      vars:
+        - NAMESPACE
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+    vars:
+      ROSA_LOGIN: '{{.ROSA_LOGIN | default "false"}}'
+      KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+      # The Egress delay
+      DELAY: '{{.DELAY | default "5ms"}}'
+      # If true, the delay is applied to pod-to-pod communication
+      PODS_ONLY: '{{.PODS_ONLY | default "true"}}'
+    cmds:
+      - test -d .task || mkdir -p .task
+      - task: '{{if eq .ROSA_LOGIN "true"}}rosa-oc-login{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - helm upgrade --install keycloak-delay {{.ROOT_TASKFILE}}/network
+        --namespace {{.NAMESPACE}}
+        --set namespace={{.NAMESPACE}}
+        --set delay.latency={{.DELAY}}
+        --set delay.podsOnly={{.PODS_ONLY}}
+
+  stop-delay:
+    desc: "Stops an artificial network delay"
+    requires:
+      vars:
+        - NAMESPACE
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+    vars:
+      ROSA_LOGIN: '{{.ROSA_LOGIN | default "false"}}'
+      KUBECONFIG: '{{.KUBECONFIG | default ".task/kubecfg"}}'
+    cmds:
+      - test -d .task || mkdir -p .task
+      - task: '{{if eq .ROSA_LOGIN "true"}}rosa-oc-login{{else}}no-op{{end}}'
+        vars:
+          KUBECONFIG: "{{.KUBECONFIG}}"
+      - helm uninstall keycloak-delay --namespace {{.NAMESPACE}}

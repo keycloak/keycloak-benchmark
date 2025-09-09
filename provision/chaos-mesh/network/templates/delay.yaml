@@ -1,0 +1,27 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: keycloak-delay
+  namespace: {{.Values.namespace}}
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - {{.Values.namespace}}
+    labelSelectors:
+      app: 'keycloak'
+  delay:
+    latency: {{.Values.delay.latency | quote}}
+    correlation: "0"
+    jitter: "0ms"
+  direction: to
+  {{- if .Values.delay.podsOnly }}
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - {{.Values.namespace}}
+      labelSelectors:
+        app: 'keycloak'
+  {{- end}}

@@ -1,0 +1,107 @@
+= Simulating a High-Latency Network
+:description: A guide to benchmarking Keycloak in high-latency network environments.
+
+{description}
+
+== Why Benchmark with Higher Latency?
+
+It is not always possible to control the network communication between Keycloak pods.
+This benchmark demonstrates how Keycloak behaves in high-latency networks.
+
+Keycloak's capacity is negatively affected by increased latency.
+This section shows how to simulate the network latency of your production environment, allowing you to tune the Keycloak deployment to achieve the desired capacity.
+
+== Running the Performance Test
+
+=== Preparations
+
+* Extract the `+keycloak-benchmark-${version}.[zip|tar.gz]+` file
+* xref:benchmark-guide::preparing-keycloak.adoc[]
+* Make sure you can access the Kubernetes cluster from where you are planning to run the failure tests and run commands such as `kubectl get pods -n keycloak-keycloak`
+
+=== Installing Chaos Mesh
+
+We will use https://chaos-mesh.org/[Chaos Mesh] to introduce network delay.
+Follow the official https://chaos-mesh.org/docs/[Chaos Mesh documentation] to install it in your environment.
+
+If you are using OpenShift, this repository contains scripts in the `provision/chaos-mesh` directory to simplify the installation.
+
+[NOTE]
+====
+These scripts require https://taskfile.dev/docs/installation/[Task] and https://helm.sh/docs/intro/install/[Helm] to run.
+====
+
+[TIP]
+====
+Run task --list to list all available commands.
+====
+
+To run the installation script, navigate to the `provision/chaos-mesh` directory and execute the following command:
+
+[source,bash]
+----
+task install
+----
+
+The following options are available:
+
+ROSA_LOGIN:: When `true`, it authenticates into OpenShift using the `rosa_oc_login.sh` script.
+This requires an active ROSA installation.
+ROSA_CLUSTER_NAME:: The name of the ROSA cluster (if `ROSA_LOGIN` is set to `true`).
+KUBECONFIG:: Path to the kube configuration file (defaults to `.task/kubecfg`).
+NAMESPACE:: Namespace where Chaos Mesh will be installed (defaults to `chaos-mesh`).
+CHAOS_MESH_VERSION:: Chaos Mesh version (defaults to `2.7.2`).
+
+Similarly, to uninstall Chaos Mesh, run the following command:
+
+[source,bash]
+----
+task uninstall
+----
+
+=== Introducing an Artificial Network Delay
+
+Refer to the https://chaos-mesh.org/docs/simulate-network-chaos-on-kubernetes/[Chaos Mesh documentation] for details on how to introduce various types of network failures.
+For this guide, we will focus on network delay.
+
+If you are using OpenShift, you can use the scripts provided in the `provision/chaos-mesh` directory.
+
+[NOTE]
+====
+These scripts require https://taskfile.dev/docs/installation/[Task] and https://helm.sh/docs/intro/install/[Helm] to run.
+====
+
+To introduce a network delay, navigate to the `provision/chaos-mesh` directory and execute the following command:
+
+[source,bash]
+----
+task start-delay
+----
+
+The following options are available:
+
+ROSA_LOGIN:: When `true`, it authenticates into OpenShift using the `rosa_oc_login.sh` script.
+This requires an active ROSA installation.
+ROSA_CLUSTER_NAME:: The name of the ROSA cluster (if `ROSA_LOGIN` is set to `true`).
+KUBECONFIG:: Path to the kube configuration file (defaults to `.task/kubecfg`).
+NAMESPACE:: The namespace where the Keycloak deployment is running (required).
+DELAY:: The egress delay to introduce, specified as a value with a time unit (e.g., `5ms`).
+This value delays only outgoing traffic from a pod, meaning the total round-trip time (RTT) added between two pods will be twice this value. It defaults to `5ms`.
+PODS_ONLY:: When `true`, the delay is applied only to traffic between Keycloak pods.
+External network queries (e.g., database) will not be affected.
+
+[IMPORTANT]
+====
+This artificial delay is added on top of the existing network latency.
+====
+
+Similarly, to stop the network delay, run the following command:
+
+[source,bash]
+----
+task stop-delay
+----
+
+=== Simulating Load
+
+Use the xref:benchmark-guide::run/running-benchmark-cli.adoc[] guide to simulate load against your high-latency Keycloak deployment.
