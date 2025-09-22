@@ -150,7 +150,7 @@ tasks:
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloakrealmimports.k8s.keycloak.org-v1.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} delete deployment/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} || true
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}kubernetes.yml
-      - KUBECONFIG="{{.KUBECONFIG}}" kubectl patch clusterrolebinding keycloak-operator-clusterrole-binding --type='json' -p='[{"op":"replace","path":"/subjects/0/namespace","value":"{{.NAMESPACE}}"}]'
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl patch clusterrolebinding keycloak-operator-clusterrole-binding --type='json' -p="[{\"op\":\"replace\",\"path\":\"/subjects/0/namespace\",\"value\":\"{{.NAMESPACE}}\"}]"
       - task: patch-keycloak-operator-image
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
