@@ -29,7 +29,7 @@
     - set_fact: users_per_sec_per_node="{{ (kcb_params | regex_search('--users-per-sec=(\S+)', '\\1') | join('') | int) / (node_count|int) }}"
     - debug: msg="The users per second per node must not exceed 250, and the current value is {{ users_per_sec_per_node }}.{% if users_per_sec_per_node|int > 250 %} Add more nodes to create the load you asked for, or reduce the load.{% endif %}"
       failed_when: users_per_sec_per_node|int > 250
-    - set_fact: kcb_params_workload_per_node="{{ kcb_params | regex_replace('--users-per-sec=(\S+)', '--users-per-sec='+users_per_sec_per_node) }}"
+    - set_fact: kcb_params_workload_per_node="{{ kcb_params | regex_replace('--users-per-sec=(\S+)', '--users-per-sec='+users_per_sec_per_node|string) }}"
 
   - debug: var=kcb_params_workload_per_node
 
