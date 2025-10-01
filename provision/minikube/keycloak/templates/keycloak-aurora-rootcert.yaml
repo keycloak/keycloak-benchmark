@@ -1,0 +1,9 @@
+{{ if .Values.useAWSJDBCWrapper }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-aurora-rootcert
+  namespace: {{ .Values.namespace }}
+binaryData:
+  aurora.pem: {{ $.Files.Get "certs/eu-west-1-bundle.pem" | b64enc }}
+{{ end }}

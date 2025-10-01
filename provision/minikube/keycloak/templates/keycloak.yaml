@@ -55,7 +55,7 @@ spec:
     vendor: mysql
 {{ end }}
 {{- if .Values.useAWSJDBCWrapper}}
-    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak
+    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/certs/aurora.pem
 {{- else if eq .Values.database "mysql"}}
     url: jdbc:mysql://mysql:3306/keycloak
 {{- else }}
@@ -255,12 +255,18 @@ spec:
                 subPath: {{ $name }}
                 readOnly: true
               {{- end -}}
-{{ if .Values.infinispan.jgroupsTls }}
-              - name: cache-embedded-mtls-volume
-                mountPath: /etc/cache-embedded-mtls
+              {{- if .Values.useAWSJDBCWrapper }}
+              - name: keycloak-aurora-rootcert
+                mountPath: /opt/keycloak/certs/aurora.pem
+                subPath: aurora.pem
                 readOnly: true
-{{ end }}
+              {{- end }}
         volumes:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
+          {{- if .Values.useAWSJDBCWrapper }}
+          - name: keycloak-aurora-rootcert
+            configMap:
+              name: keycloak-aurora-rootcert
+          {{- end }}
