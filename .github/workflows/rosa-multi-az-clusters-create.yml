@@ -63,9 +63,10 @@ jobs:
         id: cidr
         run: |
           set -x
-          CIDRS=$(./rosa_machine_cidr.sh)
-          echo "CIDR_A=$(echo ${CIDRS} | jq -r .cidr_a )" >> ${GITHUB_OUTPUT}
-          echo "CIDR_B=$(echo ${CIDRS} | jq -r .cidr_b )" >> ${GITHUB_OUTPUT}
+          CIDR_A=$(CLUSTER_NAME=${CLUSTER_PREFIX}-a ./rosa_machine_cidr.sh)
+          CIDR_B=$(CLUSTER_NAME=${CLUSTER_PREFIX}-b ./rosa_machine_cidr.sh $CIDR_A)
+          echo "CIDR_A=${CIDR_A}" >> ${GITHUB_OUTPUT}
+          echo "CIDR_B=${CIDR_B}" >> ${GITHUB_OUTPUT}
         working-directory: provision/aws
         env:
           CLUSTER_PREFIX: ${{ env.CLUSTER_PREFIX }}
