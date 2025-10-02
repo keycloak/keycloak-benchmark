@@ -55,7 +55,7 @@ spec:
     vendor: mysql
 {{ end }}
 {{- if .Values.useAWSJDBCWrapper}}
-    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/certs/aurora.pem
+    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/truststores/configmap-keycloak-aurora-rootcert/aurora.pem
 {{- else if eq .Values.database "mysql"}}
     url: jdbc:mysql://mysql:3306/keycloak
 {{- else }}
@@ -188,6 +188,12 @@ spec:
   # end::keycloak[]
   serviceMonitor:
     enabled: {{ .Values.monitoring }}
+  {{- if .Values.useAWSJDBCWrapper}}
+  truststores:
+    aurora:
+      configMap:
+        name: keycloak-aurora-rootcert
+  {{- end }}
   unsupported:
     podTemplate:
       metadata:
@@ -254,19 +260,8 @@ spec:
                 mountPath: /opt/keycloak/providers/{{ $name }}
                 subPath: {{ $name }}
                 readOnly: true
-              {{- end -}}
-              {{- if .Values.useAWSJDBCWrapper }}
-              - name: keycloak-aurora-rootcert
-                mountPath: /opt/keycloak/certs/aurora.pem
-                subPath: aurora.pem
-                readOnly: true
               {{- end }}
         volumes:
           - name: keycloak-providers
             configMap:
               name: keycloak-providers
-          {{- if .Values.useAWSJDBCWrapper }}
-          - name: keycloak-aurora-rootcert
-            configMap:
-              name: keycloak-aurora-rootcert
-          {{- end }}
