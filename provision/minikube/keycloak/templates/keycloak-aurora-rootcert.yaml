@@ -1,0 +1,10 @@
+{{ if .Values.useAWSJDBCWrapper }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-aurora-rootcert
+  namespace: {{ .Values.namespace }}
+binaryData:
+  # https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/UsingWithRDS.SSL.html
+  aurora.pem: {{ $.Files.Get "certs/global-bundle.pem" | b64enc }}
+{{ end }}
