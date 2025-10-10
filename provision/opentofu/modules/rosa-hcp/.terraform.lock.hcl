@@ -2,19 +2,19 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.opentofu.org/hashicorp/aws" {
-  version     = "6.14.1"
+  version     = "6.16.0"
   constraints = ">= 4.0.0, >= 5.38.0, >= 6.0.0"
   hashes = [
-    "h1:Oi5lV84P5YBCpt7u4x8rEhQ3L6gcXhL9X6JLRygY5rk=",
-    "zh:15855cecc8d93d1429817d747e9e7a22b316809d54b7319f00444c65143d50f4",
-    "zh:53968b11ab8e43624a87bdcabd9898c45e510bffd0737d473af3b9f7cbe2095a",
-    "zh:65b42d6ec7e93c3dd7ab0b893fe78ee23f994ed656815d8e627d5385a8a813da",
-    "zh:83360386f071f3f84837a1a39a714e28ca2d75e29bd19cef1fd484c1620b823b",
-    "zh:841cb6d9f474abcee762b29a6c105d7b3e0e2a7f31dc266f8501ff311be677c4",
-    "zh:b0204c9542a55dc070d4f960cb8249d4b84383ecdeab8129021c6282161ff3b6",
-    "zh:cff4954e05c3c7480ae7dffd0463848c07af4aa7240ca3df4e2a0f4832acb57d",
-    "zh:d2fc484e880da5e40dce1ca1c6e85033c777b9c96eb670a0fa07497c6dd2ccde",
-    "zh:f603f7a23877c13004730ac87e51acf2642c4f3fdadc194a1dbbb30630d44da0",
+    "h1:BjHgGqMnWWbtQE714zLcCFpfj1InWVZNUu+vSFbDLrQ=",
+    "zh:35b8863c15ac346f4927a3bfa103a0a262e0a3f6070e141b822e81a85a31fdd6",
+    "zh:4011d6f4671f48cdce37ec6b894fcb3852e024194c8eb7dae143135c5b3f0b74",
+    "zh:480697e5f582a7e3f77e5ce438ad7685679ad41aa88d801839a5206247359a1c",
+    "zh:60f862cd7d3427f7c1d9cb06e709f0933a802f03dd23af1d8a08585fb7d87c2b",
+    "zh:68c6ddcc8224e899b49e7c0c6b41a9785830877458a2d101a47bcd9ba28e7264",
+    "zh:8cf5189aeb66ce9d15def65b6ab8f1b113d0b946330aa6d622d3c301886cad92",
+    "zh:8d4a54f419ddea11f762ed98fff298cc54a385a9cd6ee7aa24bd08f758b9549f",
+    "zh:982c47fe3c12fcb36f4e8b22041b354a3cedfbfd1cca938d0c6ce10e326165c0",
+    "zh:9cf6f792719231a1ed369d98295e3404785cb6f374d9ba7b72c90bdc945bcec9",
   ]
 }
 
@@ -73,16 +73,16 @@ provider "registry.opentofu.org/hashicorp/time" {
 }
 
 provider "registry.opentofu.org/terraform-redhat/rhcs" {
-  version     = "1.7.0"
-  constraints = ">= 1.6.2, >= 1.6.8, 1.7.0"
+  version     = "1.7.1"
+  constraints = ">= 1.6.2, >= 1.6.8, 1.7.1"
   hashes = [
-    "h1:kqsgkS3Cd34Y8kCcrWOKbp6icr+oYmq0nLxfmJeERTk=",
-    "zh:607dc743f2b1050574ab4c8c90ff73bcc3bbd87d54e2fcac8f94faa2f8419f5e",
-    "zh:7bfa4beda7a603c175393067f50fdc535a8ddb1e1483e3c42c28dd3c12f41144",
-    "zh:ba878f36e7e062787c75b5223199cb1678014f1b1dffd69563539637091eb44e",
-    "zh:ca4b0733859f385f0a7ea58f5e544bf11efaf3d2490c70d9f2b60bc743b2b041",
-    "zh:d40e82bce43856056fc63ea0e05e51ae6aea501cf57b3229ff49e93ff4cf0ab8",
-    "zh:d9710ebe1a1310ee58fe42a8ff7fd1776f067a9acf765a3e7893c7a6546cd4de",
+    "h1:r3VSMSSVgzIAi3/1BNjiKpsyor+HCZgYDC6RGbwDqOc=",
+    "zh:0c53468e71bca0ea7c409c2e5e5bb149dcc413d79736b33e67085c6c86cc1bf9",
+    "zh:1f472e0902152b3d44ce1e72b66f3ec3026b28067c730698b0127fed0fea77f9",
+    "zh:230da4478daec5de91a811f080cc8b606a7b3e25a17505f046c3e1e1f93239ec",
+    "zh:bb455ab91761ef9d2c8ab9607ee526100a5ab21ac0607adf1ea5a2c2abdb51d5",
+    "zh:bf54a4ee9447d585f97600f1f78310802bfb42c2d14193216456161bd996d206",
+    "zh:f04d907107dcbb225f9ff73c92bc0b76608e1fd4effaa06e7560b73ed7061ad1",
     "zh:f26e0763dbe6a6b2195c94b44696f2110f7f55433dc142839be16b9697fa5597",
   ]
 }

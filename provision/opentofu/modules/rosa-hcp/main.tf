@@ -21,7 +21,6 @@ module "vpc" {
 
 module "hcp" {
   source = "terraform-redhat/rosa-hcp/rhcs"
-  version = "1.7.0"
 
   openshift_version      = var.openshift_version
   cluster_name           = var.cluster_name
