@@ -13,9 +13,13 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/rosa_common.sh
 
 AWS_ACCOUNT=${AWS_ACCOUNT:-$(aws sts get-caller-identity --query "Account" --output text)}
-# Create an OpenShift cluster in a single zone or multiple zones?
-# Defaults to single zone cluster.
-USE_SINGLE_AZ=${USE_SINGLE_AZ:-"true"}
+
+AVAILABILITY_ZONES=${AVAILABILITY_ZONES:-"${REGION}a"}
+
+# Count the AZs
+IFS=, read -r -a AZS_ARRAY <<< "${AVAILABILITY_ZONES}"
+AVAILABILITY_ZONES_COUNT="${#AZS_ARRAY[@]}"
+echo "AVAILABILITY_ZONES_COUNT=$AVAILABILITY_ZONES_COUNT"
 
 requiredEnv AWS_ACCOUNT CLUSTER_NAME REGION CIDR
 
@@ -37,18 +41,14 @@ else
 
   echo "Installing ROSA cluster ${CLUSTER_NAME}"
 
-  cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
+  cd ${SCRIPT_DIR}/../opentofu/modules/rosa-hcp
   WORKSPACE=${CLUSTER_NAME}-${REGION}
-
-  AVAILABILITY_ZONES=${AVAILABILITY_ZONES:-"${REGION}a"}
 
   TOFU_CMD="tofu apply -auto-approve \
     -var vpc_cidr=${CIDR} \
     -var availability_zones=${AVAILABILITY_ZONES} \
     -var cluster_name=${CLUSTER_NAME} \
-    -var region=${REGION} \
-    -var single_az_only=${USE_SINGLE_AZ} \
-    -var subnet_cidr_prefix=28"
+    -var region=${REGION}"
 
   if [ -n "${COMPUTE_MACHINE_TYPE}" ]; then
     TOFU_CMD+=" -var instance_type=${COMPUTE_MACHINE_TYPE}"
@@ -66,7 +66,7 @@ else
 fi
 
 SCALING_MACHINE_POOL=$(rosa list machinepools -c "${CLUSTER_NAME}" -o json | jq -r '.[] | select(.id == "scaling") | .id')
-if [[ "${SCALING_MACHINE_POOL}" != "scaling" ]] && [[ "${USE_SINGLE_AZ}" == "true" ]]; then
+if [[ "${SCALING_MACHINE_POOL}" != "scaling" ]] && [[ "${AVAILABILITY_ZONES_COUNT}" == "1" ]]; then
     rosa create machinepool -c "${CLUSTER_NAME}" --instance-type "${COMPUTE_MACHINE_TYPE:-c7g.2xlarge}" --max-replicas 15 --min-replicas 1 --name scaling --enable-autoscaling --autorepair
 fi
 

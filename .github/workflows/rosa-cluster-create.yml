@@ -29,10 +29,6 @@ on:
       infinispan_operator_olm_name:
         type: string
         default: infinispan
-      useSingleAz:
-        description: 'Check to create an OpenShift cluster in a single availability zone.'
-        type: boolean
-        default: true
 
   workflow_dispatch:
     inputs:
@@ -57,10 +53,6 @@ on:
       region:
         description: 'The AWS region to create the cluster in. Defaults to "vars.AWS_DEFAULT_REGION" if omitted.'
         type: string
-      useSingleAz:
-        description: 'Check to create an OpenShift cluster in a single availability zone.'
-        type: boolean
-        default: true
 
 env:
   REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
@@ -99,7 +91,6 @@ jobs:
           TF_VAR_rhcs_token: ${{ secrets.ROSA_TOKEN }}
           OPERATOR_SOURCE: ${{ inputs.infinispan_operator_olm_catalog_source }}
           OPERATOR_NAME: ${{ inputs.infinispan_operator_olm_name }}
-          USE_SINGLE_AZ: ${{ inputs.useSingleAz }}
 
       - name: Retrieve ROSA logs
         if: always()

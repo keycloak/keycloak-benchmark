@@ -43,9 +43,9 @@ cd ${LOG_DIR}
 echo "Starting to watch cluster uninstall logs."
 timeout -k 45m 45m bash -c "rosa logs uninstall -c ${CLUSTER_NAME} --watch --debug &> $(custom_date)_delete-cluster.log" &
 
-cd ${SCRIPT_DIR}/../opentofu/modules/rosa/hcp
+cd ${SCRIPT_DIR}/../opentofu/modules/rosa-hcp
 WORKSPACE=${CLUSTER_NAME}-${REGION}
-timeout -k 45m 45m bash -c "./../../../destroy.sh ${WORKSPACE}" &
+timeout -k 45m 45m bash -c "./../../destroy.sh ${WORKSPACE}" &
 DESTROY_PROC_ID=$!
 
 if wait "${DESTROY_PROC_ID}"; then
