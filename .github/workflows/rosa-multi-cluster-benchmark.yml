@@ -91,6 +91,7 @@ on:
 concurrency: cluster_${{ inputs.clusterPrefix }}-a
 
 env:
+  REGION: ${{ github.event.inputs.region || vars.AWS_DEFAULT_REGION }}
   PROJECT_PREFIX: runner- # same as default
   PROJECT: runner-keycloak
   ANSIBLE_CUSTOM_VARS_ARG: '-e @env_rosa_benchmark.yml'
@@ -183,7 +184,7 @@ jobs:
         id: create_aws_ec2_instances
         uses: ./.github/actions/ec2-create-instances
         with:
-          region: ${{ inputs.region }}
+          region: ${{ env.REGION }}
 
       - name: Prepare horreum report
         uses: ./.github/actions/prepare-horreum-report
@@ -212,7 +213,7 @@ jobs:
       - name: Testing memory for creating sessions
         id: kcb-authorization-code-1
         run: >
-          ./benchmark.sh ${{ inputs.region }}
+          ./benchmark.sh ${{ env.REGION }}
           --scenario=keycloak.scenario.authentication.AuthorizationCode
           --server-url=${{ env.KEYCLOAK_URL }}
           --realm-name=realm-0
@@ -297,7 +298,7 @@ jobs:
       - name: Testing CPU usage for user logins
         id: kcb-authorization-code-2
         run: >
-          ./benchmark.sh ${{ inputs.region }}
+          ./benchmark.sh ${{ env.REGION }}
           --scenario=keycloak.scenario.authentication.AuthorizationCode
           --server-url=${{ env.KEYCLOAK_URL }}
           --realm-name=realm-0
@@ -376,7 +377,7 @@ jobs:
       - name: Testing CPU usage for client credential grants
         id: kcb-client-secret
         run: >
-          ./benchmark.sh ${{ inputs.region }}
+          ./benchmark.sh ${{ env.REGION }}
           --scenario=keycloak.scenario.authentication.ClientSecret
           --server-url=${{ env.KEYCLOAK_URL }}
           --realm-name=realm-0
@@ -459,7 +460,7 @@ jobs:
         if: ${{ always() && steps.create_aws_ec2_instances.conclusion != 'skipped' }}
         uses: ./.github/actions/ec2-delete-instances
         with:
-          region: ${{ inputs.region }}
+          region: ${{ env.REGION }}
 
   archive:
     name: Commit results to Git repository
