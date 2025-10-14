@@ -81,7 +81,7 @@ jobs:
           CLUSTER_NAME=${{ inputs.clusterName || format('gh-{0}-az', github.repository_owner) }}
           REGION=${{ inputs.region || vars.AWS_DEFAULT_REGION }}
           ZONES=$(./prefix_region_to_zones.sh "${REGION}" "${{ inputs.availabilityZones }}")
-          CIDR=$(CLUSTER_PREFIX=${CLUSTER_NAME} ./rosa_machine_cidr.sh | jq -r .cidr_a)
+          CIDR=$(CLUSTER_NAME="${CLUSTER_NAME}" ./rosa_machine_cidr.sh)
           IFS=, read -r -a AZS_ARRAY <<< "${ZONES}"
           NUMBER_ZONES="${#AZS_ARRAY[@]}"
 
@@ -101,7 +101,6 @@ jobs:
       clusterName: ${{ needs.meta.outputs.clusterName }}
       region: ${{ needs.meta.outputs.region }}
       availabilityZones: ${{ needs.meta.outputs.availabilityZones }}
-      useSingleAz: false
     secrets: inherit
 
   monitoring:

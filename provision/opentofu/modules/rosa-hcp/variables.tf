@@ -44,15 +44,6 @@ variable "vpc_cidr" {
   }
 }
 
-variable "subnet_cidr_prefix" {
-  description = <<-EOT
-    The CIDR prefix value to use when dividing up the VPC CIDR range into subnet ranges.
-      E.g., 24 to create equal subnets of size "24": 10.0.1.0/24, 10.0.2.0/24, etc.
-  EOT
-  type        = number
-  default     = 24
-}
-
 variable "openshift_version" {
   type    = string
   default = "4.17.20"
@@ -71,8 +62,3 @@ variable "replicas" {
   nullable = false
 }
 
-variable "single_az_only" {
-  description = "Only create subnets in a single availability zone"
-  type        = bool
-  default     = true
-}
