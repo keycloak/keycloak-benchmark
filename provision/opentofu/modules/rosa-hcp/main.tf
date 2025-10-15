@@ -1,15 +1,3 @@
-data "aws_caller_identity" "current" {
-}
-
-data "aws_secretsmanager_secret" "secrets" {
-  region = "eu-central-1"
-  name = "keycloak-master-password"
-}
-
-data "aws_secretsmanager_secret_version" "current" {
-  secret_id = data.aws_secretsmanager_secret.secrets.id
-}
-
 module "vpc" {
   source                = "terraform-redhat/rosa-hcp/rhcs//modules/vpc"
 
@@ -39,6 +27,6 @@ module "hcp" {
 
   // admin credentials
   admin_credentials_username = "cluster-admin"
-  admin_credentials_password = nonsensitive(data.aws_secretsmanager_secret_version.current.secret_string)
+  admin_credentials_password = var.cluster_admin_password
 }
 

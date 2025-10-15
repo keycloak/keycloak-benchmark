@@ -29,6 +29,7 @@ echo "Checking if cluster ${CLUSTER_NAME} already exists."
 if rosa describe cluster --cluster="${CLUSTER_NAME}"; then
   echo "Cluster ${CLUSTER_NAME} already exists."
 else
+  if [ -z "$CLUSTER_ADMIN_PASSWORD" ]; then echo "CLUSTER_ADMIN_PASSWORD needs to be set."; exit 1; fi
   echo "Verifying ROSA prerequisites."
   echo "Check if AWS CLI is installed."; aws --version
   echo "Check if ROSA CLI is installed."; rosa version
@@ -48,6 +49,7 @@ else
     -var vpc_cidr=${CIDR} \
     -var availability_zones=${AVAILABILITY_ZONES} \
     -var cluster_name=${CLUSTER_NAME} \
+    -var cluster_admin_password=${CLUSTER_ADMIN_PASSWORD} \
     -var region=${REGION}"
 
   if [ -n "${COMPUTE_MACHINE_TYPE}" ]; then
