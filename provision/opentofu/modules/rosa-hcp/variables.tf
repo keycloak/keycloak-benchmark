@@ -3,6 +3,11 @@ variable "rhcs_token" {
   sensitive = true
 }
 
+variable "cluster_admin_password" {
+  type      = string
+  sensitive = true
+}
+
 variable "region" {
   description = <<-EOT
     Region to create AWS infrastructure resources for a
