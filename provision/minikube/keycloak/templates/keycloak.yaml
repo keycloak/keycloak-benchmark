@@ -55,13 +55,13 @@ spec:
     vendor: mysql
 {{ end }}
 {{- if .Values.useAWSJDBCWrapper}}
-    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/truststores/configmap-keycloak-aurora-rootcert/aurora.pem
+    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/truststores/configmap-keycloak-aurora-rootcert/aurora.pem # <1>
 {{- else if eq .Values.database "mysql"}}
     url: jdbc:mysql://mysql:3306/keycloak
 {{- else }}
     url: jdbc:postgresql://postgres:5432/keycloak
 {{ end }}
-    poolMinSize: {{ .Values.dbPoolMinSize }} # <1>
+    poolMinSize: {{ .Values.dbPoolMinSize }} # <2>
     poolInitialSize: {{ .Values.dbPoolInitialSize }}
     poolMaxSize: {{ .Values.dbPoolMaxSize }}
     usernameSecret:
@@ -87,13 +87,13 @@ spec:
     samplerType: "parentbased_traceidratio"
   {{- end }}
 {{ if .Values.keycloakImage }}
-  image: {{ .Values.keycloakImage }} # <2>
-  startOptimized: {{ .Values.startOptimized }} # <2>
+  image: {{ .Values.keycloakImage }} # <3>
+  startOptimized: {{ .Values.startOptimized }} # <3>
 {{ end }}
   features:
     enabled:
 {{- if .Values.multiSite }}
-      - multi-site # <3>
+      - multi-site # <4>
 {{- end }}
 {{- if .Values.externalInfinispan }}
       - clusterless
@@ -141,7 +141,7 @@ spec:
     # tag::keycloak[]
     - name: log-console-output
       value: json
-    - name: metrics-enabled # <4>
+    - name: metrics-enabled # <5>
       value: 'true'
     - name: event-metrics-user-enabled
       value: 'true'
@@ -189,10 +189,12 @@ spec:
   serviceMonitor:
     enabled: {{ .Values.monitoring }}
   {{- if .Values.useAWSJDBCWrapper}}
+  # tag::keycloak[]
   truststores:
     aurora:
       configMap:
-        name: keycloak-aurora-rootcert
+        name: keycloak-aurora-rootcert # <6>
+  # end::keycloak[]
   {{- end }}
   unsupported:
     podTemplate:
