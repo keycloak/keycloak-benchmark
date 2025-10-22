@@ -12,3 +12,8 @@ output "input_availability_zones" {
   value       = var.availability_zones
   description = "The Availability Zones AWS resources created in."
 }
+
+output "input_cluster_admin_password" {
+  value       = "DummyPasswordValue1!"
+  description = "Dummy value. Required as an input for destroy-plan, not for the actual destruction."
+}

@@ -62,7 +62,6 @@ jobs:
         working-directory: provision/aws
         env:
           CLUSTER_NAME: ${{ inputs.clusterName || format('gh-{0}', github.repository_owner) }}
-          CLUSTER_ADMIN_PASSWORD: ${{ env.KEYCLOAK_ADMIN_PASSWORD }}
           TF_VAR_rhcs_token: ${{ secrets.ROSA_TOKEN }}
 
       - name: Delete all ROSA Clusters
