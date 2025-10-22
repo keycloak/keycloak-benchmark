@@ -10,31 +10,6 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
 # end::keycloak-ispn[]
-  {{- if .Values.stretchCluster }}
-  # evenly spread pods between zones and nodes.
-  scheduling:
-    affinity:
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app: keycloak
-                  app.kubernetes.io/managed-by: keycloak-operator
-                  app.kubernetes.io/component: server
-                  app.kubernetes.io/instance: keycloak
-              topologyKey: topology.kubernetes.io/zone
-          - weight: 90
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app: keycloak
-                  app.kubernetes.io/managed-by: keycloak-operator
-                  app.kubernetes.io/component: server
-                  app.kubernetes.io/instance: keycloak
-              topologyKey: kubernetes.io/hostname
-  {{- end}}
   hostname:
     {{- if .Values.keycloakHostname }}
     hostname: {{ .Values.keycloakHostname }}
