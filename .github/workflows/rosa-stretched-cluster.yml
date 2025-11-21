@@ -64,7 +64,7 @@ jobs:
       group: multi-az-meta
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
@@ -112,7 +112,7 @@ jobs:
       - cluster
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
@@ -155,7 +155,7 @@ jobs:
     if: ${{ always() && !cancelled() && inputs.createAurora && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup ROSA CLI
         uses: ./.github/actions/rosa-cli-setup
@@ -181,7 +181,7 @@ jobs:
     if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.connection.result == 'skipped' || needs.connection.result == 'success') }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Go Task
         uses: ./.github/actions/task-setup
