@@ -63,6 +63,7 @@ import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1134,6 +1135,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         RealmModel realm = session.realms().getRealm(context.getRealm().getId());
         DatasetConfig config = context.getConfig();
 
+        warnMissingResource(realm.getName(), "realm-roles", context.getRealmRoles(), config.getRealmRolesPerUser());
+        warnMissingResource(realm.getName(), "client-roles", context.getClientRoles(), config.getClientRolesPerUser());
+        warnMissingResource(realm.getName(), "groups", context.getGroups(), config.getGroupsPerUser());
+
         for (int i = startIndex; i < endIndex; i++) {
             String username = config.getUserPrefix() + i;
             UserModel user = session.users().addUser(realm, username);
@@ -1145,38 +1150,50 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             String password = String.format("%s-password", username);
             user.credentialManager().updateCredential(UserCredentialModel.password(password, false));
 
-            // Detect which roles we assign to the user
-            int roleIndexStartForCurrentUser = (i * config.getRealmRolesPerUser());
-            for (int j = roleIndexStartForCurrentUser ; j < roleIndexStartForCurrentUser + config.getRealmRolesPerUser() ; j++) {
-                int roleIndex = j % context.getRealmRoles().size();
-                user.grantRole(context.getRealmRoles().get(roleIndex));
+            // Assign a role to a user if any exist in the realm
+            if (!context.getRealmRoles().isEmpty()) {
+                int roleIndexStartForCurrentUser = (i * config.getRealmRolesPerUser());
+                for (int j = roleIndexStartForCurrentUser; j < roleIndexStartForCurrentUser + config.getRealmRolesPerUser(); j++) {
+                    int roleIndex = j % context.getRealmRoles().size();
+                    user.grantRole(context.getRealmRoles().get(roleIndex));
 
-                logger.tracef("Assigned role %s to the user %s", context.getRealmRoles().get(roleIndex).getName(), user.getUsername());
+                    logger.tracef("Assigned role %s to the user %s", context.getRealmRoles().get(roleIndex).getName(), user.getUsername());
+                }
             }
 
-            int clientRolesTotal = context.getClientRoles().size();
-            int clientRoleIndexStartForCurrentUser = (i * config.getClientRolesPerUser());
-            for (int j = clientRoleIndexStartForCurrentUser ; j < clientRoleIndexStartForCurrentUser + config.getClientRolesPerUser() ; j++) {
-                int roleIndex = j % clientRolesTotal;
-                user.grantRole(context.getClientRoles().get(roleIndex));
+            // Assign a client role to a user if any exist in the realm
+            if (!context.getClientRoles().isEmpty()) {
+                int clientRoleIndexStartForCurrentUser = (i * config.getClientRolesPerUser());
+                for (int j = clientRoleIndexStartForCurrentUser; j < clientRoleIndexStartForCurrentUser + config.getClientRolesPerUser(); j++) {
+                    int roleIndex = j % context.getClientRoles().size();
+                    user.grantRole(context.getClientRoles().get(roleIndex));
 
-                logger.tracef("Assigned role %s to the user %s", context.getClientRoles().get(roleIndex).getName(), user.getUsername());
+                    logger.tracef("Assigned role %s to the user %s", context.getClientRoles().get(roleIndex).getName(), user.getUsername());
+                }
             }
 
-            // Detect which groups we assign to the user
-            int groupIndexStartForCurrentUser = (i * config.getGroupsPerUser());
-            for (int j = groupIndexStartForCurrentUser ; j < groupIndexStartForCurrentUser + config.getGroupsPerUser() ; j++) {
-                int groupIndex = j % context.getGroups().size();
-                GroupModel group = context.getGroups().get(groupIndex);
-                user.joinGroup(session.groups().getGroupById(realm, group.getId()));
+            // Assign a group to a user if any exist
+            if (!context.getGroups().isEmpty()) {
+                int groupIndexStartForCurrentUser = (i * config.getGroupsPerUser());
+                for (int j = groupIndexStartForCurrentUser; j < groupIndexStartForCurrentUser + config.getGroupsPerUser(); j++) {
+                    int groupIndex = j % context.getGroups().size();
+                    GroupModel group = context.getGroups().get(groupIndex);
+                    user.joinGroup(session.groups().getGroupById(realm, group.getId()));
 
-                logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
+                    logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
+                }
             }
 
             context.incUserCount();
         }
     }
 
+    private void warnMissingResource(String realm, String resourceName, Collection<?> resource, Integer expectedCount) {
+        if (resource.isEmpty() && expectedCount > 0) {
+            logger.warnf("%1$s-per-user=%2$d but no %1$s are defined in realm %3$s, skipping %1$s assignment for all users",
+                  resourceName, expectedCount, realm);
+        }
+    }
 
     private void cacheRealmAndPopulateContext(RealmContext context) {
         DatasetConfig config = context.getConfig();
