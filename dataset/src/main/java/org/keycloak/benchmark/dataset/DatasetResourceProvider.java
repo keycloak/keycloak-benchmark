@@ -63,6 +63,7 @@ import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1134,6 +1135,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         RealmModel realm = session.realms().getRealm(context.getRealm().getId());
         DatasetConfig config = context.getConfig();
 
+        warnMissingResource(realm.getName(), "realm-roles", context.getRealmRoles(), config.getRealmRolesPerUser());
+        warnMissingResource(realm.getName(), "client-roles", context.getClientRoles(), config.getClientRolesPerUser());
+        warnMissingResource(realm.getName(), "groups", context.getGroups(), config.getGroupsPerUser());
+
         for (int i = startIndex; i < endIndex; i++) {
             String username = config.getUserPrefix() + i;
             UserModel user = session.users().addUser(realm, username);
@@ -1154,9 +1159,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     logger.tracef("Assigned role %s to the user %s", context.getRealmRoles().get(roleIndex).getName(), user.getUsername());
                 }
-            } else if (config.getRealmRolesPerUser() > 0) {
-                logger.warnf("realm-roles-per-user=%d but no realm roles defined in realm %s, skipping role assignment for user %s",
-                      config.getRealmRolesPerUser(), realm.getName(), user.getUsername());
             }
 
             // Assign a client role to a user if any exist in the realm
@@ -1168,9 +1170,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     logger.tracef("Assigned role %s to the user %s", context.getClientRoles().get(roleIndex).getName(), user.getUsername());
                 }
-            } else if (config.getClientRolesPerUser() > 0) {
-                logger.warnf("client-roles-per-user=%d but no client roles defined in realm %s, skipping client role assignment for user %s",
-                      config.getClientRolesPerUser(), realm.getName(), user.getUsername());
             }
 
             // Assign a group to a user if any exist
@@ -1183,15 +1182,18 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
                 }
-            } else if (config.getGroupsPerUser() > 0) {
-                logger.warnf("groups-per-user=%d but no groups defined in realm %s, skipping joining group for user %s",
-                      config.getGroupsPerUser(), realm.getName(), user.getUsername());
             }
 
             context.incUserCount();
         }
     }
 
+    private void warnMissingResource(String realm, String resourceName, Collection<?> resource, Integer expectedCount) {
+        if (resource.isEmpty() && expectedCount > 0) {
+            logger.warnf("%1$s-per-user=%2$d but no %1$s are defined in realm %3$s, skipping %1$s assignment for all users",
+                  resourceName, expectedCount, realm);
+        }
+    }
 
     private void cacheRealmAndPopulateContext(RealmContext context) {
         DatasetConfig config = context.getConfig();
