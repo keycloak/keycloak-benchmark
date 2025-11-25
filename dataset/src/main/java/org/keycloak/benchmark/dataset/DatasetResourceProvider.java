@@ -1145,32 +1145,47 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             String password = String.format("%s-password", username);
             user.credentialManager().updateCredential(UserCredentialModel.password(password, false));
 
-            // Detect which roles we assign to the user
-            int roleIndexStartForCurrentUser = (i * config.getRealmRolesPerUser());
-            for (int j = roleIndexStartForCurrentUser ; j < roleIndexStartForCurrentUser + config.getRealmRolesPerUser() ; j++) {
-                int roleIndex = j % context.getRealmRoles().size();
-                user.grantRole(context.getRealmRoles().get(roleIndex));
+            // Assign a role to a user if any exist in the realm
+            if (!context.getRealmRoles().isEmpty()) {
+                int roleIndexStartForCurrentUser = (i * config.getRealmRolesPerUser());
+                for (int j = roleIndexStartForCurrentUser; j < roleIndexStartForCurrentUser + config.getRealmRolesPerUser(); j++) {
+                    int roleIndex = j % context.getRealmRoles().size();
+                    user.grantRole(context.getRealmRoles().get(roleIndex));
 
-                logger.tracef("Assigned role %s to the user %s", context.getRealmRoles().get(roleIndex).getName(), user.getUsername());
+                    logger.tracef("Assigned role %s to the user %s", context.getRealmRoles().get(roleIndex).getName(), user.getUsername());
+                }
+            } else if (config.getRealmRolesPerUser() > 0) {
+                logger.warnf("realm-roles-per-user=%d but no realm roles defined in realm %s, skipping role assignment for user %s",
+                      config.getRealmRolesPerUser(), realm.getName(), user.getUsername());
             }
 
-            int clientRolesTotal = context.getClientRoles().size();
-            int clientRoleIndexStartForCurrentUser = (i * config.getClientRolesPerUser());
-            for (int j = clientRoleIndexStartForCurrentUser ; j < clientRoleIndexStartForCurrentUser + config.getClientRolesPerUser() ; j++) {
-                int roleIndex = j % clientRolesTotal;
-                user.grantRole(context.getClientRoles().get(roleIndex));
+            // Assign a client role to a user if any exist in the realm
+            if (!context.getClientRoles().isEmpty()) {
+                int clientRoleIndexStartForCurrentUser = (i * config.getClientRolesPerUser());
+                for (int j = clientRoleIndexStartForCurrentUser; j < clientRoleIndexStartForCurrentUser + config.getClientRolesPerUser(); j++) {
+                    int roleIndex = j % context.getClientRoles().size();
+                    user.grantRole(context.getClientRoles().get(roleIndex));
 
-                logger.tracef("Assigned role %s to the user %s", context.getClientRoles().get(roleIndex).getName(), user.getUsername());
+                    logger.tracef("Assigned role %s to the user %s", context.getClientRoles().get(roleIndex).getName(), user.getUsername());
+                }
+            } else if (config.getClientRolesPerUser() > 0) {
+                logger.warnf("client-roles-per-user=%d but no client roles defined in realm %s, skipping client role assignment for user %s",
+                      config.getClientRolesPerUser(), realm.getName(), user.getUsername());
             }
 
-            // Detect which groups we assign to the user
-            int groupIndexStartForCurrentUser = (i * config.getGroupsPerUser());
-            for (int j = groupIndexStartForCurrentUser ; j < groupIndexStartForCurrentUser + config.getGroupsPerUser() ; j++) {
-                int groupIndex = j % context.getGroups().size();
-                GroupModel group = context.getGroups().get(groupIndex);
-                user.joinGroup(session.groups().getGroupById(realm, group.getId()));
+            // Assign a group to a user if any exist
+            if (!context.getGroups().isEmpty()) {
+                int groupIndexStartForCurrentUser = (i * config.getGroupsPerUser());
+                for (int j = groupIndexStartForCurrentUser; j < groupIndexStartForCurrentUser + config.getGroupsPerUser(); j++) {
+                    int groupIndex = j % context.getGroups().size();
+                    GroupModel group = context.getGroups().get(groupIndex);
+                    user.joinGroup(session.groups().getGroupById(realm, group.getId()));
 
-                logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
+                    logger.tracef("Assigned group %s to the user %s", context.getGroups().get(groupIndex).getName(), user.getUsername());
+                }
+            } else if (config.getGroupsPerUser() > 0) {
+                logger.warnf("groups-per-user=%d but no groups defined in realm %s, skipping joining group for user %s",
+                      config.getGroupsPerUser(), realm.getName(), user.getUsername());
             }
 
             context.incUserCount();
