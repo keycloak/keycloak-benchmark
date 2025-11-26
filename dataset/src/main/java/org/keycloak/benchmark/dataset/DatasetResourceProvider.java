@@ -33,6 +33,7 @@ import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.benchmark.dataset.organization.OrganizationProvisioner;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
+import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
 import org.keycloak.events.EventType;
@@ -52,6 +53,7 @@ import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.models.cache.CacheRealmProvider;
+import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
@@ -71,6 +73,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_CLIENTS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVENTS;
@@ -435,6 +438,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     private void addUserCreationTasks(RealmContext context, Task task, DatasetConfig config, ExecutorHelper executor, int startIndex, int usersCount) {
+        // Initialize password credentials if unique-credentials-count is configured
+        List<PasswordCredentialModel> credentials = initializeCredentials(config, context);
 
         for (int i = startIndex; i < (startIndex + usersCount); i += config.getUsersPerTransaction()) {
             final int usersStartIndex = i;
@@ -446,7 +451,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             executor.addTaskRunningInTransaction(session -> {
                 KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
 
-                createUsers(context, session, usersStartIndex, endIndex);
+                createUsers(context, session, usersStartIndex, endIndex, credentials);
 
                 task.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
 
@@ -457,6 +462,17 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+    private List<PasswordCredentialModel> initializeCredentials(DatasetConfig config, RealmContext context) {
+        PasswordPolicy policy = context.getRealm().getPasswordPolicy();
+        PasswordHashProvider hash = policy.getHashAlgorithm() != null ?
+              baseSession.getProvider(PasswordHashProvider.class, policy.getHashAlgorithm()) :
+              baseSession.getProvider(PasswordHashProvider.class);
+
+        return IntStream.range(0, config.getUniqueCredentialCount())
+              .boxed()
+              .map(i -> hash.encodedCredential("password-" + i, policy.getHashIterations()))
+              .toList();
+    }
 
     @GET
     @Path("/create-events")
@@ -1130,7 +1146,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     }
 
     // Worker task to be triggered by single executor thread
-    private void createUsers(RealmContext context, KeycloakSession session, int startIndex, int endIndex) {
+    private void createUsers(RealmContext context, KeycloakSession session, int startIndex, int endIndex, List<PasswordCredentialModel> credentials) {
         // Refresh the realm
         RealmModel realm = session.realms().getRealm(context.getRealm().getId());
         DatasetConfig config = context.getConfig();
@@ -1147,8 +1163,13 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             user.setLastName(username + "-last");
             user.setEmail(username + String.format("@%s.com", realm.getName()));
 
-            String password = String.format("%s-password", username);
-            user.credentialManager().updateCredential(UserCredentialModel.password(password, false));
+            if (credentials.isEmpty()) {
+                String password = String.format("%s-password", username);
+                user.credentialManager().updateCredential(UserCredentialModel.password(password, false));
+            } else {
+                PasswordCredentialModel password = credentials.get(i % config.getUniqueCredentialCount());
+                user.credentialManager().createStoredCredential(password);
+            }
 
             // Assign a role to a user if any exist in the realm
             if (!context.getRealmRoles().isEmpty()) {

@@ -24,8 +24,9 @@ set_environment_variables () {
   STATUS_TIMEOUT="120"
   CREATE_TIMEOUT="3600"
   THREADS="-1"
+  UNIQUE_CREDENTIALS="-1"
 
-  while getopts ":a:r:n:c:u:e:o:g:i:p:l:t:C:T:" OPT
+  while getopts ":a:r:n:c:u:e:o:g:i:p:l:t:C:T:U:" OPT
   do
     case $OPT in
       a)
@@ -70,6 +71,9 @@ set_environment_variables () {
       T)
         THREADS=$OPTARG
         ;;
+      U)
+        UNIQUE_CREDENTIALS=$OPTARG
+        ;;
       ?)
         echo "Invalid option: $OPT, read the usage carefully -> "
         help
@@ -85,7 +89,7 @@ create_clients () {
 
 create_users () {
   echo "Creating $1 user/s in realm $2"
-  execute_command "create-users?count=$1&realm-name=$2"
+  execute_command "create-users?count=$1&realm-name=$2&unique-credential-count=$3"
 }
 
 create_events () {
@@ -201,7 +205,7 @@ main () {
       exit 0
       ;;
     create-users)
-      create_users $USERS_COUNT $REALM_NAME
+      create_users $USERS_COUNT $REALM_NAME $UNIQUE_CREDENTIALS
       exit 0
       ;;
     create-events)
