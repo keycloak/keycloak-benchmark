@@ -26,6 +26,9 @@ inputs:
   maxWaitEntityCreation:
     description: 'Maximum number of seconds to wait for creation of entities'
     default: '300'
+  uniqueCredentials:
+    description: 'Limits the total number of credentials created to the specified amount in order to speed up dataset initialisation'
+    default: '-1'
 
 runs:
   using: "composite"
@@ -39,7 +42,7 @@ runs:
       shell: bash
       run: |
         ./dataset-import.sh -a clear-status-completed -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
-        ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset -C ${{ inputs.maxWaitEntityCreation }}
+        ./dataset-import.sh -a create-realms -r ${{ inputs.realms }} -c ${{ inputs.clients }} -u ${{ inputs.users }} -U ${{ inputs.uniqueCredentials }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset -C ${{ inputs.maxWaitEntityCreation }}
         ./dataset-import.sh -a status-completed -t ${{ inputs.maxWaitEntityCreation }} -l ${{ env.KEYCLOAK_URL }}/realms/master/dataset
       working-directory: dataset
 

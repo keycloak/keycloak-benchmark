@@ -26,6 +26,10 @@ on:
         description: 'Maximum number of seconds to wait for creation of entities'
         type: string
         default: '300'
+      uniqueCredentials:
+        description: 'Limits the total number of credentials created to the specified amount in order to speed up dataset initialisation'
+        type: string
+        default: '-1'
 
 jobs:
   prepare:
@@ -56,3 +60,4 @@ jobs:
           users: ${{ inputs.users }}
           clients: ${{ inputs.clients }}
           maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
+          uniqueCredentials: ${{ inputs.uniqueCredentials }}
