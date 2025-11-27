@@ -101,6 +101,12 @@ public class Config {
      */
     public static final String basicUrl = System.getProperty("basic-url");
 
+    /**
+     * Used to correctly configure user passwords when users have been created via the dataset using the `unique-credential-count` option.
+     * In order for the password to be calculated correctly, this value should match the value used when creating the dataset.
+     */
+    public static final int uniqueCredentialCount = Integer.getInteger("unique-credential-count", -1);
+
     public static final Double usersPerSec;
 
     public static final Integer concurrentUsers;
