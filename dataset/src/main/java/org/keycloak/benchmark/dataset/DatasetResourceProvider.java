@@ -32,6 +32,7 @@ import org.keycloak.benchmark.dataset.config.ConfigUtil;
 import org.keycloak.benchmark.dataset.config.DatasetConfig;
 import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.benchmark.dataset.organization.OrganizationProvisioner;
+import org.keycloak.common.util.Time;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.events.Event;
@@ -82,6 +83,7 @@ import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_EVEN
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_GROUPS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_OFFLINE_SESSIONS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_REALMS;
+import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_SESSIONS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.CREATE_USERS;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_CLIENT;
 import static org.keycloak.benchmark.dataset.config.DatasetOperation.LAST_REALM;
@@ -587,6 +589,98 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
+    @GET
+    @Path("/create-sessions")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createSessions() {
+        boolean started = false;
+        boolean taskAdded = false;
+        try {
+            DatasetConfig config = ConfigUtil.createConfigFromQueryParams(httpRequest, CREATE_SESSIONS);
+
+            int lastRealmIndex = ConfigUtil.findFreeEntityIndex(index -> {
+                String realmName = config.getRealmPrefix() + index;
+                return baseSession.getProvider(RealmProvider.class).getRealmByName(realmName) != null;
+            }) - 1;
+            if (lastRealmIndex < 0) {
+                throw new DatasetException("Not found any realm with prefix '" + config.getRealmName() + "'");
+            }
+
+            Task task = Task.start("Creation of " + config.getCount() + " sessions");
+            TaskManager taskManager = new TaskManager(baseSession);
+            Task existingTask = taskManager.addTaskIfNotInProgress(task, config.getTaskTimeout());
+            if (existingTask != null) {
+                return Response.status(400).entity(TaskResponse.errorSomeTaskInProgress(existingTask, getStatusUrl())).build();
+            } else {
+                taskAdded = true;
+            }
+
+            logger.infof("Trigger creating sessions with the configuration: %s", config);
+            logger.infof("Will create sessions in the realms '" + config.getRealmPrefix() + "0' - '" + config.getRealmPrefix() + lastRealmIndex + "'");
+
+            // Run this in separate thread to not block HTTP request
+            new Thread(() -> createSessionsImpl(task, config, lastRealmIndex)).start();
+            started = true;
+
+            return Response.ok(TaskResponse.taskStarted(task, getStatusUrl())).build();
+        } catch (DatasetException de) {
+            return handleDatasetException(de);
+        } finally {
+            if (taskAdded && !started) {
+                new TaskManager(baseSession).removeExistingTask(false);
+            }
+        }
+    }
+
+    // Implementation of creating many sessions. This is triggered outside of HTTP request to not block HTTP request
+    private void createSessionsImpl(Task task, DatasetConfig config, int lastRealmIndex) {
+        int startTime = Time.currentTime();
+        ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
+        try {
+            int sessionsPerTransaction = config.getSessionsPerTransaction();
+            AtomicInteger numberOfSessions = new AtomicInteger();
+            for (int i = 0; i < config.getCount(); i += sessionsPerTransaction) {
+                int startIndex = i;
+                int endIndex = Math.min(i + sessionsPerTransaction, startIndex + config.getCount());
+
+                // Run this concurrently with multiple threads
+                executor.addTaskRunningInTransaction(session -> {
+
+                    int realmIdx = new Random().nextInt(lastRealmIndex + 1);
+                    String realmName = config.getRealmPrefix() + realmIdx;
+                    RealmModel realm = session.realms().getRealmByName(realmName);
+                    if (realm == null) {
+                        throw new IllegalStateException("Not found realm with name '" + realmName + "'");
+                    }
+                    session.getContext().setRealm(realm);
+
+                    String username = config.getUserPrefix() + "0";
+                    UserModel user = session.users().getUserByUsername(realm, username);
+                    if (user == null) {
+                        throw new IllegalStateException("Not found user with username '" + username + "' in the realm '" + realmName + "'");
+                    }
+
+                    for (int j = startIndex; j < endIndex; j++) {
+                        var userSession = session.sessions().createUserSession(null, realm, user, username, "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
+                        if (config.getSessionExpirationInterval() > 0) {
+                            userSession.setLastSessionRefresh(startTime + (numberOfSessions.incrementAndGet() * config.getSessionExpirationInterval()));
+                        }
+                    }
+                });
+            }
+
+            executor.waitForAllToFinish();
+
+            task.info(logger, "Created %d sessions", numberOfSessions.get());
+            success();
+
+        } catch (Throwable ex) {
+            logException(ex);
+        } finally {
+            cleanup(executor);
+        }
+    }
 
     @GET
     @Path("/create-offline-sessions")
@@ -665,7 +759,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     }
 
                     for (int j = 0; j < offlineSessionsPerTransaction; j++) {
-                        UserSessionModel userSession = session.sessions().createUserSession(realm, user, username, "127.0.0.1", "form", false, null, null);
+                        UserSessionModel userSession = session.sessions().createUserSession(null, realm, user, username, "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
                         AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
 
                         // Convert user and client sessions to offline.

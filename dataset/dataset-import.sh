@@ -17,6 +17,7 @@ set_environment_variables () {
   USERS_COUNT="100"
   EVENTS_COUNT="100"
   SESSIONS_COUNT="100"
+  OFFLINE_SESSIONS_COUNT="100"
   if ( minikube version &>/dev/null ); then
     KEYCLOAK_URI="https://keycloak-keycloak.$(minikube ip || echo 'unknown').nip.io/realms/master/dataset"
   fi
@@ -25,8 +26,9 @@ set_environment_variables () {
   CREATE_TIMEOUT="3600"
   THREADS="-1"
   UNIQUE_CREDENTIALS="-1"
+  SESSION_EXPIRATION_INTERVAL="-1"
 
-  while getopts ":a:r:n:c:u:e:o:g:i:p:l:t:C:T:U:" OPT
+  while getopts ":a:r:n:c:u:e:o:s:g:i:p:l:t:C:T:U:E:" OPT
   do
     case $OPT in
       a)
@@ -48,6 +50,9 @@ set_environment_variables () {
         EVENTS_COUNT=$OPTARG
         ;;
       o)
+        OFFLINE_SESSIONS_COUNT=$OPTARG
+        ;;
+      s)
         SESSIONS_COUNT=$OPTARG
         ;;
       g)
@@ -74,6 +79,9 @@ set_environment_variables () {
       U)
         UNIQUE_CREDENTIALS=$OPTARG
         ;;
+      E)
+        SESSION_EXPIRATION_INTERVAL=$OPTARG
+        ;;
       ?)
         echo "Invalid option: $OPT, read the usage carefully -> "
         help
@@ -95,6 +103,11 @@ create_users () {
 create_events () {
   echo "Creating $1 event/s in realm $2"
   execute_command "create-events?count=$1&realm-name=$2"
+}
+
+create_sessions () {
+  echo "Creating $1 sessions in realm $2 with expiration interval $3"
+  execute_command "create-sessions?count=$1&realm-name=$2&session-expiration-interval=$3"
 }
 
 create_offline_sessions () {
@@ -212,8 +225,12 @@ main () {
       create_events $EVENTS_COUNT $REALM_NAME
       exit 0
       ;;
+    create-sessions)
+      create_sessions $SESSIONS_COUNT $REALM_NAME $SESSION_EXPIRATION_INTERVAL
+      exit 0
+      ;;
     create-offline-sessions)
-      create_offline_sessions $SESSIONS_COUNT $REALM_NAME
+      create_offline_sessions $OFFLINE_SESSIONS_COUNT $REALM_NAME
       exit 0
       ;;
     delete-realms)
