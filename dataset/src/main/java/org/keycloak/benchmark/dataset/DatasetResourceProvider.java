@@ -67,8 +67,10 @@ import org.keycloak.services.resource.RealmResourceProvider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -439,7 +441,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
     private void addUserCreationTasks(RealmContext context, Task task, DatasetConfig config, ExecutorHelper executor, int startIndex, int usersCount) {
         // Initialize password credentials if unique-credentials-count is configured
-        List<PasswordCredentialModel> credentials = initializeCredentials(config, context);
+        List<PasswordCredentialModel> credentials = initializeCredentials(config, usersCount, context);
 
         for (int i = startIndex; i < (startIndex + usersCount); i += config.getUsersPerTransaction()) {
             final int usersStartIndex = i;
@@ -462,15 +464,22 @@ public class DatasetResourceProvider implements RealmResourceProvider {
         }
     }
 
-    private List<PasswordCredentialModel> initializeCredentials(DatasetConfig config, RealmContext context) {
-        PasswordPolicy policy = context.getRealm().getPasswordPolicy();
-        PasswordHashProvider hash = policy.getHashAlgorithm() != null ?
-              baseSession.getProvider(PasswordHashProvider.class, policy.getHashAlgorithm()) :
-              baseSession.getProvider(PasswordHashProvider.class);
+    private List<PasswordCredentialModel> initializeCredentials(DatasetConfig config, int usersCount, RealmContext context) {
+        var map = IntStream.range(0, Math.min(usersCount, config.getUniqueCredentialCount()))
+              .parallel()
+              .mapToObj(i -> KeycloakModelUtils.runJobInTransactionWithResult(baseSession.getKeycloakSessionFactory(), session -> {
+                  KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
+                  PasswordPolicy policy = context.getRealm().getPasswordPolicy();
+                  PasswordHashProvider hash = policy.getHashAlgorithm() != null ?
+                        baseSession.getProvider(PasswordHashProvider.class, policy.getHashAlgorithm()) :
+                        baseSession.getProvider(PasswordHashProvider.class);
+                  return Map.entry(i, hash.encodedCredential("password-" + i, policy.getHashIterations()));
+              }))
+              .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        return IntStream.range(0, config.getUniqueCredentialCount())
-              .boxed()
-              .map(i -> hash.encodedCredential("password-" + i, policy.getHashIterations()))
+        return map.entrySet().stream()
+              .sorted(Comparator.comparingInt(Map.Entry::getKey))
+              .map(Map.Entry::getValue)
               .toList();
     }
 

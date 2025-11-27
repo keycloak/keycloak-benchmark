@@ -226,7 +226,7 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "identity-provider-mappers-count", operations = CREATE_ORGS)
     private int identityProviderMappersCount;
 
-    @QueryParamIntFill(paramName = "unique-credential-count", defaultValue = 0, operations =  CREATE_USERS)
+    @QueryParamIntFill(paramName = "unique-credential-count", defaultValue = 0, operations =  {CREATE_REALMS, CREATE_USERS})
     private int uniqueCredentialCount;
 
     // String representation of this configuration (cached here to not be computed in runtime)
