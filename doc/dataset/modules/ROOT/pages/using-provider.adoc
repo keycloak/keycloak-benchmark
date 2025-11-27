@@ -76,7 +76,8 @@ Each realm will contain specified amount of roles, clients, groups and users:
 
 === Create many clients
 
-This is request to create 100 new clients in the realm `realm-5` . Each client will have service account enabled and secret like «client_id»-secret (For example `client-156-secret` in case of the client `client-156`):
+This is a request to create 200 new clients in the realm `realm-5`.
+Each client will have service account enabled and secret like «client_id»-secret (For example `client-156-secret` in the case of the client `client-156`):
 
 ----
 .../realms/master/dataset/create-clients?count=200&realm-name=realm-5
@@ -90,14 +91,32 @@ You can also configure the access-type (`bearer-only`, `confidential` or `public
 
 === Create many users
 
-This is request to create 500 new users in the `realm-5`.
-Each user will have specified amount of roles, client roles and groups, which were already created by `create-realms` endpoint.
-Each user will have password like «Username»-password . For example `user-156` will have password like
-`user-156-password` :
+This is a request to create 1000 new users in the realm `realm-5`:
 
 ----
 .../realms/master/dataset/create-users?count=1000&realm-name=realm-5
 ----
+
+Each user will have the specified amount of roles, client roles and groups, which were already created by the `create-realms` endpoint.
+Each user will be assigned a password in the format «Username»-password. For example `user-156` will have the password `user-156-password`.
+
+=== Limit total number of passwords
+
+To reduce latency when creating a large number of users, it is possible to configure the dataset to only create a limited
+pool of hashed passwords and reuse these credentials when creating users. Specify the `unique-credential-count` parameter
+in order to limit the number of passwords created.
+
+When limiting the total number of passwords, individual passwords for a given user are calculated as `"password-" + i`
+where `i` is the user's number % `unique-credential-count`.
+
+For example, after executing:
+
+----
+.../realms/master/dataset/create-users?realm-name=realm-0&count=1000&unique-credential-count=10`
+----
+
+the user `user-156` will have the password `"password-6"` as we calculate `i = 156 % 10`.
+
 
 === Create many groups
 
@@ -137,7 +156,7 @@ You can also create groups in an existing realm by invoking the `create-groups` 
 
 === Create many events
 
-This is request to create 10M new events in the available realms with prefix `realm-`.
+This is a request to create 10M new events in the available realms with prefix `realm-`.
 For example if we have 100 realms like `realm-0`, `realm-1`, ... `realm-99`, it will create 10M events randomly in them
 
 ----
@@ -146,7 +165,7 @@ For example if we have 100 realms like `realm-0`, `realm-1`, ... `realm-99`, it 
 
 === Create many offline sessions
 
-This is request to create 10M new offline sessions in the available realms with prefix `realm-`.
+This is a request to create 10M new offline sessions in the available realms with prefix `realm-`.
 For example if we have 100 realms like `realm-0`, `realm-1`, … `realm-99`, it will create 10M events randomly in them
 
 ----
