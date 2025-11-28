@@ -59,23 +59,26 @@ class KeycloakScenarioBuilder {
     val serverUrl = Config.serverUrisList.iterator().next()
     val realmIndex = String.valueOf(Random.nextInt(Config.numOfRealms))
     val clientIndex = String.valueOf(Random.nextInt(Config.numClientsPerRealm))
-    val userIndex = String.valueOf(Random.nextInt(Config.numUsersPerRealm) + Config.userIndexOffset)
+    val userIndex = Random.nextInt(Config.numUsersPerRealm) + Config.userIndexOffset
+    var userIndexStr = String.valueOf(userIndex)
     var realmName = Config.realmPrefix.concat(realmIndex)
 
     if (Config.realmName != null) {
       realmName = Config.realmName
     }
 
-    var userName = Config.userNamePrefix.concat(userIndex)
+    var userName = Config.userNamePrefix.concat(userIndexStr)
 
     if (Config.userName != null) {
       userName = Config.userName
     }
 
-    var userPassword = Config.userPasswordPrefix.concat(userIndex).concat(Config.userPasswordSuffix)
-
-    if (Config.userPassword != null) {
-      userPassword = Config.userPassword
+    var userPassword = if (Config.userPassword != null) {
+      Config.userPassword
+    } else if (Config.uniqueCredentialCount > 0) {
+      s"password-${userIndex % Config.uniqueCredentialCount}"
+    } else {
+      Config.userPasswordPrefix.concat(userIndexStr).concat(Config.userPasswordSuffix)
     }
 
     var redirectUri = serverUrl.stripSuffix("/").concat("/realms/").concat(realmName).concat("/account")
