@@ -68,7 +68,7 @@ To learn more about the tool, see xref:kubernetes-guide::util/task.adoc[] for de
 
 You need to call this HTTP REST requests.
 This request is useful for create 10 realms.
-Each realm will contain specified amount of roles, clients, groups and users:
+Each realm will contain a set of roles, clients, groups and users:
 
 ----
 .../realms/master/dataset/create-realms?count=10
@@ -77,7 +77,8 @@ Each realm will contain specified amount of roles, clients, groups and users:
 === Create many clients
 
 This is a request to create 200 new clients in the realm `realm-5`.
-Each client will have service account enabled and secret like «client_id»-secret (For example `client-156-secret` in the case of the client `client-156`):
+
+Each client will have service account enabled and secret like `<client_id>-secret` (For example `client-156-secret` in the case of the client `client-156`):
 
 ----
 .../realms/master/dataset/create-clients?count=200&realm-name=realm-5
@@ -98,11 +99,14 @@ This is a request to create 1000 new users in the realm `realm-5`:
 ----
 
 Each user will have the specified amount of roles, client roles and groups, which were already created by the `create-realms` endpoint.
-Each user will be assigned a password in the format «Username»-password. For example `user-156` will have the password `user-156-password`.
 
-=== Limit total number of passwords
+Each user will be assigned a password in the format `<username>-password`. For example `user-156` will have the password `user-156-password`.
 
-To reduce latency when creating a large number of users, it is possible to configure the dataset to only create a limited
+=== Speed up user creation by limiting the total number of passwords
+
+When creating users, the bottleneck is CPU time to hash the passwords that are by default unique for each user.
+
+To reduce total time to create a large number of users, configure the dataset to only create a limited
 pool of hashed passwords and reuse these credentials when creating users. Specify the `unique-credential-count` parameter
 in order to limit the number of passwords created.
 
@@ -115,8 +119,7 @@ For example, after executing:
 .../realms/master/dataset/create-users?realm-name=realm-0&count=1000&unique-credential-count=10`
 ----
 
-the user `user-156` will have the password `"password-6"` as we calculate `i = 156 % 10`.
-
+the user `user-156` will have the password `password-6` as we calculate `i = 156 % 10`.
 
 === Create many groups
 
@@ -134,7 +137,7 @@ With groups-with-hierarchy set to `true` a tree structure of groups is created; 
 The default value is 3. With the default value, top level groups will have `groups-count-each-level` subgroups and each subgroup will have `groups-count-each-level` themselves.
 This parameter is active only when `groups-with-hierarchy` is `true`.
 
-`groups-count-each-level`:: Number of subgroups each created group will have.
+`groups-count-each-level`:: The Number of subgroups each created group will have.
 This parameter is active only when `groups-with-hierarchy` is `true`.
 
 With the default values, only top-level groups are created.
@@ -197,7 +200,7 @@ For example to create realms with prefix `foo` and with just 1000 hash iteration
 .../realms/master/dataset/create-realms?count=10&realm-prefix=foo&password-hash-iterations=1000
 ----
 
-Another example would be, to specify a particular hashing algorithm in combination with the hashing iterations with the below parameters:
+Another example would be to specify a particular hashing algorithm in combination with the hashing iterations with the below parameters:
 
 ----
 .../realms/master/dataset/create-realms?count=10&realm-prefix=foo&password-hash-algorithm=argon2&password-hash-iterations=1000
@@ -206,7 +209,7 @@ Another example would be, to specify a particular hashing algorithm in combinati
 The configuration is written to the server log when HTTP endpoint is triggered, so you can monitor the progress and what parameters were effectively applied.
 
 Note that creation of new objects will automatically start from the next available index.
-For example when you trigger endpoint above for creation many clients and you already had 230 clients in your DB (`client-0`, `client-1`, .. `client-229`), then your HTTP request will start creating clients from `client-230` .
+For example when you trigger endpoint above for creation many clients, and you already had 230 clients in your DB (`client-0`, `client-1`, ... `client-229`), then your HTTP request will start creating clients from `client-230` .
 
 === Check if the task is still running
 
@@ -299,7 +302,7 @@ Alternatively, you can create a single organization with a given name:
 realms/realm-0/dataset/orgs/create?name=myorg.com&domains=myorg.com,myorg.org,myorg.net&count=1
 ----
 
-You can also specify how many members (managed and unmanaged) and how many identity providers should be
+You can also specify how many managed and unmanaged members and how many identity providers should be
 linked to each organization created:
 
 ----
@@ -311,13 +314,13 @@ As a result, 1k organizations with the following configuration:
 * 500 unmanaged members
 * 10 identity providers
 
-It is also possible te specify a number of identity provider mappers per each identity provider:
+It is also possible to specify a number of identity provider mappers per each identity provider:
 
 ----
 .../realms/realm-0/dataset/orgs/create?count=1000&unmanaged-members-count=500&identity-providers-count=10&identity-provider-mappers-count=3
 ----
 
-In this case 1k organizations with each having 500 unmanaged members, 10 identity providers and each identity provider having 3 identity provider mnappers
+This creates 1k organizations with 500 unmanaged members each, 10 identity providers and with identity provider having 3 identity provider mappers.
 
 You can also provision data to a specific organization. For instance, to provision
 more identity providers to a specific organization:
@@ -326,7 +329,7 @@ more identity providers to a specific organization:
 .../realms/realm-0/dataset/orgs/org-0/identity-providers/create?count=1000
 ----
 
-Optionally it's possible to specify a number of identity provider mappers per each identity provider
+Optionally, it's possible to specify a number of identity provider mappers per each identity provider
 
 ----
 .../realms/realm-0/dataset/orgs/org-0/identity-providers/create?count=1000&identity-provider-mappers-count=5
@@ -344,7 +347,7 @@ Or to provision more managed members to a specific organization:
 .../realms/realm-0/dataset/orgs/org-0/members/create-managed?count=100
 ----
 
-When provisioning members make sure you have created enough users in the realm. For managed members, you also need at least
+When provisioning members, make sure you have created enough users in the realm. For managed members, you also need at least
 a single identity provider linked to an organization.
 
 If you want to remove an organization:
