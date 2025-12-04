@@ -65,6 +65,7 @@ import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.managers.UserSessionManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -73,6 +74,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -104,6 +106,8 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     protected HttpRequest httpRequest;
 
     protected KeycloakUriInfo uriInfo;
+
+    private SecureRandom random = new SecureRandom();
 
     public DatasetResourceProvider(KeycloakSession session) {
         this.baseSession = session;
@@ -552,7 +556,7 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                     EventStoreProvider eventStore = session.getProvider(EventStoreProvider.class);
 
-		    for (int j = eventsStartIndex; j < eventsEndIndex; j++) {
+        		    for (int j = eventsStartIndex; j < eventsEndIndex; j++) {
                         int realmIdx = new Random().nextInt(lastRealmIndex + 1);
                         String realmName = config.getRealmPrefix() + realmIdx;
 
@@ -636,6 +640,9 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     // Implementation of creating many sessions. This is triggered outside of HTTP request to not block HTTP request
     private void createSessionsImpl(Task task, DatasetConfig config, int lastRealmIndex) {
         int startTime = Time.currentTime();
+        Map<String, List<String>> userIdsPerRealm = new ConcurrentHashMap<>();
+        Map<String, List<String>> clientIdsPerRealm = new ConcurrentHashMap<>();
+
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
             int sessionsPerTransaction = config.getSessionsPerTransaction();
@@ -655,18 +662,41 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     }
                     session.getContext().setRealm(realm);
 
-                    String username = config.getUserPrefix() + "0";
-                    UserModel user = session.users().getUserByUsername(realm, username);
-                    if (user == null) {
-                        throw new IllegalStateException("Not found user with username '" + username + "' in the realm '" + realmName + "'");
+                    List<String> users = userIdsPerRealm.computeIfAbsent(realmName, k ->
+                            session.users().searchForUserStream(realm, Map.of(UserModel.INCLUDE_SERVICE_ACCOUNT, "false")).map(UserModel::getId).toList()
+                    );
+                    List<String> clients = clientIdsPerRealm.computeIfAbsent(realmName, k ->
+                            session.clients().getClientsStream(realm).filter(clientModel -> clientModel.getClientId().startsWith("client-")).map(ClientModel::getId).toList()
+                    );
+                    if (clients.isEmpty()) {
+                        // try again without filtering by the client prefix
+                        clients = clientIdsPerRealm.computeIfAbsent(realmName, k ->
+                                session.clients().getClientsStream(realm).map(ClientModel::getId).toList()
+                        );
+                    }
+
+
+                    if (users.isEmpty()) {
+                        throw new IllegalStateException("No users found in the realm '" + realmName + "'");
+                    }
+
+                    if (clients.isEmpty()) {
+                        throw new IllegalStateException("No clients found in the realm '" + realmName + "'");
                     }
 
                     for (int j = startIndex; j < endIndex; j++) {
-                        var userSession = session.sessions().createUserSession(null, realm, user, username, "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
+                        UserModel user = session.users().getUserById(realm, users.get(random.nextInt(users.size())));
+                        var userSession = session.sessions().createUserSession(null, realm, user, user.getUsername(), "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
+                        ClientModel client = session.clients().getClientById(realm, clients.get(random.nextInt(clients.size())));
+
+                        AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(realm, client, userSession);
                         if (config.getSessionExpirationInterval() > 0) {
-                            userSession.setLastSessionRefresh(startTime + (numberOfSessions.incrementAndGet() * config.getSessionExpirationInterval()));
+                            userSession.setLastSessionRefresh(startTime + random.nextInt(config.getSessionExpirationInterval()));
+                            clientSession.setTimestamp(startTime + random.nextInt(config.getSessionExpirationInterval()));
                         }
+                        numberOfSessions.incrementAndGet();
                     }
+                    task.info(logger, "Created %d sessions", numberOfSessions.get());
                 });
             }
 

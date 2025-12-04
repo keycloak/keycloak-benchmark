@@ -229,8 +229,8 @@ public class DatasetConfig {
     @QueryParamIntFill(paramName = "unique-credential-count", defaultValue = 0, operations =  {CREATE_REALMS, CREATE_USERS})
     private int uniqueCredentialCount;
 
-    // Count of clients created in every DB transaction
-    @QueryParamIntFill(paramName = "sessions-per-transaction", defaultValue = 10, operations = CREATE_SESSIONS)
+    // Count of sessions created in every DB transaction
+    @QueryParamIntFill(paramName = "sessions-per-transaction", defaultValue = 1000, operations = CREATE_SESSIONS)
     private Integer sessionsPerTransaction;
 
     @QueryParamIntFill(paramName = "session-expiration-interval", defaultValue = 0, operations =  CREATE_SESSIONS)
