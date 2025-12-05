@@ -169,10 +169,10 @@ For example if we have 100 realms like `realm-0`, `realm-1`, ... `realm-99`, it 
 === Create many sessions
 
 This is a request to create 10M new sessions in the available realms with prefix `realm-`.
-For example if we have 100 realms like `realm-0`, `realm-1`, … `realm-99`, it will create 10M sessions in `realm-99` distributed across all users and clients of the realm.
+For example if we have 100 realms like `realm-0`, `realm-1`, … `realm-99`, it will create 10M sessions in `realm-99` distributed across all users and clients of the realm as defined by `clients-per-realm` and `users-per-realm`.
 
 ----
-.../realms/master/dataset/create-sessions?count=10000000
+.../realms/master/dataset/create-sessions?count=10000000&clients-per-realm=100&users-per-realm=1000
 ----
 
 You can also specify the optional parameter `session-expiration-interval` to stagger the expiration times of the created

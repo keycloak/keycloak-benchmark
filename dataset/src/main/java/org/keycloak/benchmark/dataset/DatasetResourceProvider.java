@@ -640,8 +640,6 @@ public class DatasetResourceProvider implements RealmResourceProvider {
     // Implementation of creating many sessions. This is triggered outside of HTTP request to not block HTTP request
     private void createSessionsImpl(Task task, DatasetConfig config, int lastRealmIndex) {
         int startTime = Time.currentTime();
-        Map<String, List<String>> userIdsPerRealm = new ConcurrentHashMap<>();
-        Map<String, List<String>> clientIdsPerRealm = new ConcurrentHashMap<>();
 
         ExecutorHelper executor = new ExecutorHelper(config.getThreadsCount(), baseSession.getKeycloakSessionFactory(), config);
         try {
@@ -662,32 +660,10 @@ public class DatasetResourceProvider implements RealmResourceProvider {
                     }
                     session.getContext().setRealm(realm);
 
-                    List<String> users = userIdsPerRealm.computeIfAbsent(realmName, k ->
-                            session.users().searchForUserStream(realm, Map.of(UserModel.INCLUDE_SERVICE_ACCOUNT, "false")).map(UserModel::getId).toList()
-                    );
-                    List<String> clients = clientIdsPerRealm.computeIfAbsent(realmName, k ->
-                            session.clients().getClientsStream(realm).filter(clientModel -> clientModel.getClientId().startsWith("client-")).map(ClientModel::getId).toList()
-                    );
-                    if (clients.isEmpty()) {
-                        // try again without filtering by the client prefix
-                        clients = clientIdsPerRealm.computeIfAbsent(realmName, k ->
-                                session.clients().getClientsStream(realm).map(ClientModel::getId).toList()
-                        );
-                    }
-
-
-                    if (users.isEmpty()) {
-                        throw new IllegalStateException("No users found in the realm '" + realmName + "'");
-                    }
-
-                    if (clients.isEmpty()) {
-                        throw new IllegalStateException("No clients found in the realm '" + realmName + "'");
-                    }
-
                     for (int j = startIndex; j < endIndex; j++) {
-                        UserModel user = session.users().getUserById(realm, users.get(random.nextInt(users.size())));
+                        UserModel user = session.users().getUserByUsername(realm, "user-" + random.nextInt(config.getUsersPerRealm()));
                         var userSession = session.sessions().createUserSession(null, realm, user, user.getUsername(), "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
-                        ClientModel client = session.clients().getClientById(realm, clients.get(random.nextInt(clients.size())));
+                        ClientModel client = session.clients().getClientByClientId(realm, "client-" + random.nextInt(config.getClientsPerRealm()));
 
                         AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(realm, client, userSession);
                         if (config.getSessionExpirationInterval() > 0) {

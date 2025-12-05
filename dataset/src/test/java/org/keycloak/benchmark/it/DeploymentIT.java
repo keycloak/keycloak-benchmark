@@ -101,7 +101,7 @@ public class DeploymentIT {
             waitForKeycloakStart();
             executeDatasetCommand("create-realms?count=1&clients-per-realm=2&users-per-realm=2");
             waitForDatasetCompleted();
-            executeDatasetCommand("create-sessions?count=100&session-expiration-interval=3600");
+            executeDatasetCommand("create-sessions?count=100&session-expiration-interval=3600&clients-per-realm=2&users-per-realm=2");
             waitForDatasetCompleted();
             executeDatasetCommand("remove-realms?remove-all=true&realm-prefix=realm-0");
             waitForDatasetCompleted();
