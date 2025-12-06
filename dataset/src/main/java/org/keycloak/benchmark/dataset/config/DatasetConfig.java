@@ -81,7 +81,7 @@ public class DatasetConfig {
     @QueryParamFill(paramName = "client-prefix", defaultValue = "client-", operations = { CREATE_REALMS, CREATE_CLIENTS, CREATE_USERS, CREATE_OFFLINE_SESSIONS, LAST_CLIENT })
     private String clientPrefix;
 
-    @QueryParamIntFill(paramName = "clients-per-realm", defaultValue = 30, operations = { CREATE_REALMS })
+    @QueryParamIntFill(paramName = "clients-per-realm", defaultValue = 30, operations = { CREATE_REALMS, CREATE_SESSIONS })
     private Integer clientsPerRealm;
 
     // Count of clients created in every DB transaction
@@ -137,7 +137,7 @@ public class DatasetConfig {
     private String userPrefix;
 
     // Count of users to be created in every realm (In case of CREATE_REALMS)
-    @QueryParamIntFill(paramName = "users-per-realm", defaultValue = 200, operations = { CREATE_REALMS, CREATE_AUTHZ_CLIENT })
+    @QueryParamIntFill(paramName = "users-per-realm", defaultValue = 200, operations = { CREATE_REALMS, CREATE_SESSIONS, CREATE_AUTHZ_CLIENT })
     private Integer usersPerRealm;
 
     // Count of groups assigned to every user
