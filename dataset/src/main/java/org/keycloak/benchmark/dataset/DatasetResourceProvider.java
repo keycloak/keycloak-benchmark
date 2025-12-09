@@ -34,6 +34,7 @@ import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.benchmark.dataset.organization.OrganizationProvisioner;
 import org.keycloak.common.util.Time;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
+import org.keycloak.connections.jpa.support.EntityManagers;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
@@ -239,18 +240,20 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
         for (AtomicInteger index = new AtomicInteger(0); index.get() < topLevelCount; index.incrementAndGet()) {
             KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), baseSession.getContext(), session -> {
-                RealmModel realm = session.realms().getRealmByName(realmName);
-                session.getContext().setRealm(realm);
-                String groupName = config.getGroupPrefix() + index.get();
+                EntityManagers.runInBatch(session, () -> {
+                    RealmModel realm = session.realms().getRealmByName(realmName);
+                    session.getContext().setRealm(realm);
+                    String groupName = config.getGroupPrefix() + index.get();
 
-                while (session.groups().getGroupByName(realm, null, groupName) != null) {
-                    groupName = config.getGroupPrefix() + index.incrementAndGet();
-                }
+                    while (session.groups().getGroupByName(realm, null, groupName) != null) {
+                        groupName = config.getGroupPrefix() + index.incrementAndGet();
+                    }
 
-                String finalGroupName = groupName;
-                session.groups().createGroup(realm, finalGroupName);
-                logger.infof("Creating top-level group %s in realm %s", groupName, context.getRealm().getName());
-                createGroupLevel(session, countGroupsAtEachLevel, hierarchyDepth, groupName, executor);
+                    String finalGroupName = groupName;
+                    session.groups().createGroup(realm, finalGroupName);
+                    logger.infof("Creating top-level group %s in realm %s", groupName, context.getRealm().getName());
+                    createGroupLevel(session, countGroupsAtEachLevel, hierarchyDepth, groupName, executor);
+                }, false);
             });
         }
 
@@ -457,15 +460,17 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
             // Run this concurrently with multiple threads
             executor.addTaskRunningInTransaction(session -> {
-                KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
+                EntityManagers.runInBatch(session, () -> {
+                    KeycloakModelUtils.cloneContextRealmClientToSession(baseSession.getContext(), session);
 
-                createUsers(context, session, usersStartIndex, endIndex, credentials);
+                    createUsers(context, session, usersStartIndex, endIndex, credentials);
 
-                task.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
+                    task.debug(logger, "Created users in realm %s from %d to %d", context.getRealm().getName(), usersStartIndex, endIndex);
 
-                if (((endIndex - startIndex) / config.getUsersPerTransaction()) % 20 == 0) {
-                    task.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
-                }
+                    if (((endIndex - startIndex) / config.getUsersPerTransaction()) % 20 == 0) {
+                        task.info(logger, "Created %d users in realm %s", context.getUserCount(), context.getRealm().getName());
+                    }
+                }, false);
             });
         }
     }
@@ -651,28 +656,29 @@ public class DatasetResourceProvider implements RealmResourceProvider {
 
                 // Run this concurrently with multiple threads
                 executor.addTaskRunningInTransaction(session -> {
-
-                    int realmIdx = new Random().nextInt(lastRealmIndex + 1);
-                    String realmName = config.getRealmPrefix() + realmIdx;
-                    RealmModel realm = session.realms().getRealmByName(realmName);
-                    if (realm == null) {
-                        throw new IllegalStateException("Not found realm with name '" + realmName + "'");
-                    }
-                    session.getContext().setRealm(realm);
-
-                    for (int j = startIndex; j < endIndex; j++) {
-                        UserModel user = session.users().getUserByUsername(realm, "user-" + random.nextInt(config.getUsersPerRealm()));
-                        var userSession = session.sessions().createUserSession(null, realm, user, user.getUsername(), "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
-                        ClientModel client = session.clients().getClientByClientId(realm, "client-" + random.nextInt(config.getClientsPerRealm()));
-
-                        AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(realm, client, userSession);
-                        if (config.getSessionExpirationInterval() > 0) {
-                            userSession.setLastSessionRefresh(startTime + random.nextInt(config.getSessionExpirationInterval()));
-                            clientSession.setTimestamp(startTime + random.nextInt(config.getSessionExpirationInterval()));
+                    EntityManagers.runInBatch(session, () -> {
+                        int realmIdx = new Random().nextInt(lastRealmIndex + 1);
+                        String realmName = config.getRealmPrefix() + realmIdx;
+                        RealmModel realm = session.realms().getRealmByName(realmName);
+                        if (realm == null) {
+                            throw new IllegalStateException("Not found realm with name '" + realmName + "'");
                         }
-                        numberOfSessions.incrementAndGet();
-                    }
-                    task.info(logger, "Created %d sessions", numberOfSessions.get());
+                        session.getContext().setRealm(realm);
+
+                        for (int j = startIndex; j < endIndex; j++) {
+                            UserModel user = session.users().getUserByUsername(realm, "user-" + random.nextInt(config.getUsersPerRealm()));
+                            var userSession = session.sessions().createUserSession(null, realm, user, user.getUsername(), "127.0.0.1", "form", false, null, null, UserSessionModel.SessionPersistenceState.PERSISTENT);
+                            ClientModel client = session.clients().getClientByClientId(realm, "client-" + random.nextInt(config.getClientsPerRealm()));
+
+                            AuthenticatedClientSessionModel clientSession = session.sessions().createClientSession(realm, client, userSession);
+                            if (config.getSessionExpirationInterval() > 0) {
+                                userSession.setLastSessionRefresh(startTime + random.nextInt(config.getSessionExpirationInterval()));
+                                clientSession.setTimestamp(startTime + random.nextInt(config.getSessionExpirationInterval()));
+                            }
+                            numberOfSessions.incrementAndGet();
+                        }
+                        task.info(logger, "Created %d sessions", numberOfSessions.get());
+                    }, false);
                 });
             }
 
