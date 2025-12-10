@@ -211,6 +211,10 @@ tasks:
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
           KUBECONFIG: "{{.KUBECONFIG}}"
+      - task: '{{ if ne .KC_OPERATOR_OLM "true" }}install-keycloak-operator{{else}}no-op{{ end }}'
+        vars:
+          NAMESPACE: "{{.NAMESPACE}}"
+          KUBECONFIG: "{{.KUBECONFIG}}"
       - task: install-keycloak-build-configs
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
@@ -225,10 +229,6 @@ tasks:
           NAMESPACE: "{{.NAMESPACE}}"
           KUBECONFIG: "{{.KUBECONFIG}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: '{{ if ne .KC_OPERATOR_OLM "true" }}install-keycloak-operator{{else}}no-op{{ end }}'
-        vars:
-          NAMESPACE: "{{.NAMESPACE}}"
-          KUBECONFIG: "{{.KUBECONFIG}}"
       - >
         KUBECONFIG="{{.KUBECONFIG}}"
         helm upgrade --install keycloak --namespace {{.NAMESPACE}}
