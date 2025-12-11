@@ -15,6 +15,8 @@ inputs:
   instances:
     description: 'The number of Aurora DB instances'
     default: "2"
+  clusterSnapshotId:
+    description: 'The cluster snapshot identifier'
 
 runs:
   using: "composite"
@@ -29,3 +31,4 @@ runs:
         AURORA_INSTANCE_CLASS: ${{ inputs.instanceClass }}
         AWS_REGION: ${{ inputs.region }}
         AURORA_INSTANCES: ${{ inputs.instances }}
+        AURORA_DB_SNAPSHOT_ID: ${{ inputs.clusterSnapshotId }}
