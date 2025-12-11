@@ -18,6 +18,7 @@
 
 package org.keycloak.benchmark.dataset;
 
+import jakarta.persistence.EntityManager;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -26,6 +27,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.hibernate.Session;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.NoCache;
 import org.keycloak.benchmark.dataset.config.ConfigUtil;
@@ -34,7 +36,9 @@ import org.keycloak.benchmark.dataset.config.DatasetException;
 import org.keycloak.benchmark.dataset.organization.OrganizationProvisioner;
 import org.keycloak.common.util.Time;
 import org.keycloak.connections.infinispan.InfinispanConnectionProvider;
+import org.keycloak.connections.jpa.JpaConnectionProvider;
 import org.keycloak.connections.jpa.support.EntityManagers;
+import org.keycloak.connections.jpa.util.JpaUtils;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventStoreProvider;
@@ -75,7 +79,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -683,6 +686,22 @@ public class DatasetResourceProvider implements RealmResourceProvider {
             }
 
             executor.waitForAllToFinish();
+
+            KeycloakModelUtils.runJobInTransaction(baseSession.getKeycloakSessionFactory(), session -> {
+                EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
+                String dbProductName = em.unwrap(Session.class).doReturningWork(connection -> connection.getMetaData().getDatabaseProductName());
+                String dbKind = JpaUtils.getDatabaseType(dbProductName);
+
+                if (dbKind.equals("postgresql")) {
+                    task.info(logger, "Analyzing table for %s", dbProductName);
+                    em.createNativeQuery("ANALYZE OFFLINE_USER_SESSION").executeUpdate();
+                    em.createNativeQuery("ANALYZE OFFLINE_CLIENT_SESSION").executeUpdate();
+                } else if (dbKind.equals("h2")) {
+                    task.info(logger, "Analyzing table for %s", dbProductName);
+                    em.createNativeQuery("ANALYZE TABLE OFFLINE_USER_SESSION").executeUpdate();
+                    em.createNativeQuery("ANALYZE TABLE OFFLINE_CLIENT_SESSION").executeUpdate();
+                }
+            });
 
             task.info(logger, "Created %d sessions", numberOfSessions.get());
             success();

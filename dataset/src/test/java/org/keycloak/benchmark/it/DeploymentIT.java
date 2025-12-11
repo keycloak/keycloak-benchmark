@@ -191,6 +191,7 @@ public class DeploymentIT {
         }
         cli.addAll(Arrays.asList("--verbose", "start-dev", "--http-port", Integer.toString(port)));
         cli.addAll(Arrays.asList(args));
+        // cli.addAll(Arrays.asList("--db=postgres", "--db-password=pass", "--db-username=keycloak"));
         ProcessBuilder processBuilder = new ProcessBuilder(cli);
         processBuilder.environment().put("KEYCLOAK_ADMIN", "admin");
         processBuilder.environment().put("KEYCLOAK_ADMIN_PASSWORD", "admin");
