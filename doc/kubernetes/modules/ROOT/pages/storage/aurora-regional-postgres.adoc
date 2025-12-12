@@ -29,6 +29,11 @@ The specified `AURORA_CLUSTER` must be unique per the AWS region and follow the 
 https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.CreateInstance.html#Aurora.CreateInstance.Settings["DB cluster identifier"].
 ====
 
+[TIP]
+====
+To restore from an existing database cluster snapshot (not to be confused with database instance snapshots), set the environment variable `AURORA_DB_SNAPSHOT_ID` to the snapshot identifier.
+====
+
 == Connecting ROSA cluster to Aurora Cluster
 
 In order to follow security best practices, the Aurora cluster is not exposed publicly over the internet. Instead, it is
@@ -41,7 +46,7 @@ To configure such a connection run `./provision/aws/rds/aurora_create_peering_co
 ----
 AURORA_CLUSTER= # The name of the Aurora cluster
 AURORA_REGION= # The AWS region hosting the Aurora cluster
-CLUSTER_NAME= # The name of the ROSA cluster to establish the peering connectin with
+CLUSTER_NAME= # The name of the ROSA cluster to establish the peering connection with
 AWS_REGION= # The AWS region hosting the ROSA cluster
 ----
 

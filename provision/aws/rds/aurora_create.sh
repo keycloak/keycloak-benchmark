@@ -124,8 +124,10 @@ if [ -z ${AURORA_GLOBAL_CLUSTER_BACKUP} ]; then
   AURORA_DATABASE_NAME="--database-name keycloak"
 fi
 
-# Create the Aurora DB cluster and instance
-aws rds create-db-cluster \
+if [ -z "${AURORA_DB_SNAPSHOT_ID}" ]; then
+  # Create the Aurora DB cluster and instance
+  echo "Creating database"
+  aws rds create-db-cluster \
     --db-cluster-identifier ${AURORA_CLUSTER} \
     ${AURORA_DATABASE_NAME} \
     --engine ${AURORA_ENGINE} \
@@ -134,6 +136,18 @@ aws rds create-db-cluster \
     --vpc-security-group-ids ${AURORA_SECURITY_GROUP_ID} \
     --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} \
     ${AURORA_GLOBAL_CLUSTER_IDENTIFIER}
+else
+  # restore-db-cluster-from-snapshot do not start any writer/readers
+  echo "Restoring database from snapshot ${AURORA_DB_SNAPSHOT_ID}"
+  aws rds restore-db-cluster-from-snapshot \
+    --db-cluster-identifier ${AURORA_CLUSTER} \
+    --snapshot-identifier "${AURORA_DB_SNAPSHOT_ID}" \
+    --engine ${AURORA_ENGINE} \
+    --engine-version ${AURORA_ENGINE_VERSION} \
+    --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} \
+    --vpc-security-group-ids ${AURORA_SECURITY_GROUP_ID} \
+    ${AURORA_DATABASE_NAME}
+fi
 
 # For now only two AZs in each region are supported due to the two subnets created above
 AZS=("${AWS_REGION}a" "${AWS_REGION}b" "${AWS_REGION}c")
