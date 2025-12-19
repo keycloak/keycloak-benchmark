@@ -5,7 +5,7 @@ cd $SCRIPT_DIR
 
 ## install operator
 
-CNPG_VERSION=${CNPG_VERSION:-"1.27.1"}
+CNPG_VERSION=${CNPG_VERSION:-"1.28.0"}
 CNPG_VERSION_MINOR=${CNPG_VERSION%.*}
 
 kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-$CNPG_VERSION_MINOR/releases/cnpg-$CNPG_VERSION.yaml
@@ -15,9 +15,10 @@ kubectl -n cnpg-system rollout status deployment cnpg-controller-manager
 ## install database cluster
 
 CNPG_NAMESPACE=${CNPG_NAMESPACE:-cnpg-keycloak}
+CNPG_INSTANCES=${CNPG_INSTANCES:-1}
 
 kubectl create ns $CNPG_NAMESPACE || true
-kubectl -n $CNPG_NAMESPACE apply -f cluster.yaml
+kubectl -n $CNPG_NAMESPACE apply -f <(cat cluster.yaml | envsubst)
 kubectl -n $CNPG_NAMESPACE apply -f pod-monitor.yaml
 kubectl -n $CNPG_NAMESPACE wait --for=condition=Ready --timeout=300s cluster cnpg-keycloak 
 
