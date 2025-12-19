@@ -1,0 +1,56 @@
+= Using CloudNativePG storage
+:description: The benchmark deployment of Keycloak can use a PostgreSQL cluster managed by the https://cloudnative-pg.io/[CloudNativePG Operator].
+
+{description}
+
+== Enabling CloudNativePG storage
+
+Use the following settings to select and customize the CloudNativePG operator:
+
+[source]
+----
+KC_DATABASE=cnpg
+CNPG_VERSION=1.28.0
+CNPG_INSTANCES=1
+----
+
+See xref:customizing-deployment.adoc[] for a list of all configuration options.
+
+include::partial$rerun-task-after-changes.adoc[]
+
+This will install a CloudNativePG operator inside the `cnpg-system` namespace, 
+and a PostgreSQL cluster within the `cnpg-keycloak` namespace.
+
+Appropriate secrets for securing Keycloak's JDBC connections and access to the database 
+will be created in the `keycloak` namespace.
+
+== Verifying the setup
+
+The automated script verifies that Keycloak starts up.
+
+Verifying the CloudNativePG operator:
+[source]
+----
+kubectl -n cnpg-system rollout status deployment cnpg-controller-manager
+----
+
+Verifying the CloudNativePG cluster:
+[source]
+----
+kubectl -n cnpg-keycloak get pods
+kubectl -n cnpg-keycloak get cluster cnpg-keycloak -ojson | jq -r .status.conditions
+----
+
+Identifying PostgreSQL instance roles:
+[source]
+----
+echo "Primary"
+kubectl -n cnpg-keycloak get pods -l cnpg.io/cluster=cnpg-keycloak -l cnpg.io/instanceRole=primary -oname
+echo "Replicas"
+kubectl -n cnpg-keycloak get pods -l cnpg.io/cluster=cnpg-keycloak -l cnpg.io/instanceRole=replica -oname
+----
+
+== Metrics and Dashboards
+
+Database metrics are available in Grafana on the preconfigured https://github.com/cloudnative-pg/grafana-dashboards/tree/main[CloudNativePG Dashboard].
+
