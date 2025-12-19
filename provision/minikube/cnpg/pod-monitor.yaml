@@ -1,0 +1,10 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: cnpg-keycloak-pm
+spec:
+  selector:
+    matchLabels:
+      cnpg.io/cluster: cnpg-keycloak
+  podMetricsEndpoints:
+  - port: metrics
