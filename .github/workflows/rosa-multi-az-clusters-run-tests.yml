@@ -10,6 +10,15 @@ on:
       region:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
+      usersPerRealm:
+        description: 'Number of users for the scenario in DB'
+        type: number
+        default: 100000
+      uniqueCredentials:
+        description: 'Limits the total number of credentials created to the specified amount in order to speed up dataset initialisation'
+        type: number
+        default: -1
+
   workflow_call:
     inputs:
       clusterPrefix:
@@ -19,6 +28,14 @@ on:
       region:
         description: 'Name of the region where EC2 instances should be installed'
         type: string
+      usersPerRealm:
+        description: 'Number of users for the scenario in DB'
+        type: number
+        default: 100000
+      uniqueCredentials:
+        description: 'Limits the total number of credentials created to the specified amount in order to speed up dataset initialisation'
+        type: number
+        default: -1
 
 jobs:
 
@@ -83,6 +100,8 @@ jobs:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
       outputArchiveSuffix: 'active-active'
+      usersPerRealm: ${{ inputs.usersPerRealm }}
+      uniqueCredentials: ${{ inputs.uniqueCredentials }}
     secrets: inherit
 
   run-active-active-health-checks-after-benchmarks:
@@ -162,6 +181,7 @@ jobs:
       region: ${{ inputs.region }}
       skipCreateDataset: true
       outputArchiveSuffix: 'active-active-volatile'
+      usersPerRealm: ${{ inputs.usersPerRealm }}
     secrets: inherit
 
   run-active-active-volatile-health-checks-after-benchmarks:
@@ -206,6 +226,7 @@ jobs:
       region: ${{ inputs.region }}
       skipCreateDataset: true
       outputArchiveSuffix: 'single-site'
+      usersPerRealm: ${{ inputs.usersPerRealm }}
     secrets: inherit
 
   keycloak-undeploy-single-site:
