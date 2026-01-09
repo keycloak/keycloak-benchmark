@@ -30,6 +30,8 @@ jobs:
     secrets: inherit
     with:
       clusterPrefix: ${{ needs.meta.outputs.clusterPrefix }}
+      usersPerRealm: 1000000
+      uniqueCredentials: 100000
 
   rosa-stretched-cluster:
     name: Stretched Cluster - Create
@@ -52,3 +54,5 @@ jobs:
       clusterName: "${{ needs.meta.outputs.clusterPrefix }}-az"
       outputArchiveSuffix: "stretched-cluster"
       clusterIdPrefix: "sc_"
+      usersPerRealm: 1000000
+      uniqueCredentials: 100000

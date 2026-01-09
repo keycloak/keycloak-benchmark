@@ -29,6 +29,10 @@ on:
         description: 'Client credential grants per second'
         type: number
         default: 750
+      uniqueCredentials:
+        description: 'Limits the total number of credentials created to the specified amount in order to speed up dataset initialisation'
+        type: number
+        default: -1
       measurement:
         description: 'Measurement period (seconds)'
         type: number
@@ -74,6 +78,10 @@ on:
         description: 'Client credential grants per second'
         type: number
         default: 750
+      uniqueCredentials:
+        description: 'Limits the total number of credentials created to the specified amount in order to speed up dataset initialisation'
+        type: number
+        default: -1
       measurement:
         description: 'Measurement period (seconds)'
         type: number
@@ -161,6 +169,7 @@ jobs:
           clientsPerRealm: ${{ env.CLIENTS_PER_REALM }}
           createClientForSpecificRealm: true
           maxWaitEntityCreation: ${{ inputs.maxWaitEntityCreation }}
+          uniqueCredentials: ${{ inputs.uniqueCredentials }}
 
       - name: Restart Keycloak Pods after dataset creation
         uses: ./.github/actions/keycloak-restart-pods
