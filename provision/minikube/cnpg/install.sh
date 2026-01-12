@@ -3,6 +3,14 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $SCRIPT_DIR
 
+## openshift-specific prerequisities
+
+if kubectl api-resources --api-group=route.openshift.io; then
+  # add privileged security context for the cnpg service account
+  oc adm policy add-scc-to-user privileged system:serviceaccount:cnpg-system:cnpg-manager
+fi
+
+
 ## install operator
 
 CNPG_VERSION=${CNPG_VERSION:-"1.28.0"}
@@ -25,7 +33,7 @@ kubectl -n $CNPG_NAMESPACE wait --for=condition=Ready --timeout=300s cluster cnp
 
 ## set up secrets for Keycloak
 
-KEYCLOAK_NAMESPACE=keycloak
+KEYCLOAK_NAMESPACE=${KEYCLOAK_NAMESPACE:-keycloak}
 
 kubectl create ns $KEYCLOAK_NAMESPACE || true
 
