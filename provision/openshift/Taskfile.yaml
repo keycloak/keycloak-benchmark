@@ -36,12 +36,14 @@ tasks:
       - bash -c "kubectl delete keycloaks.k8s.keycloak.org/keycloak -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
       - bash -c "kubectl delete deployment/keycloak-operator -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
       - bash -c "kubectl delete statefulset/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak || exit 0"
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=keycloak
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
-      - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app=postgres
+      - kubectl wait --timeout=30s -n {{.KC_NAMESPACE_PREFIX}}keycloak --for delete pod --selector=app=keycloak
+      - kubectl wait --timeout=30s -n {{.KC_NAMESPACE_PREFIX}}keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
+      - kubectl wait --timeout=30s -n {{.KC_NAMESPACE_PREFIX}}keycloak --for delete pod --selector=app=postgres
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" == "aurora-postgres" ]; then
+        if [ "{{.KC_DATABASE}}" == "cnpg" ]; then 
+          kubectl delete ns cnpg-keycloak || true;
+        elif [ "{{.KC_DATABASE}}" == "aurora-postgres" ]; then
           kubectl apply -f reset_aurora_postgres.yaml -n {{.KC_NAMESPACE_PREFIX}}keycloak
           kubectl wait --timeout=30s --for=condition=complete job/reset-aurora-postgres -n {{.KC_NAMESPACE_PREFIX}}keycloak
           kubectl delete -f reset_aurora_postgres.yaml -n {{.KC_NAMESPACE_PREFIX}}keycloak
@@ -161,6 +163,7 @@ tasks:
       - grafana
       - common:clone-keycloak-grafana-dashboards
     cmds:
+      - if [ "{{ .KC_DATABASE }}" == "cnpg" ]; then curl https://raw.githubusercontent.com/cloudnative-pg/grafana-dashboards/refs/heads/main/charts/cluster/grafana-dashboard.json -o monitoring/dashboards/cnpg-dahsboard.json; fi
       - helm upgrade -n monitoring --install monitoring monitoring
     sources:
       - monitoring/**/*.*
@@ -209,6 +212,7 @@ tasks:
     vars:
       CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat ../keycloak-tasks/.task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
     cmds:
+      - if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then KEYCLOAK_NAMESPACE={{.KC_NAMESPACE_PREFIX}}keycloak cnpg/install.sh; fi
       - task: '{{ if eq .KC_OPERATOR_OLM "true" }}keycloak:install-keycloak-operator-olm{{else}}keycloak:no-op{{ end }}'
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
@@ -262,9 +266,12 @@ tasks:
         ../minikube/keycloak
       - >
         bash -c '
-        if [[ "{{.KC_DATABASE}}" != "none" && "{{.KC_DATABASE}}" != "aurora-postgres" ]];
-        then kubectl get statefulset/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
-        else echo "none" > .task/status-{{.TASK}}-db.json;
+        if [ "{{.KC_DATABASE}}" == "cnpg" ]; then 
+          kubectl get cluster/cnpg-keycloak -n cnpg-keycloak -ojsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        elif [[ "{{.KC_DATABASE}}" != "none" && "{{.KC_DATABASE}}" != "aurora-postgres" ]]; then 
+          kubectl get statefulset/{{.KC_DATABASE}} -n {{.KC_NAMESPACE_PREFIX}}keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
+        else
+          echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
       - bash -c 'kubectl get pods -n {{.KC_NAMESPACE_PREFIX}}keycloak | grep -E "(BackOff|Error|ErrImageNeverPull|InvalidImageName)" | tr -s " " | cut -d" " -f1 | xargs -r -L 1 kubectl delete -n {{.KC_NAMESPACE_PREFIX}}keycloak pod'
