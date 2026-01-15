@@ -29,7 +29,7 @@ spec:
 {{ else if eq .Values.database "mysql" }}
     vendor: mysql
 {{ end }}
-{{- if .Values.useAWSJDBCWrapper}}
+{{- if and (eq .Values.database "aurora-postgres") .Values.useAWSJDBCWrapper}}
     url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/truststores/configmap-keycloak-aurora-rootcert/aurora.pem # <1>
 {{- else if eq .Values.database "cnpg"}}
     url: jdbc:postgresql://cnpg-keycloak-rw.cnpg-keycloak.svc.cluster.local:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/truststores/configmap-cnpg-keycloak-ca/cert.pem
@@ -155,7 +155,7 @@ spec:
         name: remote-store-secret
         key: password
 {{- end }}
-{{ if .Values.useAWSJDBCWrapper }}
+{{ if and (eq .Values.database "aurora-postgres") .Values.useAWSJDBCWrapper }}
     - name: db-driver
       value: software.amazon.jdbc.Driver
 {{ end }}
@@ -165,7 +165,7 @@ spec:
   # end::keycloak[]
   serviceMonitor:
     enabled: {{ .Values.monitoring }}
-  {{- if .Values.useAWSJDBCWrapper}}
+  {{- if and (eq .Values.database "aurora-postgres") .Values.useAWSJDBCWrapper}}
   # tag::keycloak[]
   truststores:
     aurora:

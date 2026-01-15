@@ -207,7 +207,10 @@ tasks:
       CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat .task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
       KC_USE_AWS_JDBC_WRAPPER: '{{ .KC_USE_AWS_JDBC_WRAPPER | default "true" }}'
     cmds:
-      - if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then KEYCLOAK_NAMESPACE="{{.NAMESPACE}}" cnpg/install.sh; fi
+      - >
+        if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then 
+          KEYCLOAK_NAMESPACE="{{.NAMESPACE}}" ../minikube/cnpg/install.sh; 
+        fi
       - task: '{{ if eq .KC_OPERATOR_OLM "true" }}install-keycloak-operator-olm{{else}}no-op{{ end }}'
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
@@ -225,7 +228,7 @@ tasks:
           KUBECONFIG: "{{.KUBECONFIG}}"
           NAMESPACE: "{{.NAMESPACE}}"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
-      - task: '{{if eq .KC_USE_AWS_JDBC_WRAPPER "true"}}prepare-keycloak-image-with-aws-jdbc-wrapper-openshift{{else}}no-op{{end}}'
+      - task: '{{if and (eq .KC_DATABASE "aurora-postgres") (eq .KC_USE_AWS_JDBC_WRAPPER "true")}}prepare-keycloak-image-with-aws-jdbc-wrapper-openshift{{else}}no-op{{end}}'
         vars:
           NAMESPACE: "{{.NAMESPACE}}"
           KUBECONFIG: "{{.KUBECONFIG}}"

@@ -212,7 +212,10 @@ tasks:
     vars:
       CURRENT_KC_CONTAINER_IMAGE: '{{ ternary "$(cat ../keycloak-tasks/.task/var-CUSTOM_CONTAINER_IMAGE_FILE 2> /dev/null || echo \"\")" .KC_CONTAINER_IMAGE (empty .KC_CONTAINER_IMAGE) }}'
     cmds:
-      - if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then KEYCLOAK_NAMESPACE={{.KC_NAMESPACE_PREFIX}}keycloak cnpg/install.sh; fi
+      - >
+        if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then 
+          KEYCLOAK_NAMESPACE={{.KC_NAMESPACE_PREFIX}}keycloak ../minikube/cnpg/install.sh; 
+        fi
       - task: '{{ if eq .KC_OPERATOR_OLM "true" }}keycloak:install-keycloak-operator-olm{{else}}keycloak:no-op{{ end }}'
         vars:
           NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
