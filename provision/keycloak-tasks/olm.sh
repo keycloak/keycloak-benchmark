@@ -77,7 +77,7 @@ echo "${sub}"
 echo
 
 echo "Checking whether subscription with the requested CSV already exists."
-if kubectl -n $INSTALL_NAMESPACE wait subscriptions/$PRODUCT --for=jsonpath='.status.installedCSV'=${CSV} --timeout=10s; then
+if kubectl -n $INSTALL_NAMESPACE wait subscriptions.operators.coreos.com/$PRODUCT --for=jsonpath='.status.installedCSV'=${CSV} --timeout=10s; then
   echo "Subscription with the requested CSV already exists. Skipping."
 else
   echo "Subscription with the requested CSV not found. Applying resources."
@@ -85,23 +85,23 @@ else
   echo "${sub}" | kubectl apply -f -
 
   echo "Checking for pending install plans."
-  if kubectl -n $INSTALL_NAMESPACE wait subscriptions/$PRODUCT --for=condition=InstallPlanPending --timeout=60s; then
-    installPlanName=$(kubectl -n $INSTALL_NAMESPACE get subscriptions/$PRODUCT -ojson | jq -r .status.installPlanRef.name)
-    installPlanCSV=$(kubectl -n $INSTALL_NAMESPACE get ip/${installPlanName} -ojson | jq -r '.spec.clusterServiceVersionNames[0]')
+  if kubectl -n $INSTALL_NAMESPACE wait subscriptions.operators.coreos.com/$PRODUCT --for=condition=InstallPlanPending --timeout=60s; then
+    installPlanName=$(kubectl -n $INSTALL_NAMESPACE get subscriptions.operators.coreos.com/$PRODUCT -ojson | jq -r .status.installPlanRef.name)
+    installPlanCSV=$(kubectl -n $INSTALL_NAMESPACE get installplans.operators.coreos.com/${installPlanName} -ojson | jq -r '.spec.clusterServiceVersionNames[0]')
     echo "Subscription references install plan \"${installPlanName}\" with CSV \"${installPlanCSV}\"."
     if [[ "$installPlanCSV" == "$CSV" ]]; then
       echo "Install plan CSV matches the requested version. Approving."
-      kubectl -n $INSTALL_NAMESPACE patch ip/${installPlanName} --patch '{"spec":{"approved":true}}' --type=merge
+      kubectl -n $INSTALL_NAMESPACE patch installplans.operators.coreos.com/${installPlanName} --patch '{"spec":{"approved":true}}' --type=merge
     else
       echo "ERROR: CSV doesn't match the requested CSV: \"$CSV\". Install plan NOT APPROVED." 
       exit 2
     fi
     echo "Validating installed CSV."
-    kubectl -n $INSTALL_NAMESPACE wait subscriptions/$PRODUCT --for=jsonpath='.status.installedCSV'=${CSV} --timeout=60s
+    kubectl -n $INSTALL_NAMESPACE wait subscriptions.operators.coreos.com/$PRODUCT --for=jsonpath='.status.installedCSV'=${CSV} --timeout=60s
   else
     echo "ERROR: No pending install plans were found." 
     echo "Subscription status:" 
-    kubectl -n $INSTALL_NAMESPACE get subscriptions/$PRODUCT -ojson | jq .status.conditions
+    kubectl -n $INSTALL_NAMESPACE get subscriptions.operators.coreos.com/$PRODUCT -ojson | jq .status.conditions
     exit 1
   fi
 fi
