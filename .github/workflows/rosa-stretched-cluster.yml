@@ -7,10 +7,6 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
-      createAurora:
-        description: 'Check to Create Aurora Database.'
-        type: boolean
-        default: true
       createKeycloak:
         description: 'Check to Create Keycloak.'
         type: boolean
@@ -29,10 +25,6 @@ on:
     inputs:
       createCluster:
         description: 'Check to Create Cluster.'
-        type: boolean
-        default: true
-      createAurora:
-        description: 'Check to Create Aurora Database.'
         type: boolean
         default: true
       createKeycloak:
@@ -133,52 +125,17 @@ jobs:
       - name: Install Monitoring
         run: task monitoring
         working-directory: provision/openshift
+        env:
+          KC_DATABASE: cnpg
 
-  aurora:
-    name: Install Aurora Database
-    needs: meta
-    if: ${{ inputs.createAurora }}
-    uses: ./.github/workflows/aurora-create-database.yml
-    with:
-      name: ${{ needs.meta.outputs.clusterName }}
-      region: ${{ needs.meta.outputs.region }}
-      instances: ${{ needs.meta.outputs.numberOfZones }}
-    secrets: inherit
-
-  connection:
-    name: Aurora Peering Connection
-    runs-on: ubuntu-latest
-    needs:
-      - meta
-      - cluster
-      - aurora
-    if: ${{ always() && !cancelled() && inputs.createAurora && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup ROSA CLI
-        uses: ./.github/actions/rosa-cli-setup
-        with:
-          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
-          rosa-token: ${{ secrets.ROSA_TOKEN }}
-
-      - name: Create peering connection between DataBase and OpenShit
-        uses: ./.github/actions/aurora-create-peering-connection
-        with:
-          name: ${{ needs.meta.outputs.clusterName }}
-          region: ${{ needs.meta.outputs.region }}
-          clusterName: ${{ needs.meta.outputs.clusterName }}
 
   keycloak:
     name: Install Keycloak
     runs-on: ubuntu-latest
     needs:
       - meta
-      - connection
-    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.connection.result == 'skipped' || needs.connection.result == 'success') }}
+      - cluster
+    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -206,6 +163,4 @@ jobs:
         working-directory: provision/keycloak-stretched
         env:
           ROSA_CLUSTER_NAME: ${{ needs.meta.outputs.clusterName }}
-          AURORA_CLUSTER: ${{ needs.meta.outputs.clusterName }}
-          AURORA_REGION: ${{ needs.meta.outputs.region }}
           KC_NAMESPACE_PREFIX: runner-
