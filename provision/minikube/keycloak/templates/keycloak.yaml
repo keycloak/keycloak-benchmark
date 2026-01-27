@@ -67,8 +67,11 @@ spec:
   image: {{ .Values.keycloakImage }} # <3>
   startOptimized: {{ .Values.startOptimized }} # <3>
 {{ end }}
+  update:
+    strategy: Auto
   features:
     enabled:
+      - rolling-updates:v2
 {{- if .Values.multiSite }}
       - multi-site # <4>
 {{- end }}
