@@ -7,6 +7,12 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
+      database:
+        description: 'Chose a database'
+        type: choice
+        options:
+          - cnpg
+          - aurora
       createKeycloak:
         description: 'Check to Create Keycloak.'
         type: boolean
@@ -27,6 +33,10 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
+      database:
+        description: 'Database. Supported values: cnpg, aurora'
+        type: string
+        default: cnpg
       createKeycloak:
         description: 'Check to Create Keycloak.'
         type: boolean
@@ -128,6 +138,53 @@ jobs:
         env:
           KC_DATABASE: cnpg
 
+  aurora:
+    if: ${{ inputs.database == 'aurora' }}
+    name: Install Aurora Database
+    needs: meta
+    uses: ./.github/workflows/aurora-create-database.yml
+    with:
+      name: ${{ needs.meta.outputs.clusterName }}
+      region: ${{ needs.meta.outputs.region }}
+      instances: ${{ needs.meta.outputs.numberOfZones }}
+    secrets: inherit
+
+  aurora-connection:
+    name: Aurora Peering Connection
+    runs-on: ubuntu-latest
+    needs:
+      - meta
+      - cluster
+      - aurora
+    if: ${{ inputs.database == 'aurora' && !cancelled() && inputs.createAurora && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup ROSA CLI
+        uses: ./.github/actions/rosa-cli-setup
+        with:
+          aws-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-default-region: ${{ vars.AWS_DEFAULT_REGION }}
+          rosa-token: ${{ secrets.ROSA_TOKEN }}
+
+      - name: Create peering connection between DataBase and OpenShit
+        uses: ./.github/actions/aurora-create-peering-connection
+        with:
+          name: ${{ needs.meta.outputs.clusterName }}
+          region: ${{ needs.meta.outputs.region }}
+          clusterName: ${{ needs.meta.outputs.clusterName }}
+
+  database:
+    name: install database
+    runs-on: ubuntu-latest
+    needs:
+      - aurora
+      - aurora-connection
+    steps:
+      - run: >
+          echo "Using database: ${{ inputs.database }}"
 
   keycloak:
     name: Install Keycloak
@@ -135,7 +192,8 @@ jobs:
     needs:
       - meta
       - cluster
-    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') }}
+      - database
+    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.database.result == 'skipped' || needs.database.result == 'success') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

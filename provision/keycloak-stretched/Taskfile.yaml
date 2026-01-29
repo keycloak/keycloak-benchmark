@@ -55,6 +55,9 @@ tasks:
       - task: rds:create-aurora
         vars:
           AURORA_INSTANCES: "{{.AURORA_INSTANCES | default 3}}"
+      - task: rds:get-aurora-endpoint
+        vars:
+          OUTPUT_FILE: ".task/aurora-endpoint"
       - task: rds:create-peering-connection
 
   undeploy-aurora:
@@ -90,6 +93,8 @@ tasks:
           KUBECONFIG: "{{.ISPN_DIR}}/{{.ROSA_CLUSTER_NAME}}"
           KC_HOSTNAME_SUFFIX:
             sh: cat {{.ISPN_DIR}}/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
+          KC_DATABASE_URL:
+            sh: cat {{.AURORA_ENDPOINT_FILE}} || echo ""
       - task: create-env-configmap
       - task: wait-cryostat
       - task: wait-keycloak
