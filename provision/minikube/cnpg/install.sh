@@ -22,10 +22,10 @@ kubectl -n cnpg-system rollout status deployment cnpg-controller-manager
 
 ## install database cluster
 
-CNPG_NAMESPACE=cnpg-keycloak
-CNPG_INSTANCES=${CNPG_INSTANCES:-1}
-CNPG_STORAGE_SIZE=${CNPG_STORAGE_SIZE:-1Gi}
-CNPG_MAX_CONNECTIONS=${CNPG_MAX_CONNECTIONS:-100}
+export CNPG_NAMESPACE=cnpg-keycloak
+export CNPG_INSTANCES=${CNPG_INSTANCES:-1}
+export CNPG_STORAGE_SIZE=${CNPG_STORAGE_SIZE:-1Gi}
+export CNPG_MAX_CONNECTIONS=${CNPG_MAX_CONNECTIONS:-100}
 
 kubectl create ns $CNPG_NAMESPACE || true
 kubectl -n $CNPG_NAMESPACE apply -f <(cat cluster.yaml | envsubst)
