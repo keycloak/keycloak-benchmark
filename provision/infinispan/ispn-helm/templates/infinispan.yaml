@@ -133,6 +133,8 @@ spec:
           {{ end }}
           {{- end }}
     {{- end }}
+  upgrades:
+    type: InPlaceRolling
     # end::infinispan-crossdc[]
 {{range $cache, $config := .Values.caches -}}
   {{- if and (not $.Values.createSessionsCaches) (eq $cache "sessions" "offlineSessions" "clientSessions" "offlineClientSessions") }}
