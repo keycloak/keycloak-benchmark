@@ -136,7 +136,7 @@ jobs:
         run: task monitoring
         working-directory: provision/openshift
         env:
-          KC_DATABASE: cnpg
+          KC_DATABASE: "${{ inputs.database }}"
 
   aurora:
     if: ${{ inputs.database == 'aurora' }}
@@ -156,7 +156,7 @@ jobs:
       - meta
       - cluster
       - aurora
-    if: ${{ inputs.database == 'aurora' && !cancelled() && inputs.createAurora && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
+    if: ${{ inputs.database == 'aurora' && !cancelled() && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -182,9 +182,15 @@ jobs:
     needs:
       - aurora
       - aurora-connection
+      # Note: There is no specific job for cnpg installation because it is integrated 
+      #       with the keycloak installation task directly in the Taskfile.
     steps:
-      - run: >
+      - run: |
           echo "Using database: ${{ inputs.database }}"
+          if ! [[ "${{ inputs.database }}" == "cnpg" || "${{ inputs.database }}" == "aurora" ]]; then
+            echo "ERROR: Supported values: cnpg | aurora"
+            exit 1
+          fi
 
   keycloak:
     name: Install Keycloak
@@ -222,3 +228,4 @@ jobs:
         env:
           ROSA_CLUSTER_NAME: ${{ needs.meta.outputs.clusterName }}
           KC_NAMESPACE_PREFIX: runner-
+          KC_DATABASE: "${{ inputs.database }}"
