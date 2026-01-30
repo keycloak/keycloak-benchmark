@@ -56,10 +56,17 @@ tasks:
       - task: rds:create-aurora
         vars:
           AURORA_INSTANCES: "{{.AURORA_INSTANCES | default 3}}"
+      - task: rds:create-peering-connection
+
+  get-aurora-endpoint:
+    requires:
+      vars:
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    cmds:
       - task: rds:get-aurora-endpoint
         vars:
-          OUTPUT_FILE: ".task/aurora-endpoint"
-      - task: rds:create-peering-connection
+          OUTPUT_FILE: "/tmp/aurora-endpoint"
 
   undeploy-aurora:
     desc: "Deletes a single region Aurora Database"
@@ -81,12 +88,10 @@ tasks:
     env:
       ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
     vars:
-      TMP_DIR: "{{.TASKFILE_DIR}}/.task"
       ISPN_DIR: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg"
     cmds:
       - task: common:env
       - task: common:datasetprovider
-      - test -d "{{.TMP_DIR}}" || mkdir "{{.TMP_DIR}}"
       - task: ispn:rosa-oc-login
       - task: keycloak:install-keycloak
         vars:
@@ -95,7 +100,7 @@ tasks:
           KC_HOSTNAME_SUFFIX:
             sh: cat {{.ISPN_DIR}}/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
           KC_DATABASE_URL:
-            sh: cat {{.AURORA_ENDPOINT_FILE}} || echo ""
+            sh: cat /tmp/aurora-endpoint || echo ""
       - task: create-env-configmap
       - task: wait-cryostat
       - task: wait-keycloak

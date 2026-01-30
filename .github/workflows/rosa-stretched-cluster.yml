@@ -222,6 +222,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Get Aurora Endpoint
+        if: ${{ inputs.database == 'aurora' }}
+        run: task get-aurora-endpoint
+        working-directory: provision/keycloak-stretched
+        env:
+          AURORA_CLUSTER: ${{ needs.meta.outputs.clusterName }}
+          AURORA_REGION: ${{ needs.meta.outputs.region }}          
+
       - name: Deploy Keycloak
         run: task deploy-keycloak
         working-directory: provision/keycloak-stretched
