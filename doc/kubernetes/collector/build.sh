@@ -11,6 +11,7 @@ mkdir -p ${BUILDDIR}/helm
 
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
+  --set database=aurora-postgres \
   --set hostname=minikube.nip.io \
   --set keycloakHostname=\<KEYCLOAK_URL_HERE\> \
   --set dbUrl=\<AWS_AURORA_URL_HERE\> \
@@ -40,6 +41,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
 
 # Those value match the Keycloak on ROSA Benchmark Key Results example
 helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
+  --set database=aurora-postgres \
   --set hostname=minikube.nip.io \
   --set keycloakHostname=\<KEYCLOAK_URL_HERE\> \
   --set dbUrl=\<AWS_AURORA_URL_HERE\> \
@@ -62,6 +64,7 @@ helm template --debug ${STARTDIR}/../../../provision/minikube/keycloak \
 # Infinispan single cluster
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set namespace=keycloak \
+  --set database=aurora-postgres \
   --set replicas=3 \
   --set crossdc.enabled=false \
   --set metrics.histograms=false \
@@ -72,6 +75,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
 # Infinispan site A deployment
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set namespace=keycloak \
+  --set database=aurora-postgres \
   --set replicas=3 \
   --set cpu= \
   --set memory= \
@@ -107,6 +111,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
 # Infinispan site B deployment
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set namespace=keycloak \
+  --set database=aurora-postgres \
   --set replicas=3 \
   --set crossdc.enabled=true \
   --set crossdc.local.name=site-b \
@@ -139,6 +144,7 @@ helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
 # Infinispan volatile sessions
 helm template --debug ${STARTDIR}/../../../provision/infinispan/ispn-helm \
   --set namespace=keycloak \
+  --set database=aurora-postgres \
   --set replicas=3 \
   --set crossdc.enabled=true \
   --set crossdc.local.name=site-1 \
