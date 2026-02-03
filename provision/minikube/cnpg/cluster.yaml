@@ -18,14 +18,15 @@ spec:
   postgresql:
     parameters:
       max_connections: "${CNPG_MAX_CONNECTIONS}"
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
     syncReplicaElectionConstraint:
       enabled: true
       nodeLabelsAntiAffinity:
       - topology.kubernetes.io/zone
       
-  minSyncReplicas: 1
-  maxSyncReplicas: 1
-
   bootstrap:
     initdb:
       database: keycloak
