@@ -1,15 +1,38 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
+
 metadata:
   name: cnpg-keycloak
+
 spec:
+
   instances: ${CNPG_INSTANCES}
+
+  affinity:
+    podAntiAffinityType: required
+    topologyKey: topology.kubernetes.io/zone
+
   storage:
-    size: 1Gi
+    size: ${CNPG_STORAGE_SIZE}
+
+  postgresql:
+    parameters:
+      max_connections: "${CNPG_MAX_CONNECTIONS}"
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+    syncReplicaElectionConstraint:
+      enabled: true
+      nodeLabelsAntiAffinity:
+      - topology.kubernetes.io/zone
+      
   bootstrap:
     initdb:
       database: keycloak
       owner: keycloak
+
   managed:
     services:
       disabledDefaultServices: ["ro", "r"]
+      

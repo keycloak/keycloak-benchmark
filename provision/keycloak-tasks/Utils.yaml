@@ -209,7 +209,7 @@ tasks:
     cmds:
       - >
         if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then 
-          KEYCLOAK_NAMESPACE="{{.NAMESPACE}}" ../minikube/cnpg/install.sh; 
+          KUBECONFIG={{.KUBECONFIG}} KEYCLOAK_NAMESPACE="{{.NAMESPACE}}" ../minikube/cnpg/install.sh; 
         fi
       - task: '{{ if eq .KC_OPERATOR_OLM "true" }}install-keycloak-operator-olm{{else}}no-op{{ end }}'
         vars:
@@ -282,6 +282,10 @@ tasks:
     cmds:
       - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak || true
       - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak-build-config || true
+      - >
+        if [[ {{ KC_DATABASE }} == "cnpg" ]]; then 
+          KUBECONFIG={{.KUBECONFIG}} kubectl delete ns cnpg-keycloak || true;
+        fi
     status:
       - test -z "$(KUBECONFIG={{.KUBECONFIG}} helm list --namespace {{.NAMESPACE}} --filter keycloak -q)"
     preconditions:
