@@ -148,6 +148,8 @@ tasks:
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl create namespace "{{.NAMESPACE}}" || true
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloaks.k8s.keycloak.org-v1.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloaksamlclients.k8s.keycloak.org-v1.yml
+      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloakoidcclients.k8s.keycloak.org-v1.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} delete deployment/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} || true
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}kubernetes.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl patch clusterrolebinding keycloak-operator-clusterrole-binding --type='json' -p="[{\"op\":\"replace\",\"path\":\"/subjects/0/namespace\",\"value\":\"{{.NAMESPACE}}\"}]"
@@ -208,8 +210,8 @@ tasks:
       KC_USE_AWS_JDBC_WRAPPER: '{{ .KC_USE_AWS_JDBC_WRAPPER | default "true" }}'
     cmds:
       - >
-        if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then 
-          KEYCLOAK_NAMESPACE="{{.NAMESPACE}}" ../minikube/cnpg/install.sh; 
+        if [[ "{{ .KC_DATABASE }}" == "cnpg" ]]; then
+          KEYCLOAK_NAMESPACE="{{.NAMESPACE}}" ../minikube/cnpg/install.sh;
         fi
       - task: '{{ if eq .KC_OPERATOR_OLM "true" }}install-keycloak-operator-olm{{else}}no-op{{ end }}'
         vars:

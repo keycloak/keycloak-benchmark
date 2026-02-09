@@ -49,7 +49,7 @@ tasks:
       - kubectl wait --timeout=30s -n keycloak --for delete pod --selector=app.kubernetes.io/name=keycloak-operator
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" == "cnpg" ]; then 
+        if [ "{{.KC_DATABASE}}" == "cnpg" ]; then
           kubectl delete ns cnpg-keycloak || true;
         elif [ "{{.KC_DATABASE}}" == "postgres+infinispan" ];
         then kubectl delete statefulset/postgres -n keycloak || exit 0;
@@ -201,6 +201,8 @@ tasks:
       - kubectl create namespace keycloak || true
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloaksamlclients.k8s.keycloak.org-v1.yml
+      - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/keycloakoidcclients.k8s.keycloak.org-v1.yml
       - kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml || (kubectl -n keycloak delete deployment/keycloak-operator && kubectl -n keycloak apply -f https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/refs/tags/{{.KC_OPERATOR_TAG}}/kubernetes/kubernetes.yml)
       - >
         helm upgrade --install keycloak
@@ -230,11 +232,11 @@ tasks:
         keycloak
       - >
         bash -c '
-        if [ "{{.KC_DATABASE}}" == "cnpg" ]; then 
+        if [ "{{.KC_DATABASE}}" == "cnpg" ]; then
           kubectl get cluster/cnpg-keycloak -n cnpg-keycloak -ojsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
-        elif [ "{{.KC_DATABASE}}" != "none" ]; then 
+        elif [ "{{.KC_DATABASE}}" != "none" ]; then
           kubectl get statefulset/{{.KC_DATABASE}} -n keycloak -o=jsonpath="{.spec}" > .task/status-{{.TASK}}-db.json;
-        else 
+        else
           echo "none" > .task/status-{{.TASK}}-db.json;
         fi'
       # kill all CrashLoopBackOff and ImagePullBackOff pods to trigger a fast restart and not wait Kubernetes
