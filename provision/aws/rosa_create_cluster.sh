@@ -82,8 +82,10 @@ cd ${SCRIPT_DIR}
 
 ./rosa_install_tempo_operator.sh
 
-echo "Enabling user alert routing."
+echo "Enabling monitoring for user workloads"
 oc apply -f ${SCRIPT_DIR}/../openshift/cluster-monitoring-config.yaml
+echo "Enabling user alert routing"
+oc apply -f ${SCRIPT_DIR}/../openshift/user-workload-monitoring-config.yaml
 waitFor openshift-user-workload-monitoring statefulset alertmanager-user-workload
 oc -n openshift-user-workload-monitoring rollout status --watch --timeout=2m statefulset.apps/alertmanager-user-workload
 
