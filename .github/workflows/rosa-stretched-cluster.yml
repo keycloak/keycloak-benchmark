@@ -7,10 +7,12 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
-      createAurora:
-        description: 'Check to Create Aurora Database.'
-        type: boolean
-        default: true
+      database:
+        description: 'Chose a database'
+        type: choice
+        options:
+          - cnpg
+          - aurora-postgres
       createKeycloak:
         description: 'Check to Create Keycloak.'
         type: boolean
@@ -31,10 +33,10 @@ on:
         description: 'Check to Create Cluster.'
         type: boolean
         default: true
-      createAurora:
-        description: 'Check to Create Aurora Database.'
-        type: boolean
-        default: true
+      database:
+        description: 'Database. Supported values: cnpg, aurora-postgres'
+        type: string
+        default: cnpg
       createKeycloak:
         description: 'Check to Create Keycloak.'
         type: boolean
@@ -133,11 +135,13 @@ jobs:
       - name: Install Monitoring
         run: task monitoring
         working-directory: provision/openshift
+        env:
+          KC_DATABASE: "${{ inputs.database }}"
 
   aurora:
+    if: ${{ inputs.database == 'aurora-postgres' }}
     name: Install Aurora Database
     needs: meta
-    if: ${{ inputs.createAurora }}
     uses: ./.github/workflows/aurora-create-database.yml
     with:
       name: ${{ needs.meta.outputs.clusterName }}
@@ -145,14 +149,14 @@ jobs:
       instances: ${{ needs.meta.outputs.numberOfZones }}
     secrets: inherit
 
-  connection:
+  aurora-connection:
     name: Aurora Peering Connection
     runs-on: ubuntu-latest
     needs:
       - meta
       - cluster
       - aurora
-    if: ${{ always() && !cancelled() && inputs.createAurora && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
+    if: ${{ inputs.database == 'aurora-postgres' && !cancelled() && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.aurora.result == 'skipped' || needs.aurora.result == 'success')}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -172,13 +176,29 @@ jobs:
           region: ${{ needs.meta.outputs.region }}
           clusterName: ${{ needs.meta.outputs.clusterName }}
 
+  database:
+    name: install database
+    runs-on: ubuntu-latest
+    needs:
+      - aurora
+      - aurora-connection
+      # Note: No specific job for cnpg here. It is installed by Task as part of the deploy-keycloak/install-keycloak task.
+    steps:
+      - run: |
+          echo "Using database: ${{ inputs.database }}"
+          if ! [[ "${{ inputs.database }}" == "cnpg" || "${{ inputs.database }}" == "aurora-postgres" ]]; then
+            echo "ERROR: Supported values: cnpg | aurora-postgres"
+            exit 1
+          fi
+
   keycloak:
     name: Install Keycloak
     runs-on: ubuntu-latest
     needs:
       - meta
-      - connection
-    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.connection.result == 'skipped' || needs.connection.result == 'success') }}
+      - cluster
+      - database
+    if: ${{ always() && !cancelled() && inputs.createKeycloak && (needs.cluster.result == 'skipped' || needs.cluster.result == 'success') && (needs.database.result == 'skipped' || needs.database.result == 'success') }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -201,11 +221,18 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Get Aurora Endpoint
+        if: ${{ inputs.database == 'aurora-postgres' }}
+        run: task get-aurora-endpoint
+        working-directory: provision/keycloak-stretched
+        env:
+          AURORA_CLUSTER: ${{ needs.meta.outputs.clusterName }}
+          AURORA_REGION: ${{ needs.meta.outputs.region }}          
+
       - name: Deploy Keycloak
         run: task deploy-keycloak
         working-directory: provision/keycloak-stretched
         env:
           ROSA_CLUSTER_NAME: ${{ needs.meta.outputs.clusterName }}
-          AURORA_CLUSTER: ${{ needs.meta.outputs.clusterName }}
-          AURORA_REGION: ${{ needs.meta.outputs.region }}
           KC_NAMESPACE_PREFIX: runner-
+          KC_DATABASE: "${{ inputs.database }}"
