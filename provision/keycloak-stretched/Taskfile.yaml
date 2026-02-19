@@ -23,7 +23,9 @@ dotenv: [ '.env' ]
 set: [ pipefail ]
 
 env:
-  KC_DATABASE: "aurora-postgres"
+  CNPG_INSTANCES: 3
+  CNPG_STORAGE_SIZE: 16Gi
+  CNPG_MAX_CONNECTIONS: 200
   KC_CUSTOM_INFINISPAN_CONFIG: "false"
   KC_STRETCH_CLUSTER: "true"
   KC_CPU_REQUESTS: 6
@@ -56,6 +58,16 @@ tasks:
           AURORA_INSTANCES: "{{.AURORA_INSTANCES | default 3}}"
       - task: rds:create-peering-connection
 
+  get-aurora-endpoint:
+    requires:
+      vars:
+        - AURORA_CLUSTER
+        - AURORA_REGION
+    cmds:
+      - task: rds:get-aurora-endpoint
+        vars:
+          OUTPUT_FILE: "/tmp/aurora-endpoint"
+
   undeploy-aurora:
     desc: "Deletes a single region Aurora Database"
     requires:
@@ -72,24 +84,14 @@ tasks:
     requires:
       vars:
         - ROSA_CLUSTER_NAME
-        - AURORA_CLUSTER
-        - AURORA_REGION
         - KC_NAMESPACE_PREFIX
     env:
-      AURORA_CLUSTER: "{{.AURORA_CLUSTER}}"
-      AURORA_REGION: "{{.AURORA_REGION}}"
       ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
     vars:
-      TMP_DIR: "{{.TASKFILE_DIR}}/.task"
-      AURORA_ENDPOINT_FILE: "{{.TMP_DIR}}/aurora-endpoint"
       ISPN_DIR: "{{.TASKFILE_DIR}}/../infinispan/.task/kubecfg"
     cmds:
       - task: common:env
       - task: common:datasetprovider
-      - test -d "{{.TMP_DIR}}" || mkdir "{{.TMP_DIR}}"
-      - task: rds:get-aurora-endpoint
-        vars:
-          OUTPUT_FILE: "{{.AURORA_ENDPOINT_FILE}}"
       - task: ispn:rosa-oc-login
       - task: keycloak:install-keycloak
         vars:
@@ -98,7 +100,7 @@ tasks:
           KC_HOSTNAME_SUFFIX:
             sh: cat {{.ISPN_DIR}}/ocp-prefix-{{.ROSA_CLUSTER_NAME}}
           KC_DATABASE_URL:
-            sh: cat {{.AURORA_ENDPOINT_FILE}}
+            sh: cat /tmp/aurora-endpoint || echo ""
       - task: create-env-configmap
       - task: wait-cryostat
       - task: wait-keycloak
