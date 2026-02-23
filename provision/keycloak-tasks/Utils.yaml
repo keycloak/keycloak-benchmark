@@ -285,7 +285,7 @@ tasks:
       - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak || true
       - KUBECONFIG={{.KUBECONFIG}} helm uninstall --namespace {{.NAMESPACE}} keycloak-build-config || true
       - >
-        if [[ {{ KC_DATABASE }} == "cnpg" ]]; then 
+        if [[ {{ .KC_DATABASE }} == "cnpg" ]]; then 
           KUBECONFIG={{.KUBECONFIG}} kubectl delete ns cnpg-keycloak || true;
         fi
     status:
