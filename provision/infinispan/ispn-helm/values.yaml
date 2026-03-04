@@ -7,8 +7,8 @@ replicas: 3
 # When 'useCustomImage' is 'false' then operator defaults will be used.
 # Values of 'image' and 'version' should be compatible with the deployed variant and version of Keycloak.
 useCustomImage: true
-image: quay.io/infinispan/server:16.0.5
-version: 16.0.5
+image: quay.io/infinispan/server:16.0.7
+version: 16.0.7
 cacheDefaults:
   owners: 2
   # SYNC or ASYNC
@@ -32,35 +32,41 @@ caches:
       enabled: true
       indexed-entities:
         - keycloak.RootAuthenticationSessionEntity
+      startupMode: NONE
   sessions:
     mergePolicy: ALWAYS_REMOVE
     indexing:
       enabled: true
       indexed-entities:
         - keycloak.RemoteUserSessionEntity
+      startupMode: NONE
   offlineSessions:
     mergePolicy: ALWAYS_REMOVE
     indexing:
       enabled: true
       indexed-entities:
         - keycloak.RemoteUserSessionEntity
+      startupMode: NONE
   clientSessions:
     mergePolicy: ALWAYS_REMOVE
     indexing:
       enabled: true
       indexed-entities:
         - keycloak.RemoteAuthenticatedClientSessionEntity
+      startupMode: NONE
   offlineClientSessions:
     mergePolicy: ALWAYS_REMOVE
     indexing:
       enabled: true
       indexed-entities:
         - keycloak.RemoteAuthenticatedClientSessionEntity
+      startupMode: NONE
   loginFailures:
     indexing:
       enabled: true
       indexed-entities:
         - keycloak.LoginFailureEntity
+      startupMode: NONE
   work: { }
 crossdc:
   enabled: false
