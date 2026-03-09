@@ -2,10 +2,6 @@ package org.keycloak.benchmark.crossdc.util;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -22,16 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KeycloakUtils {
-    public static ResteasyClientBuilder newResteasyClientBuilder() {
-        // Disable PKIX path validation errors when running tests using SSL
-        HostnameVerifier hostnameVerifier = new HostnameVerifier() {
-            @Override
-            public boolean verify(String hostName, SSLSession session) {
-                return true;
-            }
-        };
-        return ((ResteasyClientBuilder) ResteasyClientBuilder.newBuilder()).disableTrustManager().hostnameVerifier(hostnameVerifier);
-    }
 
     public static String getFormDataAsString(Map<String, String> formData) {
         StringBuilder formBodyBuilder = new StringBuilder();
