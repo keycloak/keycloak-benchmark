@@ -28,9 +28,9 @@ import org.jboss.logging.Logger;
 import org.jboss.resteasy.spi.NotImplementedYetException;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.keycloak.admin.client.spi.ResteasyClientClassicProvider;
 import org.keycloak.benchmark.crossdc.AbstractCrossDCTest;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
-import org.keycloak.benchmark.crossdc.util.KeycloakUtils;
 import org.keycloak.common.util.Time;
 import org.keycloak.util.JsonSerialization;
 
@@ -366,7 +366,7 @@ public class KeycloakClient {
                 .username("admin")
                 .password(AbstractCrossDCTest.MAIN_PASSWORD)
                 .realm("master")
-                .resteasyClient(KeycloakUtils.newResteasyClientBuilder().build())
+                .resteasyClient(new ResteasyClientClassicProvider().newRestEasyClient(null, null, true))
                 .build();
 
         // Initialize access token so all initialized admin clients have a session in Keycloak
