@@ -36,12 +36,20 @@ if [ -n "${OSD_VERIFIER_SG}" ]; then
     --no-cli-pager || true
 fi
 
+# Workaround for VPC deletion problem: https://redhat.atlassian.net/browse/OCPBUGS-74960
+CLUSTER_ID=$(rosa describe cluster -c ${CLUSTER_NAME} --output json | jq -r .id)
+if [ -n "$CLUSTER_ID" ]; then
+  PRIVATE_ROUTER_SG=$(aws ec2 describe-security-groups --region $REGION --filters Name=tag:Name,Values=${CLUSTER_ID}-vpce-private-router --query 'SecurityGroups[*].GroupId' --output text)
+  VPC=$(aws ec2 describe-vpcs --region $REGION --filters Name=tag:Name,Values=${CLUSTER_NAME}-vpc --query 'Vpcs[*].VpcId' --output text)
+  # Trying to delete the SG here fails due to dependent resources. Deleting later, after ROSA cluster deletion.
+fi
+
 #Creating Logs directory for each cluster
 LOG_DIR="${SCRIPT_DIR}/logs/${CLUSTER_NAME}"
 mkdir -p ${LOG_DIR}
 cd ${LOG_DIR}
 echo "Starting to watch cluster uninstall logs."
-timeout -k 45m 45m bash -c "rosa logs uninstall -c ${CLUSTER_NAME} --watch --debug &> $(custom_date)_delete-cluster.log" &
+timeout -k 35m 35m bash -c "rosa logs uninstall -c ${CLUSTER_NAME} --watch --debug &> $(custom_date)_delete-cluster.log" &
 
 cd ${SCRIPT_DIR}/../opentofu/modules/rosa-hcp
 WORKSPACE=${CLUSTER_NAME}-${REGION}
@@ -52,5 +60,16 @@ if wait "${DESTROY_PROC_ID}"; then
     echo "Cluster uninstalled successfully."
 else
     echo "Timeout encountered deleting cluster"
+
+    # Workaround for VPC deletion problem: https://redhat.atlassian.net/browse/OCPBUGS-74960
+    if [ -n "$PRIVATE_ROUTER_SG" ]; then
+      # Explicitly delete "${CLUSTER_ID}-vpce-private-router" security group which prevents VPC deletion
+      aws ec2 delete-security-group --region $REGION --group-id $PRIVATE_ROUTER_SG --no-cli-pager || true
+    fi
+    if [ -n "$VPC" ]; then
+      # Explicitly delete "${CLUSTER_NAME}-vpc" VPC
+      aws ec2 delete-vpc --region $REGION --vpc-id $VPC --no-cli-pager || true
+    fi
+
     exit 1
 fi
