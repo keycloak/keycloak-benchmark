@@ -30,9 +30,9 @@ spec:
     vendor: mysql
 {{ end }}
 {{- if and (eq .Values.database "aurora-postgres") .Values.useAWSJDBCWrapper}}
-    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory  # <1>
+    url: jdbc:aws-wrapper:postgresql://{{ .Values.dbUrl }}:5432/keycloak  # <1>
 {{- else if eq .Values.database "cnpg"}}
-    url: jdbc:postgresql://cnpg-keycloak-rw.cnpg-keycloak.svc.cluster.local:5432/keycloak?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+    host: cnpg-keycloak-rw.cnpg-keycloak.svc.cluster.local
 {{- else if eq .Values.database "mysql"}}
     url: jdbc:mysql://mysql:3306/keycloak
 {{- else }}
@@ -162,6 +162,10 @@ spec:
     - name: db-driver
       value: software.amazon.jdbc.Driver
 {{ end }}
+{{-  if or (eq .Values.database "aurora-postgres") (eq .Values.database "cnpg") }}
+    - name: db-tls-mode
+      value: verify-server
+{{- end }}
   http:
     tlsSecret: keycloak-tls-secret
   instances: {{ .Values.instances }}
