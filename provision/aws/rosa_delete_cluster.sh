@@ -71,5 +71,8 @@ else
       aws ec2 delete-vpc --region $REGION --vpc-id $VPC --no-cli-pager || true
     fi
 
-    exit 1
+    if rosa describe cluster -c ${CLUSTER_NAME}; then 
+      echo "Deletion of cluster \"${CLUSTER_NAME}\" failed."
+      exit 1
+    fi
 fi
