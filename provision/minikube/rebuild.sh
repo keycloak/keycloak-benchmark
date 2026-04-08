@@ -4,6 +4,14 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
 fi
 set -e
 
+if [ -f ./.env ]; then
+  source ./.env
+fi
+
+MINIKUBE_MEMORY=${MINIKUBE_MEMORY:-8192}
+MINIKUBE_CPUS=${MINIKUBE_CPUS:-4}
+MINIKUBE_KUBERNETES_VERSION=${MINIKUBE_KUBERNETES_VERSION:-1.30.0}
+
 if [ "$GITHUB_ACTIONS" == "" ]; then
   #prerequisite checks
   #this test is valid only on Linux, and would fail on Windows, MacOS
@@ -27,8 +35,8 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
   fi
 
   minikube delete
-  minikube config set memory 8192
-  minikube config set cpus 4
+  minikube config set memory $MINIKUBE_MEMORY
+  minikube config set cpus $MINIKUBE_CPUS
   DRIVER=kvm2
   if [ "$(uname)" == "Darwin" ]; then
     DRIVER=hyperkit
@@ -38,7 +46,7 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
   minikube config set driver ${DRIVER}
   minikube config set container-runtime docker
   # the version of Kubernetes needs to be in-sync with `provision-minikube.yml`
-  minikube start --addons=ingress --disk-size=64GB --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v1.27.10 --cni cilium
+  minikube start --addons=ingress --disk-size=64GB --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v$MINIKUBE_KUBERNETES_VERSION --cni cilium
 fi
 rm -rf .task
 echo "Minikube initialized. Now run 'task' to provision it with Keycloak"
