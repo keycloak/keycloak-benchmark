@@ -13,7 +13,7 @@ fi
 
 ## install operator
 
-CNPG_VERSION=${CNPG_VERSION:-"1.28.0"}
+CNPG_VERSION=${CNPG_VERSION:-"1.29.0"}
 CNPG_VERSION_MINOR=${CNPG_VERSION%.*}
 
 kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-$CNPG_VERSION_MINOR/releases/cnpg-$CNPG_VERSION.yaml
@@ -30,7 +30,7 @@ export CNPG_MAX_CONNECTIONS=${CNPG_MAX_CONNECTIONS:-100}
 kubectl create ns $CNPG_NAMESPACE || true
 kubectl -n $CNPG_NAMESPACE apply -f <(cat cluster.yaml | envsubst)
 kubectl -n $CNPG_NAMESPACE apply -f pod-monitor.yaml
-kubectl -n $CNPG_NAMESPACE wait --for=condition=Ready --timeout=300s cluster cnpg-keycloak 
+kubectl -n $CNPG_NAMESPACE wait --for=condition=Ready --timeout=300s cluster cnpg-keycloak
 
 
 ## set up secrets for Keycloak
