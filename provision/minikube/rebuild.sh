@@ -10,7 +10,8 @@ fi
 
 MINIKUBE_MEMORY=${MINIKUBE_MEMORY:-8192}
 MINIKUBE_CPUS=${MINIKUBE_CPUS:-4}
-MINIKUBE_KUBERNETES_VERSION=${MINIKUBE_KUBERNETES_VERSION:-1.30.0}
+# Keep this in line with `provision-minikube.yml`
+MINIKUBE_KUBERNETES_VERSION=${MINIKUBE_KUBERNETES_VERSION:-1.34.6}
 
 if [ "$GITHUB_ACTIONS" == "" ]; then
   #prerequisite checks
@@ -47,6 +48,13 @@ if [ "$GITHUB_ACTIONS" == "" ]; then
   minikube config set container-runtime docker
   # the version of Kubernetes needs to be in-sync with `provision-minikube.yml`
   minikube start --addons=ingress --disk-size=64GB --container-runtime=docker --driver=${DRIVER} --docker-opt="default-ulimit=nofile=102400:102400" --kubernetes-version=v$MINIKUBE_KUBERNETES_VERSION --cni cilium
+
+  # Without those configuration changes the node ports of the ingress will not be reachable (since Kubernetes v1.28+)
+  kubectl -n kube-system patch configmap cilium-config \
+    --type merge \
+    -p '{"data":{"enable-node-port":"true","kube-proxy-replacement":"true","devices":"eth+ br+","node-port-bind-protection":"false"}}'
+  kubectl -n kube-system rollout restart daemonset/cilium
+  kubectl -n kube-system rollout status daemonset/cilium --timeout=120s
 fi
 rm -rf .task
 echo "Minikube initialized. Now run 'task' to provision it with Keycloak"
