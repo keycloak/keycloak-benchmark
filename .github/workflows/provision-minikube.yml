@@ -26,7 +26,7 @@ jobs:
   build:
 
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
-    
+
     runs-on: ubuntu-latest
 
     steps:
@@ -55,12 +55,21 @@ jobs:
       - name: Setup minikube-Kubernetes
         uses: manusa/actions-setup-minikube@v2.16.1
         with:
-          minikube version: 'v1.32.0'
+          minikube version: 'v1.38.1'
           # the version of Kubernetes needs to be in-sync with `rebuild.sh`
-          kubernetes version: 'v1.27.10'
+          kubernetes version: 'v1.34.6'
           github token: ${{ secrets.GITHUB_TOKEN }}
           driver: docker
           start args: --addons=ingress --memory 4096 --cni cilium
+      - name: Configure the ingress
+        working-directory: provision/minikube
+        run: |
+          # Without those configuration changes the node ports of the ingress will not be reachable (since Kubernetes v1.28+)
+          kubectl -n kube-system patch configmap cilium-config \
+            --type merge \
+            -p '{"data":{"enable-node-port":"true","kube-proxy-replacement":"true","devices":"eth+ br+","node-port-bind-protection":"false"}}'
+          kubectl -n kube-system rollout restart daemonset/cilium
+          kubectl -n kube-system rollout status daemonset/cilium --timeout=120s
       - name: Provision on PostgreSQL DB
         working-directory: provision/minikube
         run: |
