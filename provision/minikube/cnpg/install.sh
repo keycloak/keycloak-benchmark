@@ -3,12 +3,6 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $SCRIPT_DIR
 
-## openshift-specific prerequisities
-
-if kubectl api-resources --api-group=route.openshift.io; then
-  # add privileged security context for the cnpg service account
-  oc adm policy add-scc-to-user privileged system:serviceaccount:cnpg-system:cnpg-manager
-fi
 
 
 ## install operator
@@ -17,6 +11,12 @@ CNPG_VERSION=${CNPG_VERSION:-"1.29.0"}
 CNPG_VERSION_MINOR=${CNPG_VERSION%.*}
 
 kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-$CNPG_VERSION_MINOR/releases/cnpg-$CNPG_VERSION.yaml
+if kubectl api-resources --api-group=route.openshift.io; then
+  # OpenShift-specific:
+  # Remove runAsUser and runAsGroup settings from the cnpg-controller-manager deployment 
+  # in order to avoid having to add a privileged SCC to the cnpg-manager service account.
+  kubectl -n cnpg-system patch deployment cnpg-controller-manager --patch-file patch-remove-runAs.yaml
+fi
 kubectl -n cnpg-system rollout status deployment cnpg-controller-manager
 
 
