@@ -1,5 +1,6 @@
 module "vpc" {
   source                = "terraform-redhat/rosa-hcp/rhcs//modules/vpc"
+  version               = "1.7.2"
 
   name_prefix           = var.cluster_name
   availability_zones    = split(",", var.availability_zones)
@@ -9,6 +10,7 @@ module "vpc" {
 
 module "hcp" {
   source = "terraform-redhat/rosa-hcp/rhcs"
+  version               = "1.7.2"
 
   openshift_version      = var.openshift_version
   cluster_name           = var.cluster_name
