@@ -56,3 +56,41 @@ jobs:
       clusterIdPrefix: "sc_"
       usersPerRealm: 1000000
       uniqueCredentials: 100000
+
+  check-benchmark-results:
+    name: Check Benchmark Results
+    if: ${{ always() && (github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark') }}
+    needs:
+      - rosa-multi-az-clusters-run-tests
+      - rosa-stretched-cluster-benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout result-data branch
+        uses: actions/checkout@v6
+        with:
+          ref: 'result-data'
+
+      - name: Check for non-zero ko values
+        shell: bash
+        run: |
+          DATE_FOLDER=rosa_scalability/$(date +"%Y/%m/%d")
+          if [ ! -d "${DATE_FOLDER}" ]; then
+            echo "ERROR: Result directory '${DATE_FOLDER}' does not exist."
+            exit 1
+          fi
+          FAILED=false
+          for file in "${DATE_FOLDER}"/*.json; do
+            [ -e "${file}" ] || continue
+            NON_ZERO_KO=$(jq '[.. | objects | select(has("ko")) | .ko | select(. != 0)] | length' "${file}")
+            if [ "${NON_ZERO_KO}" -gt 0 ]; then
+              echo "FAILURE: ${file} contains ${NON_ZERO_KO} non-zero 'ko' values"
+              FAILED=true
+            else
+              echo "OK: ${file}"
+            fi
+          done
+          if [ "${FAILED}" = true ]; then
+            echo "Benchmark failed: non-zero 'ko' values detected."
+            exit 1
+          fi
+          echo "All benchmark results passed."
