@@ -1,21 +1,18 @@
 {{ if eq .Values.database "mysql" }}
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     app: mysql
   name: mysql
   namespace: {{ .Values.namespace }}
 spec:
-  progressDeadlineSeconds: 600
   replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: mysql
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
