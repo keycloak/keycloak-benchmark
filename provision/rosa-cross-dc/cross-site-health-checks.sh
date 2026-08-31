@@ -97,26 +97,28 @@ health_check "$keycloak_lb_url"/lb-check
 echo "Verify the Load Balancer health check on the Site"
 health_check "$keycloak_site_url"/lb-check
 
-echo "Verify the default cache manager health in external ISPN"
-health_check "$infinispan_rest_url"/rest/v2/cache-managers/default/health/status
+if [ -n "$expected_ispn_count" ]; then
+  echo "Verify the default cache manager health in external ISPN"
+  health_check "$infinispan_rest_url"/rest/v2/cache-managers/default/health/status
 
-echo "Verify individual cache health"
-curl -u "$infinispan_user":"$infinispan_pwd" -sk "$infinispan_rest_url"/rest/v2/cache-managers/default/health \
- | jq 'if .cluster_health.health_status == "HEALTHY" and (all(.cache_health[].status; . == "HEALTHY")) then "HEALTHY" else "UNHEALTHY" end'
-echo
+  echo "Verify individual cache health"
+  curl -u "$infinispan_user":"$infinispan_pwd" -sk "$infinispan_rest_url"/rest/v2/cache-managers/default/health \
+   | jq 'if .cluster_health.health_status == "HEALTHY" and (all(.cache_health[].status; . == "HEALTHY")) then "HEALTHY" else "UNHEALTHY" end'
+  echo
 
-echo "ISPN Cluster Distribution"
-# shellcheck disable=SC2086
-curl -u "$infinispan_user":"$infinispan_pwd" -sk $infinispan_rest_url/rest/v2/cluster\?action\=distribution \
- | jq --argjson expectedCount "$expected_ispn_count" 'if map(select(.node_addresses | length > 0)) | length == $expectedCount then "HEALTHY" else "UNHEALTHY" end'
-echo
+  echo "ISPN Cluster Distribution"
+  # shellcheck disable=SC2086
+  curl -u "$infinispan_user":"$infinispan_pwd" -sk $infinispan_rest_url/rest/v2/cluster\?action\=distribution \
+   | jq --argjson expectedCount "$expected_ispn_count" 'if map(select(.node_addresses | length > 0)) | length == $expectedCount then "HEALTHY" else "UNHEALTHY" end'
+  echo
 
-echo "ISPN Overall Status"
-oc get infinispan -n runner-keycloak -o json  \
-| jq '.items[].status.conditions' \
-| jq 'map({(.type): .status})' \
-| jq 'reduce .[] as $item ([]; . + [keys[] | select($item[.] != "True")]) | if length == 0 then "HEALTHY" else "UNHEALTHY: " + (join(", ")) end'
-echo
+  echo "ISPN Overall Status"
+  oc get infinispan -n runner-keycloak -o json  \
+  | jq '.items[].status.conditions' \
+  | jq 'map({(.type): .status})' \
+  | jq 'reduce .[] as $item ([]; . + [keys[] | select($item[.] != "True")]) | if length == 0 then "HEALTHY" else "UNHEALTHY: " + (join(", ")) end'
+  echo
+fi
 
 echo "Verify for Keycloak condition in ROSA cluster"
 oc wait --for=condition=Ready --timeout=10s keycloaks.k8s.keycloak.org/keycloak -n "$namespace"

@@ -49,6 +49,10 @@ on:
         description: "Keycloak Operator deployment name"
         type: string
         default: keycloak-operator
+      skipInfinispanOperations:
+        description: 'Skip Infinispan cross-DC disconnect/connect operations'
+        type: boolean
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -95,6 +99,10 @@ on:
         description: "Keycloak Operator deployment name"
         type: string
         default: keycloak-operator
+      skipInfinispanOperations:
+        description: 'Skip Infinispan cross-DC disconnect/connect operations'
+        type: boolean
+        default: false
 
 concurrency: cluster_${{ inputs.clusterPrefix }}-a
 
@@ -157,6 +165,7 @@ jobs:
           project: ${{ env.PROJECT }}
 
       - name: Take Backup offline
+        if: ${{ !inputs.skipInfinispanOperations }}
         working-directory: provision/infinispan
         run: task crossdc-disconnect
         env:
@@ -176,7 +185,7 @@ jobs:
           uniqueCredentials: ${{ inputs.uniqueCredentials }}
 
       - name: Bring Backup online
-        if: ${{ always() }}
+        if: ${{ always() && !inputs.skipInfinispanOperations }}
         working-directory: provision/infinispan
         run: task crossdc-connect
         env:

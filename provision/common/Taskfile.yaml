@@ -26,6 +26,8 @@ vars:
   KC_DISABLE_STICKY_SESSION: '{{default "false" .KC_DISABLE_STICKY_SESSION}}'
   KC_IS_ACTIVE_PASSIVE: '{{default "false" .KC_IS_ACTIVE_PASSIVE}}'
   KC_EXTERNAL_INFINISPAN: '{{default "false" .KC_EXTERNAL_INFINISPAN}}'
+  KC_STATELESS: '{{default "false" .KC_STATELESS}}'
+  KC_EMBEDDED_CLUSTER_NAME: '{{default "ISPN" .KC_EMBEDDED_CLUSTER_NAME}}'
   MULTI_AZ: '{{default "false" .MULTI_AZ}}'
   ENV_DATA_JSON_PATH: "{{.ROOT_DIR}}/../environment_data.json"
   KC_REPOSITORY: '{{default "" .KC_REPOSITORY}}'
@@ -77,6 +79,8 @@ tasks:
       - echo {{.KC_DISABLE_STICKY_SESSION}} > .task/var-KC_DISABLE_STICKY_SESSION
       - echo {{.KC_IS_ACTIVE_PASSIVE}} > .task/var-KC_IS_ACTIVE_PASSIVE
       - echo {{.KC_EXTERNAL_INFINISPAN}} > .task/var-KC_EXTERNAL_INFINISPAN
+      - echo {{.KC_STATELESS}} > .task/var-KC_STATELESS
+      - echo {{.KC_EMBEDDED_CLUSTER_NAME}} > .task/var-KC_EMBEDDED_CLUSTER_NAME
       - echo {{.KC_HOSTNAME_OVERRIDE}} > .task/var-KC_HOSTNAME_OVERRIDE
       - echo {{.KC_HEALTH_HOSTNAME}} > .task/var-KC_HEALTH_HOSTNAME
       - echo {{.KC_STRETCH_CLUSTER}} > .task/var-KC_STRETCH_CLUSTER
@@ -100,6 +104,7 @@ tasks:
           --argjson is_multi_az "{{ .MULTI_AZ }}" \
           --argjson is_active_passive "{{ .KC_IS_ACTIVE_PASSIVE }}" \
           --argjson is_stretch_cluster "{{ .KC_STRETCH_CLUSTER }}" \
+          --argjson is_stateless "{{ .KC_STATELESS }}" \
           '. + { "numOfPods": ($num_of_pods|tonumber), "cpuRequestsPerPod": ($cpu_requests_per_pod|tonumber),
                              "cpuLimitsPerPod": (if ($cpu_limits_per_pod | length) == 0 then null else ($cpu_limits_per_pod | tonumber?) end),
                              "stickySessionDisabled": ($sticky_sessions),
@@ -121,7 +126,8 @@ tasks:
                             "keycloakOperatorTag": ($kc_operator_tag),
                             "keycloakRepository": ($kc_repo),
                             "keycloakBranch": ($kc_branch),
-                            "keycloakDatabase": ($database) }' > {{ .ENV_DATA_JSON_PATH }}
+                            "keycloakDatabase": ($database),
+                            "isStateless": ($is_stateless) }' > {{ .ENV_DATA_JSON_PATH }}
     run: once
     sources:
       - .task/subtask-{{.TASK}}.yaml
@@ -150,6 +156,8 @@ tasks:
       - test "{{.KC_DISABLE_STICKY_SESSION}}" == "$(cat .task/var-KC_DISABLE_STICKY_SESSION)"
       - test "{{.KC_IS_ACTIVE_PASSIVE}}" == "$(cat .task/var-KC_IS_ACTIVE_PASSIVE)"
       - test "{{.KC_EXTERNAL_INFINISPAN}}" == "$(cat .task/var-KC_EXTERNAL_INFINISPAN)"
+      - test "{{.KC_STATELESS}}" == "$(cat .task/var-KC_STATELESS)"
+      - test "{{.KC_EMBEDDED_CLUSTER_NAME}}" == "$(cat .task/var-KC_EMBEDDED_CLUSTER_NAME)"
       - test "{{.KC_HOSTNAME_OVERRIDE}}" == "$(cat .task/var-KC_HOSTNAME_OVERRIDE)"
       - test "{{.KC_HEALTH_HOSTNAME}}" == "$(cat .task/var-KC_HEALTH_HOSTNAME)"
       - test "{{.KC_STRETCH_CLUSTER}}" == "$(cat .task/var-KC_STRETCH_CLUSTER)"

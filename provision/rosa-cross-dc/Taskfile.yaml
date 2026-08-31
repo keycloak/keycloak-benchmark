@@ -188,6 +188,8 @@ tasks:
           KC_ISPN_CLUSTER: "infinispan"
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
           KC_REMOTE_STORE: "{{.KC_REMOTE_STORE}}"
+          KC_STATELESS: "{{.KC_STATELESS}}"
+          KC_EMBEDDED_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME}}"
 
   wait-keycloak:
     desc: "Waits for Keycloak conditions"
@@ -307,6 +309,117 @@ tasks:
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
       - task: configure-lambda-env
+
+  stateless-active-active:
+    desc: "Deploys Aurora DB and Keycloak in a Stateless Active/Active deployment using ROSA clusters"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - AURORA_CLUSTER
+        - ACCELERATOR_DNS
+    cmds:
+      - task: update-env-configjson-with-new-values
+        vars:
+          PROP_NAME: "isStateless"
+          PROP_VALUE: "true"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: common:datasetprovider
+      - task: create-aurora
+      - task: fetch-aurora-endpoint
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          KC_HOSTNAME_OVERRIDE: "{{.ACCELERATOR_DNS}}"
+          KC_STATELESS: "true"
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          KC_HOSTNAME_OVERRIDE: "{{.ACCELERATOR_DNS}}"
+          KC_STATELESS: "true"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  stateless-active-passive:
+    desc: "Deploys Aurora DB and Keycloak in a Stateless Active/Passive deployment using ROSA clusters"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - AURORA_CLUSTER
+        - KC_HEALTH_URL_CLUSTER_1
+        - KC_HEALTH_URL_CLUSTER_2
+        - KC_CLIENT_URL
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: common:datasetprovider
+      - task: create-aurora
+      - task: fetch-aurora-endpoint
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+          KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_1}}"
+          KC_STATELESS: "true"
+      - task: deploy-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+          KC_HOSTNAME_OVERRIDE: "{{.KC_CLIENT_URL}}"
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_2}}"
+          KC_STATELESS: "true"
+      - task: deploy-route53-failover-lambda
+        vars:
+          KC_HEALTH_HOSTNAME: "{{.KC_HEALTH_URL_CLUSTER_1}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-cryostat
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: wait-keycloak
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: create-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
 
   default:
     desc: "Deploys Infinispan, Aurora DB and Keycloak in a Active/Passive deployment using ROSA clusters"
@@ -453,6 +566,73 @@ tasks:
       - task: uninstall-infinispan
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  undeploy-stateless-active-active:
+    desc: "Undeploy Keycloak in a Stateless Active/Active deployment"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: delete-env-configmap
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+
+  undeploy-stateless-active-passive:
+    desc: "Undeploy Keycloak in a Stateless Active/Passive deployment"
+    deps:
+      - common:split
+      - common:env
+    requires:
+      vars:
+        - ROSA_CLUSTER_NAME_1
+        - ROSA_CLUSTER_NAME_2
+        - KC_HEALTH_URL_CLUSTER_1
+    cmds:
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_2}}"
+      - task: ispn:rosa-oc-login
+        vars:
+          ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_2}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: keycloak:uninstall-keycloak
+        vars:
+          KUBECONFIG: "{{.ISPN_DIR}}/.task/kubecfg/{{.ROSA_CLUSTER_NAME_1}}"
+          NAMESPACE: "{{.KC_NAMESPACE_PREFIX}}keycloak"
+      - task: undeploy-route53-failover-lambda
+      - task: route53-failback
+        vars:
+          WAIT: 0
       - task: delete-env-configmap
         vars:
           ROSA_CLUSTER_NAME: "{{.ROSA_CLUSTER_NAME_1}}"

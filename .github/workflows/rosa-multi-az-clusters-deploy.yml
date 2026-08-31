@@ -12,18 +12,17 @@ on:
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
-      activeActive:
-        description: 'When true deploy an Active/Active Keycloak deployment'
-        type: boolean
-        default: false
-      enableExternalInfinispanFeature:
-        description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
-        type: boolean
-        default: false
-      enableMultiSiteFeature:
-        description: 'To enable the Multi Site Feature'
-        type: boolean
-        default: true
+      deploymentMode:
+        description: 'The deployment mode'
+        type: choice
+        options:
+          - active-passive
+          - active-active
+          - stateless-active-active
+          - stateless-active-passive
+          - volatile-active-active
+          - volatile-active-passive
+        default: active-passive
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -54,18 +53,10 @@ on:
       keycloakRepository:
         description: 'The repository to deploy Keycloak from. If not set nightly image is used'
         type: string
-      activeActive:
-        description: 'When true deploy an Active/Active Keycloak deployment'
-        type: boolean
-        default: false
-      enableExternalInfinispanFeature:
-        description: 'To enable the external Infinispan feature. It disables the embedded caches and only uses the remote caches.'
-        type: boolean
-        default: false
-      enableMultiSiteFeature:
-        description: 'To enable the Multi Site Feature'
-        type: boolean
-        default: true
+      deploymentMode:
+        description: 'The deployment mode'
+        type: string
+        default: active-passive
       keycloakBranch:
         description: 'The branch to deploy Keycloak from. If not set nightly image is used'
         type: string
@@ -73,8 +64,8 @@ on:
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
   REGION: ${{ inputs.region || vars.AWS_DEFAULT_REGION }}
-  KC_EXTERNAL_INFINISPAN: ${{ inputs.enableExternalInfinispanFeature }}
-  KC_MULTI_SITE: ${{ inputs.enableMultiSiteFeature }}
+  KC_EXTERNAL_INFINISPAN: ${{ startsWith(inputs.deploymentMode, 'volatile') }}
+  KC_MULTI_SITE: ${{ !startsWith(inputs.deploymentMode, 'stateless') && !startsWith(inputs.deploymentMode, 'volatile') }}
 
 jobs:
 
@@ -116,7 +107,7 @@ jobs:
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Create Route53 Loadbalancer
-        if: ${{ !inputs.activeActive }}
+        if: ${{ endsWith(inputs.deploymentMode, 'active-passive') }}
         working-directory: provision/rosa-cross-dc
         run: |
           task route53 > route53
@@ -128,7 +119,7 @@ jobs:
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Deploy Active/Passive
-        if: ${{ !inputs.activeActive }}
+        if: ${{ inputs.deploymentMode == 'active-passive' || inputs.deploymentMode == 'volatile-active-passive' }}
         working-directory: provision/rosa-cross-dc
         run: task
         env:
@@ -161,8 +152,38 @@ jobs:
           KC_BRANCH: ${{ inputs.keycloakBranch }}
           CROSS_DC_IMAGE_USE_CUSTOM: ${{ inputs.infinispan_use_custom_image }}
 
+      - name: Deploy Stateless Active/Passive
+        if: ${{ inputs.deploymentMode == 'stateless-active-passive' }}
+        working-directory: provision/rosa-cross-dc
+        run: task stateless-active-passive
+        env:
+          AURORA_CLUSTER: ${{ env.CLUSTER_PREFIX }}
+          AURORA_REGION: ${{ env.REGION }}
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_OPERATOR_OLM: ${{ inputs.keycloak_operator_olm }}
+          KC_OPERATOR_CATALOG_SOURCE: ${{ inputs.keycloak_operator_olm_catalog_source }}
+          KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_olm_name }}
+          KC_OPERATOR_CHANNEL: ${{ inputs.keycloak_operator_olm_channel }}
+          KC_OPERATOR_VERSION: ${{ inputs.keycloak_operator_olm_version }}
+          KC_CPU_REQUESTS: 6
+          KC_CPU_LIMITS: 6
+          KC_INSTANCES: 3
+          KC_DISABLE_STICKY_SESSION: true
+          KC_CRYOSTAT: true
+          KC_IS_ACTIVE_PASSIVE: true
+          KC_MEMORY_REQUESTS_MB: 3000
+          KC_MEMORY_LIMITS_MB: 4000
+          KC_DB_POOL_INITIAL_SIZE: 30
+          KC_DB_POOL_MAX_SIZE: 30
+          KC_DB_POOL_MIN_SIZE: 30
+          KC_DATABASE: "aurora-postgres"
+          MULTI_AZ: "true"
+          KC_REPOSITORY: ${{ inputs.keycloakRepository }}
+          KC_BRANCH: ${{ inputs.keycloakBranch }}
+
       - name: Create Accelerator Loadbalancer
-        if: ${{ inputs.activeActive }}
+        if: ${{ endsWith(inputs.deploymentMode, 'active-active') }}
         working-directory: provision/rosa-cross-dc
         run: |
           task global-accelerator-create
@@ -172,7 +193,7 @@ jobs:
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
       - name: Deploy Active/Active
-        if: ${{ inputs.activeActive }}
+        if: ${{ inputs.deploymentMode == 'active-active' || inputs.deploymentMode == 'volatile-active-active' }}
         working-directory: provision/rosa-cross-dc
         run: task active-active
         env:
@@ -207,3 +228,33 @@ jobs:
           KC_REPOSITORY: ${{ inputs.keycloakRepository }}
           KC_BRANCH: ${{ inputs.keycloakBranch }}
           CROSS_DC_IMAGE_USE_CUSTOM: ${{ inputs.infinispan_use_custom_image }}
+
+      - name: Deploy Stateless Active/Active
+        if: ${{ inputs.deploymentMode == 'stateless-active-active' }}
+        working-directory: provision/rosa-cross-dc
+        run: task stateless-active-active
+        env:
+          ACCELERATOR_DNS: ${{ env.ACCELERATOR_DNS }}
+          AURORA_CLUSTER: ${{ env.CLUSTER_PREFIX }}
+          AURORA_REGION: ${{ env.REGION }}
+          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
+          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
+          KC_OPERATOR_OLM: ${{ inputs.keycloak_operator_olm }}
+          KC_OPERATOR_CATALOG_SOURCE: ${{ inputs.keycloak_operator_olm_catalog_source }}
+          KC_OPERATOR_NAME: ${{ inputs.keycloak_operator_olm_name }}
+          KC_OPERATOR_CHANNEL: ${{ inputs.keycloak_operator_olm_channel }}
+          KC_OPERATOR_VERSION: ${{ inputs.keycloak_operator_olm_version }}
+          KC_CPU_REQUESTS: 6
+          KC_CPU_LIMITS: 6
+          KC_INSTANCES: 3
+          KC_DISABLE_STICKY_SESSION: true
+          KC_CRYOSTAT: true
+          KC_MEMORY_REQUESTS_MB: 3000
+          KC_MEMORY_LIMITS_MB: 4000
+          KC_DB_POOL_INITIAL_SIZE: 30
+          KC_DB_POOL_MAX_SIZE: 30
+          KC_DB_POOL_MIN_SIZE: 30
+          KC_DATABASE: "aurora-postgres"
+          MULTI_AZ: "true"
+          KC_REPOSITORY: ${{ inputs.keycloakRepository }}
+          KC_BRANCH: ${{ inputs.keycloakBranch }}
