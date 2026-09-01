@@ -78,6 +78,9 @@ spec:
 {{- if .Values.externalInfinispan }}
       - clusterless
 {{- end }}
+{{- if .Values.stateless }}
+      - stateless
+{{- end }}
 {{ if .Values.otel }}
       - opentelemetry
 {{- end }}
@@ -141,6 +144,8 @@ spec:
         key: password
     # end::keycloak-ispn[]
 {{- end }}
+    - name: spi-cache-embedded--default--cluster-name
+      value: {{ quote .Values.embeddedClusterName }}
 {{- if .Values.keycloakDocumentation }}
     # end::keycloak[]
     # This block is just for documentation purposes as we need both versions of Infinispan config, with and without numbers to corresponding options

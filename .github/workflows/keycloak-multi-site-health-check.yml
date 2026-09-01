@@ -16,6 +16,10 @@ on:
       expectedInfinispanNodeCount:
         description: 'Expected Infinispan cluster node count'
         default: '3'
+      skipInfinispanChecks:
+        description: 'Skip Infinispan health checks'
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       clusterPrefix:
@@ -34,6 +38,10 @@ on:
         description: 'Expected Infinispan cluster node count'
         type: string
         default: '3'
+      skipInfinispanChecks:
+        description: 'Skip Infinispan health checks'
+        type: boolean
+        default: false
 
 jobs:
   run:
@@ -82,7 +90,11 @@ jobs:
         id: multi_site_health_check_a
         shell: bash
         run: |
-          ./cross-site-health-checks.sh -n ${{ inputs.project }} -l ${{ env.KEYCLOAK_URL }} -k ${{ env.KEYCLOAK_SITE_URL }} -i ${{ env.KEYCLOAK_ISPN_REST_URL }} -u developer -p ${{ env.KEYCLOAK_ADMIN_PASSWORD }} -c ${{ inputs.expectedInfinispanNodeCount }}
+          ISPN_ARGS=""
+          if [ "${{ inputs.skipInfinispanChecks }}" != "true" ]; then
+            ISPN_ARGS="-i ${{ env.KEYCLOAK_ISPN_REST_URL }} -u developer -p ${{ env.KEYCLOAK_ADMIN_PASSWORD }} -c ${{ inputs.expectedInfinispanNodeCount }}"
+          fi
+          ./cross-site-health-checks.sh -n ${{ inputs.project }} -l ${{ env.KEYCLOAK_URL }} -k ${{ env.KEYCLOAK_SITE_URL }} $ISPN_ARGS
         working-directory: provision/rosa-cross-dc
 
       - name: Login to OpenShift cluster B
@@ -116,5 +128,9 @@ jobs:
         id: multi_site_health_check_b
         shell: bash
         run: |
-          ./cross-site-health-checks.sh -n ${{ inputs.project }} -l ${{ env.KEYCLOAK_URL }} -k ${{ env.KEYCLOAK_SITE_URL }} -i ${{ env.KEYCLOAK_ISPN_REST_URL }} -u developer -p ${{ env.KEYCLOAK_ADMIN_PASSWORD }} -c ${{ inputs.expectedInfinispanNodeCount }}
+          ISPN_ARGS=""
+          if [ "${{ inputs.skipInfinispanChecks }}" != "true" ]; then
+            ISPN_ARGS="-i ${{ env.KEYCLOAK_ISPN_REST_URL }} -u developer -p ${{ env.KEYCLOAK_ADMIN_PASSWORD }} -c ${{ inputs.expectedInfinispanNodeCount }}"
+          fi
+          ./cross-site-health-checks.sh -n ${{ inputs.project }} -l ${{ env.KEYCLOAK_URL }} -k ${{ env.KEYCLOAK_SITE_URL }} $ISPN_ARGS
         working-directory: provision/rosa-cross-dc

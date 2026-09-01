@@ -56,9 +56,7 @@ jobs:
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
-      enableMultiSiteFeature: true
-      enableExternalInfinispanFeature: false
-      activeActive: true
+      deploymentMode: 'active-active'
     secrets: inherit
 
   run-active-active-health-checks-after-deploy:
@@ -123,94 +121,71 @@ jobs:
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       skipAuroraDeletion: true
-      activeActive: true
+      deploymentMode: 'active-active'
     secrets: inherit
 
-  keycloak-deploy-active-active-volatile:
+  keycloak-deploy-stateless-active-active:
     needs: keycloak-undeploy-active-active
-    name: Deploy Volatile Active/Active
+    name: Deploy Stateless Active/Active
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-clusters-deploy.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
-      enableMultiSiteFeature: true
-      enableExternalInfinispanFeature: true
-      activeActive: true
+      deploymentMode: 'stateless-active-active'
     secrets: inherit
 
-  run-active-active-volatile-health-checks-after-deploy:
-    needs: keycloak-deploy-active-active-volatile
-    name: Run multi-site health checks after volatile sessions deployment
+  run-stateless-health-checks-after-deploy:
+    needs: keycloak-deploy-stateless-active-active
+    name: Run health checks after stateless deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      expectedInfinispanNodeCount: '3'
+      skipInfinispanChecks: true
     secrets: inherit
 
-  run-functional-tests-active-active-volatile:
-    needs: run-active-active-volatile-health-checks-after-deploy
-    name: Test Volatile Active/Active
-    uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
-    with:
-      activeActive: true
-      clusterPrefix: ${{ inputs.clusterPrefix }}
-      skipEmbeddedCaches: true
-      skipRemoteCaches: false
-    secrets: inherit
-
-  run-active-active-volatile-health-checks-after-functional-tests:
-    needs: run-functional-tests-active-active-volatile
-    name: Run multi-site health checks after volatile sessions functional tests
-    uses: ./.github/workflows/keycloak-multi-site-health-check.yml
-    with:
-      activeActive: true
-      clusterPrefix: ${{ inputs.clusterPrefix }}
-      project: runner-keycloak
-      expectedInfinispanNodeCount: '3'
-    secrets: inherit
-
-  run-scaling-benchmark-active-active-volatile:
-    needs: run-active-active-volatile-health-checks-after-functional-tests
-    name: Benchmark Volatile Active/Active
+  run-scaling-benchmark-stateless-active-active:
+    needs: run-stateless-health-checks-after-deploy
+    name: Benchmark Stateless Active/Active
     uses: ./.github/workflows/rosa-multi-cluster-benchmark.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       region: ${{ inputs.region }}
       skipCreateDataset: true
-      outputArchiveSuffix: 'active-active-volatile'
+      skipInfinispanOperations: true
+      outputArchiveSuffix: 'stateless-active-active'
       uniqueCredentials: ${{ inputs.uniqueCredentials }}
       usersPerRealm: ${{ inputs.usersPerRealm }}
     secrets: inherit
 
-  run-active-active-volatile-health-checks-after-benchmarks:
-    needs: run-scaling-benchmark-active-active-volatile
-    name: Run multi-site health checks after after volatile sessions benchmarks
+  run-stateless-health-checks-after-benchmarks:
+    needs: run-scaling-benchmark-stateless-active-active
+    name: Run health checks after stateless benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
       activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
-      expectedInfinispanNodeCount: '3'
+      skipInfinispanChecks: true
     secrets: inherit
 
-  keycloak-undeploy-active-active-volatile:
-    needs: run-active-active-volatile-health-checks-after-benchmarks
-    name: Undeploy Keycloak A/A deployment
+  keycloak-undeploy-stateless-active-active:
+    needs: run-stateless-health-checks-after-benchmarks
+    name: Undeploy Stateless Active/Active
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-clusters-undeploy.yml
     with:
       clusterPrefix: ${{ inputs.clusterPrefix }}
       skipAuroraDeletion: true
-      activeActive: true
+      deploymentMode: 'stateless-active-active'
     secrets: inherit
 
   # single-site stuff
 
   keycloak-deploy-single-site:
-    needs: keycloak-undeploy-active-active-volatile
+    needs: keycloak-undeploy-stateless-active-active
     name: Deploy Single Cluster
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     uses: ./.github/workflows/rosa-multi-az-clusters_single-site-deploy.yml
