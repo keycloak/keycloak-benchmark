@@ -99,7 +99,7 @@ public class OrganizationIdentityProviderProvisioner extends AbstractOrganizatio
 
             IdentityProviderModel identityProvider = realm.getIdentityProviderByAlias(idpAlias);
 
-            if (identityProvider != null && identityProvider.getInternalId() != null && identityProvider.getOrganizationId() != null) {
+            if (identityProvider != null && identityProvider.getInternalId() != null && identityProvider.hasOrganization()) {
                 continue;
             }
 
