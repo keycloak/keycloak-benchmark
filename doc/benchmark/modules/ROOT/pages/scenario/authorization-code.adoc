@@ -26,7 +26,8 @@ Instead, use IP addresses of other interfaces, or `+http://0.0.0.0+`, or run Key
 
 * Keycloak is running.
 * Realm, user and client exist with the values listed on the CLI.
-* The client needs to have client authentication enabled, which results in an OIDC type of confidential access type, as the confidential client secret is used in the authorization code exchange.
+* When running without PKCE, the client needs to have client authentication enabled, which results in an OIDC type of confidential access type, as the confidential client secret is used in the authorization code exchange.
+* When running with PKCE (`--use-pkce=true`), the client can be a public client (e.g., `security-admin-console`). No client secret is needed.
 * This scenario doesn't need any service account roles set for the client.
 
 See xref:preparing-keycloak.adoc[] for details how to automate this for the realm and the client.
@@ -49,6 +50,31 @@ bin/kcb.sh \
   --client-secret=client-0-secret \
   --client-redirect-uri=http://0.0.0.0:8080 \
   --log-http-on-failure
+----
+
+== PKCE support
+
+To benchmark the authorization code flow with PKCE (Proof Key for Code Exchange, https://datatracker.ietf.org/doc/html/rfc7636[RFC 7636]), pass `--use-pkce=true`.
+This enables benchmarking against public clients that enforce PKCE, such as the built-in `security-admin-console` client.
+
+When PKCE is enabled:
+
+* A per-user `code_verifier` is generated and its S256 `code_challenge` is sent on the authorization request.
+* The `code_verifier` is sent on the token exchange request.
+* The `client_secret` parameter is omitted from the token exchange (public client flow).
+
+.Example with PKCE using the admin console client
+[source,bash]
+----
+bin/kcb.sh \
+  --scenario=keycloak.scenario.authentication.AuthorizationCode \
+  --server-url=http://0.0.0.0:8080/ \
+  --realm-name=master \
+  --username=admin \
+  --user-password=admin \
+  --client-id=security-admin-console \
+  --client-redirect-uri=http://0.0.0.0:8080/admin/master/console/ \
+  --use-pkce=true
 ----
 
 == Variants
