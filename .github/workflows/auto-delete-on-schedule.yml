@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: '0 21 * * *' # Runs every day at 9 PM UTC.
 
+concurrency:
+  # Cleanup runs mutate shared AWS resources. Wait for an active run instead of
+  # starting another cleanup in parallel or cancelling the active run.
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   accelerator-delete:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
