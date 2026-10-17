@@ -23,13 +23,19 @@
 #
 # Eligible VPCs are passed to the standard Aurora deletion script so database
 # instances and clusters are removed before their subnets, security groups,
-# and VPC. Names that do not match the expected format, GitHub API failures
-# other than a confirmed 404, and unknown run states are skipped rather than
-# risking deletion of resources whose liveness cannot be established.
+# and VPC. The reaper also removes leaked EC2 runners named
+# `keycloak_<short-commit-sha>` when no Keycloak CI run for that commit is
+# active. EC2 runners are discovered
+# independently because they run in the default VPC and can remain after their
+# companion Aurora VPC has already been removed.
 #
-# Set DRY_RUN=true to perform VPC discovery and GitHub status lookups while
-# only reporting the VPCs that would be deleted. Dry-run mode never calls the
-# AWS DeleteVpc API.
+# Names that do not match the expected formats, GitHub API failures other than
+# a confirmed 404, and unknown run states are skipped rather than risking
+# deletion of resources whose liveness cannot be established.
+#
+# Set DRY_RUN=true to perform VPC and EC2 discovery plus GitHub status lookups
+# while only reporting the resources that would be deleted. Dry-run mode never
+# calls an AWS deletion or termination API.
 set -uo pipefail
 
 if [[ "${RUNNER_DEBUG:-}" == "1" ]]; then
@@ -98,3 +104,58 @@ while IFS=$'\t' read -r VPC_ID VPC_NAME; do
       ;;
   esac
 done < <(jq -r '.[] | [.VpcId, .Name] | @tsv' <<< "${VPCS_JSON}")
+
+# The Keycloak Aurora job creates its EC2 runner in the default VPC and tags it
+# only with `keycloak_<short-commit-sha>`. It is therefore not a dependency of
+# the Aurora VPC and must be discovered separately. Restrict deletion to
+# instances whose commit can be resolved and has no active Keycloak CI run.
+EC2_INSTANCES_JSON=$(aws ec2 describe-instances \
+  --region "${AWS_REGION}" \
+  --filters 'Name=instance-state-name,Values=pending,running,stopping,stopped' 'Name=tag:Name,Values=keycloak_*' \
+  --query 'Reservations[].Instances[].{InstanceId:InstanceId,Name:Tags[?Key==`Name`]|[0].Value}' \
+  --output json \
+  --no-cli-pager)
+
+while IFS=$'\t' read -r INSTANCE_ID INSTANCE_NAME; do
+  [[ -z "${INSTANCE_ID}" ]] && continue
+
+  if [[ ! "${INSTANCE_NAME}" =~ ^keycloak_([[:xdigit:]]+)$ ]]; then
+    echo "::warning::Skipping EC2 instance ${INSTANCE_ID}: '${INSTANCE_NAME}' does not match the expected Keycloak runner name."
+    continue
+  fi
+
+  SHORT_SHA=${BASH_REMATCH[1]}
+  if ! FULL_SHA=$(gh api "repos/${KEYCLOAK_REPOSITORY}/commits/${SHORT_SHA}" --jq .sha 2>/dev/null); then
+    echo "::warning::Skipping EC2 instance ${INSTANCE_ID}: unable to resolve commit ${SHORT_SHA} in ${KEYCLOAK_REPOSITORY}."
+    continue
+  fi
+
+  if ! RUNS_JSON=$(gh api --paginate --slurp \
+    "repos/${KEYCLOAK_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${FULL_SHA}&per_page=100" 2>/dev/null); then
+    echo "::warning::Skipping EC2 instance ${INSTANCE_ID}: unable to verify Keycloak CI runs for commit ${FULL_SHA}."
+    continue
+  fi
+  ACTIVE_RUN_IDS=$(jq -r '.[] | .workflow_runs[] | select(.status != "completed") | .id' <<< "${RUNS_JSON}")
+  if [[ -n "${ACTIVE_RUN_IDS}" ]]; then
+    echo "Keeping EC2 instance ${INSTANCE_ID} (${INSTANCE_NAME}): Keycloak CI run(s) ${ACTIVE_RUN_IDS//$'\n'/, } are not completed."
+    continue
+  fi
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "Dry run: would terminate EC2 instance ${INSTANCE_ID} (${INSTANCE_NAME}); it has no active Keycloak CI run."
+    continue
+  fi
+
+  echo "Terminating EC2 instance ${INSTANCE_ID} (${INSTANCE_NAME}); it has no active Keycloak CI run."
+  if ! aws ec2 terminate-instances \
+    --region "${AWS_REGION}" \
+    --instance-ids "${INSTANCE_ID}" \
+    --no-cli-pager >/dev/null; then
+    echo "::warning::Unable to terminate EC2 instance ${INSTANCE_ID} (${INSTANCE_NAME})."
+    continue
+  fi
+
+  if ! aws ec2 wait instance-terminated --region "${AWS_REGION}" --instance-ids "${INSTANCE_ID}"; then
+    echo "::warning::Timed out waiting for EC2 instance ${INSTANCE_ID} (${INSTANCE_NAME}) to terminate."
+  fi
+done < <(jq -r '.[] | [.InstanceId, .Name] | @tsv' <<< "${EC2_INSTANCES_JSON}")
