@@ -7,6 +7,8 @@ if [[ "$RUNNER_DEBUG" == "1" ]]; then
 fi
 
 INSTALL_NAMESPACE=${INSTALL_NAMESPACE:-cert-manager-operator}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+source "${SCRIPT_DIR}/rosa_common.sh"
 
 oc new-project ${INSTALL_NAMESPACE} || true
 
@@ -35,3 +37,5 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 EOF
+
+waitForOperatorSubscription "${INSTALL_NAMESPACE}" cert-manager
