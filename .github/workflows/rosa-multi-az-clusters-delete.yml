@@ -40,16 +40,6 @@ jobs:
         with:
           project: runner-keycloak
 
-      - name: Set SUBDOMAIN env variable for route53 processing
-        run: |
-          echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
-
-      - name: Delete Route53 Records
-        if: ${{ env.SUBDOMAIN != '' }}
-        run: ./provision/aws/route53/route53_delete.sh
-        env:
-          SUBDOMAIN: ${{ env.SUBDOMAIN }}
-
       - name: Set ACCELERATOR_DNS env variable for Global Accelerator processing
         run: |
           echo "ACCELERATOR_DNS=${KEYCLOAK_URL#"https://"}" >> $GITHUB_ENV

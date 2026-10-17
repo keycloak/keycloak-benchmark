@@ -6,10 +6,6 @@ on:
       clusterPrefix:
         description: 'The prefix used when creating the Cross DC clusters'
         type: string
-      activeActive:
-        description: 'Must be true when testing against an Active/Active Keycloak deployment'
-        type: boolean
-        default: false
       skipEmbeddedCaches:
         description: 'True if the deployment does not use the Embedded Infinispan'
         type: boolean
@@ -24,10 +20,6 @@ on:
       clusterPrefix:
         description: 'The prefix used when creating the Cross DC clusters'
         type: string
-      activeActive:
-        description: 'Must be true when testing against an Active/Active Keycloak deployment'
-        type: boolean
-        default: false
       skipEmbeddedCaches:
         description: 'Skip assertions for embedded caches'
         type: boolean
@@ -95,7 +87,6 @@ jobs:
       - name: Run CrossDC functional tests
         run: ./provision/rosa-cross-dc/keycloak-benchmark-crossdc-tests/run-crossdc-tests.sh
         env:
-          ACTIVE_ACTIVE: ${{ inputs.activeActive }}
           DEPLOYMENT_NAMESPACE: ${{ env.PROJECT }}
           SKIP_EMBEDDED_CACHES: ${{ inputs.skipEmbeddedCaches }}
           SKIP_REMOTE_CACHES: ${{ inputs.skipRemoteCaches }}

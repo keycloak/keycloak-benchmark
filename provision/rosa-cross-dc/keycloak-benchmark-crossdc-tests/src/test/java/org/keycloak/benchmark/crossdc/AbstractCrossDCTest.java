@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -36,7 +35,6 @@ import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
 import org.keycloak.benchmark.crossdc.client.ExternalInfinispanClient;
 import org.keycloak.benchmark.crossdc.client.InfinispanClient;
 import org.keycloak.benchmark.crossdc.client.KeycloakClient;
-import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.HttpClientUtils;
 import org.keycloak.benchmark.crossdc.util.PropertyUtils;
 import org.keycloak.representations.idm.ClientRepresentation;
@@ -56,7 +54,6 @@ public abstract class AbstractCrossDCTest {
     protected final DatacenterInfo DC_1, DC_2;
     protected final KeycloakClient LOAD_BALANCER_KEYCLOAK;
 
-    protected final boolean activePassive;
     public static String ISPN_USERNAME = System.getProperty("infinispan.username", "developer");
     public static final String REALM_NAME = "cross-dc-test-realm";
     public static final String CLIENTID = "cross-dc-test-client";
@@ -68,10 +65,9 @@ public abstract class AbstractCrossDCTest {
 
     public AbstractCrossDCTest() {
         var httpClient = HttpClientUtils.newHttpClient();
-        this.activePassive = System.getProperty("deployment.type", ActivePassive.TAG).equals(ActivePassive.TAG);
-        this.DC_1 = new DatacenterInfo(httpClient, 1, activePassive);
-        this.DC_2 = new DatacenterInfo(httpClient, 2, activePassive);
-        this.LOAD_BALANCER_KEYCLOAK = new KeycloakClient(httpClient, DC_1.getLoadbalancerURL(), activePassive);
+        this.DC_1 = new DatacenterInfo(httpClient, 1, false);
+        this.DC_2 = new DatacenterInfo(httpClient, 2, false);
+        this.LOAD_BALANCER_KEYCLOAK = new KeycloakClient(httpClient, DC_1.getLoadbalancerURL(), false);
     }
 
     @BeforeEach
@@ -148,15 +144,7 @@ public abstract class AbstractCrossDCTest {
         assertEquals(DC_1.ispn().getSiteView().size(), 2);
         assertEquals(DC_2.ispn().getSiteView().size(), 2);
 
-        if (activePassive) {
-            Stream.of(DC_1, DC_2).forEach(dc -> {
-                String healthCheckId = AWSClient.getHealthCheckId(dc.getKeycloakServerURL().substring("https://".length()));
-                String route53HealthCheckPath = AWSClient.getRoute53HealthCheckPath(healthCheckId);
-                assertTrue(route53HealthCheckPath.endsWith("/lb-check"), "Health check path was supposed to end with /lb-check but was " + route53HealthCheckPath);
-            });
-        } else {
-            assertEquals(AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size(), 2);
-        }
+        assertEquals(AWSClient.getAcceleratorEndpoints(DC_1.getLoadbalancerURL()).size(), 2);
     }
 
     private void clearCache(DatacenterInfo dc, String cache) {

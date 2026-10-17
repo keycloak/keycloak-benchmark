@@ -38,17 +38,6 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>route53</artifactId>
-            <version>${aws.java.sdk.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>netty-nio-client</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
             <artifactId>cloudwatch</artifactId>
             <version>${aws.java.sdk.version}</version>
             <exclusions>
@@ -115,23 +104,6 @@
                 <maven.test.skip>true</maven.test.skip>
             </properties>
         </profile>
-        <profile>
-            <id>active-active</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <systemPropertyVariables>
-                                <deployment.type>active-active</deployment.type>
-                            </systemPropertyVariables>
-                            <excludedGroups>active-passive</excludedGroups>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
 
     <build>
@@ -140,9 +112,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <excludedGroups>active-active</excludedGroups>
                     <systemPropertyVariables>
-                        <deployment.type>active-passive</deployment.type>
                         <!--suppress UnresolvedMavenProperty -->
                         <deployment.namespace>${DEPLOYMENT_NAMESPACE}</deployment.namespace>
                         <!--suppress UnresolvedMavenProperty -->

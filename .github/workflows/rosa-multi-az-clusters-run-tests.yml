@@ -64,7 +64,6 @@ jobs:
     name: Run multi-site health checks after A/A deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
-      activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
@@ -74,7 +73,6 @@ jobs:
     needs: run-active-active-health-checks-after-deploy
     uses: ./.github/workflows/rosa-run-crossdc-func-tests.yml
     with:
-      activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       skipEmbeddedCaches: true
       skipRemoteCaches: true
@@ -85,7 +83,6 @@ jobs:
     name: Run multi-site health checks after A/A functional tests
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
-      activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
@@ -107,7 +104,6 @@ jobs:
     name: Run multi-site health checks after A/A benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
-      activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       expectedInfinispanNodeCount: '3'
@@ -140,7 +136,6 @@ jobs:
     name: Run health checks after stateless deployment
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
-      activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       skipInfinispanChecks: true
@@ -165,7 +160,6 @@ jobs:
     name: Run health checks after stateless benchmarks
     uses: ./.github/workflows/keycloak-multi-site-health-check.yml
     with:
-      activeActive: true
       clusterPrefix: ${{ inputs.clusterPrefix }}
       project: runner-keycloak
       skipInfinispanChecks: true

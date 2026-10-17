@@ -2,14 +2,9 @@ package org.keycloak.benchmark.crossdc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.keycloak.connections.infinispan.InfinispanConnectionProvider.USER_SESSION_CACHE_NAME;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -19,86 +14,28 @@ import org.junit.jupiter.api.Test;
 import org.keycloak.benchmark.crossdc.client.AWSClient;
 import org.keycloak.benchmark.crossdc.client.DatacenterInfo;
 import org.keycloak.benchmark.crossdc.junit.tags.ActiveActive;
-import org.keycloak.benchmark.crossdc.junit.tags.ActivePassive;
 import org.keycloak.benchmark.crossdc.util.K8sUtils;
 
-import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 
 public class FailoverTest extends AbstractCrossDCTest {
 
     static final String SITE_OFFLINE_ALERT = "SiteOffline";
 
     @Override
-    protected void failbackLoadBalancers() throws URISyntaxException, IOException, InterruptedException {
+    protected void failbackLoadBalancers() throws java.net.URISyntaxException, java.io.IOException, InterruptedException {
         super.failbackLoadBalancers();
-        if (activePassive) {
-            String domain = DC_1.getKeycloakServerURL().substring("https://".length());
-            String healthCheckId = AWSClient.getHealthCheckId(domain);
-            AWSClient.updateRoute53HealthCheckPath(healthCheckId, "/lb-check");
-            AWSClient.waitForTheHealthCheckToBeInState(healthCheckId, StateValue.OK);
-            DC_1.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
-
-            // Assert that the health check path was updated
-            String route53HealthCheckPath = AWSClient.getRoute53HealthCheckPath(healthCheckId);
-            assertTrue(route53HealthCheckPath.endsWith("/lb-check"), "Health check path was supposed to end with /lb-check but was " + route53HealthCheckPath);
-        } else {
-            // Heal split-brain if previously initiated
-            scaleGossipRouter(DC_1, 1);
-            scaleGossipRouter(DC_2, 1);
-            // Wait for JGroups site view to contain both sites
-            waitForSitesViewCount(2);
-            // Bring backup sites online after split-brain heal
-            DC_1.ispn().bringBackupOnline(DC_2.ispn().siteName());
-            DC_2.ispn().bringBackupOnline(DC_1.ispn().siteName());
-            // Ensure that the SiteOffline alert is no longer firing
-            eventually(
-                  () -> String.format("Alert '%s' still firing on DC", SITE_OFFLINE_ALERT),
-                  () -> !DC_1.prometheus().isAlertFiring(SITE_OFFLINE_ALERT) && !DC_2.prometheus().isAlertFiring(SITE_OFFLINE_ALERT),
-                  5, TimeUnit.MINUTES
-            );
-            // Add both sites to the Accelerator EndpointGroup
-            AWSClient.acceleratorFallback(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl());
-            waitForAcceleratorEndpointCount(2);
-        }
-    }
-
-    @Test
-    @ActivePassive
-    public void logoutUserWithFailoverTest() throws IOException, URISyntaxException, InterruptedException {
-        // Login and exchange code in DC1
-        String code = LOAD_BALANCER_KEYCLOAK.usernamePasswordLogin( REALM_NAME, USERNAME, MAIN_PASSWORD, CLIENTID);
-        Map<String, Object> tokensMap = LOAD_BALANCER_KEYCLOAK.exchangeCode(REALM_NAME, CLIENTID, CLIENT_SECRET, 200, code);
-
-        DC_1.kc().markLBCheckDown();
-
-        // It seems in some cases the alarm is triggered later than the actual failover happens and the test passes
-        //  so quickly that the alarm is still on OK state in the failbackLoadBalancers method which is causing failures
-        //  in the following tests, therefore we will wait for the health check to be in ALARM state before proceeding
-        String healthCheckId = AWSClient.getHealthCheckId(DC_1.getKeycloakServerURL().substring("https://".length()));
-        AWSClient.waitForTheHealthCheckToBeInState(healthCheckId, StateValue.ALARM);
-
-        // Check the failover lambda was executed and the health check path was updated to a non-existing url
-        ByRef<String> route53HealthCheckPath = new ByRef<>("");
+        scaleGossipRouter(DC_1, 1);
+        scaleGossipRouter(DC_2, 1);
+        waitForSitesViewCount(2);
+        DC_1.ispn().bringBackupOnline(DC_2.ispn().siteName());
+        DC_2.ispn().bringBackupOnline(DC_1.ispn().siteName());
         eventually(
-              () -> String.format("Health check path was supposed to end with /lb-check-failed-over but was '%s'", route53HealthCheckPath.get()),
-              () -> {
-                  route53HealthCheckPath.set(AWSClient.getRoute53HealthCheckPath(healthCheckId));
-                  return route53HealthCheckPath.get().endsWith("/lb-check-failed-over");
-              }
+              () -> String.format("Alert '%s' still firing on DC", SITE_OFFLINE_ALERT),
+              () -> !DC_1.prometheus().isAlertFiring(SITE_OFFLINE_ALERT) && !DC_2.prometheus().isAlertFiring(SITE_OFFLINE_ALERT),
+              5, TimeUnit.MINUTES
         );
-        DC_2.kc().waitToBeActive(LOAD_BALANCER_KEYCLOAK);
-
-        if (!SKIP_REMOTE_CACHES) {
-            // Verify if the user session UUID in code, we fetched from Keycloak exists in session cache key of external ISPN in DC2
-            Set<String> sessions = DC_2.ispn().cache(USER_SESSION_CACHE_NAME).keys();
-            assertTrue(sessions.contains(code.split("[.]")[1]));
-        }
-
-        tokensMap = LOAD_BALANCER_KEYCLOAK.refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 200);
-
-        LOAD_BALANCER_KEYCLOAK.logout(REALM_NAME, (String) tokensMap.get("id_token"), CLIENTID);
-
-        LOAD_BALANCER_KEYCLOAK.refreshToken(REALM_NAME, (String) tokensMap.get("refresh_token"), CLIENTID, CLIENT_SECRET, 400);
+        AWSClient.acceleratorFallback(LOAD_BALANCER_KEYCLOAK.getKeycloakServerUrl());
+        waitForAcceleratorEndpointCount(2);
     }
 
     @Test

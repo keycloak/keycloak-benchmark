@@ -2,7 +2,6 @@ package org.keycloak.benchmark.crossdc.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -10,18 +9,15 @@ import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
 
-import software.amazon.awssdk.core.waiters.WaiterOverrideConfiguration;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.model.DescribeAlarmsRequest;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.cloudwatch.model.GetMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.Metric;
 import software.amazon.awssdk.services.cloudwatch.model.MetricDataQuery;
 import software.amazon.awssdk.services.cloudwatch.model.MetricStat;
-import software.amazon.awssdk.services.cloudwatch.model.StateValue;
 import software.amazon.awssdk.services.cloudwatch.model.Statistic;
 import software.amazon.awssdk.services.elasticloadbalancingv2.ElasticLoadBalancingV2Client;
 import software.amazon.awssdk.services.elasticloadbalancingv2.model.LoadBalancer;
@@ -33,11 +29,6 @@ import software.amazon.awssdk.services.globalaccelerator.model.Accelerator;
 import software.amazon.awssdk.services.globalaccelerator.model.EndpointConfiguration;
 import software.amazon.awssdk.services.globalaccelerator.model.EndpointDescription;
 import software.amazon.awssdk.services.globalaccelerator.model.EndpointGroup;
-import software.amazon.awssdk.services.route53.Route53Client;
-import software.amazon.awssdk.services.route53.model.GetHealthCheckRequest;
-import software.amazon.awssdk.services.route53.model.HealthCheck;
-import software.amazon.awssdk.services.route53.model.UpdateHealthCheckRequest;
-import software.amazon.awssdk.utils.builder.SdkBuilder;
 
 public class AWSClient {
 
@@ -87,62 +78,6 @@ public class AWSClient {
                .stream()
                .collect(Collectors.summarizingInt(Double::intValue))
                .getSum();
-      }
-   }
-
-   public static String getHealthCheckId(String domainName) {
-      try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
-           Route53Client route53 = Route53Client.builder().httpClient(httpClient).build()) {
-         for (HealthCheck hc : route53.listHealthChecks(SdkBuilder::build).healthChecks()) {
-            if (domainName.equals(hc.healthCheckConfig().fullyQualifiedDomainName())) {
-               LOG.infof("Found Route53 HealthCheck '%s' for Domain='%s'", hc.id(), domainName);
-               return hc.id();
-            }
-         }
-      }
-      return null;
-   }
-
-   public static void updateRoute53HealthCheckPath(String healthCheckId, String path) {
-      try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
-           Route53Client route53 = Route53Client.builder().httpClient(httpClient).build()) {
-
-         LOG.infof("Updating Route53 HealthCheck '%s' to path='%s'", healthCheckId, path);
-         route53.updateHealthCheck(
-               UpdateHealthCheckRequest.builder()
-                     .healthCheckId(healthCheckId)
-                     .resourcePath(path)
-                     .build()
-         );
-      }
-   }
-
-   public static String getRoute53HealthCheckPath(String healthCheckId) {
-      try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
-           Route53Client route53 = Route53Client.builder().httpClient(httpClient).build()) {
-
-         return route53.getHealthCheck(
-               GetHealthCheckRequest.builder()
-                     .healthCheckId(healthCheckId)
-                     .build()
-         ).healthCheck().healthCheckConfig().resourcePath();
-      }
-   }
-
-   public static void waitForTheHealthCheckToBeInState(String healthCheckId, StateValue stateValue) {
-      try (SdkHttpClient httpClient = ApacheHttpClient.builder().build();
-           CloudWatchClient cloudWatch = CloudWatchClient.builder().region(Region.US_EAST_1).httpClient(httpClient).build()) {
-         LOG.infof("Waiting for CloudWatch Alarm '%s' to be in state %s", healthCheckId, stateValue);
-         cloudWatch.waiter().waitUntilAlarmExists(
-               DescribeAlarmsRequest.builder()
-                     .alarmNames(healthCheckId)
-                     .stateValue(stateValue)
-                     .build(),
-               WaiterOverrideConfiguration.builder()
-                     .maxAttempts(150) // by default this is 40 and it seems it takes precedence before 10 minutes
-                     .waitTimeout(Duration.ofMinutes(10))
-                     .build()
-         );
       }
    }
 

@@ -17,11 +17,9 @@ on:
         description: 'The deployment mode to undeploy'
         type: choice
         options:
-          - active-passive
           - active-active
           - stateless-active-active
-          - stateless-active-passive
-        default: active-passive
+        default: active-active
   workflow_call:
     inputs:
       clusterPrefix:
@@ -37,7 +35,7 @@ on:
       deploymentMode:
         description: 'The deployment mode to undeploy'
         type: string
-        default: active-passive
+        default: active-active
 
 env:
   CLUSTER_PREFIX: ${{ inputs.clusterPrefix || format('gh-{0}', github.repository_owner) }}
@@ -83,21 +81,6 @@ jobs:
         with:
           project: runner-keycloak
 
-      - name: Get KC Health URL
-        if: ${{ endsWith(inputs.deploymentMode, 'active-passive') }}
-        run: |
-          echo "KC_HEALTH_URL_CLUSTER_1=primary.${KEYCLOAK_URL:15}" >> $GITHUB_ENV
-
-      - name: Undeploy Active/Passive infinispan and keycloak
-        if: ${{ inputs.deploymentMode == 'active-passive' }}
-        working-directory: provision/rosa-cross-dc
-        run: |
-          task undeploy
-        env:
-          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
-          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
-          KC_HEALTH_URL_CLUSTER_1: ${{ env.KC_HEALTH_URL_CLUSTER_1 }}
-
       - name: Undeploy Active/Active infinispan and keycloak
         if: ${{ inputs.deploymentMode == 'active-active' }}
         working-directory: provision/rosa-cross-dc
@@ -116,16 +99,6 @@ jobs:
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
-      - name: Undeploy Stateless Active/Passive keycloak
-        if: ${{ inputs.deploymentMode == 'stateless-active-passive' }}
-        working-directory: provision/rosa-cross-dc
-        run: |
-          task undeploy-stateless-active-passive
-        env:
-          ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
-          ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
-          KC_HEALTH_URL_CLUSTER_1: ${{ env.KC_HEALTH_URL_CLUSTER_1 }}
-
       - name: Undeploy aurora database
         if: ${{ !inputs.skipAuroraDeletion }}
         working-directory: provision/rosa-cross-dc
@@ -137,25 +110,11 @@ jobs:
           ROSA_CLUSTER_NAME_1: ${{ env.CLUSTER_PREFIX }}-a
           ROSA_CLUSTER_NAME_2: ${{ env.CLUSTER_PREFIX }}-b
 
-      - name: Set SUBDOMAIN env variable for route53 processing
-        if: ${{ endsWith(inputs.deploymentMode, 'active-passive') }}
-        run: |
-          echo "SUBDOMAIN=$(echo $KEYCLOAK_URL | grep -oP '(?<=client.).*?(?=.keycloak-benchmark.com)')" >> $GITHUB_ENV
-
-      - name: Delete Route53 Records
-        if: ${{ endsWith(inputs.deploymentMode, 'active-passive') }}
-        run: |
-          ./provision/aws/route53/route53_delete.sh
-        env:
-          SUBDOMAIN: ${{ env.SUBDOMAIN }}
-
       - name: Set ACCELERATOR_DNS env variable for Global Accelerator processing
-        if: ${{ endsWith(inputs.deploymentMode, 'active-active') }}
         run: |
           echo "ACCELERATOR_DNS=${KEYCLOAK_URL#"https://"}" >> $GITHUB_ENV
 
       - name: Delete Global Accelerator
-        if: ${{ endsWith(inputs.deploymentMode, 'active-active') }}
         run: ./provision/aws/global-accelerator/accelerator_multi_az_delete.sh
         env:
           ACCELERATOR_DNS: ${{ env.ACCELERATOR_DNS }}
