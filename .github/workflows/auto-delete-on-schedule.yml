@@ -53,6 +53,26 @@ jobs:
         env:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
+  keycloak-action-vpc-delete:
+    needs: aurora-delete
+    if: ${{ always() && (github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ vars.AWS_DEFAULT_REGION }}
+
+      - name: Delete VPCs belonging to completed Keycloak Actions runs
+        run: ./provision/aws/keycloak_action_vpc_reaper.sh
+        env:
+          AWS_REGION: us-east-1
+          GH_TOKEN: ${{ github.token }}
+
   route53-delete:
     if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     runs-on: ubuntu-latest
@@ -75,7 +95,7 @@ jobs:
           REAPER: TRUE
 
   delete-check:
-    needs: [rosa-delete, aurora-delete, route53-delete]
+    needs: [rosa-delete, aurora-delete, keycloak-action-vpc-delete, route53-delete]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
