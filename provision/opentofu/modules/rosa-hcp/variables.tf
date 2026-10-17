@@ -50,8 +50,8 @@ variable "vpc_cidr" {
 }
 
 variable "openshift_version" {
-  type    = string
-  default = "4.21.8"
+  type     = string
+  default  = "4.21.36"
   nullable = false
 }
 
