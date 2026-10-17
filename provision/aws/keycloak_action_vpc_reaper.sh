@@ -21,14 +21,11 @@
 # its run is confirmed as completed or GitHub confirms with a 404 that the run
 # no longer exists (for example, after the run ages out of Actions retention).
 #
-# Deleting a VPC directly can fail while Aurora or another AWS service is still
-# removing dependent resources such as subnets, security groups, or network
-# interfaces. Such failures are intentionally emitted as GitHub Actions
-# warnings rather than failing the scheduled cleanup; the next scheduled run
-# can retry them. Names that do not match the expected format, GitHub API
-# failures other than a confirmed 404, and unknown run states are skipped
-# rather than risking deletion of resources whose liveness cannot be
-# established.
+# Eligible VPCs are passed to the standard Aurora deletion script so database
+# instances and clusters are removed before their subnets, security groups,
+# and VPC. Names that do not match the expected format, GitHub API failures
+# other than a confirmed 404, and unknown run states are skipped rather than
+# risking deletion of resources whose liveness cannot be established.
 #
 # Set DRY_RUN=true to perform VPC discovery and GitHub status lookups while
 # only reporting the VPCs that would be deleted. Dry-run mode never calls the
@@ -42,6 +39,7 @@ fi
 AWS_REGION=${AWS_REGION:-us-east-1}
 KEYCLOAK_REPOSITORY=${KEYCLOAK_REPOSITORY:-keycloak/keycloak}
 DRY_RUN=${DRY_RUN:-false}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 if [[ "${DRY_RUN}" != "true" && "${DRY_RUN}" != "false" ]]; then
   echo "::error::DRY_RUN must be either 'true' or 'false', but was '${DRY_RUN}'."
@@ -84,15 +82,16 @@ while IFS=$'\t' read -r VPC_ID VPC_NAME; do
       echo "Keeping ${VPC_ID} (${VPC_NAME}): Actions run ${RUN_ID} is ${RUN_STATUS}."
       ;;
     completed|not_found)
+      AURORA_CLUSTER=${VPC_NAME#Aurora Cluster }
       if [[ "${DRY_RUN}" == "true" ]]; then
-        echo "Dry run: would delete ${VPC_ID} (${VPC_NAME}); Actions run ${RUN_ID} is ${RUN_STATUS}."
+        echo "Dry run: would delete Aurora cluster ${AURORA_CLUSTER} and ${VPC_ID} (${VPC_NAME}); Actions run ${RUN_ID} is ${RUN_STATUS}."
         continue
       fi
 
-      echo "Deleting ${VPC_ID} (${VPC_NAME}): Actions run ${RUN_ID} is ${RUN_STATUS}."
-      if ! DELETE_ERROR=$(aws ec2 delete-vpc --region "${AWS_REGION}" --vpc-id "${VPC_ID}" 2>&1); then
+      echo "Deleting Aurora cluster ${AURORA_CLUSTER} and ${VPC_ID} (${VPC_NAME}): Actions run ${RUN_ID} is ${RUN_STATUS}."
+      if ! DELETE_ERROR=$(AURORA_CLUSTER="${AURORA_CLUSTER}" AURORA_REGION="${AWS_REGION}" "${SCRIPT_DIR}/rds/aurora_delete.sh" 2>&1); then
         DELETE_ERROR=${DELETE_ERROR//$'\n'/' '}
-        echo "::warning::Unable to delete ${VPC_ID}; resources may still be pending deletion: ${DELETE_ERROR}"
+        echo "::warning::Unable to delete Aurora cluster ${AURORA_CLUSTER} and ${VPC_ID}: ${DELETE_ERROR}"
       fi
       ;;
     *)

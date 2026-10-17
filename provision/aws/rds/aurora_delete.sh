@@ -15,26 +15,45 @@ AURORA_VPC=$(aws ec2 describe-vpcs \
   --output text
 )
 
-# Delete the Aurora DB cluster and instances
-for i in $( aws rds describe-db-clusters --db-cluster-identifier ${AURORA_CLUSTER} --region ${AURORA_REGION} --output json | jq -r .DBClusters[0].DBClusterMembers[].DBInstanceIdentifier ); do
-  echo "Deleting Aurora DB instance ${i}"
-  aws rds delete-db-instance --db-instance-identifier "${i}" --skip-final-snapshot --region ${AURORA_REGION} || true
-done
+# Delete the Aurora DB cluster and instances when they still exist. Cleanup is
+# intentionally idempotent so reapers can also remove networking left behind
+# by a partially completed or previously interrupted deletion.
+DB_CLUSTERS=$(aws rds describe-db-clusters \
+  --region "${AURORA_REGION}" \
+  --output json)
 
-aws rds delete-db-cluster \
-  --db-cluster-identifier ${AURORA_CLUSTER} \
-  --region ${AURORA_REGION} \
-  --skip-final-snapshot \
-  || true
+if jq -e --arg cluster "${AURORA_CLUSTER}" '.DBClusters | any(.DBClusterIdentifier == $cluster)' <<< "${DB_CLUSTERS}" >/dev/null; then
+  mapfile -t DB_INSTANCES < <(jq -r --arg cluster "${AURORA_CLUSTER}" \
+    '.DBClusters[] | select(.DBClusterIdentifier == $cluster) | .DBClusterMembers[].DBInstanceIdentifier' \
+    <<< "${DB_CLUSTERS}")
 
-for i in $( aws rds describe-db-clusters --db-cluster-identifier ${AURORA_CLUSTER} --output json --region ${AURORA_REGION} | jq -r .DBClusters[0].DBClusterMembers[].DBInstanceIdentifier ); do
-  aws rds wait db-instance-deleted --db-instance-identifier --region ${AURORA_REGION} "${i}"
-done
+  for i in "${DB_INSTANCES[@]}"; do
+    echo "Deleting Aurora DB instance ${i}"
+    aws rds delete-db-instance --db-instance-identifier "${i}" --skip-final-snapshot --region "${AURORA_REGION}" || true
+  done
 
-aws rds wait db-cluster-deleted --db-cluster-identifier ${AURORA_CLUSTER} --region ${AURORA_REGION}
+  aws rds delete-db-cluster \
+    --db-cluster-identifier "${AURORA_CLUSTER}" \
+    --region "${AURORA_REGION}" \
+    --skip-final-snapshot \
+    || true
+
+  for i in "${DB_INSTANCES[@]}"; do
+    aws rds wait db-instance-deleted --db-instance-identifier "${i}" --region "${AURORA_REGION}"
+  done
+
+  aws rds wait db-cluster-deleted --db-cluster-identifier "${AURORA_CLUSTER}" --region "${AURORA_REGION}"
+else
+  echo "Aurora DB cluster ${AURORA_CLUSTER} does not exist; continuing with network cleanup."
+fi
 
 # Delete the Aurora subnet group
 aws rds delete-db-subnet-group --db-subnet-group-name ${AURORA_SUBNET_GROUP_NAME} --region ${AURORA_REGION} || true
+
+if [[ -z "${AURORA_VPC}" ]]; then
+  echo "Aurora VPC for cluster ${AURORA_CLUSTER} does not exist."
+  exit 0
+fi
 
 # Delete the Aurora subnets
 AURORA_SUBNETS=$(aws ec2 describe-subnets \
@@ -58,12 +77,21 @@ if [ -n "${AURORA_SECURITY_GROUP_ID}" ]; then
   aws ec2 delete-security-group --group-id ${AURORA_SECURITY_GROUP_ID} --region ${AURORA_REGION}
 fi
 
-# Delete the Aurora VPC, retrying 5 times in case that dependencies are not removed instantly
+# Delete the Aurora VPC, retrying in case dependencies are not removed instantly
 n=0
+VPC_DELETED=false
 until [ "$n" -ge 20 ]
 do
-   aws ec2 delete-vpc --vpc-id ${AURORA_VPC} --region ${AURORA_REGION} && break
+   if aws ec2 delete-vpc --vpc-id ${AURORA_VPC} --region ${AURORA_REGION}; then
+      VPC_DELETED=true
+      break
+   fi
    n=$((n+1))
    echo "Unable to remove VPC ${AURORA_VPC}. Attempt ${n}"
    sleep 10
 done
+
+if [[ "${VPC_DELETED}" != "true" ]]; then
+  echo "Unable to remove VPC ${AURORA_VPC} after ${n} attempts." >&2
+  exit 1
+fi
