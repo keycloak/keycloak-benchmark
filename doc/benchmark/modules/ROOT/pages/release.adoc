@@ -6,18 +6,31 @@ The changes are often in the "dataset" provider but are not limited to that.
 
 == Release steps
 
-. Make sure that everything needed is committed
-and pushed inside https://github.com/keycloak/keycloak-benchmark in the `main` branch.
-On your local from the HEAD of the `main` branch,
-create a new release branch with this signature `XX-release`, for example `25.0-release`.
-In that release branch,
-make the below series of updates
-to upgrade the version which are required for a Keycloak Benchmark's SNAPSHOT release to be successful.
-+
-. Now perform a project wide search for the below keywords and replace them with the respective ones appropriately as per the release.
-* Search for `nightly` and replace it with `25.0.1`, if the release is performed against the `Keycloak 25.0.1` build.
-* Search for `keycloak-999.0.0-SNAPSHOT` and replace it with `keycloak-25.0.1`, if the release is performed against the `Keycloak 25.0.1` build.
-* Search for `999.0.0` and replace it with `25.0.1`, if the release is performed against the `Keycloak 25.0.1` build.
-+
-. Now push your changes from your local `XX-release` branch to the remote `XX-release` branch, which in turn generates the specific artifacts necessary for the SNAPSHOT release.
+. Make sure that everything needed is committed and pushed to the `main` branch of
+https://github.com/keycloak/keycloak-benchmark[Keycloak Benchmark].
+. Copy the full commit SHA that should be the last commit in the release branch.
+. Open the *Create release branch* workflow in GitHub Actions and select *Run workflow*.
+. Enter the full source commit SHA and the Benchmark release version, for example `26.6.0`.
+. Review the workflow output and the created branch and snapshot release.
+
+The workflow selects the latest stable Keycloak patch release matching the release line.
+For example, a `26.6.0` Benchmark release uses the latest available `26.6.x` Keycloak release.
+It independently selects the latest stable Keycloak Java client release for the same major version.
+
+The workflow creates a branch named `<major>.<minor>-release`, updates and validates the
+release-specific versions, and runs a full local Maven build. Only after the build succeeds,
+it creates a signed-off preparation commit and pushes the release branch. The existing
+*Snapshot Release* workflow then creates the `<release-version>-SNAPSHOT` tag and artifacts.
+
+To inspect the changes locally without creating or pushing a branch or tag, run:
+
+[source,bash]
+----
+scripts/create-release-branch.sh \
+  --source <full-main-commit-sha> \
+  --release 26.6.0
+----
+
+The automatically selected Keycloak server and client versions can be overridden locally with
+`--keycloak-version` and `--keycloak-client-version` when a released version has a known regression.
 
