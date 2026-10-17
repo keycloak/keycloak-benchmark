@@ -274,7 +274,9 @@ replace_literal doc/kubernetes/modules/ROOT/pages/util/custom-image-for-keycloak
 
 git diff --check
 
-remaining_project=$(git grep -n '999\.0\.0-SNAPSHOT' -- ':!doc/benchmark/modules/ROOT/pages/release.adoc' || true)
+remaining_project=$(git grep -n '999\.0\.0-SNAPSHOT' -- \
+  ':!doc/benchmark/modules/ROOT/pages/release.adoc' \
+  ':!scripts/create-release-branch.sh' || true)
 [[ -z "$remaining_project" ]] || die "Unconverted development versions remain:\n$remaining_project"
 
 [[ $(git diff -- pom.xml | grep -c "+.*<keycloak.version>$keycloak_version</keycloak.version>") -eq 1 ]] || \
