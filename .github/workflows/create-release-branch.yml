@@ -13,6 +13,7 @@ on:
         type: string
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
@@ -43,3 +44,11 @@ jobs:
             --release "$RELEASE_VERSION" \
             --remote origin \
             --publish
+
+      - name: Build snapshot release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          RELEASE_BRANCH="${RELEASE_VERSION%.*}-release"
+          gh workflow run snapshot.yml --ref "$RELEASE_BRANCH"
