@@ -2,6 +2,11 @@ name: Snapshot Release
 
 on:
   workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch to build instead of the dispatched ref
+        required: false
+        type: string
   push:
     branches:
       - main
@@ -15,7 +20,7 @@ on:
 
 concurrency:
   # Only run once for latest commit per ref and cancel other (previous) runs.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.target_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,6 +32,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_ref || github.ref }}
       - name: Set up JDK
         uses: actions/setup-java@v6
         with:
@@ -61,9 +68,9 @@ jobs:
         id: create_release
         run: >
           gh release create ${{ steps.get_version.outputs.VERSION }}
-          --target ${{ github.ref }}
+          --target '${{ inputs.target_ref || github.ref }}'
           --title 'Keycloak Benchmark ${{ steps.get_version.outputs.VERSION }}'
-          --notes 'Latest version built from the `${{ github.ref_name }}` branch.'
+          --notes 'Latest version built from the `${{ inputs.target_ref || github.ref_name }}` branch.'
           --prerelease
           ./dataset/target/keycloak-benchmark-dataset-${{ steps.get_version.outputs.VERSION }}.jar
           ./benchmark/target/keycloak-benchmark-${{ steps.get_version.outputs.VERSION }}.zip

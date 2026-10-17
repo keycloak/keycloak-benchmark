@@ -51,4 +51,4 @@ jobs:
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           RELEASE_BRANCH="${RELEASE_VERSION%.*}-release"
-          gh workflow run snapshot.yml --ref "$RELEASE_BRANCH"
+          gh workflow run snapshot.yml -f target_ref="$RELEASE_BRANCH"
