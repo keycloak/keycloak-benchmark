@@ -24,23 +24,24 @@ DB_CLUSTERS=$(aws rds describe-db-clusters \
 
 if jq -e --arg cluster "${AURORA_CLUSTER}" '.DBClusters | any(.DBClusterIdentifier == $cluster)' <<< "${DB_CLUSTERS}" >/dev/null; then
   mapfile -t DB_INSTANCES < <(jq -r --arg cluster "${AURORA_CLUSTER}" \
-    '.DBClusters[] | select(.DBClusterIdentifier == $cluster) | .DBClusterMembers[].DBInstanceIdentifier' \
+    '.DBClusters[] | select(.DBClusterIdentifier == $cluster) | .DBClusterMembers | sort_by(.IsClusterWriter)[] | .DBInstanceIdentifier' \
     <<< "${DB_CLUSTERS}")
 
+  # Delete readers before the writer to avoid an unnecessary failover.
   for i in "${DB_INSTANCES[@]}"; do
     echo "Deleting Aurora DB instance ${i}"
     aws rds delete-db-instance --db-instance-identifier "${i}" --skip-final-snapshot --region "${AURORA_REGION}" || true
   done
 
-  aws rds delete-db-cluster \
-    --db-cluster-identifier "${AURORA_CLUSTER}" \
-    --region "${AURORA_REGION}" \
-    --skip-final-snapshot \
-    || true
-
   for i in "${DB_INSTANCES[@]}"; do
     aws rds wait db-instance-deleted --db-instance-identifier "${i}" --region "${AURORA_REGION}"
   done
+
+  # Aurora rejects cluster deletion while it still contains DB instances.
+  aws rds delete-db-cluster \
+    --db-cluster-identifier "${AURORA_CLUSTER}" \
+    --region "${AURORA_REGION}" \
+    --skip-final-snapshot
 
   aws rds wait db-cluster-deleted --db-cluster-identifier "${AURORA_CLUSTER}" --region "${AURORA_REGION}"
 else
