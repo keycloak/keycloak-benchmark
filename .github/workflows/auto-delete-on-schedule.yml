@@ -54,8 +54,7 @@ jobs:
           AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
 
   keycloak-action-vpc-delete:
-    needs: aurora-delete
-    if: ${{ always() && (github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark') }}
+    if: github.event_name != 'schedule' || github.repository == 'keycloak/keycloak-benchmark'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
