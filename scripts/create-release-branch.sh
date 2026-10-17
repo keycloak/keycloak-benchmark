@@ -243,7 +243,7 @@ replace_literal provision/keycloak-tasks/keycloak-image-helm/values.yaml \
   quay.io/keycloak/keycloak:nightly \
   "quay.io/keycloak/keycloak:$keycloak_version"
 
-# Release-branch documentation and snapshot release metadata.
+# Release-branch documentation.
 replace_literal README.adoc \
   'This `main` branch Keycloak benchmark works with the Keycloak nightly versions,' \
   "This \`$branch_name\` branch of Keycloak Benchmark works with Keycloak $keycloak_version,"
@@ -265,9 +265,6 @@ replace_literal doc/kubernetes/modules/ROOT/pages/openshift/installation-openshi
 replace_literal doc/kubernetes/modules/ROOT/pages/openshift/cross-site-rosa.adoc \
   'This setup, by default, deploys Keycloak from nightly build.' \
   "This setup, by default, deploys Keycloak $keycloak_version."
-replace_literal .github/workflows/snapshot.yml \
-  '--notes '\''Latest version built from the `${{ github.ref_name }}` branch.'\''' \
-  '--notes '\''Latest version built from the `${{ github.ref_name }}` branch for Keycloak '"$keycloak_version"'.'\'''
 
 # Examples that describe building Keycloak itself use the server version, not
 # the Keycloak Benchmark project version.
