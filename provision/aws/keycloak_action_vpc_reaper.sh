@@ -89,9 +89,8 @@ while IFS=$'\t' read -r VPC_ID VPC_NAME; do
       fi
 
       echo "Deleting Aurora cluster ${AURORA_CLUSTER} and ${VPC_ID} (${VPC_NAME}): Actions run ${RUN_ID} is ${RUN_STATUS}."
-      if ! DELETE_ERROR=$(AURORA_CLUSTER="${AURORA_CLUSTER}" AURORA_REGION="${AWS_REGION}" "${SCRIPT_DIR}/rds/aurora_delete.sh" 2>&1); then
-        DELETE_ERROR=${DELETE_ERROR//$'\n'/' '}
-        echo "::warning::Unable to delete Aurora cluster ${AURORA_CLUSTER} and ${VPC_ID}: ${DELETE_ERROR}"
+      if ! AURORA_CLUSTER="${AURORA_CLUSTER}" AURORA_REGION="${AWS_REGION}" "${SCRIPT_DIR}/rds/aurora_delete.sh"; then
+        echo "::warning::Unable to delete Aurora cluster ${AURORA_CLUSTER} and ${VPC_ID}; see the preceding command output."
       fi
       ;;
     *)

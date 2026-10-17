@@ -37,7 +37,8 @@ if jq -e --arg cluster "${AURORA_CLUSTER}" '.DBClusters | any(.DBClusterIdentifi
     aws rds wait db-instance-deleted --db-instance-identifier "${i}" --region "${AURORA_REGION}"
   done
 
-  # Aurora rejects cluster deletion while it still contains DB instances.
+  # Wait for member deletion before deleting the cluster to avoid an
+  # InvalidDBClusterStateFault while instances are still transitioning.
   aws rds delete-db-cluster \
     --db-cluster-identifier "${AURORA_CLUSTER}" \
     --region "${AURORA_REGION}" \
@@ -77,6 +78,24 @@ AURORA_SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
 if [ -n "${AURORA_SECURITY_GROUP_ID}" ]; then
   aws ec2 delete-security-group --group-id ${AURORA_SECURITY_GROUP_ID} --region ${AURORA_REGION}
 fi
+
+# Keycloak CI Aurora VPCs expose the database through an internet gateway.
+# Benchmark-created Aurora VPCs normally have none, so this remains idempotent.
+mapfile -t INTERNET_GATEWAYS < <(aws ec2 describe-internet-gateways \
+  --filters "Name=attachment.vpc-id,Values=${AURORA_VPC}" \
+  --query "InternetGateways[*].InternetGatewayId" \
+  --region "${AURORA_REGION}" \
+  --output text | tr '\t' '\n')
+for INTERNET_GATEWAY in "${INTERNET_GATEWAYS[@]}"; do
+  [[ -z "${INTERNET_GATEWAY}" ]] && continue
+  aws ec2 detach-internet-gateway \
+    --internet-gateway-id "${INTERNET_GATEWAY}" \
+    --vpc-id "${AURORA_VPC}" \
+    --region "${AURORA_REGION}"
+  aws ec2 delete-internet-gateway \
+    --internet-gateway-id "${INTERNET_GATEWAY}" \
+    --region "${AURORA_REGION}"
+done
 
 # Delete the Aurora VPC, retrying in case dependencies are not removed instantly
 n=0
