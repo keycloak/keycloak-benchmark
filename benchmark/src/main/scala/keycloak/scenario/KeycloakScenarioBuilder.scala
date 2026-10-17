@@ -107,7 +107,7 @@ class KeycloakScenarioBuilder {
       scope = scope.trim().replace(',', ' ')
     }
 
-    s.setAll("keycloakServer" -> serverUrl,
+    var session = s.setAll("keycloakServer" -> serverUrl,
       "state" -> randomUUID(),
       "wrongPasswordCount" -> new AtomicInteger(Config.badLoginCount),
       "realm" -> realmName,
@@ -123,6 +123,16 @@ class KeycloakScenarioBuilder {
       "adminPassword" -> Config.adminPassword,
       "scope" -> scope
     )
+
+    if (Config.usePkce) {
+      val verifier = Utils.generateCodeVerifier()
+      session = session.setAll(
+        "codeVerifier" -> verifier,
+        "codeChallenge" -> Utils.computeCodeChallenge(verifier)
+      )
+    }
+
+    session
   })
     .exitHereIfFailed
 
@@ -137,21 +147,26 @@ class KeycloakScenarioBuilder {
   }
 
   def openLoginPage(pauseAfter: Boolean): KeycloakScenarioBuilder = {
+    var request = http("Browser to Log In Endpoint")
+      .get(LOGIN_ENDPOINT)
+      .headers(UI_HEADERS)
+      .queryParam("login", "true")
+      .queryParam("response_type", "code")
+      .queryParam("client_id", "#{clientId}")
+      .queryParam("state", "#{state}")
+      .queryParam("redirect_uri", "#{redirectUri}")
+      .queryParam("scope", "#{scope}")
+
+    if (Config.usePkce) {
+      request = request
+        .queryParam("code_challenge", "#{codeChallenge}")
+        .queryParam("code_challenge_method", "S256")
+    }
+
     chainBuilder = chainBuilder
-      .exec(http("Browser to Log In Endpoint")
-        .get(LOGIN_ENDPOINT)
-        .headers(UI_HEADERS)
-        .queryParam("login", "true")
-        .queryParam("response_type", "code")
-        .queryParam("client_id", "#{clientId}")
-        .queryParam("state", "#{state}")
-        .queryParam("redirect_uri", "#{redirectUri}")
-        .queryParam("scope", "#{scope}")
+      .exec(request
         .check(status.is(200),
           regex("action=\"([^\"]*)\"").find.transform(_.replaceAll("&amp;", "&")).saveAs("login-form-uri")))
-      // if already logged in the check will fail with:
-      // status.find.is(200), but actually found 302
-      // The reason is that instead of returning the login page we are immediately redirected to the app that requested authentication
       .exitHereIfFailed
     if (pauseAfter) {
       userThinkPause()
@@ -230,15 +245,22 @@ class KeycloakScenarioBuilder {
   }
 
   def exchangeCode(): KeycloakScenarioBuilder = {
+    var request = http("Exchange Code")
+      .post(TOKEN_ENDPOINT)
+      .headers(UI_HEADERS)
+      .formParam("grant_type", "authorization_code")
+      .formParam("client_id", "#{clientId}")
+      .formParam("redirect_uri", "#{redirectUri}")
+      .formParam("code", "#{code}")
+
+    if (Config.usePkce) {
+      request = request.formParam("code_verifier", "#{codeVerifier}")
+    } else {
+      request = request.formParam("client_secret", "#{clientSecret}")
+    }
+
     chainBuilder = chainBuilder
-      .exec(http("Exchange Code")
-        .post(TOKEN_ENDPOINT)
-        .headers(UI_HEADERS)
-        .formParam("grant_type", "authorization_code")
-        .formParam("client_id", "#{clientId}")
-        .formParam("client_secret", "#{clientSecret}")
-        .formParam("redirect_uri", "#{redirectUri}")
-        .formParam("code", "#{code}")
+      .exec(request
         .check(
           status.is(200),
           jsonPath("$..id_token").find.saveAs("idToken"),

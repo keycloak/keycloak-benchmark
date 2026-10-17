@@ -171,6 +171,8 @@ public class Config {
      */
     public static final int refreshTokenCount = Integer.getInteger("refresh-token-count", 0);
 
+    public static final boolean usePkce = Boolean.getBoolean("use-pkce");
+
     public static final boolean refreshCloseHttpConnection = Boolean.getBoolean(System.getProperty("refresh-close-http-connection", "true"));
 
     /**

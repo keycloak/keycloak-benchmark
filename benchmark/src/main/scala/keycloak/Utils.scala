@@ -1,7 +1,8 @@
 package keycloak
 
 import java.net.URLEncoder
-import java.util.UUID
+import java.security.MessageDigest
+import java.util.{Base64, UUID}
 import java.util.concurrent.ThreadLocalRandom
 import scala.util.Random
 
@@ -31,4 +32,19 @@ object Utils {
 
   def randomUUID(rand: Random = ThreadLocalRandom.current()): String =
     new UUID(rand.nextLong(), rand.nextLong()).toString
+
+  private val PKCE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+
+  def generateCodeVerifier(length: Int = 43, rand: Random = ThreadLocalRandom.current()): String = {
+    val sb = new StringBuilder
+    for (_ <- 0 until length) {
+      sb.append(PKCE_CHARS.charAt(rand.nextInt(PKCE_CHARS.length)))
+    }
+    sb.toString()
+  }
+
+  def computeCodeChallenge(verifier: String): String = {
+    val digest = MessageDigest.getInstance("SHA-256").digest(verifier.getBytes("US-ASCII"))
+    Base64.getUrlEncoder.withoutPadding.encodeToString(digest)
+  }
 }
