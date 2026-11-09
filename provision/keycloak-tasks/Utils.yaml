@@ -151,7 +151,11 @@ tasks:
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloaksamlclients.k8s.keycloak.org-v1.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}keycloakoidcclients.k8s.keycloak.org-v1.yml
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} delete deployment/{{ default "keycloak-operator" .KC_OPERATOR_NAME }} || true
-      - KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f {{.CURRENT_PREFIX}}kubernetes.yml
+      # the raw manifest lacks the namespace of the ServiceAccount subjects, as upstream expects kustomize to set it
+      - >
+        {{ ternary "cat" "curl -fsSL" (hasPrefix "." .CURRENT_PREFIX) }} {{.CURRENT_PREFIX}}kubernetes.yml
+        | awk -v ns="{{.NAMESPACE}}" '/^subjects:/ {s=1} /^---/ {s=0} s && /^ +namespace:/ {next} {print} s && /^ +name: keycloak-operator$/ {sub(/name:.*/, "namespace: " ns); print}'
+        | KUBECONFIG="{{.KUBECONFIG}}" kubectl -n {{.NAMESPACE}} apply -f -
       - KUBECONFIG="{{.KUBECONFIG}}" kubectl patch clusterrolebinding keycloak-operator-clusterrole-binding --type='json' -p="[{\"op\":\"replace\",\"path\":\"/subjects/0/namespace\",\"value\":\"{{.NAMESPACE}}\"}]"
       - task: patch-keycloak-operator-image
         vars:
