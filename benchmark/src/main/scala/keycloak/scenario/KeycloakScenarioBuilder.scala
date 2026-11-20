@@ -93,6 +93,13 @@ class KeycloakScenarioBuilder {
       clientId = Config.clientId
     }
 
+    // admin scenarios get their token from the "gatling" service account client unless --client-id is set
+    var serviceAccountClientId = "gatling"
+
+    if (Config.clientId != null) {
+      serviceAccountClientId = Config.clientId
+    }
+
     var clientSecret = "client-".concat(clientIndex).concat("-secret")
 
     if (Config.clientSecret != null) {
@@ -117,6 +124,7 @@ class KeycloakScenarioBuilder {
       "username" -> userName,
       "password" -> userPassword,
       "clientId" -> clientId,
+      "serviceAccountClientId" -> serviceAccountClientId,
       "clientSecret" -> clientSecret,
       "redirectUri" -> redirectUri,
       "adminUsername" -> Config.adminUsername,
@@ -356,7 +364,7 @@ class KeycloakScenarioBuilder {
     .exec(http("Get service account token")
       .post(TOKEN_ENDPOINT)
       .formParam("grant_type", "client_credentials")
-      .formParam("client_id", "gatling")
+      .formParam("client_id", "#{serviceAccountClientId}")
       .formParam("client_secret", "#{clientSecret}")
       .check(
         jsonPath("$..access_token").find.saveAs("token"),
